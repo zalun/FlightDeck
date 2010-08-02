@@ -83,6 +83,11 @@ class Package(models.Model):
 	created_at = models.DateTimeField(auto_now_add=True)
 	last_update = models.DateTimeField(auto_now=True)
 
+	# active do not show the package to others
+	active = models.BooleanField(default=True, blank=True)
+	# should the package be hidden from the world and author?
+	deleted = models.BooleanField(default=False, blank=True)
+
 	class Meta: 
 		ordering = ('-last_update','-created_at')
 
