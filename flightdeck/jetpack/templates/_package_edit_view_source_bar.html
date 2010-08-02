@@ -8,6 +8,20 @@
 			Edit
 		</a>
 	</li>
+	{% if package.deleted %}
+		{# Just in case there will be an option to display deleted packages #}
+		<li class="UI_Unelete">
+			<a title="Undelete" href="{{ item.get_delete_url }}">
+				Unelete
+			</a>
+		</li>
+	{% else %}
+		<li class="UI_Delete">
+			<a title="Delete" href="{{ item.get_delete_url }}">
+				Delete
+			</a>
+		</li>
+	{% endif %}
 	{% comment %}
 	<li class="UI_Edit_Version">
 		<a title="Edit {{ item.version }}" href="{{ item.version.get_edit_url }}">
