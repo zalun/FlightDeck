@@ -12,12 +12,12 @@ def public_profile(r, username, force=None):
 	"""
 	Public profile
 	"""
+	page = "profile"
 	person = get_object_or_404(User, username=username)
 	profile = person.get_profile()
 	addons = person.packages_originated.addons()
 	libraries = person.packages_originated.libraries()
 	# if owner of the profile and not specially wanted to see it - redirect to dashboard
-	page = "profile"
 	return render_to_response("profile.html", locals(),
 				context_instance=RequestContext(r))
 

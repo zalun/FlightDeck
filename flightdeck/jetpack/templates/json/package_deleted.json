@@ -1,0 +1,5 @@
+{
+	"undelete_url": "{{ package.get_undelete_url }}",
+	"message_title": "Success",
+	"message": "Package {{ package.full_name }} deleted<br/><a href=\"{{ package.get_undelete_url }}\" id=\"undelete\">Undo</a>"
+}
