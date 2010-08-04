@@ -1,5 +1,7 @@
 {% extends "package_browser.html" %}
 
+{% block title %}{{ author.get_profile }} - Recent Libraries - {% endblock %}
+
 {% block page_content %}
 	<h2 class="UI_Heading">
 		<a href='{% url person_public_profile author.username %}'>{{ author.get_profile }}</a>: 
