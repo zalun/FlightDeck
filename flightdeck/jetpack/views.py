@@ -135,6 +135,42 @@ def package_edit(r, id, type, revision_number=None, version_name=None, latest=Fa
 				context_instance=RequestContext(r))
 
 
+@login_required
+def package_delete(r, id_number):
+	"""
+	Delete Package and return confirmation
+	"""
+	package = get_object_or_404(Package, id_number=id_number)
+	if r.user.pk != package.author.pk:
+		return HttpResponseForbidden('You are not the author of this %s' % package.get_type_name())
+
+	package.deleted = True
+	package.save()
+
+	return render_to_response("json/package_deleted.json", 
+				{'package': package},
+				context_instance=RequestContext(r),
+				mimetype='application/json')
+
+
+@login_required
+def package_undelete(r, id_number):
+	"""
+	Undelete Package and return confirmation
+	"""
+	package = get_object_or_404(Package, id_number=id_number)
+	if r.user.pk != package.author.pk:
+		return HttpResponseForbidden('You are not the author of this %s' % package.get_type_name())
+
+	package.deleted = False
+	package.save()
+
+	return render_to_response("json/package_undeleted.json", 
+				{'package': package},
+				context_instance=RequestContext(r),
+				mimetype='application/json')
+
+
 @require_POST
 @login_required
 def package_add_module(r, id, type, revision_number=None, version_name=None):
@@ -423,7 +459,7 @@ def library_autocomplete(r):
 	try:
 		query = r.GET.get('q')
 		limit = r.GET.get('limit', settings.LIBRARY_AUTOCOMPLETE_LIMIT)
-		found = Package.objects.filter(type='l').exclude(name='jetpack-core').filter(
+		found = Package.objects.libraries().exclude(name='jetpack-core').filter(
 					Q(name__icontains=query) | \
 					Q(full_name__icontains=query)
 					)[:limit]

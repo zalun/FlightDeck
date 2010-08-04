@@ -11,8 +11,8 @@ def homepage(r):
 	# one more for the main one 
 	addons_limit = jp_settings.HOMEPAGE_PACKAGES_NUMBER
 
-	libraries = Package.objects.filter(type='l')[:jp_settings.HOMEPAGE_PACKAGES_NUMBER]
-	addons = Package.objects.filter(type='a')[:addons_limit]
+	libraries = Package.objects.libraries()[:jp_settings.HOMEPAGE_PACKAGES_NUMBER]
+	addons = Package.objects.addons()[:addons_limit]
 
 	addons = list(addons)
 	page = 'homepage'

@@ -225,6 +225,18 @@ a:hover {
 	font-family: Helvetica, Arial, Tahoma, sans-serif;
 }
 
+#apibrowser .UI_Sidebar .UI_Heading {
+	border-top: solid 1px #E9EDF0;
+	border-bottom: 0px;
+	padding: 15px 0 0;
+}
+
+#apibrowser .UI_Sidebar .UI_Heading:first-child {
+	padding-top: 0px;
+	border-top: 0px;
+	margin-bottom: 5px;
+}
+
 /*
  =========================================================================== */
 .UI_SeeMore a {

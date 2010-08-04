@@ -83,6 +83,11 @@ class Package(models.Model):
 	created_at = models.DateTimeField(auto_now_add=True)
 	last_update = models.DateTimeField(auto_now=True)
 
+	# active do not show the package to others
+	active = models.BooleanField(default=True, blank=True)
+	# should the package be hidden from the world and author?
+	deleted = models.BooleanField(default=False, blank=True)
+
 	class Meta: 
 		ordering = ('-last_update','-created_at')
 
@@ -106,7 +111,13 @@ class Package(models.Model):
 		return reverse('jp_%s_edit_latest' % self.get_type_name(),
 						args=[self.id_number])
 
+	def get_delete_url(self):
+		return reverse('jp_package_delete',
+						args=[self.id_number])
 
+	def get_undelete_url(self):
+		return reverse('jp_package_undelete',
+						args=[self.id_number])
 
 	def is_addon(self):
 		return self.type == 'a'
@@ -714,8 +725,7 @@ class PackageRevision(models.Model):
 
 
 	def get_version_name(self): 
-		name = '%s ' % self.version_name if self.version_name else ''
-		return '%srev. %s' % (name, self.revision_number)
+		return self.version_name if self.version_name else "%s.rev%s" % (self.package.version_name, self.revision_number)
 
 class Module(models.Model):
 	" the only way to 'change' the module is to assign it to different PackageRequest "
