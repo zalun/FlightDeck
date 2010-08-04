@@ -56,9 +56,9 @@ LOGIN_REDIRECT_URL = '/user/dashboard/'
 # Examples: "http://foo.com/media/", "/media/".
 ADMIN_MEDIA_PREFIX = '/adminmedia/'
 
-ADMIN_TITLE = "Add-ons Builder Administration"
+ADMIN_TITLE = "Add-on Builder Administration"
 
-SITE_TITLE = "Add-ons Builder"
+SITE_TITLE = "Add-on Builder"
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'somesecretkey'
