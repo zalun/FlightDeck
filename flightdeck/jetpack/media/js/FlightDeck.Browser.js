@@ -6,7 +6,7 @@
 FlightDeck = Class.refactor(FlightDeck,{
 	options: {
 		try_in_browser_class: 'XPI_test',
-		delete_class: 'UI_Delete'
+		disable_class: 'UI_Disable'
 	},
 	initialize: function(options) {
 		this.setOptions(options);
@@ -26,7 +26,7 @@ FlightDeck = Class.refactor(FlightDeck,{
 				}
 			});
 		});
-		$$('.{delete_class} a'.substitute(this.options)).each(function(el) {
+		$$('.{disable_class} a'.substitute(this.options)).each(function(el) {
 			el.addEvent('click', function(e){
 				e.stop();
 				new Request.JSON({
@@ -34,8 +34,8 @@ FlightDeck = Class.refactor(FlightDeck,{
 					onSuccess: function(response) {
 						el.getParent('li.UI_Item').destroy();
 						fd.message.alert(response.message_title, response.message);
-						if ($('undelete')) {
-							$('undelete').addEvent('click', function(e2){
+						if ($('activate')) {
+							$('activate').addEvent('click', function(e2){
 								e2.stop();
 								var self = this;
 								new Request.JSON({
