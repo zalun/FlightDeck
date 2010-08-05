@@ -72,11 +72,11 @@ urlpatterns = patterns('jetpack.views',
 		'package_save',{'type': 'l'},  name='jp_library_revision_save'),
 
 
-	# delete/undelete package
-	url(r'^package/delete/(?P<id_number>[-\w]+)/$',
-		'package_delete', name='jp_package_delete'),
-	url(r'^package/undelete/(?P<id_number>[-\w]+)/$',
-		'package_undelete', name='jp_package_undelete'),
+	# disable/activate package
+	url(r'^package/disable/(?P<id_number>[-\w]+)/$',
+		'package_disable', name='jp_package_disable'),
+	url(r'^package/activate/(?P<id_number>[-\w]+)/$',
+		'package_activate', name='jp_package_activate'),
 	
 
 	# add/remove module

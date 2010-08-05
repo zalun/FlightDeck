@@ -85,8 +85,6 @@ class Package(models.Model):
 
 	# active do not show the package to others
 	active = models.BooleanField(default=True, blank=True)
-	# should the package be hidden from the world and author?
-	deleted = models.BooleanField(default=False, blank=True)
 
 	class Meta: 
 		ordering = ('-last_update','-created_at')
@@ -111,12 +109,12 @@ class Package(models.Model):
 		return reverse('jp_%s_edit_latest' % self.get_type_name(),
 						args=[self.id_number])
 
-	def get_delete_url(self):
-		return reverse('jp_package_delete',
+	def get_disable_url(self):
+		return reverse('jp_package_disable',
 						args=[self.id_number])
 
-	def get_undelete_url(self):
-		return reverse('jp_package_undelete',
+	def get_activate_url(self):
+		return reverse('jp_package_activate',
 						args=[self.id_number])
 
 	def is_addon(self):
