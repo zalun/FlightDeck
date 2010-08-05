@@ -28,8 +28,8 @@ def dashboard(r):
 	"""
 	page = "dashboard"
 	person = r.user
-	addons = r.user.packages_originated.addons(active_only=False)
-	libraries = r.user.packages_originated.libraries(active_only=False)
+	addons = r.user.packages_originated.addons()
+	libraries = r.user.packages_originated.libraries()
 	return render_to_response("dashboard.html", locals(),
 				context_instance=RequestContext(r))
 
