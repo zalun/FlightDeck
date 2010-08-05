@@ -136,25 +136,25 @@ def package_edit(r, id, type, revision_number=None, version_name=None, latest=Fa
 
 
 @login_required
-def package_delete(r, id_number):
+def package_disable(r, id_number):
 	"""
-	Delete Package and return confirmation
+	Disable Package and return confirmation
 	"""
 	package = get_object_or_404(Package, id_number=id_number)
 	if r.user.pk != package.author.pk:
 		return HttpResponseForbidden('You are not the author of this %s' % package.get_type_name())
 
-	package.deleted = True
+	package.active = False
 	package.save()
 
-	return render_to_response("json/package_deleted.json", 
+	return render_to_response("json/package_disabled.json", 
 				{'package': package},
 				context_instance=RequestContext(r),
 				mimetype='application/json')
 
 
 @login_required
-def package_undelete(r, id_number):
+def package_activate(r, id_number):
 	"""
 	Undelete Package and return confirmation
 	"""
@@ -162,10 +162,10 @@ def package_undelete(r, id_number):
 	if r.user.pk != package.author.pk:
 		return HttpResponseForbidden('You are not the author of this %s' % package.get_type_name())
 
-	package.deleted = False
+	package.active = True
 	package.save()
 
-	return render_to_response("json/package_undeleted.json", 
+	return render_to_response("json/package_activated.json", 
 				{'package': package},
 				context_instance=RequestContext(r),
 				mimetype='application/json')
@@ -460,8 +460,8 @@ def library_autocomplete(r):
 		query = r.GET.get('q')
 		limit = r.GET.get('limit', settings.LIBRARY_AUTOCOMPLETE_LIMIT)
 		found = Package.objects.libraries().exclude(name='jetpack-core').filter(
-					Q(name__icontains=query) | \
-					Q(full_name__icontains=query)
+						Q(name__icontains=query) | \
+						Q(full_name__icontains=query)
 					)[:limit]
 	except:
 		found = []

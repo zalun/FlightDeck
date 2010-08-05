@@ -1,6 +1,6 @@
 {
 	{% include "json/_edit_urls.json" %}
 	"message_title": "Success",
-	"message": "Package {{ package.full_name }} undeleted",
+	"message": "Package {{ package.full_name }} activated",
 }
 
