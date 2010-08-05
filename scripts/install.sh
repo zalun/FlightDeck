@@ -69,15 +69,19 @@ fi
 
 
 ### Bespin installation
+BESPIN_VERSION=0.8.0
 cd $V_ENV/lib/
-if [ ! -e $V_ENV/lib/BespinEmbedded-DropIn-0.8.0 ]
+if [ ! -e $V_ENV/lib/BespinEmbedded-DropIn-$BESPIN_VERSION ]
 then
-	wget http://ftp.mozilla.org/pub/mozilla.org/labs/bespin/Embedded/BespinEmbedded-DropIn-0.8.0.tar.gz --no-check-certificate
-	tar xfvz BespinEmbedded-DropIn-0.8.0.tar.gz
-	rm BespinEmbedded-DropIn-0.8.0.tar.gz
+	wget http://ftp.mozilla.org/pub/mozilla.org/labs/bespin/Embedded/BespinEmbedded-DropIn-$BESPIN_VERSION.tar.gz --no-check-certificate
+	tar xfvz BespinEmbedded-DropIn-$BESPIN_VERSION.tar.gz
+	rm BespinEmbedded-DropIn-$BESPIN_VERSION.tar.gz
 	rm $V_ENV/lib/BespinEmbedded
-	ln -fs $V_ENV/lib/BespinEmbedded-DropIn-0.8.0/ $V_ENV/lib/BespinEmbedded
 	rm $PROJECT_DIR/$PROJECT_NAME/media/bespin
+fi
+if [ ! -e $V_ENV/lib/BespinEmbedded ]
+then
+	ln -fs $V_ENV/lib/BespinEmbedded-DropIn-$BESPIN_VERSION/ $V_ENV/lib/BespinEmbedded
 fi
 if [ ! -e $PROJECT_DIR/$PROJECT_NAME/media/bespin ]
 then
