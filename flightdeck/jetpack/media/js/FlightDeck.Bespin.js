@@ -9,11 +9,12 @@ var FDBespin = new Class({
 		var self = this;
 		this.setOptions(options);
 		//var embedded = tiki.require('Embedded');
+		$log('FD: initializing bespin on ' + element);
 		bespin.useBespin($(element), {
 			stealFocus: true
 		}).then(function(env){
+				$log(env);
 				self.element = env;
-				$log(env)
 			});
 		$log('FD: bespin instantiated');
 		// hook onChange event
