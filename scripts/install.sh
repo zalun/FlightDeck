@@ -67,26 +67,26 @@ then
 	ln -fs $V_ENV/lib/Roar/ $PROJECT_DIR/$PROJECT_NAME/media/roar
 fi
 
-
+# There is a special version prepared for the FD
 ### Bespin installation
-BESPIN_VERSION=0.8.0
-cd $V_ENV/lib/
-if [ ! -e $V_ENV/lib/BespinEmbedded-DropIn-$BESPIN_VERSION ]
-then
-	wget http://ftp.mozilla.org/pub/mozilla.org/labs/bespin/Embedded/BespinEmbedded-DropIn-$BESPIN_VERSION.tar.gz --no-check-certificate
-	tar xfvz BespinEmbedded-DropIn-$BESPIN_VERSION.tar.gz
-	rm BespinEmbedded-DropIn-$BESPIN_VERSION.tar.gz
-	rm $V_ENV/lib/BespinEmbedded
-	rm $PROJECT_DIR/$PROJECT_NAME/media/bespin
-fi
-if [ ! -e $V_ENV/lib/BespinEmbedded ]
-then
-	ln -fs $V_ENV/lib/BespinEmbedded-DropIn-$BESPIN_VERSION/ $V_ENV/lib/BespinEmbedded
-fi
-if [ ! -e $PROJECT_DIR/$PROJECT_NAME/media/bespin ]
-then
-	ln -fs $V_ENV/lib/BespinEmbedded/ $PROJECT_DIR/$PROJECT_NAME/media/bespin
-fi
+#BESPIN_VERSION=0.8.0
+#cd $V_ENV/lib/
+#if [ ! -e $V_ENV/lib/BespinEmbedded-DropIn-$BESPIN_VERSION ]
+#then
+#	wget http://ftp.mozilla.org/pub/mozilla.org/labs/bespin/Embedded/BespinEmbedded-DropIn-$BESPIN_VERSION.tar.gz --no-check-certificate
+#	tar xfvz BespinEmbedded-DropIn-$BESPIN_VERSION.tar.gz
+#	rm BespinEmbedded-DropIn-$BESPIN_VERSION.tar.gz
+#	rm $V_ENV/lib/BespinEmbedded
+#	rm $PROJECT_DIR/$PROJECT_NAME/media/bespin
+#fi
+#if [ ! -e $V_ENV/lib/BespinEmbedded ]
+#then
+#	ln -fs $V_ENV/lib/BespinEmbedded-DropIn-$BESPIN_VERSION/ $V_ENV/lib/BespinEmbedded
+#fi
+#if [ ! -e $PROJECT_DIR/$PROJECT_NAME/media/bespin ]
+#then
+#	ln -fs $V_ENV/lib/BespinEmbedded/ $PROJECT_DIR/$PROJECT_NAME/media/bespin
+#fi
 
 ### CodeMirror installation
 # deprecated
