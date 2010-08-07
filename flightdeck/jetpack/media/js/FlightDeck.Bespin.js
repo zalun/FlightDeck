@@ -8,13 +8,13 @@ var FDBespin = new Class({
 	initialize: function(element, options) {
 		var self = this;
 		this.setOptions(options);
-		//var embedded = tiki.require('Embedded');
 		$log('FD: initializing bespin on ' + element);
 		bespin.useBespin($(element), {
 			stealFocus: true
 		}).then(function(env){
-				$log(env);
-				self.element = env;
+				self.element = env.editor;
+				$log('FD: Bespin is ready');
+				self.fireEvent('ready');
 			});
 		$log('FD: bespin instantiated');
 		// hook onChange event
@@ -32,11 +32,12 @@ var FDBespin = new Class({
 		});
 	},
 	setContent: function(value) {
-		this.element.set('value', value);
+		this.element.value = '';
+		this.element.value = value;
 		return this;
 	},
 	getContent: function() {
-		return this.element.get('value');
+		return this.element.value;
 	},
 	setSyntax: function(syntax) {
 		if (!this.options.validSyntaxes.contains(syntax)) {
@@ -51,8 +52,8 @@ var FDBespin = new Class({
 				}
 			}
 		}
-		// thanks to jviereck#bespin@irc.mozilla.org
-		this.element.setPath('_editorView.layoutManager.syntaxManager.initialContext', syntax);
+		// XXX Switched off as incompatible with MooTools
+		// this.element.syntax = syntax
 		return this;
 	}
 });
@@ -92,10 +93,16 @@ Class.refactor(FlightDeck, {
 	initializeBespin: function() {
 		$log('FD: initializing Bespin');
 		this.bespin = new FDBespin(this.bespin_editor);
-		this.bespin.addEvent('change', function() {
-			self.fireEvent('bespinChange');
-		}.bind(this));
-		this.fireEvent('bespinLoad');
+		this.bespin.addEvents({
+			'change': function() {
+				self.fireEvent('bespinChange');
+			}.bind(this),
+			'ready': function() {
+				this.bespinLoaded = true;
+				$log('FD: firing bespinLoadEvent');
+				this.fireEvent('bespinLoad');
+			}.bind(this)
+		});
 	}
 });
 

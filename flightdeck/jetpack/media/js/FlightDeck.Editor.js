@@ -55,7 +55,6 @@ FlightDeck = Class.refactor(FlightDeck,{
 	 * Method: getItem
 	 */
 	getItem: function() {
-		// item is currently a global 
 		return this.item;
 	},
 	/*
