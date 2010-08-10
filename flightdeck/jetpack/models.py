@@ -233,6 +233,9 @@ class PackageRevision(models.Model):
 
 	# main for the Manifest
 	module_main = models.CharField(max_length=100, blank=True, default='main')
+
+	# SDK which should be used to create the XPI
+	sdk = models.ForeignKey('SDK', blank=True, null=True)
 	
 
 	class Meta: 
@@ -647,6 +650,7 @@ class PackageRevision(models.Model):
 				'%s/packages/%s' % (sdk_dir, self.package.get_unique_package_name()))
 				)
 
+
 	def build_xpi_test(self, modules):
 		" prepare and build XPI for test only (unsaved modules) "
 		if self.package.type == 'l':
@@ -688,7 +692,6 @@ class PackageRevision(models.Model):
 		handle.write('private-key:%s\n' % self.package.private_key)
 		handle.write('public-key:%s' % self.package.public_key)
 		handle.close()
-
 
 
 	def export_manifest(self, package_dir):
@@ -815,10 +818,12 @@ class SDK(models.Model):
 	"""
 	version = models.CharField(max_length=10, unique=True)
 	# It has to be accompanied with a jetpack-core version - needs to exist before SDK is created
-	core_lib = models.ForeignKey(PackageRevision)
+	core_lib = models.OneToOneField(PackageRevision, related_name="parent_sdk")
 	# placement in the filesystem
 	dir = models.CharField(max_length=255, unique=True)
 	
+	def __unicode__(self):
+		return self.version
 	
 
 #################################################################################
