@@ -28,6 +28,11 @@ var FDBespin = new Class({
 		$log('FD: bespin onChange hooked');
 		*/
 		window.addEvent('resize', function() {
+			if (!self.element) {
+				$log('FD: resizing window: fd.bespin.element undefined')
+				$log(self);
+				return;
+			}
 			self.element.dimensionsChanged();
 		});
 	},
