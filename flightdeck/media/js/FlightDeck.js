@@ -56,9 +56,9 @@ var FlightDeck = new Class({
 		}
 	},
 
-	whenXpiInstalled: function() {
+	whenXpiInstalled: function(name) {
 		this.parseTestButtons();
-		this.message.alert('Add-ons Builder', 'Add-on installed');
+		this.message.alert('Add-ons Builder', '{name} installed'.substitute({'name': (name) ? name : 'Add-on'}));
 		// remove SDK from disk
 		if (this.rm_xpi_url) {
 			new Request.JSON({
@@ -98,7 +98,7 @@ var FlightDeck = new Class({
 			return;
 		}
 		this.rm_xpi_url = response.rm_xpi_url;
-		this.installXPI(response.test_xpi_url);
+		this.installXPI(response.test_xpi_url, response.name);
 	},
 
 	isXpiInstalled: function() {
@@ -114,7 +114,7 @@ var FlightDeck = new Class({
 	/*
 	 * Method: installXPI
 	 */
-	installXPI: function(url) {
+	installXPI: function(url, name) {
 		if (fd.alertIfNoAddOn()) {
 			new Request({
 				url: url,
@@ -123,7 +123,7 @@ var FlightDeck = new Class({
 					$log('FD: installing ' + url);
 					var result = window.mozFlightDeck.send({cmd: "install", contents: responseText});
 					if (result && result.success) {
-						this.fireEvent('xpi_installed');
+						this.fireEvent('xpi_installed', name);
 					} else {
 						this.warning.alert(
 							'Add-ons Builder', 
@@ -157,11 +157,23 @@ var FlightDeck = new Class({
 	/*
 	 * Method: alertIfNoAddOn
 	 */
-	alertIfNoAddOn: function(text, title) {
+	alertIfNoAddOn: function(callback, text, title) {
 		if (this.isAddonInstalled()) return true;
-		text = $pick(text, "To test this add-on, please install the <a href='{addons_helper}'>Add-ons Builder Helper add-on</a>".substitute(settings));
-		title = $pick(title, "Install Add-ons Builder Helper");
+		text = "To test this add-on, please install the <a id='install_addon_helper' href='{addons_helper}'>Add-ons Builder Helper add-on</a>".substitute(settings);
+		title = "Install Add-ons Builder Helper";
 		fd.warning.alert(title, text);
+		if (callback) {
+			callback.call();
+		} else {
+			$log('FD: listening to addonbuilderhelperstart');
+			$(document.body).addEvent('addonbuilderhelperstart', function() {
+				fd.notification('Add-on Builder Helper', 'Successfully installed');
+			});
+			(function() { 
+				$log('not listening to addonbuilderhelperstart');
+				//$(document.body).removeEvents('addonbuilderhelperstart');
+			}).delay(10000000);
+		}
 		return false;
 	},
 	/*
