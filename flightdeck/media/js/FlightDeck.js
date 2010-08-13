@@ -58,7 +58,7 @@ var FlightDeck = new Class({
 
 	whenXpiInstalled: function(name) {
 		this.parseTestButtons();
-		this.message.alert('Add-ons Builder', '{name} installed'.substitute({'name': (name) ? name : 'Add-on'}));
+		this.message.alert('Add-ons Builder', '{name} installed'.substitute({'name': $pick(name, 'Add-on')}));
 		// remove SDK from disk
 		if (this.rm_xpi_url) {
 			new Request.JSON({
@@ -75,6 +75,22 @@ var FlightDeck = new Class({
 		this.parseTestButtons();
 		this.message.alert('Add-ons Builder', 'Add-on uninstalled');
 	},
+
+	/*
+	Method: whenAddonInstalled
+	create listener for a callback function
+	 */
+	whenAddonInstalled: function(callback) {
+		var removeListener = function() {
+			document.body.removeEventListener('addonbuilderhelperstart', callback, false);
+		}
+		document.body.addEventListener('addonbuilderhelperstart', callback, false);
+		(function() { 
+			$log('not listening to addonbuilderhelperstart');
+			removeListener();
+		}).delay(100000);
+	},
+
 
 	parseTestButtons: function() {
 		var installed = (this.isAddonInstalled()) ? this.isXpiInstalled() : false;
@@ -116,15 +132,16 @@ var FlightDeck = new Class({
 	 */
 	installXPI: function(url, name) {
 		if (fd.alertIfNoAddOn()) {
+			$log('FD: installing ' + name + ' - ' + url);
 			new Request({
 				url: url,
 				headers: {'Content-Type': 'text/plain; charset=x-user-defined'},
 				onSuccess: function(responseText) {
-					$log('FD: installing ' + url);
 					var result = window.mozFlightDeck.send({cmd: "install", contents: responseText});
 					if (result && result.success) {
 						this.fireEvent('xpi_installed', name);
 					} else {
+						if (result) $log(result);
 						this.warning.alert(
 							'Add-ons Builder', 
 							'Wrong response from Add-ons Helper. Please <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=573778">let us know</a>'
@@ -159,21 +176,10 @@ var FlightDeck = new Class({
 	 */
 	alertIfNoAddOn: function(callback, text, title) {
 		if (this.isAddonInstalled()) return true;
-		text = "To test this add-on, please install the <a id='install_addon_helper' href='{addons_helper}'>Add-ons Builder Helper add-on</a>".substitute(settings);
-		title = "Install Add-ons Builder Helper";
+		text = $pick(text,
+				"To test this add-on, please install the <a id='install_addon_helper' href='{addons_helper}'>Add-ons Builder Helper add-on</a>".substitute(settings));
+		title = $pick(title, "Install Add-ons Builder Helper");
 		fd.warning.alert(title, text);
-		if (callback) {
-			callback.call();
-		} else {
-			$log('FD: listening to addonbuilderhelperstart');
-			$(document.body).addEvent('addonbuilderhelperstart', function() {
-				fd.notification('Add-on Builder Helper', 'Successfully installed');
-			});
-			(function() { 
-				$log('not listening to addonbuilderhelperstart');
-				//$(document.body).removeEvents('addonbuilderhelperstart');
-			}).delay(10000000);
-		}
 		return false;
 	},
 	/*
