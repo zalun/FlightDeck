@@ -14,15 +14,26 @@ FlightDeck = Class.refactor(FlightDeck,{
 		$$('.{try_in_browser_class} a'.substitute(this.options)).each(function(el) {
 			el.addEvent('click', function(e){
 				e.stop();
+				var testThisXpi = function() {
+					new Request.JSON({
+						url: el.get('href'),
+						onSuccess: fd.testXPI.bind(fd)
+					}).send();
+				}
 				if (fd.alertIfNoAddOn()) {
 					if (el.getParent('li').hasClass('pressed')) {
 						fd.uninstallXPI(el.get('rel'));
 					} else {
-						new Request.JSON({
-							url: el.get('href'),
-							onSuccess: fd.testXPI.bind(fd)
-						}).send();
+						testThisXpi();
 					}
+				} else {
+					fd.whenAddonInstalled(function() {
+						fd.message.alert(
+							'Add-on Builder Helper', 
+							'Now that you have installed the Add-ons Builder Helper, loading the add-on into your browser for testing...'
+						);
+						testThisXpi();
+					}.bind(this));
 				}
 			});
 		});
