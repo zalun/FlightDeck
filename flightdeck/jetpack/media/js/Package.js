@@ -86,6 +86,15 @@ var Package = new Class({
 			} else {
 				this.installAddon();
 			}
+		} else {
+			fd.whenAddonInstalled(function() {
+				fd.message.alert(
+					'Add-on Builder Helper', 
+					'Now that you have installed the Add-ons Builder Helper, loading the add-on into your browser for testing...'
+				);
+				this.testAddon();
+			}.bind(this));
+			
 		}
 	},
 	installAddon: function() {

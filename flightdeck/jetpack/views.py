@@ -587,7 +587,8 @@ def package_test_xpi(r, id, revision_number=None, version_name=None):
 										revision.package.get_unique_package_name(), 
 										revision.package.name
 										]), 
- 					'rm_xpi_url': reverse('jp_rm_xpi', args=[revision.get_sdk_name()])
+ 					'rm_xpi_url': reverse('jp_rm_xpi', args=[revision.get_sdk_name()]),
+					'addon_name': '"%s (%s)"' % (revision.package.full_name, revision.get_version_name())
  				},
 				context_instance=RequestContext(r))
 			#	mimetype='application/json')
