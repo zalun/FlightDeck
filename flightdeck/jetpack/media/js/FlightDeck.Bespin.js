@@ -13,20 +13,9 @@ var FDBespin = new Class({
 			stealFocus: true
 		}).then(function(env){
 				self.element = env.editor;
-				$log('FD: Bespin is ready');
-				self.fireEvent('ready');
+				self.ready();
 			});
 		$log('FD: bespin instantiated');
-		// hook onChange event
-		/*
-		this.element._editorView.getPath('layoutManager.textStorage')
-			.addDelegate(SC.Object.create({
-				textStorageEdited: function() {
-					self.fireEvent('change');
-				}
-			}));
-		$log('FD: bespin onChange hooked');
-		*/
 		window.addEvent('resize', function() {
 			if (!self.element) {
 				$log('FD: resizing window: fd.bespin.element undefined')
@@ -34,6 +23,15 @@ var FDBespin = new Class({
 				return;
 			}
 			self.element.dimensionsChanged();
+		});
+	},
+	ready: function() {
+		$log('FD: Bespin is ready');
+		this.fireEvent('ready');
+		var self = this;
+		this.element.textChanged.add(function() {
+			$log('FD: bespin text changed');
+			self.fireEvent('change');
 		});
 	},
 	setContent: function(value) {
@@ -100,7 +98,7 @@ Class.refactor(FlightDeck, {
 		this.bespin = new FDBespin(this.bespin_editor);
 		this.bespin.addEvents({
 			'change': function() {
-				self.fireEvent('bespinChange');
+				this.fireEvent('change');
 			}.bind(this),
 			'ready': function() {
 				this.bespinLoaded = true;

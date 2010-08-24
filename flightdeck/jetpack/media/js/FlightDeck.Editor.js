@@ -12,8 +12,25 @@ FlightDeck = Class.refactor(FlightDeck,{
 		this.setOptions(options);
 		this.previous(options);
 
+		this.edited = false;
+		window.addEvent('beforeunload', function(e) {
+			if (fd.edited) {
+				alert('edited');
+				e.stop();
+				e.returnValue = "You've got unsaved changes.";
+			} else {
+			}
+		});
+
 		this.assignModeSwitch('.{file_listing_class} li'.substitute(this.options));
 		this.enableMenuButtons();
+
+		this.addEvent('change', function() { 
+			this.edited = true;
+		});
+		this.addEvent('save', function() {
+			this.edited = false;
+		});
 	},
 	assignModeSwitch: function(selector) {
 		// connect click to all children of all file_listing_classes
