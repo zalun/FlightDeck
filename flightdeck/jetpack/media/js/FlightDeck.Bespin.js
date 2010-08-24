@@ -54,7 +54,7 @@ var FDBespin = new Class({
 			}
 		}
 		// XXX Switched off as incompatible with MooTools
-		// this.element.syntax = syntax
+		this.element.syntax = syntax;
 		return this;
 	}
 });
