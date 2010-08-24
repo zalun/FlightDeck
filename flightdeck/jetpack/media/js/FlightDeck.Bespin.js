@@ -15,7 +15,6 @@ var FDBespin = new Class({
 				self.element = env.editor;
 				self.ready();
 			});
-		$log('FD: bespin instantiated');
 		window.addEvent('resize', function() {
 			if (!self.element) {
 				$log('FD: resizing window: fd.bespin.element undefined')
@@ -30,7 +29,6 @@ var FDBespin = new Class({
 		this.fireEvent('ready');
 		var self = this;
 		this.element.textChanged.add(function() {
-			$log('FD: bespin text changed');
 			self.fireEvent('change');
 		});
 	},
@@ -102,7 +100,6 @@ Class.refactor(FlightDeck, {
 			}.bind(this),
 			'ready': function() {
 				this.bespinLoaded = true;
-				$log('FD: firing bespinLoadEvent');
 				this.fireEvent('bespinLoad');
 			}.bind(this)
 		});

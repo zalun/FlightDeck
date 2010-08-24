@@ -606,6 +606,12 @@ Package.Edit = new Class({
 		this.savenow = false;
 		fd.editPackageInfoModal = fd.displayModal(settings.edit_package_info_template.substitute(this.data || this.options));
 		$('package-info_form').addEvent('submit', this.boundSubmitInfo);
+		
+		// XXX: this will change after moving the content to other forms
+		$('version_name').addEvent('change', function() { fd.fireEvent('change'); });
+		$('full_name').addEvent('change', function() { fd.fireEvent('change'); });
+		$('package_description').addEvent('change', function() { fd.fireEvent('change'); });
+
 		if ($('savenow')) {
 			$('savenow').addEvent('click', function() {
 				this.savenow = true;
@@ -674,6 +680,7 @@ Package.Edit = new Class({
 					// only one add-on of the same id should be allowed on the Helper side
 					this.installAddon();
 				} 
+				fd.fireEvent('save');
 			}.bind(this)
 		}).send();
 	},

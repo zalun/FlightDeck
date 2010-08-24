@@ -15,7 +15,6 @@ FlightDeck = Class.refactor(FlightDeck,{
 		this.edited = false;
 		window.addEvent('beforeunload', function(e) {
 			if (fd.edited) {
-				alert('edited');
 				e.stop();
 				e.returnValue = "You've got unsaved changes.";
 			} else {
@@ -25,12 +24,14 @@ FlightDeck = Class.refactor(FlightDeck,{
 		this.assignModeSwitch('.{file_listing_class} li'.substitute(this.options));
 		this.enableMenuButtons();
 
-		this.addEvent('change', function() { 
-			this.edited = true;
-		});
-		this.addEvent('save', function() {
-			this.edited = false;
-		});
+		this.addEvent('change', this.onChanged);
+		this.addEvent('save', this.onSaved);
+	},
+	onChanged: function() {
+		this.edited = true;
+	},
+	onSaved: function() {
+		this.edited = false;
 	},
 	assignModeSwitch: function(selector) {
 		// connect click to all children of all file_listing_classes
