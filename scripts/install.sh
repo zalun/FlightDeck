@@ -20,6 +20,13 @@ then
 	mkdir $PROJECT_DIR/upload/
 fi
 
+### SDK versions dir 
+if [ ! -e $PROJECT_DIR/sdk_versions/ ]
+then
+	mkdir $PROJECT_DIR/sdk_versions/
+fi
+
+
 ### flightdeck media dir 
 if [ ! -e $PROJECT_DIR/$PROJECT_NAME/media/ ]
 then

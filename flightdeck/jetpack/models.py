@@ -627,7 +627,7 @@ class PackageRevision(models.Model):
 
 
 	def get_sdk_name(self):
-		return '%s-%s' % (self.package.id_number, self.revision_number)
+		return '%s-%s-%s' % (self.sdk.version, self.package.id_number, self.revision_number)
 
 	
 	def get_sdk_dir(self):
@@ -638,12 +638,17 @@ class PackageRevision(models.Model):
 		" prepare and build XPI "
 		if self.package.type == 'l':
 			raise Exception('only Add-ons may build a XPI')
+		if not self.sdk:
+			raise Exception('only Add-ons with assigned SDK may build XPI')
 
 		sdk_dir = self.get_sdk_dir()
+		sdk_source = self.sdk.get_source_dir()
+
 		# TODO: consider SDK staying per PackageRevision...
 		if os.path.isdir(sdk_dir):
 			xpi_remove(sdk_dir)
-		sdk_copy(sdk_dir)
+
+		sdk_copy(sdk_source, sdk_dir)
 		self.export_keys(sdk_dir)
 		self.export_files_with_dependencies('%s/packages' % sdk_dir)
 		return (xpi_build(sdk_dir, 
@@ -821,9 +826,17 @@ class SDK(models.Model):
 	core_lib = models.OneToOneField(PackageRevision, related_name="parent_sdk")
 	# placement in the filesystem
 	dir = models.CharField(max_length=255, unique=True)
-	
+
+
+	class Meta:
+		ordering = ["-version"]
+
 	def __unicode__(self):
 		return self.version
+
+	def get_source_dir(self):
+		return os.path.join(settings.SDK_SOURCE_DIR, self.dir)
+
 	
 
 #################################################################################
@@ -859,7 +872,14 @@ def save_first_revision(instance, **kwargs):
 	# only for the new Package
 	if not kwargs.get('created', False): return
 
-	revision = PackageRevision(package=instance, author=instance.author)
+	revision = PackageRevision(
+		package=instance, 
+		author=instance.author
+	)
+	if instance.is_addon():
+		sdks = SDK.objects.all()
+		if len(sdks):
+			revision.sdk = sdks[0]
 	revision.save()
 	instance.version = revision
 	instance.latest = revision
