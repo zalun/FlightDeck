@@ -5,7 +5,7 @@ from django.db.models import signals
 from django.contrib.auth.models import User
 
 from jetpack import models as jetpack_models
-from jetpack.models import Package, Module, PackageRevision
+from jetpack.models import Package, Module, PackageRevision, SDK
 from jetpack import settings
 from person.models import Profile
 
@@ -16,7 +16,8 @@ def install_jetpack_core(sender, created_models, **kwargs):
 		return
 	
 	# check if the jetpack-sdk was already installed
-	sdk_dir = '%s/src/jetpack-sdk' % settings.VIRTUAL_ENV
+	sdk_dir_name = 'jetpack-sdk'
+	sdk_dir = '%s/sdk_versions/%s' % (settings.FRAMEWORK_PATH, sdk_dir_name) 
 	if not os.path.isdir(sdk_dir):
 		raise Exception("Please install jetpack SDK first")
 
@@ -57,6 +58,14 @@ def install_jetpack_core(sender, created_models, **kwargs):
 			author=core_author
 		)
 		core_revision.modules.add(mod)
+
+	# create SDK
+	sdk = SDK(
+		version=core_manifest['version'],
+		core_lib=core_revision,
+		dir=sdk_dir_name
+	)
+
 	print "Jetpack Core Library created successfully"
 
 signals.post_syncdb.connect(install_jetpack_core, sender=jetpack_models)
