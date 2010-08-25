@@ -662,10 +662,11 @@ class PackageRevision(models.Model):
 			raise Exception('only Add-ons may build a XPI')
 
 		sdk_dir = self.get_sdk_dir()
+		sdk_source = self.sdk.get_source_dir()
 		# TODO: consider SDK staying per PackageRevision...
 		if os.path.isdir(sdk_dir):
 			xpi_remove(sdk_dir)
-		sdk_copy(sdk_dir)
+		sdk_copy(sdk_source, sdk_dir)
 		self.export_keys(sdk_dir)
 
 		packages_dir = '%s/packages' % sdk_dir
