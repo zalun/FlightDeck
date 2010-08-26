@@ -830,7 +830,7 @@ class SDK(models.Model):
 
 
 	class Meta:
-		ordering = ["-version"]
+		ordering = ["-id"]
 
 	def __unicode__(self):
 		return self.version
