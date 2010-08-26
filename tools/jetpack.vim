@@ -9,16 +9,16 @@ endif
 set shortmess=aoO
 badd +1 /private/tmp/------------Jetpack
 badd +571 ~/Projects/FlightDeck/flightdeck/jetpack/views.py
-badd +318 ~/Projects/FlightDeck/flightdeck/jetpack/models.py
+badd +426 ~/Projects/FlightDeck/flightdeck/jetpack/models.py
 badd +1 ~/Projects/FlightDeck/flightdeck/jetpack/tests/module_tests.py
 badd +18 ~/Projects/FlightDeck/flightdeck/jetpack/managers.py
 badd +1 ~/Projects/FlightDeck/flightdeck/jetpack/admin.py
 badd +79 ~/Projects/FlightDeck/flightdeck/jetpack/urls.py
 badd +16 ~/Projects/FlightDeck/flightdeck/jetpack/errors.py
-badd +31 ~/Projects/FlightDeck/flightdeck/jetpack/default_settings.py
+badd +34 ~/Projects/FlightDeck/flightdeck/jetpack/default_settings.py
 badd +11 ~/Projects/FlightDeck/flightdeck/jetpack/package_helpers.py
 badd +35 ~/Projects/FlightDeck/flightdeck/jetpack/xpi_utils.py
-badd +113 ~/Projects/FlightDeck/flightdeck/jetpack/management/__init__.py
+badd +76 ~/Projects/FlightDeck/flightdeck/jetpack/management/__init__.py
 badd +1 /private/tmp/---old
 badd +373 ~/Projects/FlightDeck/flightdeck/jetpack/views_old.py
 badd +7 ~/Projects/FlightDeck/flightdeck/jetpack/managers_old.py
@@ -181,22 +181,14 @@ badd +33 ~/Projects/FlightDeck/flightdeck/person/models.py
 badd +1 ~/Projects/FlightDeck/flightdeck/jetpack/templates/json/module_removed.json
 badd +1 ~/Projects/FlightDeck/flightdeck/jetpack/templates/json/package_deleted.json
 badd +3113 ~/Projects/FlightDeck/flightdeck/media/js/lib/mootools-1.2.4-core-nc.js
+badd +0 ~/Projects/FlightDeck/flightdeck/jetpack/management/commands/add_jetpack_core.py
 silent! argdel *
-edit ~/Projects/FlightDeck/flightdeck/jetpack/management/__init__.py
+edit ~/Projects/FlightDeck/flightdeck/jetpack/management/commands/add_jetpack_core.py
 set splitbelow splitright
-wincmd _ | wincmd |
-vsplit
-1wincmd h
-wincmd w
-wincmd _ | wincmd |
-split
-1wincmd k
-wincmd w
 set nosplitbelow
 set nosplitright
 wincmd t
 set winheight=1 winwidth=1
-wincmd =
 argglobal
 setlocal fdm=manual
 setlocal fde=0
@@ -207,50 +199,12 @@ setlocal fml=1
 setlocal fdn=20
 setlocal fen
 silent! normal! zE
-let s:l = 76 - ((19 * winheight(0) + 29) / 59)
+let s:l = 1 - ((0 * winheight(0) + 29) / 59)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-76
-normal! 021l
-wincmd w
-argglobal
-edit ~/Projects/FlightDeck/flightdeck/jetpack/default_settings.py
-setlocal fdm=manual
-setlocal fde=0
-setlocal fmr={{{,}}}
-setlocal fdi=#
-setlocal fdl=0
-setlocal fml=1
-setlocal fdn=20
-setlocal fen
-silent! normal! zE
-let s:l = 34 - ((27 * winheight(0) + 14) / 29)
-if s:l < 1 | let s:l = 1 | endif
-exe s:l
-normal! zt
-34
+1
 normal! 0
-wincmd w
-argglobal
-edit ~/Projects/FlightDeck/flightdeck/jetpack/models.py
-setlocal fdm=manual
-setlocal fde=0
-setlocal fmr={{{,}}}
-setlocal fdi=#
-setlocal fdl=0
-setlocal fml=1
-setlocal fdn=20
-setlocal fen
-silent! normal! zE
-let s:l = 426 - ((23 * winheight(0) + 14) / 29)
-if s:l < 1 | let s:l = 1 | endif
-exe s:l
-normal! zt
-426
-normal! 0
-wincmd w
-wincmd =
 if exists('s:wipebuf')
   silent exe 'bwipe ' . s:wipebuf
 endif
