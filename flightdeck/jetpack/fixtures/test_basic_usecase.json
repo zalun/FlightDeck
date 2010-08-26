@@ -1,13 +1,4 @@
 [
-	{
-		"pk": 1,
-		"model": "jetpack.sdk",
-		"fields": {
-			"version": "0.5",
-			"core_lib": "10000000",
-			"dir": "jetpack-SDK-0.5"
-		}
-	},
     {
         "pk": 101, 
         "model": "jetpack.package", 
