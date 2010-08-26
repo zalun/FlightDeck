@@ -68,14 +68,17 @@ def update_jetpack_core(sdk_dir_name):
 	core_contributors = [core_manifest['author']]
 	core_contributors.extend(core_manifest['contributors'])
 
-	core = Package.objects.get(id=settings.MINIMUM_PACKAGE_ID)
+	core = Package.objects.get(id_number=settings.MINIMUM_PACKAGE_ID)
 	# create new revision
-	core_revision = PackageRevision.objects.create(
+	core_revision = PackageRevision(
 		package=core,
 		author=core_author,
-		version=core_manifest['version'],
-		contributors = ', '.join(core_contributors)
+		contributors=', '.join(core_contributors),
+		revision_number=core.latest.get_next_revision_number()
 	)
+	core_revision.save()
+	core_revision.set_version(core_manifest['version'])
+	
 	add_core_modules(sdk_source, core_revision, core_author)
 
 	# create SDK
