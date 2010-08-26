@@ -1,0 +1,5 @@
+{
+	{% include "json/_edit_urls.json" %}
+	"message_title": "Success",
+	"message": "Switched to Jetpack SDK {{ sdk.version }}",
+}

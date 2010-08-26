@@ -323,6 +323,11 @@ class PackageRevision(models.Model):
 			args=[self.package.id_number, self.revision_number])
 
 	
+	def get_switch_sdk_url(self):
+		return reverse(
+			'jp_addon_switch_sdk_version', 
+			args=[self.package.id_number, self.revision_number])
+		
 
 
 	######################

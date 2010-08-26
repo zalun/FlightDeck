@@ -21,6 +21,7 @@ fd.item = new Package.Edit({
 			dependencies: {{ revision.get_dependencies_list_json|safe }}, 
 			origin_url: '{{ revision.origin.get_absolute_url }}', 
 			revision_author: '{{ revision.author }}',
+			switch_sdk_url: '{{ revision.get_switch_sdk_url }}',
 			modules: {{ revision.get_modules_list_json|safe }},
 	// Actions
 		save_url: '{{ revision.get_save_url }}',
