@@ -229,11 +229,13 @@ class PackageRevision(models.Model):
 
 	created_at = models.DateTimeField(auto_now_add=True)
 
-	#contributors for Manifest
 	contributors = models.CharField(max_length=255, blank=True, default='')
 
 	# main for the Manifest
 	module_main = models.CharField(max_length=100, blank=True, default='main')
+
+	# SDK which should be used to create the XPI
+	sdk = models.ForeignKey('SDK', blank=True, null=True)
 	
 
 	class Meta: 
@@ -321,6 +323,11 @@ class PackageRevision(models.Model):
 			args=[self.package.id_number, self.revision_number])
 
 	
+	def get_switch_sdk_url(self):
+		return reverse(
+			'jp_addon_switch_sdk_version', 
+			args=[self.package.id_number, self.revision_number])
+		
 
 
 	######################
@@ -625,7 +632,7 @@ class PackageRevision(models.Model):
 
 
 	def get_sdk_name(self):
-		return '%s-%s' % (self.package.id_number, self.revision_number)
+		return '%s-%s-%s' % (self.sdk.version, self.package.id_number, self.revision_number)
 
 	
 	def get_sdk_dir(self):
@@ -636,17 +643,23 @@ class PackageRevision(models.Model):
 		" prepare and build XPI "
 		if self.package.type == 'l':
 			raise Exception('only Add-ons may build a XPI')
+		if not self.sdk:
+			raise Exception('only Add-ons with assigned SDK may build XPI')
 
 		sdk_dir = self.get_sdk_dir()
+		sdk_source = self.sdk.get_source_dir()
+
 		# TODO: consider SDK staying per PackageRevision...
 		if os.path.isdir(sdk_dir):
 			xpi_remove(sdk_dir)
-		sdk_copy(sdk_dir)
+
+		sdk_copy(sdk_source, sdk_dir)
 		self.export_keys(sdk_dir)
 		self.export_files_with_dependencies('%s/packages' % sdk_dir)
 		return (xpi_build(sdk_dir, 
 				'%s/packages/%s' % (sdk_dir, self.package.get_unique_package_name()))
 				)
+
 
 	def build_xpi_test(self, modules):
 		" prepare and build XPI for test only (unsaved modules) "
@@ -654,10 +667,11 @@ class PackageRevision(models.Model):
 			raise Exception('only Add-ons may build a XPI')
 
 		sdk_dir = self.get_sdk_dir()
+		sdk_source = self.sdk.get_source_dir()
 		# TODO: consider SDK staying per PackageRevision...
 		if os.path.isdir(sdk_dir):
 			xpi_remove(sdk_dir)
-		sdk_copy(sdk_dir)
+		sdk_copy(sdk_source, sdk_dir)
 		self.export_keys(sdk_dir)
 
 		packages_dir = '%s/packages' % sdk_dir
@@ -689,7 +703,6 @@ class PackageRevision(models.Model):
 		handle.write('private-key:%s\n' % self.package.private_key)
 		handle.write('public-key:%s' % self.package.public_key)
 		handle.close()
-
 
 
 	def export_manifest(self, package_dir):
@@ -809,6 +822,28 @@ class Attachment(models.Model):
 		return reverse('jp_attachment', args=[self.path])
 
 
+class SDK(models.Model):
+	"""
+	Placeholder for the Jetpack SDK
+	Add-ons have to depend on an SDK, by default on latest one.
+	"""
+	version = models.CharField(max_length=10, unique=True)
+	# It has to be accompanied with a jetpack-core version - needs to exist before SDK is created
+	core_lib = models.OneToOneField(PackageRevision, related_name="parent_sdk")
+	# placement in the filesystem
+	dir = models.CharField(max_length=255, unique=True)
+
+
+	class Meta:
+		ordering = ["-id"]
+
+	def __unicode__(self):
+		return self.version
+
+	def get_source_dir(self):
+		return os.path.join(settings.SDK_SOURCE_DIR, self.dir)
+
+	
 
 #################################################################################
 ## Catching Signals
@@ -843,7 +878,14 @@ def save_first_revision(instance, **kwargs):
 	# only for the new Package
 	if not kwargs.get('created', False): return
 
-	revision = PackageRevision(package=instance, author=instance.author)
+	revision = PackageRevision(
+		package=instance, 
+		author=instance.author
+	)
+	if instance.is_addon():
+		sdks = SDK.objects.all()
+		if len(sdks):
+			revision.sdk = sdks[0]
 	revision.save()
 	instance.version = revision
 	instance.latest = revision

@@ -315,6 +315,7 @@ Package.Edit = new Class({
 			// delete_url: '',
 			// add_module_url: '',
 			// assign_library_url: '',
+			// switch_sdk_url: '',
 		package_info_form_elements: [
 			'full_name', 'version_name', 'package_description', 'revision_message'
 			]
@@ -384,6 +385,19 @@ Package.Edit = new Class({
 				fakeFileSubmit.removeClass('hover');
 			}
 		});
+		$('jetpack_core_sdk_version').addEvent('change', function() {
+			new Request.JSON({
+				url: this.options.switch_sdk_url,
+				data: {'id': $('jetpack_core_sdk_version').get('value')},
+				onSuccess: function(response) {
+					// set the redirect data to edit_url of the new revision
+					fd.setURIRedirect(response.edit_url);
+					// set data changed by save
+					this.setUrls(response);
+					fd.message.alert(response.message_title, response.message);
+				}.bind(this)
+			}).send();
+		}.bind(this));
 	},
 
 	get_add_attachment_url: function() {

@@ -89,6 +89,9 @@ urlpatterns = patterns('jetpack.views',
 	url(r'^library/remove_module/(?P<id>[-\w]+)/revision/(?P<revision_number>\d+)/$', 
 		'package_remove_module',{'type': 'l'},  name='jp_library_revision_remove_module'),
 
+	# switch SDK version
+	url(r'^addon/switch_sdk/(?P<id>[-\w]+)/revision/(?P<revision_number>\d+)/$', 
+		'package_switch_sdk', name='jp_addon_switch_sdk_version'),
 
 	# add/remove attachment
 	url(r'^addon/add_attachment/(?P<id>[-\w]+)/revision/(?P<revision_number>\d+)/$', 
