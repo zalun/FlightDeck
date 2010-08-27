@@ -1,6 +1,7 @@
+{% if revision.sdk %}
 <li class="UI_File_Normal Core_library">
-	<a title="" href="{{ corelibrary.get_absolute_url }}" target="{{ corelibrary.package.name }}" class="library_link">
-		{{ corelibrary.package.full_name }} 
+	<a title="" href="{{ revision.sdk.core_lib.get_absolute_url }}" target="{{ revision.sdk.core_lib.package.name }}" class="library_link">
+		{{ revision.sdk.core_lib.package.full_name }} 
 	</a>
 	<select id="jetpack_core_sdk_version">
 		{% for s in sdk_list %}
@@ -8,4 +9,4 @@
 		{% endfor %}
 	</select>
 </li>
-
+{% endif %}
