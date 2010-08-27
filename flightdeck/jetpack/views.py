@@ -126,6 +126,7 @@ def package_edit(r, id, type, revision_number=None, version_name=None, latest=Fa
 		
 	libraries = revision.dependencies.all()
 	library_counter = len(libraries)
+	edit_mode = True
 	if revision.package.is_addon():
 		corelibrary = Package.objects.get(id_number=settings.MINIMUM_PACKAGE_ID)
 		corelibrary = corelibrary.latest
