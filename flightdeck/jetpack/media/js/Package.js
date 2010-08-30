@@ -73,19 +73,36 @@ var Package = new Class({
 		)
 	},
 	testAddon: function(e){
+		var el;
 		if (e) e.stop();
 		if (fd.alertIfNoAddOn()) {
-			var el = e.target;
+			if (e) {
+				el = e.target;
+			} else {
+				el = $(this.options.test_el);
+			}
 			if (el.getParent('li').hasClass('pressed')) {
 				fd.uninstallXPI(el.get('rel'));
 			} else {
-				new Request.JSON({
-					url: this.test_url,
-					data: this.data || {},
-					onSuccess: fd.testXPI.bind(fd)
-				}).send();
+				this.installAddon();
 			}
+		} else {
+			fd.whenAddonInstalled(function() {
+				fd.message.alert(
+					'Add-on Builder Helper', 
+					'Now that you have installed the Add-ons Builder Helper, loading the add-on into your browser for testing...'
+				);
+				this.testAddon();
+			}.bind(this));
+			
 		}
+	},
+	installAddon: function() {
+		new Request.JSON({
+			url: this.test_url,
+			data: this.data || {},
+			onSuccess: fd.testXPI.bind(fd)
+		}).send();
 	},
 	isAddon: function() {
 		return (this.options.type == 'a');
@@ -298,6 +315,7 @@ Package.Edit = new Class({
 			// delete_url: '',
 			// add_module_url: '',
 			// assign_library_url: '',
+			// switch_sdk_url: '',
 		package_info_form_elements: [
 			'full_name', 'version_name', 'package_description', 'revision_message'
 			]
@@ -367,6 +385,19 @@ Package.Edit = new Class({
 				fakeFileSubmit.removeClass('hover');
 			}
 		});
+		$('jetpack_core_sdk_version').addEvent('change', function() {
+			new Request.JSON({
+				url: this.options.switch_sdk_url,
+				data: {'id': $('jetpack_core_sdk_version').get('value')},
+				onSuccess: function(response) {
+					// set the redirect data to edit_url of the new revision
+					fd.setURIRedirect(response.edit_url);
+					// set data changed by save
+					this.setUrls(response);
+					fd.message.alert(response.message_title, response.message);
+				}.bind(this)
+			}).send();
+		}.bind(this));
 	},
 
 	get_add_attachment_url: function() {
@@ -589,6 +620,12 @@ Package.Edit = new Class({
 		this.savenow = false;
 		fd.editPackageInfoModal = fd.displayModal(settings.edit_package_info_template.substitute(this.data || this.options));
 		$('package-info_form').addEvent('submit', this.boundSubmitInfo);
+		
+		// XXX: this will change after moving the content to other forms
+		$('version_name').addEvent('change', function() { fd.fireEvent('change'); });
+		$('full_name').addEvent('change', function() { fd.fireEvent('change'); });
+		$('package_description').addEvent('change', function() { fd.fireEvent('change'); });
+
 		if ($('savenow')) {
 			$('savenow').addEvent('click', function() {
 				this.savenow = true;
@@ -653,6 +690,11 @@ Package.Edit = new Class({
 					}
 				}, this);
 				if (fd.editPackageInfoModal) fd.editPackageInfoModal.destroy();
+				if ($(this.options.test_el).getParent('li').hasClass('pressed')) {
+					// only one add-on of the same id should be allowed on the Helper side
+					this.installAddon();
+				} 
+				fd.fireEvent('save');
 			}.bind(this)
 		}).send();
 	},

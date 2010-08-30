@@ -72,6 +72,13 @@ urlpatterns = patterns('jetpack.views',
 		'package_save',{'type': 'l'},  name='jp_library_revision_save'),
 
 
+	# disable/activate package
+	url(r'^package/disable/(?P<id_number>[-\w]+)/$',
+		'package_disable', name='jp_package_disable'),
+	url(r'^package/activate/(?P<id_number>[-\w]+)/$',
+		'package_activate', name='jp_package_activate'),
+	
+
 	# add/remove module
 	url(r'^addon/add_module/(?P<id>[-\w]+)/revision/(?P<revision_number>\d+)/$', 
 		'package_add_module', {'type': 'a'}, name='jp_addon_revision_add_module'),
@@ -82,6 +89,9 @@ urlpatterns = patterns('jetpack.views',
 	url(r'^library/remove_module/(?P<id>[-\w]+)/revision/(?P<revision_number>\d+)/$', 
 		'package_remove_module',{'type': 'l'},  name='jp_library_revision_remove_module'),
 
+	# switch SDK version
+	url(r'^addon/switch_sdk/(?P<id>[-\w]+)/revision/(?P<revision_number>\d+)/$', 
+		'package_switch_sdk', name='jp_addon_switch_sdk_version'),
 
 	# add/remove attachment
 	url(r'^addon/add_attachment/(?P<id>[-\w]+)/revision/(?P<revision_number>\d+)/$', 

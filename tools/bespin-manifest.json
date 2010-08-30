@@ -1,0 +1,9 @@
+{
+    "output_dir": "tmp",
+    "plugins": ["embedded", "html", "stylesheet", "js_syntax", "js_completion", "command_line", "syntax_worker", "whitetheme"],
+	"config": {
+		"settings": {
+			"theme": "white"
+		}
+	}
+}

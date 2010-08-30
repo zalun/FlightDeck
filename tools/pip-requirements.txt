@@ -11,5 +11,6 @@ mechanize
 BeautifulSoup
 ElementTree
 Markdown
+cuddlefish
 
 -e git+git://github.com/toastdriven/django-haystack#egg=django_haystack
