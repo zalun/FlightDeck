@@ -15,7 +15,7 @@ these steps (some commands are specific to Ubuntu with Bash):
    # Please your repository in edit mode
    $ git clone git@github.com:{your_username}/FlightDeck.git
    # or if only viewing
-   $ git clone git://github.com/zalun/FlightDeck.git
+   $ git clone git://github.com/mozilla/FlightDeck.git
 
 2. Initiate configuration files
    $ cd /path/to/projects/FlightDeck

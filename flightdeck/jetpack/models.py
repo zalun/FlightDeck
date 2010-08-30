@@ -83,6 +83,9 @@ class Package(models.Model):
 	created_at = models.DateTimeField(auto_now_add=True)
 	last_update = models.DateTimeField(auto_now=True)
 
+	# active do not show the package to others
+	active = models.BooleanField(default=True, blank=True)
+
 	class Meta: 
 		ordering = ('-last_update','-created_at')
 
@@ -106,7 +109,13 @@ class Package(models.Model):
 		return reverse('jp_%s_edit_latest' % self.get_type_name(),
 						args=[self.id_number])
 
+	def get_disable_url(self):
+		return reverse('jp_package_disable',
+						args=[self.id_number])
 
+	def get_activate_url(self):
+		return reverse('jp_package_activate',
+						args=[self.id_number])
 
 	def is_addon(self):
 		return self.type == 'a'

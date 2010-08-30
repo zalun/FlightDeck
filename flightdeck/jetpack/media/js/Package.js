@@ -73,19 +73,27 @@ var Package = new Class({
 		)
 	},
 	testAddon: function(e){
+		var el;
 		if (e) e.stop();
 		if (fd.alertIfNoAddOn()) {
-			var el = e.target;
+			if (e) {
+				el = e.target;
+			} else {
+				el = $(this.options.test_el);
+			}
 			if (el.getParent('li').hasClass('pressed')) {
 				fd.uninstallXPI(el.get('rel'));
 			} else {
-				new Request.JSON({
-					url: this.test_url,
-					data: this.data || {},
-					onSuccess: fd.testXPI.bind(fd)
-				}).send();
+				this.installAddon();
 			}
 		}
+	},
+	installAddon: function() {
+		new Request.JSON({
+			url: this.test_url,
+			data: this.data || {},
+			onSuccess: fd.testXPI.bind(fd)
+		}).send();
 	},
 	isAddon: function() {
 		return (this.options.type == 'a');
@@ -653,6 +661,10 @@ Package.Edit = new Class({
 					}
 				}, this);
 				if (fd.editPackageInfoModal) fd.editPackageInfoModal.destroy();
+				if ($(this.options.test_el).getParent('li').hasClass('pressed')) {
+					// only one add-on of the same id should be allowed on the Helper side
+					this.installAddon();
+				} 
 			}.bind(this)
 		}).send();
 	},
