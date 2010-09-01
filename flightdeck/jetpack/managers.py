@@ -5,6 +5,9 @@ class PackageManager(models.Manager):
 	def active(self):
 		return self.filter(active=True)
 
+	def disabled(self):
+		return self.filter(active=False)
+
 	def addons(self):
 		return self.active().filter(type="a")
 
