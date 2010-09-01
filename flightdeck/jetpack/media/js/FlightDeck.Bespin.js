@@ -8,27 +8,37 @@ var FDBespin = new Class({
 	initialize: function(element, options) {
 		var self = this;
 		this.setOptions(options);
-		var embedded = tiki.require('Embedded');
-		this.element = embedded.useBespin($(element), {syntax: 'plain'});
-		$log('FD: bespin instantiated');
-		// hook onChange event
-		this.element._editorView.getPath('layoutManager.textStorage')
-			.addDelegate(SC.Object.create({
-				textStorageEdited: function() {
-					self.fireEvent('change');
-				}
-			}));
-		$log('FD: bespin onChange hooked');
+		$log('FD: initializing bespin on ' + element);
+		bespin.useBespin($(element), {
+			stealFocus: true
+		}).then(function(env){
+				self.element = env.editor;
+				self.ready();
+			});
 		window.addEvent('resize', function() {
+			if (!self.element) {
+				$log('FD: resizing window: fd.bespin.element undefined')
+				$log(self);
+				return;
+			}
 			self.element.dimensionsChanged();
 		});
 	},
+	ready: function() {
+		$log('FD: Bespin is ready');
+		this.fireEvent('ready');
+		var self = this;
+		this.element.textChanged.add(function() {
+			self.fireEvent('change');
+		});
+	},
 	setContent: function(value) {
-		this.element.set('value', value);
+		this.element.value = '';
+		this.element.value = value;
 		return this;
 	},
 	getContent: function() {
-		return this.element.get('value');
+		return this.element.value;
 	},
 	setSyntax: function(syntax) {
 		if (!this.options.validSyntaxes.contains(syntax)) {
@@ -43,8 +53,8 @@ var FDBespin = new Class({
 				}
 			}
 		}
-		// thanks to jviereck#bespin@irc.mozilla.org
-		this.element.setPath('_editorView.layoutManager.syntaxManager.initialContext', syntax);
+		// XXX Switched off as incompatible with MooTools
+		this.element.syntax = syntax;
 		return this;
 	}
 });
@@ -59,14 +69,12 @@ Class.refactor(FlightDeck, {
 			'id': 'bespin_editor',
 			'class': 'UI_Editor_Area'
 		}).inject($('editor-wrapper'), 'top');
-		var self = this;
-		(function() {
-			self.bespin = new FDBespin(self.bespin_editor);
-			self.bespin.addEvent('change', function() {
-				self.fireEvent('bespinChange');
-			});
-			self.fireEvent('bespinLoad')
-		}).delay(10);
+		if (bespin && bespin.bootLoaded) {
+			this.initializeBespin();
+		} else {
+			$log('FD: setting bespinLoad');
+			window.onBespinLoad = this.initializeBespin.bind(this);
+		}
 	},
 	saveCurrentEditor: function() {
 		if (this.current_editor) {
@@ -82,6 +90,23 @@ Class.refactor(FlightDeck, {
 	},
 	cleanBespin: function() {
 		this.bespin.setContent('');
+	},
+	initializeBespin: function() {
+		$log('FD: initializing Bespin');
+		this.bespin = new FDBespin(this.bespin_editor);
+		this.bespin.addEvents({
+			'change': function() {
+				this.fireEvent('change');
+			}.bind(this),
+			'ready': function() {
+				this.bespinLoaded = true;
+				this.fireEvent('bespinLoad');
+			}.bind(this)
+		});
 	}
 });
 
+window.onBespinLoad = function() {
+	// this theoretically can happen before fd is initialized
+	$log('FD: bespin loaded');
+};

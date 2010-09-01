@@ -2,11 +2,14 @@ from django.db import models
 
 class PackageManager(models.Manager):
 
-	def addons(self):
-		return self.filter(type="a")
+	def active(self):
+		return self.filter(active=True)
 
-	def libraries(self):
-		return self.filter(type="l")
+	def addons(self):
+		return self.active().filter(type="a")
+
+	def libraries(self, active_only=True):
+		return self.active().filter(type="l")
 
 
 

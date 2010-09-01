@@ -1,0 +1,5 @@
+{
+	"activate_url": "{{ package.get_activate_url }}",
+	"message_title": "Success",
+	"message": "Package {{ package.full_name }} disabled<br/><a href=\"{{ package.get_activate_url }}\" id=\"activate\">Activate</a>"
+}

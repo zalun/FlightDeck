@@ -126,7 +126,8 @@
             "author": 101, 
             "dependencies": [], 
             "version_name": "initial", 
-            "message": ""
+            "message": "",
+			"sdk": 1
         }
     }, 
     {
@@ -142,7 +143,8 @@
             "author": 101, 
             "dependencies": [], 
             "version_name": "", 
-            "message": ""
+            "message": "",
+			"sdk": 1
         }
     }, 
     {
@@ -191,7 +193,8 @@
             "author": 102, 
             "dependencies": [], 
             "version_name": "initial", 
-            "message": ""
+            "message": "",
+			"sdk": 1
         }
     }, 
     {
@@ -207,7 +210,8 @@
             "author": 102, 
             "dependencies": [], 
             "version_name": "with_module", 
-            "message": ""
+            "message": "",
+			"sdk": 1
         }
     }, 
     {
@@ -223,7 +227,8 @@
             "author": 102, 
             "dependencies": [103], 
             "version_name": "with_module_and_dependency", 
-            "message": ""
+            "message": "",
+			"sdk": 1
         }
     }, 
     {

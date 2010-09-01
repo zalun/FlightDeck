@@ -10,8 +10,9 @@
 {% block app_sidebar %}
 	<h2 class="UI_Heading"><a title="Tutorial" href="{% url tutorial %}">Tutorial</a></h2>
 	<h2 class="UI_Heading"><a title="{{ package_name}}" href="{% url api_package package_name %}">
-		{% if package.name == 'jetpack-core' %}Core Library{% else %}{{ package.name }}{% endif %}
+		{% if package.name == 'jetpack-core' %}Core Library ({{ sdk_version }}){% else %}{{ package.name }}{% endif %}
 	</a></h2>
 	{% include "_modules_list.html" %}
+	<h2 class="UI_Heading"><a title="Add-ons Builder SDK" href="https://jetpack.mozillalabs.com/sdk/latest/docs/">Add-ons Builder SDK</a></h2>
 {% endblock %}
 

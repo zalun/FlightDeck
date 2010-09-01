@@ -20,6 +20,13 @@ then
 	mkdir $PROJECT_DIR/upload/
 fi
 
+### SDK versions dir 
+if [ ! -e $PROJECT_DIR/sdk_versions/ ]
+then
+	mkdir $PROJECT_DIR/sdk_versions/
+fi
+
+
 ### flightdeck media dir 
 if [ ! -e $PROJECT_DIR/$PROJECT_NAME/media/ ]
 then
@@ -67,22 +74,26 @@ then
 	ln -fs $V_ENV/lib/Roar/ $PROJECT_DIR/$PROJECT_NAME/media/roar
 fi
 
-
+# There is a special version prepared for the FD
 ### Bespin installation
-cd $V_ENV/lib/
-if [ ! -e $V_ENV/lib/BespinEmbedded-DropIn-0.6.3 ]
-then
-	wget http://ftp.mozilla.org/pub/mozilla.org/labs/bespin/Embedded/BespinEmbedded-DropIn-0.6.3.tar.gz --no-check-certificate
-	tar xfvz BespinEmbedded-DropIn-0.6.3.tar.gz
-	rm BespinEmbedded-DropIn-0.6.3.tar.gz
-	rm $V_ENV/lib/BespinEmbedded
-	ln -fs $V_ENV/lib/BespinEmbedded-DropIn-0.6.3/ $V_ENV/lib/BespinEmbedded
-	rm $PROJECT_DIR/$PROJECT_NAME/media/bespin
-fi
-if [ ! -e $PROJECT_DIR/$PROJECT_NAME/media/bespin ]
-then
-	ln -fs $V_ENV/lib/BespinEmbedded/ $PROJECT_DIR/$PROJECT_NAME/media/bespin
-fi
+#BESPIN_VERSION=0.8.0
+#cd $V_ENV/lib/
+#if [ ! -e $V_ENV/lib/BespinEmbedded-DropIn-$BESPIN_VERSION ]
+#then
+#	wget http://ftp.mozilla.org/pub/mozilla.org/labs/bespin/Embedded/BespinEmbedded-DropIn-$BESPIN_VERSION.tar.gz --no-check-certificate
+#	tar xfvz BespinEmbedded-DropIn-$BESPIN_VERSION.tar.gz
+#	rm BespinEmbedded-DropIn-$BESPIN_VERSION.tar.gz
+#	rm $V_ENV/lib/BespinEmbedded
+#	rm $PROJECT_DIR/$PROJECT_NAME/media/bespin
+#fi
+#if [ ! -e $V_ENV/lib/BespinEmbedded ]
+#then
+#	ln -fs $V_ENV/lib/BespinEmbedded-DropIn-$BESPIN_VERSION/ $V_ENV/lib/BespinEmbedded
+#fi
+#if [ ! -e $PROJECT_DIR/$PROJECT_NAME/media/bespin ]
+#then
+#	ln -fs $V_ENV/lib/BespinEmbedded/ $PROJECT_DIR/$PROJECT_NAME/media/bespin
+#fi
 
 ### CodeMirror installation
 # deprecated
@@ -108,21 +119,39 @@ fi
 #fi
 
 ### Jetpack SDK
-if [ ! -e $V_ENV/src/jetpack-sdk ]
+if [ ! -e $PROJECT_DIR/sdk_versions/jetpack-sdk/ ]
 then
-	cd $V_ENV/src
-	hg clone http://hg.mozilla.org/labs/jetpack-sdk/
+	cd $PROJECT_DIR/sdk_versions/
+	# copy an old or create a new sdk
+	if [ -e $V_ENV/src/jetpack-sdk ]
+	then
+		mv $V_ENV/src/jetpack-sdk ./
+	else
+		hg clone http://hg.mozilla.org/labs/jetpack-sdk/
+	fi
 	# link necessary execution files
-	ln -fs $V_ENV/src/jetpack-sdk/bin/cfx $V_ENV/bin/cfx
-	ln -fs $V_ENV/src/jetpack-sdk/bin/jpx $V_ENV/bin/jpx
-	ln -fs $V_ENV/src/jetpack-sdk/bin/quick-start $V_ENV/bin/quick-start
+	#ln -fs $V_ENV/src/jetpack-sdk/bin/cfx $V_ENV/bin/cfx
+	#ln -fs $V_ENV/src/jetpack-sdk/bin/jpx $V_ENV/bin/jpx
+	#ln -fs $V_ENV/src/jetpack-sdk/bin/quick-start $V_ENV/bin/quick-start
 	# link packages
-	ln -fs $V_ENV/src/jetpack-sdk/packages $V_ENV/packages
+	#ln -fs $V_ENV/src/jetpack-sdk/packages $V_ENV/packages
 	# link libs unable to install via pip
-	ln -fs $V_ENV/src/jetpack-sdk/python-lib/cuddlefish $SITE_PACKAGES/cuddlefish
-	ln -fs $V_ENV/src/jetpack-sdk/python-lib/ecdsa $SITE_PACKAGES/ecdsa
+	CUDDLEFISH=$PROJECT_DIR/sdk_versions/jetpack-sdk/python-lib/cuddlefish
+	if [ -e $SITE_PACKAGES/cuddlefish ]
+	then
+		rm $SITE_PACKAGES/cuddlefish
+	fi
+	ln -fs $CUDDLEFISH $SITE_PACKAGES/cuddlefish
+
+	ECDSA=$PROJECT_DIR/sdk_versions/jetpack-sdk/python-lib/ecdsa
+	if [ -e $SITE_PACKAGES/ecdsa ]
+	then
+		rm $SITE_PACKAGES/ecdsa
+	fi
+	ln -fs $ECDSA $SITE_PACKAGES/ecdsa
+
 	# link static files
-	ln -fs $V_ENV/src/jetpack-sdk/static-files $V_ENV/static-files
+	#ln -fs $V_ENV/src/jetpack-sdk/static-files $V_ENV/static-files
 fi
 
 

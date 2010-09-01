@@ -2,8 +2,8 @@
  * Bespin wrapper
  */
 /*
- * Class: CodeMirror.js
- * Extension for Editor to use CodeMirror
+ * Class: Bespin.js
+ * Extension for Editor to use Bespin
  */
 
 Class.refactor(FDEditor, {
@@ -22,10 +22,13 @@ Class.refactor(FDEditor, {
 		// mark hidden elements and record initial state
 		if (this.options.activate) { 
 			$log('FD: activate {element}'.substitute(this.options));
-			fd.addEvent('bespinLoad', function() {
-				// show the embedded content 
-				self.show();
-			});
+			if (fd.bespinLoaded) {
+				this.show();
+			} else {
+				fd.addEvent('bespinLoad', function() {
+					self.show();
+				});
+			}
 		} else {
 			self.hidden = true; 
 		}
