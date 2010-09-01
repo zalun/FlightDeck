@@ -10,14 +10,14 @@
 	</li>
 	{% if package.deleted %}
 		{# Just in case there will be an option to display deleted packages #}
-		<li class="UI_Unelete">
-			<a title="Undelete" href="{{ item.get_activate_url }}">
-				Unelete
+		<li class="UI_Undelete">
+			<a title="Switch on" href="{{ item.get_activate_url }}">
+				Activate
 			</a>
 		</li>
 	{% else %}
 		<li class="UI_Disable">
-			<a title="Delete" href="{{ item.get_disable_url }}">
+			<a title="Switch off" href="{{ item.get_disable_url }}">
 				Disable
 			</a>
 		</li>
