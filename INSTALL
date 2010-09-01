@@ -69,7 +69,8 @@ these steps (some commands are specific to Ubuntu with Bash):
 9. Initiate database
    $ ./scripts/syncdb.sh
    # Choose your superadmin username and password
-   # You may want to install test fixtures to save time
+   # You may want to install test fixtures to save time simply bare in mind
+   # these will not be able to create XPI
    $ ./scripts/manage.sh loaddata test_users.json test_basic_usecase.json
 
 10. Test FlightDeck applications

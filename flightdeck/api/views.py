@@ -29,6 +29,7 @@ def _get_module_names(package_name):
 def homepage(r, package_name='jetpack-core'):
 	page = 'apibrowser'
 
+	sdk_version = settings.SDKVERSION
 	package = {'name': package_name, 'modules': _get_module_names(package_name)}
 
 	return render_to_response(
@@ -42,6 +43,8 @@ def package(r, package_name='jetpack-core'):
 	containing a listing of all modules docs
 	"""
 	page = 'apibrowser'
+
+	sdk_version = settings.SDKVERSION
 
 	DOC_FILES = _get_module_filenames(package_name)
 
@@ -69,6 +72,7 @@ def package(r, package_name='jetpack-core'):
 def module(r, package_name, module_name):
 	page = 'apibrowser'
 	
+	sdk_version = settings.SDKVERSION
 	doc_file = '.'.join((module_name,'md'))
 	text = open(os.path.join(settings.SDKPACKAGESDIR,package_name,'docs',doc_file)).read()
 	# changing the tuples to dictionaries
