@@ -670,6 +670,7 @@ Package.Edit = new Class({
 	},
 	save: function() {
 		this.collectData();
+		this.saving = true;
 		new Request.JSON({
 			url: this.save_url || this.options.save_url,
 			data: this.data,
@@ -695,6 +696,9 @@ Package.Edit = new Class({
 					this.installAddon();
 				} 
 				fd.fireEvent('save');
+			}.bind(this),
+			onFailure: function() {
+				this.saving = false;
 			}.bind(this)
 		}).send();
 	},
