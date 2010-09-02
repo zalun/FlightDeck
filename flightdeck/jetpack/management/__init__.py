@@ -5,6 +5,7 @@ from django.db.models import signals
 from django.contrib.auth.models import User
 
 from django.db.utils import IntegrityError
+from django.core.exceptions import ObjectDoesNotExist
 
 from jetpack import models as jetpack_models
 from jetpack.models import Package, Module, PackageRevision, SDK
@@ -13,6 +14,12 @@ from person.models import Profile
 
 
 class SDKDirNotUniqueException(Exception):
+       def __init__(self, value):
+           self.parameter = value
+       def __str__(self):
+           return repr(self.parameter)
+
+class SDKDirDoesNotExist(Exception):
        def __init__(self, value):
            self.parameter = value
        def __str__(self):
@@ -29,9 +36,8 @@ def create_or_update_jetpack_core(sdk_dir_name):
 	
 
 def get_jetpack_core_manifest(sdk_source):
-	print sdk_source
 	if not os.path.isdir(sdk_source):
-		raise Exception("Please install jetpack SDK first")
+		raise SDKDirDoesNotExist("Jetpack SDK dir does not exist \"%s\"" % sdk_source)
 
 	handle = open('%s/packages/jetpack-core/package.json' % sdk_source)
 	manifest = simplejson.loads(handle.read())
@@ -79,7 +85,7 @@ def check_SDK_dir(sdk_dir_name):
 	try:
 		SDK.objects.get(dir=sdk_dir_name)
 		raise SDKDirNotUniqueException("There might be only one SDK created from %s" % sdk_dir_name)
-	except IntegrityError:
+	except ObjectDoesNotExist:
 		pass
 
 
