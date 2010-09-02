@@ -13,17 +13,21 @@ from jetpack import settings
 from person.models import Profile
 
 
-class SDKDirNotUniqueException(Exception):
-       def __init__(self, value):
-           self.parameter = value
-       def __str__(self):
-           return repr(self.parameter)
+class BaseException(Exception):
+	def __init__(self, value):
+	   self.message = value
+	def __str__(self):
+	   return repr(self.message)
 
-class SDKDirDoesNotExist(Exception):
-       def __init__(self, value):
-           self.parameter = value
-       def __str__(self):
-           return repr(self.parameter)
+
+class SDKVersionNotUniqueException(BaseException):
+	pass
+
+class SDKDirNotUniqueException(BaseException):
+	pass
+
+class SDKDirDoesNotExist(BaseException):
+    pass
 
 
 
@@ -85,6 +89,14 @@ def check_SDK_dir(sdk_dir_name):
 	try:
 		SDK.objects.get(dir=sdk_dir_name)
 		raise SDKDirNotUniqueException("There might be only one SDK created from %s" % sdk_dir_name)
+	except ObjectDoesNotExist:
+		pass
+
+def check_SDK_manifest(manifest):
+	" check if SDK manifest is valid "
+	try:
+		SDK.objects.get(version=manifest['version'])
+		raise SDKVersionNotUniqueException("There might be only one SDK versioned %s" % manifest)
 	except ObjectDoesNotExist:
 		pass
 
