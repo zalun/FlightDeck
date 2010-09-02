@@ -37,6 +37,8 @@ these steps (some commands are specific to Ubuntu with Bash):
    $ virtualenv --no-site-packages flightdeckenv
 
 6. Install via pip from requirements.txt and custom packages
+   # Jetpack SDK 0.6 will be installed
+   # please create sdk_versions/jetpack-sdk if it is not desired 
    $ ./scripts/install.sh 
    # change upload directory preferences so it will be writable by webserver
 
