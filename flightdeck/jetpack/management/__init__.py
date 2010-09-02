@@ -15,9 +15,9 @@ from person.models import Profile
 
 class BaseException(Exception):
 	def __init__(self, value):
-	   self.message = value
+	   self.parameter = value
 	def __str__(self):
-	   return repr(self.message)
+	   return repr(self.parameter)
 
 
 class SDKVersionNotUniqueException(BaseException):
@@ -96,7 +96,7 @@ def check_SDK_manifest(manifest):
 	" check if SDK manifest is valid "
 	try:
 		SDK.objects.get(version=manifest['version'])
-		raise SDKVersionNotUniqueException("There might be only one SDK versioned %s" % manifest)
+		raise SDKVersionNotUniqueException("There might be only one SDK versioned %s" % manifest['version'])
 	except ObjectDoesNotExist:
 		pass
 
@@ -110,6 +110,8 @@ def update_jetpack_core(sdk_dir_name):
 
 	core_author = get_or_create_core_author()
 	core_manifest = get_jetpack_core_manifest(sdk_source)
+
+	check_SDK_manifest(manifest)
 	
 	core_contributors = [core_manifest['author']]
 	core_contributors.extend(core_manifest['contributors'])
@@ -145,6 +147,8 @@ def create_jetpack_core(sdk_dir_name='jetpack-sdk'):
 	core_author = get_or_create_core_author()
 	core_manifest = get_jetpack_core_manifest(sdk_source)
 
+	check_SDK_manifest(core_manifest)
+	
 	# create Jetpack Core Library
 	core_contributors = [core_manifest['author']]
 	core_contributors.extend(core_manifest['contributors'])
