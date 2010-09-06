@@ -39,7 +39,7 @@ def package_browser(r, page_number=1, type=None, username=None):
 	"""
 	# calculate which template to use
 	template_suffix = ''
-	packages = Package.objects
+	packages = Package.objects.active()
 
 	if username:
 		author = User.objects.get(username=username)
