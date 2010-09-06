@@ -6,7 +6,8 @@
 FlightDeck = Class.refactor(FlightDeck,{
 	options: {
 		try_in_browser_class: 'XPI_test',
-		disable_class: 'UI_Disable'
+		disable_class: 'UI_Disable',
+		activate_class: 'UI_Activate'
 	},
 	initialize: function(options) {
 		this.setOptions(options);
@@ -57,6 +58,18 @@ FlightDeck = Class.refactor(FlightDeck,{
 								}).send();
 							});
 						}
+					}
+				}).send();
+			});
+		});
+		$$('.{activate_class} a'.substitute(this.options)).each(function(el) {
+			el.addEvent('click', function(e){
+				e.stop();
+				new Request.JSON({
+					url: el.get('href'),
+					onSuccess: function(response) {
+						el.getParent('li.UI_Item').destroy();
+						fd.message.alert(response.message_title, response.message);
 					}
 				}).send();
 			});
