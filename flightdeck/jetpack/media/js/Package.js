@@ -631,6 +631,22 @@ Package.Edit = new Class({
 				this.savenow = true;
 			}.bind(this));
 		}
+		this.validator = new Form.Validator.Inline('package-info_form');
+		this.validator.add('validate-version',{
+			errorMsg: 'Please use only letters (a-z), <br/>numbers (0-9) or \".-\" only in this field.<br/>No spaces or other characters are allowed.',
+			test: function(element){
+				return Form.Validator.getValidator('IsEmpty').test(element) ||  (/^[a-zA-Z0-9.\-]+$/).test(element.get('value'));
+			}
+		});
+		self = this;
+		$$('#package-info_form input[type=submit]').each(function(el) {
+			el.addEvent('click', function(e) {
+				if (!self.validator.validate()) {
+					e.stop();
+				}
+			});
+		});
+
 		// XXX: hack to get the right data in the form
 		$each(this.data, function(value, key) {
 			if ($(key)) $(key).value = value;
