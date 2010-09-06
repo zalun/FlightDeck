@@ -127,7 +127,7 @@ then
 	then
 		mv $V_ENV/src/jetpack-sdk ./
 	else
-		hg clone http://hg.mozilla.org/labs/jetpack-sdk/
+		hg clone -r 0.6 http://hg.mozilla.org/labs/jetpack-sdk/
 	fi
 	# link necessary execution files
 	#ln -fs $V_ENV/src/jetpack-sdk/bin/cfx $V_ENV/bin/cfx
