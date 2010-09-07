@@ -83,10 +83,14 @@ class AMOAuthentication:
 			)
 			user.save()
 		
-		# save current amo_session if different
+		# Scrap profile if no
 		try:
 			profile = user.get_profile()
 		except Profile.DoesNotExist:
+			profile = Profile(user=user)
+
+		if not (user.first_name or profile.nickname):
+			# should fire for new and invalid accounts
 			# scrap initial profile data from AMO
 			response = br.follow_link(text='Edit Profile')
 			data = scrap_amo_profile(response)
@@ -94,9 +98,7 @@ class AMOAuthentication:
 				user.first_name = data['firstname']
 			if 'lastname' in data:
 				user.last_name = data['lastname']
-			user.save()
 			
-			profile = Profile(user=user)
 			if 'nickname' in data:
 				profile.nickname = data['nickname']
 			if 'location' in data:
@@ -106,7 +108,7 @@ class AMOAuthentication:
 			if 'homepage' in data:
 				profile.homepage = data['homepage']
 			if 'photo' in data:
-				profile.homepage = data['photo']
+				profile.photo = data['photo']
 
 			profile.save()
 
@@ -124,17 +126,24 @@ def scrap_amo_profile(response):
 	data = {}
 	for inp in soup.findAll('input'):
 		try:
-			if ('name', 'data[User][firstname]') in inp.attrs:
+			if ('name', 'firstname') in inp.attrs:
 				data['firstname'] = inp['value']
-			elif ('name','data[User][lastname]') in inp.attrs:
+			elif ('name','lastname') in inp.attrs:
 				data['lastname'] = inp['value']
-			elif ('name', 'data[User][nickname]') in inp.attrs:
+			elif ('name','display_name') in inp.attrs:
+				if inp['value']:
+					if not (data.get('firstname', False) or data.get('lastname', False)):
+						names = split(' ', inp['value'])
+						data['firstname'] = names[0]
+						if len(names) > 1:
+							data['lastname'] = names[-1]
+			elif ('name', 'username') in inp.attrs:
 				data['nickname'] = inp['value']
-			elif ('name', 'data[User][location]') in inp.attrs:
+			elif ('name', 'location') in inp.attrs:
 				data['location'] = inp['value']
-			elif ('name','data[User][occupation]') in inp.attrs:
+			elif ('name','occupation') in inp.attrs:
 				data['occupation'] = inp['value']
-			elif ('name', 'data[User][homepage]') in inp.attrs:
+			elif ('name', 'homepage') in inp.attrs:
 				data['homepage'] = inp['value']
 		except:
 			pass
@@ -143,6 +152,6 @@ def scrap_amo_profile(response):
 		alts = filter(lambda x: x[0] == 'alt', img.attrs)
 		srcs = filter(lambda x: x[0] == 'src', img.attrs)
 		if classes and alts and srcs:
-			if 'avatar' in classes[0][1] and 'No photo' not in alts[0][1]:
+			if 'avatar' in classes[0][1] and srcs[0][1] != 'https://addons.mozilla.org/media///img/zamboni/anon_user.png':
 				data['photo'] = 'https://addons.mozilla.org%s' % srcs[0][1]
 	return data
