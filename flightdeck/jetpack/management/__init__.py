@@ -35,7 +35,7 @@ def create_or_update_jetpack_core(sdk_dir_name):
 	try:
 		x = SDK.objects.all()[0]
 		return update_jetpack_core(sdk_dir_name)
-	except:
+	except Exception, e:
 		return create_jetpack_core(sdk_dir_name)
 	
 
@@ -111,7 +111,7 @@ def update_jetpack_core(sdk_dir_name):
 	core_author = get_or_create_core_author()
 	core_manifest = get_jetpack_core_manifest(sdk_source)
 
-	check_SDK_manifest(manifest)
+	check_SDK_manifest(core_manifest)
 	
 	core_contributors = [core_manifest['author']]
 	core_contributors.extend(core_manifest['contributors'])
