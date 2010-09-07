@@ -83,7 +83,7 @@ class AMOAuthentication:
 			)
 			user.save()
 		
-		# Scrap profile if no
+		# Manage profile
 		try:
 			profile = user.get_profile()
 		except Profile.DoesNotExist:
@@ -94,10 +94,16 @@ class AMOAuthentication:
 			# scrap initial profile data from AMO
 			response = br.follow_link(text='Edit Profile')
 			data = scrap_amo_profile(response)
+			
+			is_user_changed = False
 			if 'firstname' in data:
 				user.first_name = data['firstname']
+				is_user_changed = True
 			if 'lastname' in data:
 				user.last_name = data['lastname']
+				is_user_changed = True
+			if is_user_changed:
+				user.save()
 			
 			if 'nickname' in data:
 				profile.nickname = data['nickname']
