@@ -632,6 +632,12 @@ Package.Edit = new Class({
 			}.bind(this));
 		}
 		this.validator = new Form.Validator.Inline('package-info_form');
+		this.validator.add('validate-fullname',{
+			errorMsg: 'Please use only letters (a-z), <br/>numbers (0-9) spaces or \"().-\" only in this field.<br/>No other characters are allowed.',
+			test: function(element){
+				return Form.Validator.getValidator('IsEmpty').test(element) ||  (/^[a-zA-Z0-9\ \(\).\-]+$/).test(element.get('value'));
+			}
+		});
 		this.validator.add('validate-version',{
 			errorMsg: 'Please use only letters (a-z), <br/>numbers (0-9) or \".-\" only in this field.<br/>No spaces or other characters are allowed.',
 			test: function(element){
