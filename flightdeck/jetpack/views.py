@@ -354,6 +354,10 @@ def package_save(r, id, type, revision_number=None, version_name=None):
 	response_data = {}
 
 	package_full_name = r.POST.get('full_name', False)
+
+	# TODO: validate package_full_name
+	
+
 	if package_full_name and package_full_name != revision.package.full_name:
 		try:
 			package = Package.objects.exclude(pk=package.pk).get(
@@ -399,6 +403,9 @@ def package_save(r, id, type, revision_number=None, version_name=None):
 		response_data['revision_message'] = revision_message
 
 	version_name = r.POST.get('version_name', False)
+
+	# TODO: validate version
+
 	if version_name and version_name != start_version_name and version_name != revision.package.version_name:
 		save_package = False
 		try:
