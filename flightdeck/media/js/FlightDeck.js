@@ -26,6 +26,7 @@ var FlightDeck = new Class({
 		this.parseTestButtons.bind(this).delay(10);
 		this.addEvent('xpi_installed', this.whenXpiInstalled);
 		this.addEvent('xpi_uninstalled', this.whenXpiUninstalled);
+		if (!this.isAddonInstalled()) $log('FD: No Addon Builder Helper')
 	},
 
 	parseTooltips: function() {
@@ -86,7 +87,7 @@ var FlightDeck = new Class({
 		}
 		document.body.addEventListener('addonbuilderhelperstart', callback, false);
 		(function() { 
-			$log('not listening to addonbuilderhelperstart');
+			$log('FD: Warning: not listening to addonbuilderhelperstart, is Helper installed?');
 			removeListener();
 		}).delay(100000);
 	},
