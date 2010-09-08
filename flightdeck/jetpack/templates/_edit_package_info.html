@@ -3,7 +3,7 @@
 	<fieldset>
 		<p class="UI_Field">
 			<label for="full_name">{{ revision.package.get_type_name|capfirst }} Name</label>
-			<input type="text" name="full_name" id="full_name" value="{{ revision.package.full_name }}"/>
+			<input type="text" name="full_name" id="full_name" class="validate-fullname" value="{{ revision.package.full_name }}"/>
 		</p>
 		<p class="UI_Field">
 			<label for="package_description">{{ revision.package.get_type_name|capfirst }} description</label>
@@ -11,7 +11,7 @@
 		</p>
 		<p class="UI_Field">
 			<label for="version_name">Version</label>
-			<input type="text" name="version_name" id="version_name" value="{% firstof revision.version_name "" %}"/>
+			<input type="text" name="version_name" id="version_name" class="validate-version" value="{% firstof revision.version_name "" %}"/>
 		</p>
 		{% comment %}
 		<p class="UI_Field">
@@ -27,4 +27,3 @@
 		</ul>
 	</div>
 </form>
-

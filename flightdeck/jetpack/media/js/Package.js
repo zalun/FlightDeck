@@ -315,6 +315,7 @@ Package.Edit = new Class({
 			// delete_url: '',
 			// add_module_url: '',
 			// assign_library_url: '',
+			// switch_sdk_url: '',
 		package_info_form_elements: [
 			'full_name', 'version_name', 'package_description', 'revision_message'
 			]
@@ -384,6 +385,19 @@ Package.Edit = new Class({
 				fakeFileSubmit.removeClass('hover');
 			}
 		});
+		$('jetpack_core_sdk_version').addEvent('change', function() {
+			new Request.JSON({
+				url: this.options.switch_sdk_url,
+				data: {'id': $('jetpack_core_sdk_version').get('value')},
+				onSuccess: function(response) {
+					// set the redirect data to edit_url of the new revision
+					fd.setURIRedirect(response.edit_url);
+					// set data changed by save
+					this.setUrls(response);
+					fd.message.alert(response.message_title, response.message);
+				}.bind(this)
+			}).send();
+		}.bind(this));
 	},
 
 	get_add_attachment_url: function() {
@@ -606,11 +620,39 @@ Package.Edit = new Class({
 		this.savenow = false;
 		fd.editPackageInfoModal = fd.displayModal(settings.edit_package_info_template.substitute(this.data || this.options));
 		$('package-info_form').addEvent('submit', this.boundSubmitInfo);
+		
+		// XXX: this will change after moving the content to other forms
+		$('version_name').addEvent('change', function() { fd.fireEvent('change'); });
+		$('full_name').addEvent('change', function() { fd.fireEvent('change'); });
+		$('package_description').addEvent('change', function() { fd.fireEvent('change'); });
+
 		if ($('savenow')) {
 			$('savenow').addEvent('click', function() {
 				this.savenow = true;
 			}.bind(this));
 		}
+		this.validator = new Form.Validator.Inline('package-info_form');
+		this.validator.add('validate-fullname',{
+			errorMsg: 'Please use only letters (a-z), <br/>numbers (0-9) spaces or \"().-\" only in this field.<br/>No other characters are allowed.',
+			test: function(element){
+				return Form.Validator.getValidator('IsEmpty').test(element) ||  (/^[a-zA-Z0-9\ \(\).\-]+$/).test(element.get('value'));
+			}
+		});
+		this.validator.add('validate-version',{
+			errorMsg: 'Please use only letters (a-z), <br/>numbers (0-9) or \".-\" only in this field.<br/>No spaces or other characters are allowed.',
+			test: function(element){
+				return Form.Validator.getValidator('IsEmpty').test(element) ||  (/^[a-zA-Z0-9.\-]+$/).test(element.get('value'));
+			}
+		});
+		self = this;
+		$$('#package-info_form input[type=submit]').each(function(el) {
+			el.addEvent('click', function(e) {
+				if (!self.validator.validate()) {
+					e.stop();
+				}
+			});
+		});
+
 		// XXX: hack to get the right data in the form
 		$each(this.data, function(value, key) {
 			if ($(key)) $(key).value = value;
@@ -650,6 +692,7 @@ Package.Edit = new Class({
 	},
 	save: function() {
 		this.collectData();
+		this.saving = true;
 		new Request.JSON({
 			url: this.save_url || this.options.save_url,
 			data: this.data,
@@ -674,6 +717,10 @@ Package.Edit = new Class({
 					// only one add-on of the same id should be allowed on the Helper side
 					this.installAddon();
 				} 
+				fd.fireEvent('save');
+			}.bind(this),
+			onFailure: function() {
+				this.saving = false;
 			}.bind(this)
 		}).send();
 	},

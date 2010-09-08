@@ -1,7 +1,7 @@
 import os
 
 # Set the project version
-PROJECT_VERSION = "1.0a3"
+PROJECT_VERSION = "1.0a5"
 
 # Django settings for flightdeck project.
 DEBUG = False

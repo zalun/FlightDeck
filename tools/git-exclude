@@ -17,6 +17,7 @@ flightdeck/media/codemirror
 flightdeck/media/roar
 flightdeck/media/api
 flightdeck/jetpack/media/media
+sdk_versions
 *local.py
 *local.wsgi
 *local.sh

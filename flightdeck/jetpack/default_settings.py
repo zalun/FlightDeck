@@ -1,4 +1,5 @@
 from django.conf import settings
+import os.path
 
 PACKAGES_PER_PAGE =  getattr(settings, 'PACKAGES_PER_PAGE', 10)
 MINIMUM_PACKAGE_ID = getattr(settings, 'MINIMUM_PACKAGE_ID', 1000000)
@@ -31,3 +32,4 @@ VIRTUAL_SITE_PACKAGES = settings.VIRTUAL_SITE_PACKAGES
 FRAMEWORK_PATH = settings.FRAMEWORK_PATH
 DEBUG = settings.DEBUG
 HOMEPAGE_ITEMS_LIMIT = settings.HOMEPAGE_ITEMS_LIMIT 
+SDK_SOURCE_DIR = getattr(settings, 'SDK_SOURCE_DIR', os.path.join(FRAMEWORK_PATH, 'sdk_versions/'))

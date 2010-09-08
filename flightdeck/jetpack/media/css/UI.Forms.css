@@ -51,6 +51,14 @@ authors:
 		outline: solid 1px #3E81D2;
 	}
 
+	.UI_Forms .UI_Field .validation-advice {
+		float: right;
+		padding: 5px;
+		width:	65% !important;
+		background: #ffb;
+		border: 1px solid #fbb;
+		border-top: 0px;
+	}
 	.UI_Forms .UI_Choice {
 
 	}
