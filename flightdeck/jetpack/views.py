@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import re
 from random import choice
 
 from django.core.urlresolvers import reverse
@@ -354,9 +355,16 @@ def package_save(r, id, type, revision_number=None, version_name=None):
 	response_data = {}
 
 	package_full_name = r.POST.get('full_name', False)
+	version_name = r.POST.get('version_name', False)
 
 	# TODO: validate package_full_name
-	
+	if not re.match('^[a-zA-z0-9 ._\-\(\)]+$', package_full_name):
+		return HttpResponseNotAllowed('Please use only letters (a-z), numbers (0-9) spaces or \"_().-\" only as a Package name. No other characters are allowed.')
+
+
+	# TODO: validate version
+	if not re.match('^[a-zA-z0-9._\-]+$', version_name):
+		return HttpResponseNotAllowed('Please use only letters (a-z), numbers (0-9) or \"_.-\" only as version name. No spaces or other characters are allowed.')
 
 	if package_full_name and package_full_name != revision.package.full_name:
 		try:
@@ -401,10 +409,6 @@ def package_save(r, id, type, revision_number=None, version_name=None):
 		" save revision message without changeing the revision "
 		super(PackageRevision, revision).save()
 		response_data['revision_message'] = revision_message
-
-	version_name = r.POST.get('version_name', False)
-
-	# TODO: validate version
 
 	if version_name and version_name != start_version_name and version_name != revision.package.version_name:
 		save_package = False
