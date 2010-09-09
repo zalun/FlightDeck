@@ -349,6 +349,7 @@ Package.Edit = new Class({
 		this.boundRemoveModuleAction = this.removeModuleAction.bind(this);
 		$(this.options.add_module_el).addEvent('click', 
 			this.boundAddModuleAction);
+		this.addModuleValidator = new Form.Validator.Inline('fake_add_module_form');
 		
 		// assign/remove library
 		this.boundAssignLibraryAction = this.assignLibraryAction.bind(this);
@@ -484,6 +485,7 @@ Package.Edit = new Class({
 
 	addModuleAction: function(e) {
 		e.stop();
+		if (!this.addModuleValidator.validate()) return;
 		// get data
 		var filename = $(this.options.add_module_input).value;
 		if (!filename) {
@@ -633,15 +635,9 @@ Package.Edit = new Class({
 		}
 		this.validator = new Form.Validator.Inline('package-info_form');
 		this.validator.add('validate-fullname',{
-			errorMsg: 'Please use only letters (a-z), <br/>numbers (0-9) spaces or \"().-\" only in this field.<br/>No other characters are allowed.',
+			errorMsg: 'Please use only letters (a-z), <br/>numbers (0-9) spaces or \"_().-\" only in this field.<br/>No other characters are allowed.',
 			test: function(element){
-				return Form.Validator.getValidator('IsEmpty').test(element) ||  (/^[a-zA-Z0-9\ \(\).\-]+$/).test(element.get('value'));
-			}
-		});
-		this.validator.add('validate-version',{
-			errorMsg: 'Please use only letters (a-z), <br/>numbers (0-9) or \".-\" only in this field.<br/>No spaces or other characters are allowed.',
-			test: function(element){
-				return Form.Validator.getValidator('IsEmpty').test(element) ||  (/^[a-zA-Z0-9.\-]+$/).test(element.get('value'));
+				return Form.Validator.getValidator('IsEmpty').test(element) ||  (/^[a-zA-Z0-9\ _\(\).\-]+$/).test(element.get('value'));
 			}
 		});
 		self = this;

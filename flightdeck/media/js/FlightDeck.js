@@ -252,6 +252,17 @@ Class.Mutators.$name = function(name){ this.implement('$family', {name: name}); 
 
 
 /*
+ * Add validation for alphanum + "-_."
+ */
+Form.Validator.add('validate-alphanum_plus',{
+	errorMsg: 'Please use only letters (a-z), <br/>numbers (0-9) or \"_.-\" only in this field.<br/>No spaces or other characters are allowed.',
+	test: function(element){
+		return Form.Validator.getValidator('IsEmpty').test(element) ||  (/^[a-zA-Z0-9._\-]+$/).test(element.get('value'));
+	}
+});
+
+
+/*
 	Listen to an event fired when Extension is installed
 	This wasn't working
 window.addEvent('load', function() {
