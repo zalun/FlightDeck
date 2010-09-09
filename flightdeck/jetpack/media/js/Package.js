@@ -349,6 +349,7 @@ Package.Edit = new Class({
 		this.boundRemoveModuleAction = this.removeModuleAction.bind(this);
 		$(this.options.add_module_el).addEvent('click', 
 			this.boundAddModuleAction);
+		this.addModuleValidator = new Form.Validator.Inline('fake_add_module_form');
 		
 		// assign/remove library
 		this.boundAssignLibraryAction = this.assignLibraryAction.bind(this);
@@ -484,6 +485,7 @@ Package.Edit = new Class({
 
 	addModuleAction: function(e) {
 		e.stop();
+		if (!this.addModuleValidator.validate()) return;
 		// get data
 		var filename = $(this.options.add_module_input).value;
 		if (!filename) {
@@ -631,6 +633,22 @@ Package.Edit = new Class({
 				this.savenow = true;
 			}.bind(this));
 		}
+		this.validator = new Form.Validator.Inline('package-info_form');
+		this.validator.add('validate-fullname',{
+			errorMsg: 'Please use only letters (a-z), <br/>numbers (0-9) spaces or \"_().-\" only in this field.<br/>No other characters are allowed.',
+			test: function(element){
+				return Form.Validator.getValidator('IsEmpty').test(element) ||  (/^[a-zA-Z0-9\ _\(\).\-]+$/).test(element.get('value'));
+			}
+		});
+		self = this;
+		$$('#package-info_form input[type=submit]').each(function(el) {
+			el.addEvent('click', function(e) {
+				if (!self.validator.validate()) {
+					e.stop();
+				}
+			});
+		});
+
 		// XXX: hack to get the right data in the form
 		$each(this.data, function(value, key) {
 			if ($(key)) $(key).value = value;

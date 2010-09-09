@@ -66,7 +66,9 @@
 				</ul>
 				<div class="UI_Field_Cont UI_New_Dependency" id="add_module_div">	
 					<label for="add_module">Add module:</label>
-					<input type="text" id="add_module" name="module_filename" value="" />
+					<form id="fake_add_module_form">
+						<input type="text" id="add_module" name="module_filename" class="validate-alphanum_plus" value="" />
+					</form>
 					<button title="Add new module" id="add_module_action">Add</button>
 				</div>
 			</div>
