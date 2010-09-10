@@ -335,6 +335,7 @@ Package.Edit = new Class({
 	},
 	assignActions: function() {
 		// assign menu items
+		this.appSidebarValidator = new Form.Validator.Inline('app-sidebar-form');
 		$(this.options.package_info_el).addEvent('click', this.editInfo.bind(this));
 		
 		// save
@@ -484,6 +485,7 @@ Package.Edit = new Class({
 
 	addModuleAction: function(e) {
 		e.stop();
+		if (!this.appSidebarValidator.validate()) return;
 		// get data
 		var filename = $(this.options.add_module_input).value;
 		if (!filename) {
@@ -632,18 +634,6 @@ Package.Edit = new Class({
 			}.bind(this));
 		}
 		this.validator = new Form.Validator.Inline('package-info_form');
-		this.validator.add('validate-fullname',{
-			errorMsg: 'Please use only letters (a-z), <br/>numbers (0-9) spaces or \"().-\" only in this field.<br/>No other characters are allowed.',
-			test: function(element){
-				return Form.Validator.getValidator('IsEmpty').test(element) ||  (/^[a-zA-Z0-9\ \(\).\-]+$/).test(element.get('value'));
-			}
-		});
-		this.validator.add('validate-version',{
-			errorMsg: 'Please use only letters (a-z), <br/>numbers (0-9) or \".-\" only in this field.<br/>No spaces or other characters are allowed.',
-			test: function(element){
-				return Form.Validator.getValidator('IsEmpty').test(element) ||  (/^[a-zA-Z0-9.\-]+$/).test(element.get('value'));
-			}
-		});
 		self = this;
 		$$('#package-info_form input[type=submit]').each(function(el) {
 			el.addEvent('click', function(e) {

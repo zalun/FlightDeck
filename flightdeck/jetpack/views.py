@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import re
 from random import choice
 
 from django.core.urlresolvers import reverse
@@ -20,6 +21,7 @@ from django.contrib import messages
 
 from base.shortcuts import get_object_or_create, get_object_with_related_or_404, get_random_string
 from utils.os_utils import whereis
+from utils.validator import *
 
 from jetpack.models import Package, PackageRevision, Module, Attachment, SDK
 from jetpack import settings
@@ -354,9 +356,14 @@ def package_save(r, id, type, revision_number=None, version_name=None):
 	response_data = {}
 
 	package_full_name = r.POST.get('full_name', False)
+	version_name = r.POST.get('version_name', False)
 
-	# TODO: validate package_full_name
-	
+	# validate package_full_name and version_name
+	if not is_valid('alphanum_plus_space', package_full_name):
+		return HttpResponseNotAllowed(get_validation_message('alphanum_plus_space'))
+
+	if not is_valid('alphanum_plus', version_name):
+		return HttpResponseNotAllowed(get_validation_message('alphanum_plus'))
 
 	if package_full_name and package_full_name != revision.package.full_name:
 		try:
@@ -401,10 +408,6 @@ def package_save(r, id, type, revision_number=None, version_name=None):
 		" save revision message without changeing the revision "
 		super(PackageRevision, revision).save()
 		response_data['revision_message'] = revision_message
-
-	version_name = r.POST.get('version_name', False)
-
-	# TODO: validate version
 
 	if version_name and version_name != start_version_name and version_name != revision.package.version_name:
 		save_package = False
