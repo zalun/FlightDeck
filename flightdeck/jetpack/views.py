@@ -21,6 +21,7 @@ from django.contrib import messages
 
 from base.shortcuts import get_object_or_create, get_object_with_related_or_404, get_random_string
 from utils.os_utils import whereis
+from utils.validator import *
 
 from jetpack.models import Package, PackageRevision, Module, Attachment, SDK
 from jetpack import settings
@@ -357,14 +358,12 @@ def package_save(r, id, type, revision_number=None, version_name=None):
 	package_full_name = r.POST.get('full_name', False)
 	version_name = r.POST.get('version_name', False)
 
-	# TODO: validate package_full_name
-	if not re.match('^[a-zA-z0-9 ._\-\(\)]+$', package_full_name):
-		return HttpResponseNotAllowed('Please use only letters (a-z), numbers (0-9) spaces or \"_().-\" only as a Package name. No other characters are allowed.')
+	# validate package_full_name and version_name
+	if not is_valid('alphanum_plus_space', package_full_name):
+		return HttpResponseNotAllowed(get_validation_message('alphanum_plus_space'))
 
-
-	# TODO: validate version
-	if not re.match('^[a-zA-z0-9._\-]+$', version_name):
-		return HttpResponseNotAllowed('Please use only letters (a-z), numbers (0-9) or \"_.-\" only as version name. No spaces or other characters are allowed.')
+	if not is_valid('alphanum_plus', version_name):
+		return HttpResponseNotAllowed(get_validation_message('alphanum_plus'))
 
 	if package_full_name and package_full_name != revision.package.full_name:
 		try:
