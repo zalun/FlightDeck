@@ -274,6 +274,34 @@ Form.Validator.addAllThese([
 	}]
 ]);
 
+
+(function(){
+	var html_symbols = ['&','"','<','>','¡','¢','£','¤','¥','¦','§','¨','©','ª','«','¬','®','¯','°','±','²','³','´','µ','¶','·','¸','¹','º','»','¼','½','¾','¿'],
+	html_names = ['&amp;','&quot;','&lt;','&gt;','&iexcl;','&cent;','&pound;','&curren;','&yen;','&brvbar;','&sect;','&uml;','&copy;','&ordf;','&laquo;','&not;','&reg;','&macr;','&deg;','&plusmn;','&sup2;','&sup3;','&acute;','&micro;','&para;','&middot;','&cedil;','&sup1;','&ordm;','&raquo;','&frac14;','&frac12;','&frac34;','&iquest;'],
+	js_symbols = ['\\(','\\)','\\{','\\}'],
+	html_number = ['\(','\)','\{','\}'];
+
+	String.implement({
+		escapeHTML: function() {
+			text = this;
+			html_symbols.each(function(symbol, i){
+				text = text.replace(new RegExp(symbol, 'g'), html_names[i]);
+			});
+			return text;
+		},
+		escapeJS: function() {
+			text = this;
+			js_symbols.each(function(symbol, i){
+				text = text.replace(new RegExp(symbol, 'g'), html_number[i]);
+			});
+			return text;
+		},
+		escapeAll: function() {
+			return this.escapeHTML()//.escapeJS();
+		}
+	});
+})();
+
 /*
 	Listen to an event fired when Extension is installed
 	This wasn't working

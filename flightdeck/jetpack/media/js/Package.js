@@ -53,7 +53,7 @@ var Package = new Class({
 				e.stop();
 				var url = target.get('href');
 				var ext = target.get('rel');
-				var filename = target.get('text');
+				var filename = target.get('text').escapeAll();
 				var template_start = '<div id="attachment_view"><h3>'+filename+'</h3><div class="UI_Modal_Section">';
 				var template_end = '</div><div class="UI_Modal_Actions"><ul><li><input type="reset" value="Close" class="closeModal"/></li></ul></div></div>';
 				var template_middle = 'Download <a href="'+url+'">'+filename+'</a>';
@@ -61,8 +61,10 @@ var Package = new Class({
 				if (['css', 'js', 'css'].contains(ext)) {
 					new Request({
 						url: url,
+						evalScripts: false,
+						evalResponse: false,
 						onSuccess: function(response) {
-							template_middle = '<pre>'+response+'</pre>';
+							template_middle = '<pre>'+response.escapeAll()+'</pre>';
 							this.attachmentWindow = fd.displayModal(template_start+template_middle+template_end);
 						}
 					}).send();
