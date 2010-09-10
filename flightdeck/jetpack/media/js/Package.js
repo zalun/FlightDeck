@@ -335,6 +335,7 @@ Package.Edit = new Class({
 	},
 	assignActions: function() {
 		// assign menu items
+		this.appSidebarValidator = new Form.Validator.Inline('app-sidebar-form');
 		$(this.options.package_info_el).addEvent('click', this.editInfo.bind(this));
 		
 		// save
@@ -349,7 +350,6 @@ Package.Edit = new Class({
 		this.boundRemoveModuleAction = this.removeModuleAction.bind(this);
 		$(this.options.add_module_el).addEvent('click', 
 			this.boundAddModuleAction);
-		this.addModuleValidator = new Form.Validator.Inline('fake_add_module_form');
 		
 		// assign/remove library
 		this.boundAssignLibraryAction = this.assignLibraryAction.bind(this);
@@ -485,7 +485,7 @@ Package.Edit = new Class({
 
 	addModuleAction: function(e) {
 		e.stop();
-		if (!this.addModuleValidator.validate()) return;
+		if (!this.appSidebarValidator.validate()) return;
 		// get data
 		var filename = $(this.options.add_module_input).value;
 		if (!filename) {
