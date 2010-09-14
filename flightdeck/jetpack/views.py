@@ -8,7 +8,7 @@ from django.core.urlresolvers import reverse
 from django.views.static import serve
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import Http404, HttpResponseRedirect, HttpResponse, \
-						HttpResponseForbidden, HttpResponseServerError
+						HttpResponseForbidden, HttpResponseServerError, HttpResponseNotAllowed
 from django.template import RequestContext#,Template
 from django.utils import simplejson
 from django.contrib.auth.decorators import login_required
@@ -671,6 +671,9 @@ def download_xpi(r, sdk_name, pkg_name, filename):
 
 
 def remove_xpi(r, sdk_name):
+	# Validate sdk_name
+	if not is_valid('alphanum_plus', sdk_name):
+		return HttpResponseForbidden("{'error': 'Wrong name'}")
 	xpi_remove('%s-%s' % (settings.SDKDIR_PREFIX, sdk_name))
 	return HttpResponse('{}', mimetype='application/json')
 
