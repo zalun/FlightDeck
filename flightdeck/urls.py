@@ -7,24 +7,29 @@ from flightdeck.base import views as base_views
 
 admin.autodiscover()
 
-try:
-	import grappelli
-	urls = [(r'^grappelli/', include('grappelli.urls'))]
-except:
-	urls = []
+
+urls = [
+	# home
+	url(r'^$',base_views.homepage, name='home'),
+	]
+
+if settings.DEBUG:
+
+	try:
+		import grappelli
+		urls.append((r'^grappelli/', include('grappelli.urls')))
+	except:
+		""
+	# admin
+	urls.extend([
+		(r'^admin/doc/', include('django.contrib.admindocs.urls')),
+		(r'^admin/', include(admin.site.urls))
+	])
 
 urls.extend([
-	# home
-	# temporary fix - please uncomment after fixing landing page
-	url(r'^$',base_views.homepage, name='home'),
-	#url(r'^$', 'jetpack.views.gallery', {'type': 'jetpack'}, name='home'),
-
-	# admin
-	(r'^admin/doc/', include('django.contrib.admindocs.urls')),
-	(r'^admin/', include(admin.site.urls)),
-
 	# static files
 	# this should be used only in development server
+	# please refer to http://docs.djangoproject.com/en/dev/howto/deployment/modwsgi/#serving-media-files
 	url(r'^media/(?P<path>.*)$', static.serve, {'document_root': settings.MEDIA_ROOT}, name='media'),
 
 	# API Browser
