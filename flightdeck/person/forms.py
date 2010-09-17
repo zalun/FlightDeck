@@ -15,7 +15,7 @@ class AuthenticationForm(ContribAuthenticationForm):
 			try:
 				self.user_cache = authenticate(username=username, password=password)
 			except Exception as err:
-				raise forms.ValidationError(_("Authentication process is broken please <a href=\"https://bugzilla.mozilla.org/show_bug.cgi?id=570360\">let us know</a>"))
+				raise forms.ValidationError(_("Authentication process is broken please <a href=\"https://bugzilla.mozilla.org/show_bug.cgi?id=570360\">let us know</a><br>%s" % err.__str__()))
 
 			if self.user_cache is None:
 				raise forms.ValidationError(_("""Your email and addons.mozilla.org password didn't match. 
