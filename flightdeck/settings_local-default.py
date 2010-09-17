@@ -43,3 +43,15 @@ VIRTUAL_ENV = '/path/to/flightdeckenv'
 VIRTUAL_SITE_PACKAGES = '/path/to/flightdeckenv/lib/python-2.6/site-packages'
 
 SDK_SOURCE_DIR = os.path.join(FRAMEWORK_PATH, 'sdk_versions/')
+
+"""
+# uncomment if FlightDeck should authenticate against database and not scrape AMO
+AUTH_DATABASE = {
+	'NAME': '',
+	'TABLE': 'users',
+	'USER': '',
+	'PASSWORD': '',
+	'HOST': '',
+	'PORT': '' 							 # Set to empty string for default.
+} # it's always MySQL!
+"""
