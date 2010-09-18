@@ -359,10 +359,10 @@ def package_save(r, id, type, revision_number=None, version_name=None):
 	version_name = r.POST.get('version_name', False)
 
 	# validate package_full_name and version_name
-	if not is_valid('alphanum_plus_space', package_full_name):
+	if package_full_name and not is_valid('alphanum_plus_space', package_full_name):
 		return HttpResponseNotAllowed(get_validation_message('alphanum_plus_space'))
 
-	if not is_valid('alphanum_plus', version_name):
+	if version_name and not is_valid('alphanum_plus', version_name):
 		return HttpResponseNotAllowed(get_validation_message('alphanum_plus'))
 
 	if package_full_name and package_full_name != revision.package.full_name:
