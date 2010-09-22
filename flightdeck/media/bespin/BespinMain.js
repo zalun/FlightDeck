@@ -2,7 +2,7 @@
     name: "text_editor",
     dependencies: { "completion": "0.0.0", "undomanager": "0.0.0", "settings": "0.0.0", "canon": "0.0.0", "rangeutils": "0.0.0", "traits": "0.0.0", "theme_manager": "0.0.0", "keyboard": "0.0.0", "edit_session": "0.0.0", "syntax_manager": "0.0.0" }
 });
-bespin.tiki.module("text_editor:commands/editing",function(require,exports,module) {
+bespin.tiki.module("text_editor:tests/testScratchcanvas",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -40,284 +40,503 @@ bespin.tiki.module("text_editor:commands/editing",function(require,exports,modul
  *
  * ***** END LICENSE BLOCK ***** */
 
-var settings = require('settings').settings;
-var env = require('environment').env;
-var m_range = require('rangeutils:utils/range');
+var util = require('bespin:util/util');
+var t = require('plugindev');
+var m_scratchcanvas = require('bespin:util/scratchcanvas');
 
-/*
- * Commands that delete text.
- */
-
-/**
- * Deletes the selection or the previous character, if the selection is an
- * insertion point.
- */
-exports.backspace = function(args, request) {
-    var view = env.view;
-    view.performBackspaceOrDelete(true);
+exports.testScratchCanvasBehavesAsASingleton = function() {
+    t.ok(util.none(document.getElementById('bespin-scratch-canvas')),
+        'there is no scratch canvas before the singleton is requested');
+    var scratchCanvasA = m_scratchcanvas.get();
+    var element = document.getElementById('bespin-scratch-canvas');
+    t.ok(!util.none(element),
+        'the element exists after the singleton is requested');
+    var scratchCanvasB = m_scratchcanvas.get();
+    t.equal(scratchCanvasA, scratchCanvasB,
+        'the results of requesting a scratch canvas twice');
 };
 
-/**
- * Deletes the selection or the next character, if the selection is an
- * insertion point.
- */
-exports.deleteCommand = function(args, request) {
-    var view = env.view;
-    view.performBackspaceOrDelete(false);
+exports.testTheScratchCanvasYieldsAUsableCanvasContext = function() {
+    var scratchCanvas = m_scratchcanvas.get();
+    var context = scratchCanvas.getContext();
+    t.ok(!util.none(context.measureText),
+        'the context has a measureText method');
 };
 
-/**
- * Deletes all lines that are partially or fully selected, and position the
- * insertion point at the end of the deleted range.
- */
-exports.deleteLines = function(args, request) {
-    if (env.model.readOnly) {
-        return;
-    }
 
-    // In the case of just one line, do nothing.
-    if (env.model.lines.length == 1) {
-        return;
-    }
+});
 
-    var view = env.view;
-    view.groupChanges(function() {
-        var range = view.getSelectedRange();
-        var lines = env.model.lines;
-        var lastLine = lines.length - 1;
-        var startPos, endPos;
+bespin.tiki.module("text_editor:tests/controllers/testLayoutmanager",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
-        // Last row gets special treatment.
-        if (range.start.row == lastLine) {
-            startPos = { col: lines[lastLine - 1].length, row: lastLine - 1 };
-        } else {
-            startPos = { col: 0, row: range.start.row };
-        }
+var t = require('plugindev');
+var LayoutManager = require('controllers/layoutmanager').LayoutManager;
 
-        // Last row gets special treatment.
-        if (range.end.row == lastLine) {
-            endPos = { col: lines[lastLine].length, row: lastLine};
-        } else {
-            endPos = { col: 0, row: range.end.row + 1 };
-        }
+var PANGRAMS =
+    'Cwm fjord bank glyphs vext quiz.\n' +
+    'Squdgy fez, blank jimp crwth vox!\n' +
+    'Jink cwm, zag veldt, fob qursh pyx.\n' +
+    'Veldt jynx grimps waqf zho buck.\n' +
+    'Junky qoph-flags vext crwd zimb.\n' +
+    'Quartz glyph job vex\'d cwm finks.\n' +
+    'Cwm fjord veg balks nth pyx quiz.\n' +
+    'Vext cwm fly, zing, jabs kurd qoph.\n';
 
-        view.replaceCharacters({
-            start: startPos,
-            end:   endPos
-        }, '');
-
-        view.moveCursorTo(startPos);
+exports.testCharacterRectForPosition = function() {
+    var layoutManager = new LayoutManager({
+        margin: { left: 0, bottom: 0, top: 0, right: 0 }
     });
+    layoutManager.textStorage.setValue(PANGRAMS);
+
+    var characterWidth = layoutManager.characterWidth;
+    var lineHeight = layoutManager.lineHeight;
+
+    t.deepEqual(layoutManager.characterRectForPosition({ row: 3, col: 3 }), {
+            x:      3 * characterWidth,
+            y:      3 * lineHeight,
+            width:  characterWidth,
+            height: lineHeight
+        }, 'the character rect and the expected rect for the character at ' +
+        'position (3,3)');
 };
 
-/*
- * Commands that insert text.
- */
-
-// Inserts a newline, and copies the spaces at the beginning of the current row
-// to autoindent.
-var newline = function(model, view) {
-    var selection = view.getSelectedRange();
-    var position = selection.start;
-    var row = position.row, col = position.col;
-
-    var lines = model.lines;
-    var prefix = lines[row].substring(0, col);
-
-    var spaces = /^\s*/.exec(prefix);
-    view.insertText('\n' + spaces);
-};
-
-/**
- * Replaces the selection with the given text and updates the selection
- * boundaries appropriately.
- */
-exports.insertText = function(args, request) {
-    var view = env.view;
-    var text = args.text;
-    view.insertText(text);
-};
-
-/**
- * Inserts a newline at the insertion point.
- */
-exports.newline = function(args, request) {
-    var model = env.model, view = env.view;
-    newline(model, view);
-};
-
-/**
- * Join the following line with the current one. Removes trailing whitespaces.
- */
-exports.joinLines = function(args, request) {
-    var model = env.model;
-    if (model.readOnly) {
-        return;
-    }
-
-    var view = env.view;
-    var selection = view.getSelectedRange();
-    var lines = model.lines;
-    var row = selection.end.row;
-
-    // Last line selected, which can't get joined.
-    if (lines.length == row) {
-        return;
-    }
-
-    view.groupChanges(function() {
-        var endCol = lines[row].length;
-
-        view.replaceCharacters({
-            start: {
-                col: endCol,
-                row: row
-            },
-            end: {
-                col: /^\s*/.exec(lines[row + 1])[0].length,
-                row: row + 1
-        }}, '');
+exports.testDimensionsCalculation = function() {
+    var layoutManager = new LayoutManager({
+        margin: { left: 0, bottom: 0, top: 0, right: 0 }
     });
+
+    var textStorage = layoutManager.textStorage;
+    textStorage.setValue('Battlefield Earth\n' +
+        'The Star Wars Holiday Special\n' +
+        'Manos: The Hands of Fate\n' +
+        'Santa Claus Conquers the Martians\n');
+
+    var rect = layoutManager.boundingRect();
+    t.equal(rect.height, layoutManager.lineHeight * 5,
+        'the total height and the line height times the number of lines');
+    t.equal(rect.width, layoutManager.characterWidth *
+        'Santa Claus Conquers the Martians'.length, 'the width and the ' +
+        'character width times the length of the longest line');
+
+    textStorage.replaceCharacters({
+        start:  { row: 2, col: 0 },
+        end:    { row: 3, col: 'Santa Claus Conquers the Martians'.length }
+    }, 'SuperBabies: Baby Geniuses 2');
+
+    rect = layoutManager.boundingRect();
+    t.equal(rect.height, layoutManager.lineHeight * 4,
+        'the total and the line height times the new number of lines');
+    t.equal(rect.width, layoutManager.characterWidth *
+        'The Star Wars Holiday Special'.length, 'the width and the ' +
+        'character width times the length of what is now the longest line');
 };
 
-/**
- * Creates a new, empty line below the current one, and places the insertion
- * point there.
- */
-exports.openLine = function(args, request) {
-    if (env.model.readOnly) {
-        return;
-    }
+exports.testInvalidRects = function() {
+    var layoutManager = new LayoutManager({
+        margin: { left: 0, bottom: 0, top: 0, right: 0 }
+    });
 
-    var model = env.model, view = env.view;
+    var textStorage = layoutManager.textStorage;
+    textStorage.setValue('foo\nbar\nbaz\nboo\n');
 
-    var selection = view.getSelectedRange();
-    var row = selection.end.row;
-    var lines = model.lines;
-    view.moveCursorTo({ row: row, col: lines[row].length });
+    var characterWidth = layoutManager.characterWidth;
+    var lineHeight = layoutManager.lineHeight;
 
-    newline(model, view);
-};
-
-/**
- * Inserts a new tab. This is smart about the current inserted whitespaces and
- * the current position of the cursor. If some text is selected, the selected
- * lines will be indented by tabstop spaces.
- */
-exports.tab = function(args, request) {
-    var view = env.view;
-
-    view.groupChanges(function() {
-        var tabstop = settings.get('tabstop');
-        var selection = view.getSelectedRange();
-        var str = '';
-
-        if (m_range.isZeroLength(selection)){
-            var line = env.model.lines[selection.start.row];
-            var trailspaces = line.substring(selection.start.col).
-                                            match(/^\s*/)[0].length;
-            var count = tabstop - (selection.start.col + trailspaces) % tabstop;
-
-            for (var i = 0; i < count; i++) {
-                str += ' ';
-            }
-
-            view.replaceCharacters({
-                 start: selection.start,
-                 end:   selection.start
-             }, str);
-
-            view.moveCursorTo({
-                col: selection.start.col + count + trailspaces,
-                row: selection.end.row
-            });
-        } else {
-            for (var i = 0; i < tabstop; i++) {
-                str += ' ';
-            }
-
-            var startCol;
-            var row = selection.start.row - 1;
-            while (row++ < selection.end.row) {
-                startCol = row == selection.start.row ? selection.start.col : 0;
-
-                view.replaceCharacters({
-                    start: { row:  row, col: startCol},
-                    end:   { row:  row, col: startCol}
-                }, str);
-            }
-
-            view.setSelection({
-                start: selection.start,
-                end: {
-                    col: selection.end.col + tabstop,
-                    row:  selection.end.row
-                }
-            });
+    var returnedRects;
+    layoutManager.addDelegate({
+        layoutManagerInvalidatedRects: function(sender, rects) {
+            returnedRects = rects;
         }
-    }.bind(this));
+    });
+
+    textStorage.insertCharacters({ row: 1, col: 1 }, 'aaa');
+    t.deepEqual(returnedRects[0], {
+            x:      characterWidth,
+            y:      lineHeight,
+            width:  Number.MAX_VALUE,
+            height: lineHeight
+        }, 'the returned rect and the expected rect after no lines changed');
+
+    textStorage.deleteCharacters({
+        start:  { row: 1, col: 0 },
+        end:    { row: 2, col: 0 }
+    });
+    t.deepEqual(returnedRects[0], {
+        x:      0,
+        y:      lineHeight,
+        width:  Number.MAX_VALUE,
+        height: lineHeight
+    }, 'the first returned rect and the expected rect after one line was ' +
+        'deleted');
+    t.deepEqual(returnedRects[1], {
+        x:      0,
+        y:      2 * lineHeight,
+        width:  Number.MAX_VALUE,
+        height: Number.MAX_VALUE
+    }, 'the second returned rect and the expected rect after one line was ' +
+        'deleted');
+
+    textStorage.insertCharacters({ row: 1, col: 1 }, 'bar\n');
+    t.deepEqual(returnedRects[0], {
+        x:      characterWidth,
+        y:      lineHeight,
+        width:  Number.MAX_VALUE,
+        height: lineHeight
+    }, 'the first returned rect and the expected rect after one line was ' +
+        'added');
+    t.deepEqual(returnedRects[1], {
+        x:      0,
+        y:      2 * lineHeight,
+        width:  Number.MAX_VALUE,
+        height: Number.MAX_VALUE
+    }, 'the second returned rect and the expected rect after one line was ' +
+        'added');
 };
 
-/**
- * Removes a tab of whitespaces. If there is no selection, whitespaces in front
- * of the cursor will be removed. The number of removed whitespaces depends on
- * the setting tabstop and the current cursor position. If there is a selection,
- * then the selected lines are unindented by tabstop spaces.
- */
-exports.untab = function(args, request) {
-    var view = env.view;
+exports.testPointToCharacterMapping = function() {
+    var leftMargin = 3, topMargin = 5;
+    var layoutManager = new LayoutManager({
+        margin: { left: leftMargin, bottom: 4, top: topMargin, right: 6 }
+    });
+    var characterWidth = layoutManager.characterWidth;
+    var lineHeight = layoutManager.lineHeight;
 
-    view.groupChanges(function() {
-        var tabstop = settings.get('tabstop');
-        var selection = view.getSelectedRange();
-        var lines = env.model.lines;
-        var count = 0;
+    layoutManager.textStorage.setValue(PANGRAMS);
 
-        if (m_range.isZeroLength(selection)){
-            count = Math.min(
-                lines[selection.start.row].substring(0, selection.start.col).
-                                                    match(/\s*$/)[0].length,
-                (selection.start.col - tabstop) % tabstop || tabstop);
+    var pos = layoutManager.characterAtPoint({
+        x: leftMargin + 5 * characterWidth,
+        y: topMargin + 2 * lineHeight
+    });
+    t.deepEqual(pos, { col: 5, row: 2, partialFraction: 0.0 }, 'the ' +
+        'reported character position and the expected character position');
 
-            view.replaceCharacters({
-                start: {
-                    col: selection.start.col - count,
-                    row: selection.start.row
-                },
-                end: selection.start
-            }, '');
+    pos = layoutManager.characterAtPoint({
+        x: 100000,
+        y: topMargin + 4 * lineHeight
+    });
+    t.deepEqual(pos, { col: 32, row: 4, partialFraction: 0.0 }, 'the ' +
+        'reported character position and the expected character ' +
+        'position for a character off the right side of the text area');
+};
 
-            view.moveCursorTo({
-                row:  selection.start.row,
-                col: selection.end.col - count
-            });
-        } else {
-            var startCol;
-            var row = selection.start.row - 1;
-            while (row++ < selection.end.row) {
-                startCol = row == selection.start.row ? selection.start.col : 0;
+exports.testRectsForRange = function() {
+    var layoutManager = new LayoutManager({
+        margin: { left: 0, bottom: 0, top: 0, right: 0 }
+    });
+    layoutManager.textStorage.setValue(PANGRAMS);
 
-                count = Math.min(
-                    lines[row].substring(startCol).match(/^\s*/)[0].length,
-                    tabstop);
+    var characterWidth = layoutManager.characterWidth;
+    var lineHeight = layoutManager.lineHeight;
+    var maximumWidth = layoutManager._maximumWidth;
 
-                view.replaceCharacters({
-                     start: { row: row, col: startCol},
-                     end:   { row: row, col: startCol + count}
-                 }, '');
-            }
+    var rects = layoutManager.rectsForRange({
+        start:  { row: 2, col: 2 },
+        end:    { row: 5, col: 2 }
+    });
+    t.equal(rects.length, 3, 'the length of the rects returned for a ' +
+        'complex range and 3');
+    t.deepEqual(rects[0], {
+            x:      2 * characterWidth,
+            y:      2 * lineHeight,
+            width:  characterWidth * (maximumWidth - 2),
+            height: lineHeight
+        }, 'the first rect returned for a complex range and the expected ' +
+            'rect');
+    t.deepEqual(rects[1], {
+            x:      0,
+            y:      5 * lineHeight,
+            width:  characterWidth * 2,
+            height: lineHeight
+        }, 'the second rect returned for a complex range and the expected ' +
+            'rect');
+    t.deepEqual(rects[2], {
+            x:      0,
+            y:      3 * lineHeight,
+            width:  characterWidth * maximumWidth,
+            height: 2 * lineHeight
+        }, 'the third rect returned for a complex range and the expected ' +
+            'rect');
 
-             view.setSelection({
-                 start: { row:  selection.start.row, col: selection.start.col},
-                 end:   { row:  selection.end.row, col: selection.end.col - count}
-             });
-       }
-    }.bind(this));
+    rects = layoutManager.rectsForRange({
+        start:  { row: 2, col: 0 },
+        end:    { row: 5, col: 0 }
+    });
+    t.equal(rects.length, 1, 'the length of the rects returned for a ' +
+        'line-spanning range and 1');
+    t.deepEqual(rects[0], {
+            x:      0,
+            y:      2 * lineHeight,
+            width:  characterWidth * maximumWidth,
+            height: 3 * lineHeight
+        }, 'the rect returned for a line-spanning range and the expected ' +
+            'rect');
+
+    rects = layoutManager.rectsForRange({
+        start:  { row: 2, col: 3 },
+        end:    { row: 2, col: 10 }
+    });
+    t.equal(rects.length, 1, 'the length of the rects returned for a ' +
+        'single-line range and 1');
+    t.deepEqual(rects[0], {
+            x:      3 * characterWidth,
+            y:      2 * lineHeight,
+            width:  characterWidth * 7,
+            height: lineHeight
+        }, 'the rect returned for a single-line range and the expected rect');
+};
+
+
+});
+
+bespin.tiki.module("text_editor:tests/models/testTextstorage",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var t = require('plugindev');
+var TextStorage = require('models/textstorage').TextStorage;
+
+exports.testCharacterMutators = function() {
+    var storage = TextStorage.create({});
+    storage.insertCharacters({ row: 0, col: 0 }, 'foo\nbar\nbaz\n');
+    t.equal(storage.getValue(), 'foo\nbar\nbaz\n',
+        'characters inserted into an empty text storage object and the ' +
+            'original characters');
+    var lines = storage.lines;
+    t.equal(lines[0].length, 3, 'length of first row and 3');
+    t.equal(lines[1].length, 3, 'length of second row and 3');
+    t.equal(lines[2].length, 3, 'length of third row and 3');
+    t.equal(lines[3].length, 0, 'length of last row and 0');
+
+    storage.deleteCharacters({
+        start: { row: 1, col: 1 },
+        end:   { row: 2, col: 2 }
+    });
+    t.equal(storage.getValue(), 'foo\nbz\n',
+        'the result of deleting characters from a text storage object and ' +
+            'the expected string');
+    t.equal(lines[0].length, 3, 'length of first row and 3');
+    t.equal(lines[1].length, 2, 'length of second row and 2');
+    t.equal(lines[2].length, 0, 'length of last row and 0');
+
+    storage.replaceCharacters({
+        start: { row: 0, col: 2 },
+        end:   { row: 1, col: 1 }
+    }, 'obarba');
+    t.equal(storage.getValue(), 'foobarbaz\n',
+        'the result of replacing characters in a text storage object and ' +
+            'the expected string');
+    t.equal(lines[0].length, 9, 'length of first row and 9');
+};
+
+exports.testClampPosition = function() {
+    var storage = TextStorage.create({});
+    storage.insertCharacters({ row: 0, col: 0 }, 'foo\nbar\nbaz\n');
+
+    t.deepEqual(storage.clampPosition({ row: 1, col: 1 }),
+        { row: 1, col: 1 },
+        '(1,1) clamped to the text boundaries and (1,1)');
+
+    t.deepEqual(storage.clampPosition({ row: -1, col: -1 }),
+        { row: 0, col: 0 },
+        '(-1,-1) clamped to the text boundaries and (0,0)');
+    t.deepEqual(storage.clampPosition({ row: -1, col: 1 }),
+        { row: 0, col: 0 },
+        '(-1,1) clamped to the text boundaries and (0,0)');
+    t.deepEqual(storage.clampPosition({ row: -1, col: 4 }),
+        { row: 0, col: 0 },
+        '(-1,4) clamped to the text boundaries and (0,0)');
+
+    t.deepEqual(storage.clampPosition({ row: 1, col: -1 }),
+        { row: 1, col: 0 },
+        '(1,-1) clamped to the text boundaries and (1,0)');
+    t.deepEqual(storage.clampPosition({ row: 1, col: 1 }),
+        { row: 1, col: 1 },
+        '(1,1) clamped to the text boundaries and (1,1)');
+    t.deepEqual(storage.clampPosition({ row: 1, col: 4 }),
+        { row: 1, col: 3 },
+        '(1,4) clamped to the text boundaries and (1,3)');
+
+    t.deepEqual(storage.clampPosition({ row: 4, col: -1 }),
+        { row: 3, col: 0 },
+        '(4,-1) clamped to the text boundaries and (3,0)');
+    t.deepEqual(storage.clampPosition({ row: 4, col: 2 }),
+        { row: 3, col: 0 },
+        '(4,2) clamped to the text boundaries and (3,0)');
+    t.deepEqual(storage.clampPosition({ row: 4, col: 4 }),
+        { row: 3, col: 0 },
+        '(4,4) clamped to the text boundaries and (3,0)');
+};
+
+exports.testClampRange = function() {
+    var storage = TextStorage.create({});
+    storage.insertCharacters({ row: 0, col: 0 }, 'foo\nbar\nbaz\n');
+
+    var range = { start: { row: 0, col: 0 }, end: { row: 3, col: 0 } };
+
+    t.deepEqual(storage.clampRange(range), range,
+        '(0,0) (3,0) clamped to the text boundaries and (0,0) (3,0)');
+    t.deepEqual(storage.clampRange({
+            start:  { row: -1, col: -1 },
+            end:    { row: 4, col: 4 }
+        }), range,
+        '(-1,-1) (4,4) clamped to the text boundaries and (0,0) (3,0)');
+};
+
+exports.testDisplacePosition = function() {
+    var storage = TextStorage.create({});
+    storage.insertCharacters({ row: 0, col: 0 }, 'foo\nbar\nbaz\n');
+
+    t.deepEqual(storage.displacePosition({ row: 1, col: 1 }, -1),
+        { row: 1, col: 0 }, '(1,1) displaced by -1 and (1,0)');
+    t.deepEqual(storage.displacePosition({ row: 1, col: 0 }, -1),
+        { row: 0, col: 3 }, '(1,0) displaced by -1 and (0,3)');
+    t.deepEqual(storage.displacePosition({ row: 0, col: 0 }, -1),
+        { row: 0, col: 0 }, '(0,0) displaced by -1 and (0,0)');
+
+    t.deepEqual(storage.displacePosition({ row: 1, col: 1 }, 1),
+        { row: 1, col: 2 }, '(1,1) displaced by 1 and (1,2)');
+    t.deepEqual(storage.displacePosition({ row: 1, col: 3 }, 1),
+        { row: 2, col: 0 }, '(1,3) displaced by 1 and (2,0)');
+    t.deepEqual(storage.displacePosition({ row: 3, col: 0 }, 1),
+        { row: 3, col: 0 }, '(3,0) displaced by 1 and (3,0)');
+};
+
+exports.testGetCharacters = function() {
+    var storage = TextStorage.create();
+    storage.setValue('foo\nbar\nbaz\n');
+
+    t.equal(storage.getCharacters({
+            start:  { row: 0, col: 1 },
+            end:    { row: 1, col: 2 }
+        }), 'oo\nba', 'the characters in the range (0,1 1,2) and \"oo\\nba\"');
+    t.equal(storage.getCharacters({
+            start:  { row: 2, col: 0 },
+            end:    { row: 2, col: 3 }
+        }), 'baz', 'the characters in the range (2,0 2,3) and \"baz\"');
+    t.equal(storage.getCharacters({
+            start:  { row: 2, col: 3 },
+            end:    { row: 3, col: 0 }
+        }), '\n', 'the characters in the range (2,3 3,0) and \"\\n\"');
+};
+
+exports.testObserving = function() {
+    var storage = TextStorage.create({});
+    storage.insertCharacters({ row: 0, col: 0 }, 'foo\nbar\nbaz\n');
+
+    var called = false;
+    var delegate = {
+        textStorageEdited: function(storage, oldRange, newRange) {
+            called = true;
+            // t.deepEqual(oldRange, deletionRange, 'the old range passed in ' +
+            //     'to textStorageEdited and the actual range deleted');
+            t.deepEqual(newRange, {
+                start:  deletionRange.start,
+                end:    deletionRange.start
+            }, 'the new range passed in to textStorageEdited and a zero-' +
+                'length range located at the start of the deleted range');
+        }
+    };
+    storage.addDelegate(delegate);
+
+    var deletionRange = {
+        start: { row: 0, col: 1 },
+        end:   { row: 2, col: 2 }
+    };
+
+    storage.deleteCharacters(deletionRange);
+    t.ok(called, 'textStorageEdited() was called');
+};
+
+exports.testRange = function() {
+    var storage = TextStorage.create({});
+    storage.insertCharacters({ row: 0, col: 0 }, 'foo\nbar\nbaz\n');
+    t.deepEqual(storage.range, {
+        start:  { row: 0, col: 0 },
+        end:    { row: 3, col: 0 }
+    }, 'the character range and [ 0,0 3,0 ]');
+
+    storage.deleteCharacters({
+        start:  { row: 2, col: 3 },
+        end:    { row: 3, col: 0 }
+    });
+    t.deepEqual(storage.range, {
+        start:  { row: 0, col: 0 },
+        end:    { row: 2, col: 3 }
+    }, 'the character range and [ 0,0 2,3 ]');
 };
 
 });
 
-bespin.tiki.module("text_editor:commands/editor",function(require,exports,module) {
+bespin.tiki.module("text_editor:tests/utils/testRect",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -355,110 +574,111 @@ bespin.tiki.module("text_editor:commands/editor",function(require,exports,module
  *
  * ***** END LICENSE BLOCK ***** */
 
-var catalog = require('bespin:plugins').catalog;
-var settings = require('settings').settings;
-var env = require('environment').env;
+var t = require('plugindev');
+var Rect = require('utils/rect');
 
-exports.findNextCommand = function(args, request) {
-    var view = env.view, search = view.editor.searchController;
-    var sel = view.getSelectedRange();
-    var match = search.findNext(sel.end, true);
-    if (match) {
-        view.setSelection(match, true);
-        view.focus();
-    }
+exports.testDistanceFromBounds = function() {
+    t.equal(Rect._distanceFromBounds(1, 3, 5), -2,
+        'the distance between 1 and [3,5], and -2');
+    t.equal(Rect._distanceFromBounds(2, 2, 3), 0,
+        'the distance between 2 and [2,3], and 0');
+    t.equal(Rect._distanceFromBounds(5, 4, 6), 0,
+        'the distance between 5 and [4,6], and 0');
+    t.equal(Rect._distanceFromBounds(7, 4, 7), 0,
+        'the distance between 7 and [4,7], and 0');
+    t.equal(Rect._distanceFromBounds(1, -5, -2), 3,
+        'the distance between 1 and [-5,-2], and 3');
 };
 
-exports.findPrevCommand = function(args, request) {
-    var view = env.view, search = view.editor.searchController;
-    var sel = view.getSelectedRange();
-    var match = search.findPrevious(sel.start, true);
-    if (match) {
-        view.setSelection(match, true);
-        view.focus();
-    }
+exports.testMerge = function() {
+    var resultSet = Rect.merge([
+        { x: 0, y: 0, width: 1, height: 1 },
+        { x: 2, y: 2, width: 1, height: 1 },
+        { x: 0.5, y: 0.5, width: 2, height: 2 }
+    ]);
+    t.equal(resultSet.length, 1,
+        'the number of rects in the union of [ (0,0) (1,1), (2,2) (1,1), ' +
+        '(0,0) (3,3) ] and 1');
+    t.deepEqual(resultSet[0], { x: 0, y: 0, width: 3, height: 3 },
+        'the first rect in the union of [ (0,0) (1,1), (2,2) (1,1), ' +
+        '(0,0) (3,3) ] and (0,0) (3,3)');
+
+    resultSet = Rect.merge([
+        { x: 0, y: 0, width: 1, height: 1 },
+        { x: 1, y: 1, width: 1, height: 1 },
+        { x: 2, y: 0, width: 1, height: 1 }
+    ]);
+    t.equal(resultSet.length, 3,
+        'the number of rects in the result of unifying 3 non-overlapping ' +
+        'rects and 3');
+    t.deepEqual(resultSet[0], { x: 0, y: 0, width: 1, height: 1 },
+        'the first rect in the result of unifying 3 non-overlapping rects ' +
+        'and the original first rect');
+    t.deepEqual(resultSet[1], { x: 1, y: 1, width: 1, height: 1 },
+        'the second rect in the result of unifying 3 non-overlapping rects ' +
+        'and the original second rect');
+    t.deepEqual(resultSet[2], { x: 2, y: 0, width: 1, height: 1 },
+        'the third rect in the result of unifying 3 non-overlapping rects ' +
+        'and the original third rect');
 };
 
-/**
- * Utility to allow us to alter the current selection
- * TODO: If the selection is empty, broaden the scope to the whole file?
- */
-var withSelection = function(action) {
-    var view = env.view;
-    var selection = view.getSelectedCharacters();
 
-    var replacement = action(selection);
-
-    var range = view.getSelectedRange();
-    var model = env.model;
-    model.replaceCharacters(range, replacement);
+exports.testOffsetFromRect = function() {
+    var rect = { x: 0, y: 0, width: 1, height: 1 };
+    t.deepEqual(Rect.offsetFromRect(rect, { x: -1, y: -1 }), { x: -1, y: -1 },
+        'the offset from (-1,-1) to the unit square and (-1,-1)');
+    t.deepEqual(Rect.offsetFromRect(rect, { x: 0, y: -1 }), { x: 0, y: -1 },
+        'the offset from (0,-1) to the unit square and (0,-1)');
+    t.deepEqual(Rect.offsetFromRect(rect, { x: 2, y: -1 }), { x: 1, y: -1 },
+        'the offset from (2,-1) to the unit square and (1,-1)');
+    t.deepEqual(Rect.offsetFromRect(rect, { x: -1, y: 0.5 }), { x: -1, y: 0 },
+        'the offset from (-1,0.5) to the unit square and (-1,0)');
+    t.deepEqual(Rect.offsetFromRect(rect, { x: 0.25, y: 1 }), { x: 0, y: 0 },
+        'the offset from (0.25,1) to the unit square and (0,0)');
+    t.deepEqual(Rect.offsetFromRect(rect, { x: 5, y: 0 }), { x: 4, y: 0 },
+        'the offset from (5,0) to the unit square and (4,0)');
+    t.deepEqual(Rect.offsetFromRect(rect, { x: -2, y: 2 }), { x: -2, y: 1 },
+        'the offset from (-2,2) to the unit square and (-2,1)');
+    t.deepEqual(Rect.offsetFromRect(rect, { x: 0.5, y: 3 }), { x: 0, y: 2 },
+        'the offset from (0.5,3) to the unit square and (0,2)');
+    t.deepEqual(Rect.offsetFromRect(rect, { x: 100, y: 2 }), { x: 99, y: 1 },
+        'the offset from (100,2) to the unit square and (99,1)');
 };
 
-/**
- * 'replace' command
- */
-exports.replaceCommand = function(args, request) {
-    withSelection(function(selected) {
-        return selected.replace(args.search + '/g', args.replace);
-    });
+exports.testRectsIntersect = function() {
+    t.ok(Rect.rectsIntersect({ x: 0, y: 0, width: 2, height: 2 },
+        { x: 1, y: 1, width: 2, height: 2 }),
+        '(0,0) (2,2) and (1,1) (3,3) intersect');
+    t.ok(!Rect.rectsIntersect({ x: 0, y: 0, width: 1, height: 1 },
+        { x: 0, y: 1, width: 1, height: 1 }),
+        '(0,0) (1,1) and (0,1) (1,1) don\'t intersect');
+    t.ok(!Rect.rectsIntersect({ x: 0, y: 0, width: 1, height: 1 },
+        { x: 2, y: 2, width: 1, height: 1 }),
+        '(0,0) (1,1) and (2,2) (3,3) don\'t intersect');
 };
 
-/**
- * 'entab' command
- */
-exports.entabCommand = function(args, request) {
-    tabstop = settings.get('tabstop');
-    withSelection(function(selected) {
-        return selected.replace(' {' + tabstop + '}', '\t');
-    });
+exports.testRectsSideBySide = function() {
+    var unit = { x: 0, y: 0, width: 1, height: 1 };
+    t.ok(!Rect.rectsSideBySide(unit, { x: -1, y: -1, width: 1, height: 1 }),
+        '(0,0) (1,1) and (-1,1) and (0,0) are not side-by-side');
+    t.ok( Rect.rectsSideBySide(unit, { x: 0,  y: -1, width: 1, height: 1 }),
+        '(0,0) (1,1) and (0,-1) (1,0) are side-by-side');
+    t.ok(!Rect.rectsSideBySide(unit, { x: 1,  y: -1, width: 1, height: 1 }),
+        '(0,0) (1,1) and (1,-1) (2,0) are not side-by-side');
+    t.ok( Rect.rectsSideBySide(unit, { x: -1, y: 0,  width: 1, height: 1 }),
+        '(0,0) (1,1) and (-1,0) (0,1) are side-by-side');
+    t.ok(!Rect.rectsSideBySide(unit, unit),
+        '(0,0) (1,1) and (0,0) (1,1) are not side-by-side');
+    t.ok( Rect.rectsSideBySide(unit, { x: 1,  y: 0,  width: 1, height: 1 }),
+        '(0,0) (1,1) and (1,0) (2,1) are side-by-side');
+    t.ok(!Rect.rectsSideBySide(unit, { x: -1, y: 1,  width: 1, height: 1 }),
+        '(0,0) (1,1) and (-1,1) (0,2) are not side-by-side');
+    t.ok( Rect.rectsSideBySide(unit, { x: 0,  y: 1,  width: 1, height: 1 }),
+        '(0,0) (1,1) and (0,1) (1,2) are side-by-side');
+    t.ok(!Rect.rectsSideBySide(unit, { x: 1,  y: 1,  width: 1, height: 1 }),
+        '(0,0) (1,1) and (1,1) (2,2) are not side-by-side');
 };
 
-/**
- * 'detab' command
- */
-exports.detabCommand = function(args, request) {
-    tabstop = settings.get('tabstop');
-    withSelection(function(selected) {
-        return selected.replace('\t', new Array(tabstop + 1).join(' '));
-    });
-};
-
-/**
- * 'trim' command
- */
-exports.trimCommand = function(args, request) {
-    withSelection(function(selected) {
-        var lines = selected.split('\n');
-        lines = lines.map(function(line) {
-            if (args.side === 'left' || args.side === 'both') {
-                line = line.replace(/^\s+/, '');
-            }
-            if (args.side === 'right' || args.side === 'both') {
-                line = line.replace(/\s+$/, '');
-            }
-            return line;
-        });
-        return lines.join('\n');
-    });
-};
-
-/**
- * 'uc' command
- */
-exports.ucCommand = function(args, request) {
-    withSelection(function(selected) {
-        return selected.toUpperCase();
-    });
-};
-
-/**
- * 'lc' command
- */
-exports.lcCommand = function(args, request) {
-    withSelection(function(selected) {
-        return selected.toLowerCase();
-    });
-};
 
 });
 
@@ -807,7 +1027,7 @@ exports.scrollPageUp = function(args, request) {
 
 });
 
-bespin.tiki.module("text_editor:controllers/layoutmanager",function(require,exports,module) {
+bespin.tiki.module("text_editor:commands/editor",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -845,1591 +1065,114 @@ bespin.tiki.module("text_editor:controllers/layoutmanager",function(require,expo
  *
  * ***** END LICENSE BLOCK ***** */
 
-var util = require('bespin:util/util');
-var Event = require("events").Event;
-var Range = require('rangeutils:utils/range');
-var SyntaxManager = require('syntax_manager').SyntaxManager;
-var TextStorage = require('models/textstorage').TextStorage;
 var catalog = require('bespin:plugins').catalog;
 var settings = require('settings').settings;
-var m_scratchcanvas = require('bespin:util/scratchcanvas');
-
-var fontDimension = {};
-
-var computeFontDimension = function() {
-    var fontSize = settings.get('fontsize');
-    var fontFace = settings.get('fontface');
-    var font = fontSize + 'px ' + fontFace;
-
-    var canvas = m_scratchcanvas.get();
-
-    // Measure a large string to work around the fact that width and height
-    // are truncated to the nearest integer in the canvas API.
-    var str = '';
-    for (var i = 0; i < 100; i++) {
-        str += 'M';
-    }
-
-    var width = canvas.measureStringWidth(font, str) / 100;
-
-    fontDimension.characterWidth = width;
-
-    fontDimension.lineHeight = Math.floor(fontSize * 1.6);
-    fontDimension.lineAscent = Math.floor(fontSize * 1.3);
-};
-
-computeFontDimension();
-
-catalog.registerExtension('settingChange', {
-    match: "font[size|face]",
-    pointer: computeFontDimension
-});
-
-exports.LayoutManager = function(opts) {
-    this.changedTextAtRow = new Event();
-    this.invalidatedRects = new Event();
-
-    // Put the global variable on the instance.
-    this.fontDimension = fontDimension;
-
-    // There is no setter for textStorage so we have to change it to
-    // _textStorage to make things work with util.mixin().
-    if (opts.textStorage) {
-        opts._textStorage = opts.textStorage;
-        delete opts.textStorage;
-    } else {
-        this._textStorage = new TextStorage();
-    }
-
-    util.mixin(this, opts);
-
-    this._textStorage.changed.add(this.textStorageChanged.bind(this));
-
-    this.textLines = [
-        {
-            characters: '',
-            colors:     [
-                {
-                    start:  0,
-                    end:    0,
-                    color:  'plain'
-                }
-            ]
-        }
-    ];
-
-    var syntaxManager = new SyntaxManager(this);
-    this.syntaxManager = syntaxManager;
-    syntaxManager.attrsChanged.add(this._attrsChanged.bind(this));
-
-    this._size = { width: 0, height: 0 };
-    this.sizeChanged = new Event();
-
-    this._height = 0;
-
-    // Now that the syntax manager is set up, we can recompute the layout.
-    // (See comments in _textStorageChanged().)
-    this._recomputeEntireLayout();
-};
-
-exports.LayoutManager.prototype = {
-    _maximumWidth: 0,
-    _textStorage: null,
-
-    _size: null,
-    sizeChanged: null,
-
-    /**
-     * Theme colors. Value is set by editorView class. Don't change this
-     * property directly. Use the editorView function to adjust it.
-     */
-    _theme: { },
-
-    /**
-     * @property
-     *
-     * The margins on each edge in pixels, expressed as an object with 'left',
-     * 'bottom', 'top', and 'right' properties.
-     *
-     * Do not modify the properties of this object directly; clone, adjust, and
-     * reset the margin property of the layout manager instead.
-     */
-    margin: { left: 5, bottom: 6, top: 0, right: 12 },
-
-    /**
-     * @property
-     *
-     * The plugin catalog to use. Typically this will be plugins.catalog, but
-     * for testing this may be replaced with a mock object.
-     */
-    pluginCatalog: catalog,
-
-    /** The syntax manager in use. */
-    syntaxManager: null,
-
-    /**
-     * @property{Array<object>}
-     *
-     * The marked-up lines of text. Each line has the properties 'characters',
-     * 'colors', and 'lineHeight'.
-     */
-    textLines: null,
-
-    // Called whenever the text attributes (which usually consist of syntax
-    // highlighting) change.
-    _attrsChanged: function(startRow, endRow) {
-        this.updateTextRows(startRow, endRow);
-
-        var invalidRects = this.rectsForRange({
-            start:  { row: startRow, col: 0 },
-            end:    { row: endRow, col: 0 }
-        });
-
-        this.invalidatedRects(this, invalidRects);
-    },
-
-    _computeInvalidRects: function(oldRange, newRange) {
-        var startRect = this.characterRectForPosition(oldRange.start);
-
-        var lineRect = {
-            x:      startRect.x,
-            y:      startRect.y,
-            width:  Number.MAX_VALUE,
-            height: startRect.height
-        };
-
-        return oldRange.end.row === newRange.end.row ?
-            [ lineRect ] :
-            [
-                lineRect,
-                {
-                    x:      0,
-                    y:      startRect.y + fontDimension.lineHeight,
-                    width:  Number.MAX_VALUE,
-                    height: Number.MAX_VALUE
-                }
-            ];
-    },
-
-    // Returns the last valid position in the buffer.
-    _lastCharacterPosition: function() {
-        return {
-            row: this.textLines.length - 1,
-            col: this._maximumWidth
-        };
-    },
-
-    _recalculateMaximumWidth: function() {
-        // Lots of room for optimization here if this turns out to be slow. But
-        // for now...
-        var textLines = this.textLines;
-        var max = 0;
-        textLines.forEach(function(line) {
-            var width = line.characters.length;
-            if (max < width) {
-                max = width;
-            }
-        });
-        this._maximumWidth = max;
-
-        this.size = { width: max, height: this.textLines.length };
-    },
-
-    _recomputeEntireLayout: function() {
-        var entireRange = this._textStorage.range;
-        this._recomputeLayoutForRanges(entireRange, entireRange);
-    },
-
-    _recomputeLayoutForRanges: function(oldRange, newRange) {
-        var oldStartRow = oldRange.start.row, oldEndRow = oldRange.end.row;
-        var newEndRow = newRange.end.row;
-        var newRowCount = newEndRow - oldStartRow + 1;
-
-        var lines = this._textStorage.lines;
-        var theme = this._theme;
-        var plainColor = theme.plain;
-
-        var newTextLines = [];
-        for (var i = 0; i < newRowCount; i++) {
-            var line = lines[oldStartRow + i];
-            newTextLines[i] = {
-                characters: line,
-                colors: [ { start: 0, end: null, color: plainColor } ]
-            };
-        }
-
-        this.textLines = util.replace(this.textLines, oldStartRow,
-                                oldEndRow - oldStartRow + 1, newTextLines);
-        this._recalculateMaximumWidth();
-
-        // Resize if necessary.
-        var newHeight = this.textLines.length;
-        var syntaxManager = this.syntaxManager;
-        if (this._height !== newHeight) {
-            this._height = newHeight;
-        }
-
-        // Invalidate the start row (starting the syntax highlighting).
-        syntaxManager.invalidateRow(oldStartRow);
-
-        // Take the cached attributes from the syntax manager.
-        this.updateTextRows(oldStartRow, newEndRow + 1);
-
-        this.changedTextAtRow(this, oldStartRow);
-
-        var invalidRects = this._computeInvalidRects(oldRange, newRange);
-        this.invalidatedRects(this, invalidRects);
-    },
-
-    /**
-     * Determines the boundaries of the entire text area.
-     *
-     * TODO: Unit test.
-     */
-    boundingRect: function() {
-        return this.rectsForRange({
-            start:  { row: 0, col: 0 },
-            end:    {
-                row: this.textLines.length - 1,
-                col: this._maximumWidth
-            }
-        })[0];
-    },
-
-    /**
-     * Determines the location of the character underneath the given point.
-     *
-     * @return Returns an object with three properties:
-     *   * row: The row of the character nearest the point.
-     *   * col: The col of the character nearest the point.
-     *   * partialFraction: The fraction of the horizontal distance between
-     *       this character and the next character. The extreme left of the
-     *       character is 0.0, while the extreme right of the character is 1.0.
-     *       If you are calling this function to determine where to place the
-     *       cursor, then you should place the cursor after the returned
-     *       character if this value is greater than 0.5.
-     *
-     * If there is no character under the point, then the character nearest the
-     * given point is returned, according to the selection rules.
-     */
-    characterAtPoint: function(point) {
-        var margin = this.margin;
-        var x = point.x - margin.left, y = point.y - margin.top;
-
-        var characterWidth = fontDimension.characterWidth;
-        var textStorage = this._textStorage;
-        var clampedPosition = textStorage.clampPosition({
-            row: Math.floor(y / fontDimension.lineHeight),
-            col: Math.floor(x / characterWidth)
-        });
-
-        var lineLength = textStorage.lines[clampedPosition.row].length;
-        clampedPosition.partialFraction = x < 0 ||
-            clampedPosition.col === lineLength ? 0.0 :
-            x % characterWidth / characterWidth;
-
-        return clampedPosition;
-    },
-
-    /**
-     * Given a rectangle expressed in pixels, returns the range of characters
-     * that lie at least partially within the rectangle as an object.
-     *
-     * TODO: Write unit tests for this method.
-     */
-    characterRangeForBoundingRect: function(rect) {
-        // TODO: variable line heights, needed for word wrap and perhaps
-        // extensions as well
-        var lineHeight = fontDimension.lineHeight;
-        var characterWidth = fontDimension.characterWidth;
-        var margin = this.margin;
-        var x = rect.x - margin.left, y = rect.y - margin.top;
-        return {
-            start:  {
-                row: Math.max(Math.floor(y / lineHeight), 0),
-                col: Math.max(Math.floor(x / characterWidth), 0)
-            },
-            end:    {
-                row: Math.floor((y + rect.height - 1) / lineHeight),
-                col: Math.floor((x + rect.width - 1) / characterWidth) + 1
-            }
-        };
-    },
-
-    /**
-     * Returns the boundaries of the character at the given position.
-     */
-    characterRectForPosition: function(position) {
-        return this.rectsForRange({
-            start:  position,
-            end:    { row: position.row, col: position.col + 1 }
-        })[0];
-    },
-
-    /**
-     * Returns the pixel boundaries of the given line.
-     *
-     * TODO: Unit test.
-     */
-    lineRectForRow: function(row) {
-        return this.rectsForRange({
-            start:  { row: row, col: 0                   },
-            end:    { row: row, col: this._maximumWidth  }
-        })[0];
-    },
-
-    rectForPosition: function(position) {
-        var margin = this.margin;
-        var characterWidth = fontDimension.characterWidth;
-        var lineHeight = fontDimension.lineHeight;
-        return {
-            x:      margin.left + characterWidth * position.col,
-            y:      margin.top + lineHeight * position.row,
-            width:  characterWidth,
-            height: lineHeight
-        };
-    },
-
-    /**
-     * Returns the 1, 2, or 3 rectangles that make up the given range.
-     */
-    rectsForRange: function(range) {
-        var characterWidth = fontDimension.characterWidth;
-        var lineHeight = fontDimension.lineHeight;
-        var maximumWidth = this._maximumWidth;
-        var margin = this.margin;
-
-        var start = range.start, end = range.end;
-        var startRow = start.row, startColumn = start.col;
-        var endRow = end.row, endColumn = end.col;
-
-        if (startRow === endRow) {
-            // The simple rectangle case.
-            return [
-                {
-                    x:      margin.left + characterWidth * startColumn,
-                    y:      margin.top + lineHeight * startRow,
-                    width:  characterWidth * (endColumn - startColumn),
-                    height: lineHeight
-                }
-            ];
-        }
-
-        var rects = [];
-
-        // Top line
-        var middleStartRow;
-        if (startColumn === 0) {
-            middleStartRow = startRow;
-        } else {
-            middleStartRow = startRow + 1;
-            rects.push({
-                x:      margin.left + characterWidth * startColumn,
-                y:      margin.top + lineHeight * startRow,
-                width:  99999, // < Number.MAX_VALUE is not working here.
-                height: lineHeight
-            });
-        }
-
-        // Bottom line
-        var middleEndRow;
-        if (endColumn === 0) {
-            middleEndRow = endRow - 1;
-        } else if (endColumn === maximumWidth) {
-            middleEndRow = endRow;
-        } else {
-            middleEndRow = endRow - 1;
-            rects.push({
-                x:      margin.left,
-                y:      margin.top + lineHeight * endRow,
-                width:  characterWidth * endColumn,
-                height: lineHeight
-            });
-        }
-
-        // Middle area
-        rects.push({
-            x:      margin.left,
-            y:      margin.top + lineHeight * middleStartRow,
-            width:  99999, // < Number.MAX_VALUE is not working here.
-            height: lineHeight * (middleEndRow - middleStartRow + 1)
-        });
-
-        return rects;
-    },
-
-    textStorageChanged: function(oldRange, newRange) {
-        this._recomputeLayoutForRanges(oldRange, newRange);
-    },
-
-    /**
-     * Updates the text lines in the given range to correspond to the current
-     * state of the syntax highlighter. Does not actually run the syntax
-     * highlighters.
-     */
-    updateTextRows: function(startRow, endRow) {
-        var textLines = this.textLines;
-        var attrs = this.syntaxManager.getAttrsForRows(startRow, endRow);
-        var theme = this._theme;
-
-        for (var i = 0; i < attrs.length; i++) {
-            textLines[startRow + i].colors = attrs[i];
-        }
-    }
-};
-
-Object.defineProperties(exports.LayoutManager.prototype, {
-    size: {
-        set: function(size) {
-            if (size.width !== this._size.width || size.height !== this._size.height) {
-                this.sizeChanged(size);
-                this._size = size;
-            }
-        },
-
-        get: function() {
-            return this._size;
-        }
-    },
-
-    textStorage: {
-        get: function() {
-            return this._textStorage;
-        }
-    }
-})
-
-});
-
-bespin.tiki.module("text_editor:controllers/search",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var util = require('bespin:util/util');
-var Range = require('rangeutils:utils/range');
-var console = require('bespin:console').console;
-
-/**
- * @class
- *
- * Manages the Find functionality.
- */
-exports.EditorSearchController = function(editor) {
-    this.editor = editor;
-};
-
-exports.EditorSearchController.prototype = {
-
-    /**
-     * The editor holding the buffer object to search in.
-     */
-    editor: null,
-
-    /**
-     * This is based on the idea from:
-     *      http://simonwillison.net/2006/Jan/20/escape/.
-     */
-    _escapeString: /(\/|\.|\*|\+|\?|\||\(|\)|\[|\]|\{|\}|\\)/g,
-
-    _findMatchesInString: function(str) {
-        var result = [];
-        var searchRegExp = this.searchRegExp;
-        var searchResult;
-        var endIndex;
-
-        searchRegExp.lastIndex = 0;
-
-        while (true) {
-            searchResult = searchRegExp.exec(str);
-            if (searchResult === null) {
-                break;
-            }
-
-            result.push(searchResult);
-
-            var index = searchResult.index;
-            searchRegExp.lastIndex = index + searchResult[0].length;
-        }
-
-        return result;
-    },
-
-    _makeRange: function(searchResult, row) {
-        return {
-            start: { row: row, col: searchResult.index },
-            end: {
-                row: row,
-                col: searchResult.index + searchResult[0].length
-            }
-        };
-    },
-
-    /**
-     * @property{boolean}
-     *
-     * True if the search query is a regular expression, false if it's a
-     * literal string.
-     */
-    isRegExp: null,
-
-    /**
-     * @property{RegExp}
-     *
-     * The current search query as a regular expression.
-     */
-    searchRegExp: null,
-
-    /**
-     * @property{String}
-     *
-     * The current search text.
-     */
-    searchText: null,
-
-    /**
-     * Sets the search query.
-     *
-     * @param text     The search query to set.
-     * @param isRegExp True if the text is a regex, false if it's a literal
-     *                 string.
-     */
-    setSearchText: function(text, isRegExp) {
-        var regExp;
-        // If the search string is not a RegExp make sure to escape the
-        if (!isRegExp) {
-            regExp = new RegExp(text.replace(this._escapeString, '\\$1'), 'gi');
-        } else {
-            regExp = new RegExp(text);
-        }
-        this.searchRegExp = regExp;
-        this.isRegExp = isRegExp;
-        this.searchText = text;
-    },
-
-    /**
-     * Finds the next occurrence of the search query.
-     *
-     * @param startPos       The position at which to restart the search.
-     * @param allowFromStart True if the search is allowed to wrap.
-     */
-    findNext: function(startPos, allowFromStart) {
-        var searchRegExp = this.searchRegExp;
-        if (util.none(searchRegExp)) {
-            return null;
-        }
-
-        startPos = startPos || this.editor.textView.getSelectedRange().end;
-
-        var lines = this.editor.layoutManager.textStorage.lines;
-        var searchResult;
-
-        searchRegExp.lastIndex = startPos.col;
-
-        var row;
-        for (row = startPos.row; row < lines.length; row++) {
-            searchResult = searchRegExp.exec(lines[row]);
-            if (!util.none(searchResult)) {
-                return this._makeRange(searchResult, row);
-            }
-        }
-
-        if (!allowFromStart) {
-            return null;
-        }
-
-        // Wrap around.
-        for (row = 0; row <= startPos.row; row++) {
-            searchResult = searchRegExp.exec(lines[row]);
-            if (!util.none(searchResult)) {
-                return this._makeRange(searchResult, row);
-            }
-        }
-
-        return null;
-    },
-
-    /**
-     * Finds the previous occurrence of the search query.
-     *
-     * @param startPos       The position at which to restart the search.
-     * @param allowFromStart True if the search is allowed to wrap.
-     */
-    findPrevious: function(startPos, allowFromEnd) {
-        var searchRegExp = this.searchRegExp;
-        if (util.none(searchRegExp)) {
-            return null;
-        }
-
-        startPos = startPos || this.editor.textView.getSelectedRange().start;
-
-        var lines = this.editor.buffer.layoutManager.textStorage.lines;
-        var searchResults;
-
-        // Treat the first line specially.
-        var firstLine = lines[startPos.row].substring(0, startPos.col);
-        searchResults = this._findMatchesInString(firstLine);
-
-        if (searchResults.length !== 0) {
-            return this._makeRange(searchResults[searchResults.length - 1],
-                                                                startPos.row);
-        }
-
-        // Loop over all other lines.
-        var row;
-        for (row = startPos.row - 1; row !== -1; row--) {
-            searchResults = this._findMatchesInString(lines[row]);
-            if (searchResults.length !== 0) {
-                return this._makeRange(searchResults[searchResults.length - 1],
-                                                                        row);
-            }
-        }
-
-        if (!allowFromEnd) {
-            return null;
-        }
-
-        // Wrap around.
-        for (row = lines.length - 1; row >= startPos.row; row--) {
-            searchResults = this._findMatchesInString(lines[row]);
-            if (searchResults.length !== 0) {
-                return this._makeRange(searchResults[searchResults.length - 1],
-                                                                        row);
-            }
-        }
-
-        return null;
-    }
-};
-
-
-});
-
-bespin.tiki.module("text_editor:controllers/undo",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var console = require('bespin:console').console;
 var env = require('environment').env;
 
-/**
- * @class
- *
- * The editor undo controller is a delegate of the text view that groups
- * changes into patches and saves them with the undo manager.
- *
- * This object does not assume that it has exclusive write access to the text
- * storage object, and as such it tries to maintain sensible behavior in the
- * presence of direct modification to the text storage by other objects. This
- * is important for collaboration.
- */
-exports.EditorUndoController = function(editor) {
-    this.editor = editor;
-    var textView = this.textView = editor.textView;
-
-    textView.beganChangeGroup.add(function(sender, selection) {
-        this._beginTransaction();
-        this._record.selectionBefore = selection;
-    }.bind(this));
-
-    textView.endedChangeGroup.add(function(sender, selection) {
-        this._record.selectionAfter = selection;
-        this._endTransaction();
-    }.bind(this));
-
-    textView.replacedCharacters.add(function(sender, oldRange, characters) {
-        if (!this._inTransaction) {
-            throw new Error('UndoController.textViewReplacedCharacters()' +
-                ' called outside a transaction');
-        }
-
-        this._record.patches.push({
-            oldCharacters:  this._deletedCharacters,
-            oldRange:       oldRange,
-            newCharacters:  characters,
-            newRange:       this.editor.layoutManager.textStorage.
-                            resultingRangeForReplacement(oldRange,
-                            characters.split('\n'))
-        });
-
-        this._deletedCharacters = null;
-    }.bind(this));
-
-    textView.willReplaceRange.add(function(sender, oldRange) {
-        if (!this._inTransaction) {
-            throw new Error('UndoController.textViewWillReplaceRange() called' +
-                ' outside a transaction');
-        }
-
-        this._deletedCharacters = this.editor.layoutManager.textStorage.
-                            getCharacters(oldRange);
-    }.bind(this));
-};
-
-exports.EditorUndoController.prototype = {
-    _inTransaction: false,
-    _record: null,
-
-    /**
-     * @property{TextView}
-     *
-     * The view object to forward changes to. This property must be set upon
-     * instantiating the undo controller.
-     */
-    textView: null,
-
-    _beginTransaction: function() {
-        if (this._inTransaction) {
-            console.trace();
-            throw new Error('UndoController._beginTransaction() called with a ' +
-                'transaction already in place');
-        }
-
-        this._inTransaction = true;
-        this._record = { patches: [] };
-    },
-
-    _endTransaction: function() {
-        if (!this._inTransaction) {
-            throw new Error('UndoController._endTransaction() called without a ' +
-                'transaction in place');
-        }
-
-        this.editor.buffer.undoManager.registerUndo(this, this._record);
-        this._record = null;
-
-        this._inTransaction = false;
-    },
-
-    _tryApplyingPatches: function(patches) {
-        var textStorage = this.editor.layoutManager.textStorage;
-        patches.forEach(function(patch) {
-            textStorage.replaceCharacters(patch.oldRange, patch.newCharacters);
-        });
-        return true;
-    },
-
-    _undoOrRedo: function(patches, selection) {
-        if (this._inTransaction) {
-            // Can't think of any reason why this should be supported, and it's
-            // often an indication that someone forgot an endTransaction()
-            // call somewhere...
-            throw new Error('UndoController._undoOrRedo() called while in a transaction');
-        }
-
-        if (!this._tryApplyingPatches(patches)) {
-            return false;
-        }
-
-        this.textView.setSelection(selection, true);
-        return true;
-    },
-
-    redo: function(record) {
-        var patches = record.patches.concat();
-        patches.reverse();
-        return this._undoOrRedo(patches, record.selectionAfter);
-    },
-
-    undo: function(record) {
-        return this._undoOrRedo(record.patches.map(function(patch) {
-                return {
-                    oldCharacters:  patch.newCharacters,
-                    oldRange:       patch.newRange,
-                    newCharacters:  patch.oldCharacters,
-                    newRange:       patch.oldRange
-                };
-            }), record.selectionBefore);
+exports.findNextCommand = function(args, request) {
+    var view = env.view, search = view.editor.searchController;
+    var sel = view.getSelectedRange();
+    var match = search.findNext(sel.end, true);
+    if (match) {
+        view.setSelection(match, true);
+        view.focus();
     }
 };
 
-exports.undoManagerCommand = function(args, request) {
-    var editor = env.editor;
-    editor.buffer.undoManager[request.commandExt.name]()
+exports.findPrevCommand = function(args, request) {
+    var view = env.view, search = view.editor.searchController;
+    var sel = view.getSelectedRange();
+    var match = search.findPrevious(sel.start, true);
+    if (match) {
+        view.setSelection(match, true);
+        view.focus();
+    }
 };
 
-});
+/**
+ * Utility to allow us to alter the current selection
+ * TODO: If the selection is empty, broaden the scope to the whole file?
+ */
+var withSelection = function(action) {
+    var view = env.view;
+    var selection = view.getSelectedCharacters();
 
-bespin.tiki.module("text_editor:models/buffer",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+    var replacement = action(selection);
 
-var env = require('environment').env;
-
-var util = require('bespin:util/util');
-
-var Promise = require('bespin:promise').Promise;
-var TextStorage = require('models/textstorage').TextStorage;
-var LayoutManager = require('controllers/layoutmanager').LayoutManager;
-var UndoManager = require('undomanager').UndoManager;
+    var range = view.getSelectedRange();
+    var model = env.model;
+    model.replaceCharacters(range, replacement);
+};
 
 /**
- * A Buffer connects a model and file together. It also holds the layoutManager
- * that is bound to the model. The syntaxManager can get accessed via the
- * layoutManager as well.
- *
- * Per opened file there is one buffer which means that one buffer is
- * corresponding to one file on the disk. If you open different file, you have
- * to create a new buffer for that file.
- *
- * To create a buffer that is (not yet) bound to a file, just create the Buffer
- * without a file passed.
+ * 'replace' command
  */
-exports.Buffer = function(file, initialContent) {
-    this._file = file;
-    this._model = new TextStorage(initialContent);
-    this._layoutManager = new LayoutManager({
-        textStorage: this._model
+exports.replaceCommand = function(args, request) {
+    withSelection(function(selected) {
+        return selected.replace(args.search + '/g', args.replace);
     });
-
-    this.undoManager = new UndoManager();
-
-    // If a file is passed, then load it. This is the same as calling reload.
-    if (file) {
-        this.reload().then(function() {
-            this._updateSyntaxManagerInitialContext();
-        }.bind(this));
-    } else {
-        this.loadPromise = new Promise();
-        this.loadPromise.resolve();
-    }
-
-    // Restore the state of the buffer (selection + scrollOffset).
-    // TODO: Refactor this code into the ViewState.
-    var history = (env.session ? env.session.history : null);
-    var item, selection, scrollOffset;
-
-    // If
-    //  1.  Check if a history exists and the buffer has a file (-> path)
-    //  2.  Ask the history object for the history for the current file.
-    //      If no history is found, null is returned.
-    if (history && file &&                                  // 1.
-            (item = history.getHistoryForPath(file.path))   // 2.
-    ) {
-        // There is no state saved in the buffer and the history object
-        // has a state saved.
-        selection = item.selection;
-        scrollOffset = item.scroll;
-    }
-
-    // Use the saved values from the history or the default values.
-    this._selectedRange = selection || {
-        start: { row: 0, col: 0 },
-        end: { row: 0, col: 0 }
-    };
-
-    this._scrollOffset = scrollOffset || { x: 0, y: 0 };
 };
-
-exports.Buffer.prototype = {
-    /**
-     * The undoManager where the undo/redo stack is stored and handled.
-     */
-    undoManager: null,
-
-    loadPromise: null,
-
-    _scrollOffset: null,
-    _selectedRange: null,
-    _selectedRangeEndVirtual: null,
-
-    /**
-     * The syntax manager associated with this file.
-     */
-    _layoutManager: null,
-
-    /**
-     * The file object associated with this buffer. The file instance can only
-     * be assigned when constructing the buffer or calling saveAs.
-     */
-    _file: null,
-
-   /**
-    * The text model that is holding the content of the file.
-    */
-    _model: null,
-
-    /**
-     * Save the contents of this buffer. Returns a promise that resolves
-     * once the file is saved.
-     */
-    save: function() {
-        return this._file.saveContents(this._model.value);
-    },
-
-    /**
-     * Saves the contents of this buffer to a new file, and updates the file
-     * field of this buffer to point to the result.
-     *
-     * @param dir{Directory} The directory to save in.
-     * @param filename{string} The name of the file in the directory.
-     * @return A promise to return the newly-saved file.
-     */
-    saveAs: function(newFile) {
-        var promise = new Promise();
-
-        newFile.saveContents(this._model.value).then(function() {
-            this._file = newFile;
-            this._updateSyntaxManagerInitialContext();
-            promise.resolve();
-        }.bind(this), function(error) {
-            promise.reject(error);
-        });
-
-        return promise;
-    },
-
-    /**
-     * Reload the existing file contents from the server.
-     */
-    reload: function() {
-        var file = this._file;
-        var self = this;
-
-        var pr;
-        pr =  file.loadContents().then(function(contents) {
-            self._model.value = contents;
-        });
-        this.loadPromise = pr;
-        return pr;
-    },
-
-    _updateSyntaxManagerInitialContext: function() {
-        var ext = this._file.extension();
-        var syntaxManager = this._layoutManager.syntaxManager;
-        syntaxManager.setSyntaxFromFileExt(ext === null ? '' : ext);
-    },
-
-    /**
-     * Returns true if the file is untitled (i.e. it is new and has not yet
-     * been saved with @saveAs) or false otherwise.
-     */
-    untitled: function() {
-        return util.none(this._file);
-    }
-};
-
-Object.defineProperties(exports.Buffer.prototype, {
-    layoutManager: {
-        get: function() {
-            return this._layoutManager;
-        }
-    },
-
-    syntaxManager: {
-        get: function() {
-            this._layoutManager.syntaxManager;
-        }
-    },
-
-    file: {
-        get: function() {
-            return this._file;
-        }
-    },
-
-    model: {
-        get: function() {
-            return this._model;
-        }
-    }
-});
-
-});
-
-bespin.tiki.module("text_editor:models/textstorage",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var Event = require('events').Event;
-var util = require('bespin:util/util');
-
-var TextStorage;
 
 /**
- * Creates a new text storage object holding the given string (if supplied).
- *
- * @constructor
- * @exports TextStorage as text_editor:models.textstorage.TextStorage
+ * 'entab' command
  */
-TextStorage = function(initialValue) {
-    if (initialValue !== null && initialValue !== undefined) {
-        this._lines = initialValue.split("\n");
-    } else {
-        this._lines = [ '' ];
-    }
-
-    /**
-     * Called whenever the text changes with the old and new ranges supplied.
-     */
-    this.changed = new Event();
-
-    return this;
+exports.entabCommand = function(args, request) {
+    tabstop = settings.get('tabstop');
+    withSelection(function(selected) {
+        return selected.replace(' {' + tabstop + '}', '\t');
+    });
 };
 
-TextStorage.prototype = {
-    /** @lends TextStorage */
+/**
+ * 'detab' command
+ */
+exports.detabCommand = function(args, request) {
+    tabstop = settings.get('tabstop');
+    withSelection(function(selected) {
+        return selected.replace('\t', new Array(tabstop + 1).join(' '));
+    });
+};
 
-    _lines: null,
-
-    /**
-     * Whether this model is read-only. Attempts to modify a read-only model
-     * result in exceptions.
-     *
-     * @type {boolean}
-     */
-    readOnly: false,
-
-    /**
-     * Returns the position of the nearest character to the given position,
-     * according to the selection rules.
-     *
-     * @param {position} pos The position to clamp.
-     */
-    clampPosition: function(pos) {
-        var lines = this._lines;
-
-        var row = pos.row;
-        if (row < 0) {
-            return { row: 0, col: 0 };
-        } else if (row >= lines.length) {
-            return this.range.end;
-        }
-
-        var col = Math.max(0, Math.min(pos.col, lines[row].length));
-        return { row: row, col: col };
-    },
-
-    /**
-     * Returns the actual range closest to the given range, according to the
-     * selection rules.
-     */
-    clampRange: function(range) {
-        var start = this.clampPosition(range.start);
-        var end = this.clampPosition(range.end);
-        return { start: start, end: end };
-    },
-
-    /** Deletes all characters in the range. */
-    deleteCharacters: function(range) {
-        this.replaceCharacters(range, '');
-    },
-
-    /**
-     * Returns the result of displacing the given position by count characters
-     * forward (if count > 0) or backward (if count < 0).
-     */
-    displacePosition: function(pos, count) {
-        var forward = count > 0;
-        var lines = this._lines;
-        var lineCount = lines.length;
-
-        for (var i = Math.abs(count); i !== 0; i--) {
-            if (forward) {
-                var rowLength = lines[pos.row].length;
-                if (pos.row === lineCount - 1 && pos.col === rowLength) {
-                    return pos;
-                }
-                pos = pos.col === rowLength ?
-                    { row: pos.row + 1, col: 0            } :
-                    { row: pos.row,     col: pos.col + 1  };
-            } else {
-                if (pos.row === 0 && pos.col == 0) {
-                    return pos;
-                }
-
-                if (pos.col === 0) {
-                    lines = this._lines;
-                    pos = {
-                        row:    pos.row - 1,
-                        col: lines[pos.row - 1].length
-                    };
-                } else {
-                    pos = { row: pos.row, col: pos.col - 1 };
-                }
+/**
+ * 'trim' command
+ */
+exports.trimCommand = function(args, request) {
+    withSelection(function(selected) {
+        var lines = selected.split('\n');
+        lines = lines.map(function(line) {
+            if (args.side === 'left' || args.side === 'both') {
+                line = line.replace(/^\s+/, '');
             }
-        }
-        return pos;
-    },
-
-    /**
-     * Returns the characters in the given range as a string.
-     */
-    getCharacters: function(range) {
-        var lines = this._lines;
-        var start = range.start, end = range.end;
-        var startRow = start.row, endRow = end.row;
-        var startCol = start.col, endCol = end.col;
-
-        if (startRow === endRow) {
-            return lines[startRow].substring(startCol, endCol);
-        }
-
-        var firstLine = lines[startRow].substring(startCol);
-        var middleLines = lines.slice(startRow + 1, endRow);
-        var endLine = lines[endRow].substring(0, endCol);
-        return [ firstLine ].concat(middleLines, endLine).join('\n');
-    },
-
-    /** Returns the lines of the text storage as a read-only array. */
-    getLines: function() {
-        return this._lines;
-    },
-
-    /** Returns the span of the entire text content. */
-    getRange: function() {
-        var lines = this._lines;
-        var endRow = lines.length - 1;
-        var endCol = lines[endRow].length;
-        var start = { row: 0, col: 0 }, end = { row: endRow, col: endCol };
-        return { start: start, end: end };
-    },
-
-    /** Returns the text in the text storage as a string. */
-    getValue: function() {
-        return this._lines.join('\n');
-    },
-
-    /** Inserts characters at the supplied position. */
-    insertCharacters: function(pos, chars) {
-        this.replaceCharacters({ start: pos, end: pos }, chars);
-    },
-
-    /** Replaces the characters within the supplied range. */
-    replaceCharacters: function(oldRange, characters) {
-        if (this.readOnly) {
-            throw new Error("Attempt to modify a read-only text storage " +
-                "object");
-        }
-
-        var addedLines = characters.split('\n');
-        var addedLineCount = addedLines.length;
-
-        var newRange = this.resultingRangeForReplacement(oldRange, addedLines);
-
-        var oldStart = oldRange.start, oldEnd = oldRange.end;
-        var oldStartRow = oldStart.row, oldEndRow = oldEnd.row;
-        var oldStartColumn = oldStart.col;
-
-        var lines = this._lines;
-        addedLines[0] = lines[oldStartRow].substring(0, oldStartColumn) +
-            addedLines[0];
-        addedLines[addedLineCount - 1] +=
-            lines[oldEndRow].substring(oldEnd.col);
-
-        this._lines = util.replace(lines, oldStartRow, oldEndRow - oldStartRow + 1, addedLines);
-
-        this.changed(oldRange, newRange, characters);
-    },
-
-    /**
-     * Returns the character range that would be modified if the range were
-     * replaced with the given lines.
-     */
-    resultingRangeForReplacement: function(range, lines) {
-        var lineCount = lines.length;
-        var lastLineLength = lines[lineCount - 1].length;
-        var start = range.start;
-        var endRow = start.row + lineCount - 1;
-        var endCol = (lineCount === 1 ? start.col : 0) + lastLineLength;
-        return { start: start, end: { row: endRow, col: endCol } };
-    },
-
-    setLines: function(newLines) {
-        this.setValue(newLines.join('\n'));
-    },
-
-    setValue: function(newValue) {
-        this.replaceCharacters(this.range, newValue);
-    }
-};
-
-exports.TextStorage = TextStorage;
-
-Object.defineProperties(exports.TextStorage.prototype, {
-    lines: {
-        get: function() {
-            return this.getLines();
-        },
-        set: function(newLines) {
-            return this.setLines(newLines);
-        }
-    },
-    
-    range: {
-        get: function() {
-            return this.getRange();
-        }
-    },
-    
-    value: {
-        get: function() {
-            return this.getValue();
-        },
-        set: function(newValue) {
-            this.setValue(newValue);
-        }
-    }
-});
-
-});
-
-bespin.tiki.module("text_editor:utils/rect",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-/**
- * @private
- *
- * Returns the distance between the given value and the given inclusive upper
- * and lower bounds, or 0 if the value lies between them.
- *
- * Exported so that the function can be unit tested.
- */
-exports._distanceFromBounds = function(value, low, high) {
-    if (value < low) {
-        return value - low;
-    }
-    if (value >= high) {
-        return value - high;
-    }
-    return 0;
-};
-
-/**
- * Merges the rectangles in a given set and returns the resulting set of non-
- * overlapping rectanlges.
- */
-exports.merge = function(set) {
-    var modified;
-    do {
-        modified = false;
-        var newSet = [];
-
-        for (var i = 0; i < set.length; i++) {
-            var rectA = set[i];
-            newSet.push(rectA);
-            for (var j = i+1; j < set.length; j++) {
-                var rectB = set[j];
-                if (exports.rectsSideBySide(rectA, rectB) ||
-                                        exports.rectsIntersect(rectA, rectB)) {
-                    set.splice(j, 1);
-
-                    // There's room for optimization here...
-                    newSet[newSet.length - 1] = exports.unionRects(rectA, rectB);
-
-                    modified = true;
-                    break;
-                }
+            if (args.side === 'right' || args.side === 'both') {
+                line = line.replace(/\s+$/, '');
             }
-        }
-
-        set = newSet;
-    } while (modified);
-
-    return set;
+            return line;
+        });
+        return lines.join('\n');
+    });
 };
 
 /**
- * Returns the vector representing the shortest offset between the given
- * rectangle and the given point.
+ * 'uc' command
  */
-exports.offsetFromRect = function(rect, point) {
-    return {
-        x: exports._distanceFromBounds(point.x, rect.x, exports.maxX(rect)),
-        y: exports._distanceFromBounds(point.y, rect.y, exports.maxY(rect))
-    };
+exports.ucCommand = function(args, request) {
+    withSelection(function(selected) {
+        return selected.toUpperCase();
+    });
 };
 
 /**
- * Returns true if the rectanges intersect or false otherwise. Adjacent
- * rectangles don't count; they must actually overlap some region.
+ * 'lc' command
  */
-exports.rectsIntersect = function(a, b) {
-    var intersection = exports.intersectRects(a, b);
-    return intersection.width !== 0 && intersection.height !== 0;
-};
-
-/**
- * Checks if two rects lay side by side. Returns true if this is true.
- * For example:
- *      +------------+---------------+
- *      |    A       |       B       |
- *      +------------+---------------+
- * will be true, but if B is only one pixel shifted up,
- * then it would return false.
- */
-exports.rectsSideBySide = function(a, b) {
-    if (a.x == b.x && a.width == b.width) {
-        if (a.y < b.y) {
-            return (a.y + a.height) == b.y;
-        } else {
-            return (b.y + b.height) == a.y;
-        }
-    } else if (a.y == b.y && a.height == b.height) {
-        if (a.x < b.x) {
-            return (a.x + a.width) == b.x;
-        } else {
-            return (b.x + b.width) == a.x;
-        }
-    }
-    return false;
-};
-
-// extracted from SproutCore
-exports.intersectRects = function(r1, r2) {
-  // find all four edges
-  var ret = {
-    x: Math.max(exports.minX(r1), exports.minX(r2)),
-    y: Math.max(exports.minY(r1), exports.minY(r2)),
-    width: Math.min(exports.maxX(r1), exports.maxX(r2)),
-    height: Math.min(exports.maxY(r1), exports.maxY(r2))
-  } ;
-
-  // convert edges to w/h
-  ret.width = Math.max(0, ret.width - ret.x) ;
-  ret.height = Math.max(0, ret.height - ret.y) ;
-  return ret ;
-};
-
-/** Return the left edge of the frame */
-exports.minX = function(frame) {
-  return frame.x || 0;
-};
-
-/** Return the right edge of the frame. */
-exports.maxX = function(frame) {
-  return (frame.x || 0) + (frame.width || 0);
-};
-
-/** Return the top edge of the frame */
-exports.minY = function(frame) {
-  return frame.y || 0 ;
-};
-
-/** Return the bottom edge of the frame */
-exports.maxY = function(frame) {
-  return (frame.y || 0) + (frame.height || 0) ;
-};
-
-/** Check if the given point is inside the rect. */
-exports.pointInRect = function(point, f) {
-    return  (point.x >= exports.minX(f)) &&
-            (point.y >= exports.minY(f)) &&
-            (point.x <= exports.maxX(f)) &&
-            (point.y <= exports.maxY(f)) ;
-};
-
-/** Returns the union between two rectangles
-
-  @param r1 {Rect} The first rect
-  @param r2 {Rect} The second rect
-  @returns {Rect} The union rect.
-*/
-exports.unionRects = function(r1, r2) {
-  // find all four edges
-  var ret = {
-    x: Math.min(exports.minX(r1), exports.minX(r2)),
-    y: Math.min(exports.minY(r1), exports.minY(r2)),
-    width: Math.max(exports.maxX(r1), exports.maxX(r2)),
-    height: Math.max(exports.maxY(r1), exports.maxY(r2))
-  } ;
-
-  // convert edges to w/h
-  ret.width = Math.max(0, ret.width - ret.x) ;
-  ret.height = Math.max(0, ret.height - ret.y) ;
-  return ret ;
-};
-
-/** Return true if the two frames match.  You can also pass only points or sizes.
-
-  @param r1 {Rect} the first rect
-  @param r2 {Rect} the second rect
-  @param delta {Float} an optional delta that allows for rects that do not match exactly. Defaults to 0.1
-  @returns {Boolean} true if rects match
- */
-exports.rectsEqual = function(r1, r2, delta) {
-    if (!r1 || !r2) return (r1 == r2) ;
-    if (!delta && delta !== 0) delta = 0.1;
-    if ((r1.y != r2.y) && (Math.abs(r1.y - r2.y) > delta)) return false ;
-    if ((r1.x != r2.x) && (Math.abs(r1.x - r2.x) > delta)) return false ;
-    if ((r1.width != r2.width) && (Math.abs(r1.width - r2.width) > delta)) return false ;
-    if ((r1.height != r2.height) && (Math.abs(r1.height - r2.height) > delta)) return false ;
-    return true ;
+exports.lcCommand = function(args, request) {
+    withSelection(function(selected) {
+        return selected.toLowerCase();
+    });
 };
 
 });
 
-bespin.tiki.module("text_editor:views/canvas",function(require,exports,module) {
+bespin.tiki.module("text_editor:commands/editing",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -2467,285 +1210,461 @@ bespin.tiki.module("text_editor:views/canvas",function(require,exports,module) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-var util = require('bespin:util/util');
-var Rect = require('utils/rect');
-var Event = require('events').Event;
+var settings = require('settings').settings;
+var env = require('environment').env;
+var m_range = require('rangeutils:utils/range');
+
+/*
+ * Commands that delete text.
+ */
 
 /**
- * @class
- *
- * This class provides support for manual scrolling and positioning for canvas-
- * based elements. Getting these elements to play nicely with SproutCore is
- * tricky and error-prone, so all canvas-based views should consider deriving
- * from this class. Derived views should implement drawRect() in order to
- * perform the appropriate canvas drawing logic.
- *
- * The actual size of the canvas is always the size of the container the canvas
- * view is placed in.
- *
- * The canvas that is created is available in the domNode attribute and should
- * be added to the document by the caller.
+ * Deletes the selection or the previous character, if the selection is an
+ * insertion point.
  */
-exports.CanvasView = function(container, preventDownsize, clearOnFullInvalid) {
-    if (!container) {
+exports.backspace = function(args, request) {
+    var view = env.view;
+    view.performBackspaceOrDelete(true);
+};
+
+/**
+ * Deletes the selection or the next character, if the selection is an
+ * insertion point.
+ */
+exports.deleteCommand = function(args, request) {
+    var view = env.view;
+    view.performBackspaceOrDelete(false);
+};
+
+/**
+ * Deletes all lines that are partially or fully selected, and position the
+ * insertion point at the end of the deleted range.
+ */
+exports.deleteLines = function(args, request) {
+    if (env.model.readOnly) {
         return;
     }
 
-    this._preventDownsize = preventDownsize || false;
-    this._clearOnFullInvalid = clearOnFullInvalid || false;
-    this._clippingFrame = this._frame = {
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0
-    };
-    this._invalidRects = [];
+    // In the case of just one line, do nothing.
+    if (env.model.lines.length == 1) {
+        return;
+    }
 
-    var canvas = document.createElement('canvas');
-    canvas.setAttribute('style', 'position: absolute');
-    canvas.innerHTML = 'canvas tag not supported by your browser';
-    container.appendChild(canvas);
-    this.domNode = canvas;
+    var view = env.view;
+    view.groupChanges(function() {
+        var range = view.getSelectedRange();
+        var lines = env.model.lines;
+        var lastLine = lines.length - 1;
+        var startPos, endPos;
 
-    this.clippingChanged = new Event();
-    this.clippingChanged.add(this.clippingFrameChanged.bind(this));
+        // Last row gets special treatment.
+        if (range.start.row == lastLine) {
+            startPos = { col: lines[lastLine - 1].length, row: lastLine - 1 };
+        } else {
+            startPos = { col: 0, row: range.start.row };
+        }
+
+        // Last row gets special treatment.
+        if (range.end.row == lastLine) {
+            endPos = { col: lines[lastLine].length, row: lastLine};
+        } else {
+            endPos = { col: 0, row: range.end.row + 1 };
+        }
+
+        view.replaceCharacters({
+            start: startPos,
+            end:   endPos
+        }, '');
+
+        view.moveCursorTo(startPos);
+    });
 };
 
-exports.CanvasView.prototype = {
-    domNode: null,
+/*
+ * Commands that insert text.
+ */
 
-    clippingChanged: null,
+// Inserts a newline, and copies the spaces at the beginning of the current row
+// to autoindent.
+var newline = function(model, view) {
+    var selection = view.getSelectedRange();
+    var position = selection.start;
+    var row = position.row, col = position.col;
 
-    _canvasContext: null,
-    _canvasId: null,
-    _invalidRects: null,
-    _lastRedrawTime: null,
-    _redrawTimer: null,
-    _clippingFrame: null,
-    _preventDownsize: false,
-    _clearOnFullInvalid: false,
+    var lines = model.lines;
+    var prefix = lines[row].substring(0, col);
 
-    _frame: null,
+    var spaces = /^\s*/.exec(prefix);
+    view.insertText('\n' + spaces);
+};
 
-    _getContext: function() {
-        if (this._canvasContext === null) {
-            this._canvasContext = this.domNode.getContext('2d');
-        }
-        return this._canvasContext;
-    },
+/**
+ * Replaces the selection with the given text and updates the selection
+ * boundaries appropriately.
+ */
+exports.insertText = function(args, request) {
+    var view = env.view;
+    var text = args.text;
+    view.insertText(text);
+};
 
-    computeWithClippingFrame: function(x, y) {
-        var clippingFrame = this.clippingFrame;
-        return {
-            x: x + clippingFrame.x,
-            y: y + clippingFrame.y
-        };
-    },
+/**
+ * Inserts a newline at the insertion point.
+ */
+exports.newline = function(args, request) {
+    var model = env.model, view = env.view;
+    newline(model, view);
+};
 
-    /**
-     * @property{Number}
-     *
-     * The minimum delay between canvas redraws in milliseconds, equal to 1000
-     * divided by the desired number of frames per second.
-     */
-    minimumRedrawDelay: 1000.0 / 30.0,
+/**
+ * Join the following line with the current one. Removes trailing whitespaces.
+ */
+exports.joinLines = function(args, request) {
+    var model = env.model;
+    if (model.readOnly) {
+        return;
+    }
 
-    /**
-     * Subclasses can override this method to provide custom behavior whenever
-     * the clipping frame changes. The default implementation simply
-     * invalidates the entire visible area.
-     */
-    clippingFrameChanged: function() {
-        this.invalidate();
-    },
+    var view = env.view;
+    var selection = view.getSelectedRange();
+    var lines = model.lines;
+    var row = selection.end.row;
 
-    drawRect: function(rect, context) { },
+    // Last line selected, which can't get joined.
+    if (lines.length == row) {
+        return;
+    }
 
-    /**
-     * Render the canvas. Rendering is delayed by a few ms to empty the call
-     * stack first before rendering. If the canvas was rendered in less then
-     * this.minimumRedrawDelay ms, then the next rendering will take in
-     * this.minimumRedrawDelay - now + lastRendering ms.
-     */
-    render: function() {
-         // Don't continue if there is a rendering or redraw timer already.
-        if (this._renderTimer || this._redrawTimer) {
-            return;
-        }
+    view.groupChanges(function() {
+        var endCol = lines[row].length;
 
-        // Queue the redraw at the end of the current event queue to make sure
-        // everyting is done when redrawing.
-        this._renderTimer = setTimeout(this._tryRedraw.bind(this), 0);
-    },
+        view.replaceCharacters({
+            start: {
+                col: endCol,
+                row: row
+            },
+            end: {
+                col: /^\s*/.exec(lines[row + 1])[0].length,
+                row: row + 1
+        }}, '');
+    });
+};
 
-    /**
-     * Invalidates the entire visible region of the canvas.
-     */
-    invalidate: function(rect) {
-        this._invalidRects = 'all';
-        this.render();
-    },
+/**
+ * Creates a new, empty line below the current one, and places the insertion
+ * point there.
+ */
+exports.openLine = function(args, request) {
+    if (env.model.readOnly) {
+        return;
+    }
 
-    /**
-     * Invalidates the given rect of the canvas, and schedules that portion of
-     * the canvas to be redrawn at the end of the run loop.
-     */
-    invalidateRect: function(rect) {
-        var invalidRects = this._invalidRects;
-        if (invalidRects !== 'all') {
-            invalidRects.push(rect);
-            this.render();
-        }
-    },
+    var model = env.model, view = env.view;
 
-    _tryRedraw: function(context) {
-        this._renderTimer = null;
+    var selection = view.getSelectedRange();
+    var row = selection.end.row;
+    var lines = model.lines;
+    view.moveCursorTo({ row: row, col: lines[row].length });
 
-        var now = new Date().getTime();
-        var lastRedrawTime = this._lastRedrawTime;
-        var minimumRedrawDelay = this.minimumRedrawDelay;
+    newline(model, view);
+};
 
-        if (lastRedrawTime === null ||
-                now - lastRedrawTime >= minimumRedrawDelay) {
-            this._redraw();
-            return;
-        }
+/**
+ * Inserts a new tab. This is smart about the current inserted whitespaces and
+ * the current position of the cursor. If some text is selected, the selected
+ * lines will be indented by tabstop spaces.
+ */
+exports.tab = function(args, request) {
+    var view = env.view;
 
-        var redrawTimer = this._redrawTimer;
-        if (redrawTimer !== null) {
-            return; // already scheduled
-        }
+    view.groupChanges(function() {
+        var tabstop = settings.get('tabstop');
+        var selection = view.getSelectedRange();
+        var str = '';
 
-        // TODO This is not as good as SC.Timer... Will it work?
-        this._redrawTimer = window.setTimeout(this._redraw.bind(this),
-            minimumRedrawDelay);
-    },
+        if (m_range.isZeroLength(selection)){
+            var line = env.model.lines[selection.start.row];
+            var trailspaces = line.substring(selection.start.col).
+                                            match(/^\s*/)[0].length;
+            var count = tabstop - (selection.start.col + trailspaces) % tabstop;
 
-     /**
-     * Calls drawRect() on all the invalid rects to redraw the canvas contents.
-     * Generally, you should not need to call this function unless you override
-     * the default implementations of didCreateLayer() or render().
-     */
-    _redraw: function() {
-        var clippingFrame = this.clippingFrame;
-        clippingFrame = {
-            x:      Math.round(clippingFrame.x),
-            y:      Math.round(clippingFrame.y),
-            width:  clippingFrame.width,
-            height: clippingFrame.height
-        };
-
-        var context = this._getContext();
-        context.save();
-        context.translate(-clippingFrame.x, -clippingFrame.y);
-
-        var invalidRects = this._invalidRects;
-        if (invalidRects === 'all') {
-            if (this._clearOnFullInvalid) {
-                context.clearRect(0, 0, this.domNode.width, this.domNode.height);
+            for (var i = 0; i < count; i++) {
+                str += ' ';
             }
-            this.drawRect(clippingFrame, context);
+
+            view.replaceCharacters({
+                 start: selection.start,
+                 end:   selection.start
+             }, str);
+
+            view.moveCursorTo({
+                col: selection.start.col + count + trailspaces,
+                row: selection.end.row
+            });
         } else {
-            Rect.merge(invalidRects).forEach(function(rect) {
-                rect = Rect.intersectRects(rect, clippingFrame);
-                if (rect.width !== 0 && rect.height !== 0) {
-                    context.save();
+            for (var i = 0; i < tabstop; i++) {
+                str += ' ';
+            }
 
-                    var x = rect.x, y = rect.y;
-                    var width = rect.width, height = rect.height;
-                    context.beginPath();
-                    context.moveTo(x, y);
-                    context.lineTo(x + width, y);
-                    context.lineTo(x + width, y + height);
-                    context.lineTo(x, y + height);
-                    context.closePath();
-                    context.clip();
+            var startCol;
+            var row = selection.start.row - 1;
+            while (row++ < selection.end.row) {
+                startCol = row == selection.start.row ? selection.start.col : 0;
 
-                    this.drawRect(rect, context);
+                view.replaceCharacters({
+                    start: { row:  row, col: startCol},
+                    end:   { row:  row, col: startCol}
+                }, str);
+            }
 
-                    context.restore();
+            view.setSelection({
+                start: selection.start,
+                end: {
+                    col: selection.end.col + tabstop,
+                    row:  selection.end.row
                 }
+            });
+        }
+    }.bind(this));
+};
 
-            }, this);
+/**
+ * Removes a tab of whitespaces. If there is no selection, whitespaces in front
+ * of the cursor will be removed. The number of removed whitespaces depends on
+ * the setting tabstop and the current cursor position. If there is a selection,
+ * then the selected lines are unindented by tabstop spaces.
+ */
+exports.untab = function(args, request) {
+    var view = env.view;
+
+    view.groupChanges(function() {
+        var tabstop = settings.get('tabstop');
+        var selection = view.getSelectedRange();
+        var lines = env.model.lines;
+        var count = 0;
+
+        if (m_range.isZeroLength(selection)){
+            count = Math.min(
+                lines[selection.start.row].substring(0, selection.start.col).
+                                                    match(/\s*$/)[0].length,
+                (selection.start.col - tabstop) % tabstop || tabstop);
+
+            view.replaceCharacters({
+                start: {
+                    col: selection.start.col - count,
+                    row: selection.start.row
+                },
+                end: selection.start
+            }, '');
+
+            view.moveCursorTo({
+                row:  selection.start.row,
+                col: selection.end.col - count
+            });
+        } else {
+            var startCol;
+            var row = selection.start.row - 1;
+            while (row++ < selection.end.row) {
+                startCol = row == selection.start.row ? selection.start.col : 0;
+
+                count = Math.min(
+                    lines[row].substring(startCol).match(/^\s*/)[0].length,
+                    tabstop);
+
+                view.replaceCharacters({
+                     start: { row: row, col: startCol},
+                     end:   { row: row, col: startCol + count}
+                 }, '');
+            }
+
+             view.setSelection({
+                 start: { row:  selection.start.row, col: selection.start.col},
+                 end:   { row:  selection.end.row, col: selection.end.col - count}
+             });
+       }
+    }.bind(this));
+};
+
+});
+
+bespin.tiki.module("text_editor:views/gutter",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var util = require('bespin:util/util');
+var catalog = require('bespin:plugins').catalog;
+var rect = require('utils/rect');
+
+var CanvasView = require('views/canvas').CanvasView;
+
+/*
+ * A view that renders the gutter for the editor.
+ *
+ * The domNode attribute contains the domNode for this view that should be
+ * added to the document appropriately.
+ */
+exports.GutterView = function(container, editor) {
+    CanvasView.call(this, container, true /* preventDownsize */ );
+
+    this.editor = editor;
+    this.domNode.addEventListener('click', this._click.bind(this), false);
+};
+
+exports.GutterView.prototype = new CanvasView();
+
+util.mixin(exports.GutterView.prototype, {
+    _decorationSpacing: 2,
+
+    drawRect: function(rect, context) {
+        var theme = this.editor.themeData.gutter;
+
+        context.fillStyle = theme.backgroundColor;
+        context.fillRect(rect.x, rect.y, rect.width, rect.height);
+
+        context.save();
+
+        var paddingLeft = theme.paddingLeft;
+
+        context.translate(paddingLeft - 0.5, -0.5);
+
+        var layoutManager = this.editor.layoutManager;
+        var range = layoutManager.characterRangeForBoundingRect(rect);
+        var endRow = Math.min(range.end.row,
+            layoutManager.textLines.length - 1);
+        var lineAscent = layoutManager.fontDimension.lineAscent;
+
+        var decorations = this._loadedDecorations(true);
+        var decorationWidths = [];
+        for (var i = 0; i < decorations.length; i++) {
+            decorationWidths.push(decorations[i].computeWidth(this));
+        }
+
+        for (var row = range.start.row; row <= endRow; row++) {
+            context.save();
+
+            var rowY = layoutManager.lineRectForRow(row).y;
+            context.translate(0, rowY);
+
+            for (var i = 0; i < decorations.length; i++) {
+                decorations[i].drawDecoration(this, context, lineAscent, row);
+                context.translate(decorationWidths[i] + this._decorationSpacing, 0);
+            }
+            context.restore();
         }
 
         context.restore();
+    },
 
-        this._invalidRects = [];
-        this._redrawTimer = null;
-        this._lastRedrawTime = new Date().getTime();
-    }
-};
+    computeWidth: function() {
+        var theme = this.editor.themeData.gutter;
+        var width = theme.paddingLeft + theme.paddingRight;
 
-Object.defineProperties(exports.CanvasView.prototype, {
-    clippingFrame: {
-        get: function() {
-            return this._clippingFrame;
-        },
+        var decorations = this._loadedDecorations(true);
+        for (var i = 0; i < decorations.length; i++) {
+            width += decorations[i].computeWidth(this);
+        }
 
-        set: function(clippingFrame) {
-            clippingFrame = util.mixin(util.clone(this._clippingFrame), clippingFrame);
+        width += (decorations.length - 1) * this._decorationSpacing;
+        return width;
+    },
 
-            if (this._clippingFrame === null ||
-                    !Rect.rectsEqual(clippingFrame, this._clippingFrame)) {
-                this._clippingFrame = clippingFrame;
-                this.clippingChanged();
+    _click: function(evt) {
+        var point = {x: evt.layerX, y: evt.layerY};
+        if (rect.pointInRect(point, this.frame)) {
+            var deco = this._decorationAtPoint(point);
+            if (deco && ('selected' in deco)) {
+                var computedPoint = this.computeWithClippingFrame(point.x, point.y);
+                var pos = this.editor.layoutManager.characterAtPoint(computedPoint);
+                deco.selected(this, pos.row);
             }
         }
     },
 
-    frame: {
-        get: function() {
-            return this._frame;
-        },
-        
-        set: function(frame) {
-            var domNode = this.domNode;
-            var domStyle = domNode.style;
-            var preventDownsize = this._preventDownsize;
-            var domWidth = domNode.width;
-            var domHeight = domNode.height;
-            var domStyle = domNode.style;
-            domStyle.left = frame.x + 'px';
-            domStyle.top = frame.y + 'px';
-
-            var widthChanged, heightChanged;
-            if (frame.width !== domWidth) {
-                if (frame.width < domWidth) {
-                    if (!preventDownsize) {
-                        widthChanged = true;
-                    }
-                } else {
-                    widthChanged = true;
-                }
+    _loadedDecorations: function(invalidateOnLoaded) {
+        var decorations = [];
+        var extensions = catalog.getExtensions('gutterDecoration');
+        for (var i = 0; i < extensions.length; i++) {
+            var promise = extensions[i].load();
+            if (promise.isResolved()) {
+                promise.then(decorations.push.bind(decorations));
+            } else if (invalidateOnLoaded) {
+                promise.then(this.invalidate.bind(this));
             }
-            if (frame.height !== domHeight) {
-                if (frame.height < domHeight) {
-                    if (!preventDownsize) {
-                        heightChanged = true;
-                    }
-                } else {
-                    heightChanged = true;
-                }
-            }
-
-            if (widthChanged) {
-                this.domNode.width = frame.width;
-            }
-            if (heightChanged) {
-                this.domNode.height = frame.height;
-            }
-
-            this._frame = frame;
-
-            // The clipping frame might have changed if the size changed.
-            this.clippingFrame = {
-                width: frame.width,
-                height: frame.height
-            };
         }
+        return decorations;
+    },
+
+    _decorationAtPoint: function(point) {
+        var theme = this.editor.themeData.gutter;
+        var width = theme.paddingLeft + theme.paddingRight;
+        if (point.x > theme.paddingLeft) {
+            var decorations = this._loadedDecorations(false);
+            var pos = theme.paddingLeft;
+            for (var i = 0; i < decorations.length; i++) {
+                var deco = decorations[i];
+                var w = deco.computeWidth(this);
+                if (point.x < pos + w) {
+                    return deco;
+                }
+                pos += w + this._decorationSpacing;
+            }
+        }
+        return null;
     }
 });
+
+exports.lineNumbers = {
+    drawDecoration: function(gutter, context, lineAscent, row) {
+        var editor = gutter.editor;
+        var theme = editor.themeData.gutter;
+        var layoutManager = editor.layoutManager;
+
+        context.fillStyle = theme.color;
+        context.font = editor.font;
+        context.fillText('' + (row + 1), 0, lineAscent);
+    },
+
+    computeWidth: function(gutter) {
+        var layoutManager = gutter.editor.layoutManager;
+        var lineCountStr = '' + layoutManager.textLines.length;
+        var characterWidth = layoutManager.fontDimension.characterWidth;
+        return characterWidth * lineCountStr.length;
+    }
+};
 
 });
 
@@ -2838,7 +1757,8 @@ function computeThemeData(themeManager) {
                 case 'gutter':
                 case 'editor':
                 case 'scroller':
-                case 'highlighter':
+                case 'highlighterFG':
+                case 'highlighterBG':
                     editorThemeData[provides[i].name] = value;
             }
         }
@@ -3518,7 +2438,7 @@ Object.defineProperties(exports.EditorView.prototype, {
 
 });
 
-bespin.tiki.module("text_editor:views/gutter",function(require,exports,module) {
+bespin.tiki.module("text_editor:views/textinput",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -3557,69 +2477,291 @@ bespin.tiki.module("text_editor:views/gutter",function(require,exports,module) {
  * ***** END LICENSE BLOCK ***** */
 
 var util = require('bespin:util/util');
+var Event = require('events').Event;
+var Range = require('rangeutils:utils/range');
 
-var CanvasView = require('views/canvas').CanvasView;
+var KeyUtil = require('keyboard:keyutil');
 
-/*
- * A view that renders the gutter for the editor.
+/**
+ * @namespace
  *
- * The domNode attribute contains the domNode for this view that should be
- * added to the document appropriately.
+ * This class provides a hidden text input to provide events similar to those
+ * defined in the DOM Level 3 specification. It allows views to support
+ * internationalized text input via non-US keyboards, dead keys, and/or IMEs.
+ * It also provides support for copy and paste. Currently, an invisible
+ * textarea is used, but in the future this module should use
+ * DOM 3 TextInput events directly where available.
+ *
+ * To use this class, instantiate it and provide the optional functions
+ *   - copy: function() { return 'text for clipboard' }
+ *   - cut: function() { 'Cut some text'; return 'text for clipboard'}
+ *   - textInserted: function(newInsertedText) { 'handle new inserted text'; }
+ * Note: Pasted text is provided through the textInserted(pastedText) function.
+ *
+ * You can also provide an DOM node to take focus from by providing the optional
+ * "takeFocusFrom" parameter.
+ *
+ * The DOM node created for text input is in the "domNode" attribute
+ * and that caller should add the DOM node to the document in the appropriate
+ * place.
  */
-exports.GutterView = function(container, editor) {
-    CanvasView.call(this, container, true /* preventDownsize */ );
+exports.TextInput = function(container, delegate) {
+    var domNode = this.domNode = document.createElement('textarea');
+    domNode.setAttribute('style', 'position: absolute; z-index: -99999; ' +
+         'width: 0px; height: 0px; margin: 0px; outline: none; border: 0;');
+         // 'z-index: 100; top: 20px; left: 20px; width: 50px; ' +
+         // 'height: 50px');
 
-    this.editor = editor;
+    container.appendChild(domNode);
+    this.delegate = delegate;
+    this._attachEvents();
 };
 
-exports.GutterView.prototype = new CanvasView();
+exports.TextInput.prototype = {
+    _composing: false,
 
-util.mixin(exports.GutterView.prototype, {
-    drawRect: function(rect, context) {
-        var theme = this.editor.themeData.gutter;
+    domNode: null,
 
-        context.fillStyle = theme.backgroundColor;
-        context.fillRect(rect.x, rect.y, rect.width, rect.height);
+    delegate: null,
 
-        context.save();
-
-        var paddingLeft = theme.paddingLeft;
-        context.translate(paddingLeft, 0);
-
-        var layoutManager = this.editor.layoutManager;
-        var range = layoutManager.characterRangeForBoundingRect(rect);
-        var endRow = Math.min(range.end.row,
-            layoutManager.textLines.length - 1);
-        var lineAscent = layoutManager.fontDimension.lineAscent;
-
-        context.fillStyle = theme.color;
-        context.font = this.editor.font;
-
-        for (var row = range.start.row; row <= endRow; row++) {
-            // TODO: breakpoints
-            context.fillText('' + (row + 1), -0.5,
-                layoutManager.lineRectForRow(row).y + lineAscent - 0.5);
+    // This function doesn't work on WebKit! The textContent comes out empty...
+    _textFieldChanged: function() {
+        if (this._composing || this._ignore) {
+            return;
         }
 
-        context.restore();
+        var textField = this.domNode;
+        var text = textField.value;
+        // On FF textFieldChanged is called sometimes although nothing changed.
+        // -> don't call textInserted() in such a case.
+        if (text == '') {
+            return;
+        }
+        textField.value = '';
+
+        this._textInserted(text);
     },
 
-    computeWidth: function() {
-        var theme = this.editor.themeData.gutter;
-        var paddingWidth = theme.paddingLeft + theme.paddingRight;
+    _copy: function() {
+        var copyData = false;
+        var delegate = this.delegate;
+        if (delegate && delegate.copy) {
+            copyData = delegate.copy();
+        }
+        return copyData;
+    },
 
-        var lineNumberFont = this.editor.font;
+    _cut: function() {
+        var cutData = false;
+        var delegate = this.delegate;
+        if (delegate && delegate.cut) {
+            cutData = delegate.cut();
+        }
+        return cutData;
+    },
 
-        var layoutManager = this.editor.layoutManager;
-        var lineCount = layoutManager.textLines.length;
-        var lineCountStr = '' + lineCount;
+    _textInserted: function(text) {
+        var delegate = this.delegate;
+        if (delegate && delegate.textInserted) {
+            delegate.textInserted(text);
+        }
+    },
 
-        var characterWidth = layoutManager.fontDimension.characterWidth;
-        var strWidth = characterWidth * lineCountStr.length;
+    _setValueAndSelect: function(text) {
+        var textField = this.domNode;
+        textField.value = text;
+        textField.select();
+    },
 
-        return strWidth + paddingWidth;
+    /**
+     * Gives focus to the field editor so that input events will be
+     * delivered to the view. If you override willBecomeKeyResponderFrom(),
+     * you should call this function in your implementation.
+     */
+    focus: function() {
+        this.domNode.focus();
+    },
+
+    /**
+     * Removes focus from the invisible text input so that input events are no
+     * longer delivered to this view. If you override willLoseKeyResponderTo(),
+     * you should call this function in your implementation.
+     */
+     blur: function() {
+        this.domNode.blur();
+    },
+
+    /**
+     * Attaches notification listeners to the text field so that your view will
+     * be notified of events. If you override this method, you should call
+     * that function as well.
+     */
+    _attachEvents: function() {
+        var textField = this.domNode, self = this;
+
+        // Listen focus/blur event.
+        textField.addEventListener('focus', function(evt) {
+            if (self.delegate && self.delegate.didFocus) {
+                self.delegate.didFocus();
+            }
+        }, false);
+        textField.addEventListener('blur', function(evt) {
+            if (self.delegate && self.delegate.didBlur) {
+                self.delegate.didBlur();
+            }
+        }, false);
+
+        KeyUtil.addKeyDownListener(textField, function(evt) {
+            if (self.delegate && self.delegate.keyDown) {
+                return self.delegate.keyDown(evt);
+            } else {
+                return false;
+            }
+        });
+
+        // No way that I can see around this ugly browser sniffing, without
+        // more complicated hacks. No browsers have a complete enough
+        // implementation of DOM 3 events at the current time (12/2009). --pcw
+        if (util.isWebKit) {    // Chrome too
+            // On Chrome the compositionend event is fired as well as the
+            // textInput event, but only one of them has to be handled.
+            if (!util.isChrome) {
+                textField.addEventListener('compositionend', function(evt) {
+                    self._textInserted(evt.data);
+                }, false);
+            }
+            textField.addEventListener('textInput', function(evt) {
+                self._textInserted(evt.data);
+            }, false);
+            textField.addEventListener('paste', function(evt) {
+                self._textInserted(evt.clipboardData.
+                    getData('text/plain'));
+                evt.preventDefault();
+            }, false);
+        // This is Firefox only at the moment.
+        } else {
+            textField.addEventListener('input', function(evt) {
+                self._textFieldChanged();
+            }, false);
+
+            textField.addEventListener('compositionstart', function(evt) {
+                self._composing = true;
+            }, false);
+            textField.addEventListener('compositionend', function(evt) {
+                self._composing = false;
+                self._textFieldChanged();
+            }, false);
+
+            textField.addEventListener('paste', function(evt) {
+                // FIXME: This is ugly and could result in extraneous text
+                // being included as part of the text if extra DOMNodeInserted
+                // or DOMCharacterDataModified events happen to be in the queue
+                // when this function runs. But until Fx supports TextInput
+                // events, there's nothing better we can do.
+
+                // Waits till the paste content is pasted to the textarea.
+                // Sometimes a delay of 0 is too short for Fx. In such a case
+                // the keyUp events occur a little bit later and the pasted
+                // content is detected there.
+                self._setValueAndSelect('');
+                window.setTimeout(function() {
+                    self._textFieldChanged();
+                }, 0);
+            }, false);
+
+            // Fix for bug 583638.
+            // Copy and cut is only performed on Mozilla as of changest
+            //   http://hg.mozilla.org/mozilla-central/rev/27259a0fcbe6
+            // if some text is selected. The following code ensures that this is
+            // the case. The code hocks to the `selectionChanged` event of the
+            // `delegate` object (which is the textView) and sets and selects
+            // some text if there is a selection in the Bespin Editor. This
+            // 'enables' copy and cut.
+            var wasSelectionBefore = false;
+            this.delegate.selectionChanged.add(function(newRange) {
+                if (Range.isZeroLength(newRange)) {
+                    if (wasSelectionBefore) {
+                        textField.value = "";
+                    }
+                    wasSelection = false;
+                } else {
+                    if (!wasSelectionBefore) {
+                        textField.value = "z";
+                        textField.select();
+                    }
+                    wasSelection = true;
+                }
+            }.bind(this));
+        }
+
+        // Here comes the code for copy and cut...
+
+        // This is the basic copy and cut function. Depending on the
+        // OS and browser this function needs to be extended.
+        var copyCutBaseFn = function(evt) {
+            // Get the data that should be copied/cutted.
+            var copyCutData = evt.type.indexOf('copy') != -1 ?
+                            self._copy() :
+                            self._cut();
+            // Set the textField's value equal to the copyCutData.
+            // After this function is called, the real copy or cut
+            // event takes place and the selected text in the
+            // textField is pushed to the OS's clipboard.
+            self._setValueAndSelect(copyCutData);
+        };
+
+        // For all browsers that are not Safari running on Mac.
+        if (!(util.isWebKit && !util.isChrome && util.isMac)) {
+            var copyCutMozillaFn = false;
+            if (util.isMozilla) {
+                // If the browser is Mozilla like, the copyCut function has to
+                // be extended.
+                copyCutMozillaFn = function(evt) {
+                    // Call the basic copyCut function.
+                    copyCutBaseFn(evt);
+
+                    self._ignore = true;
+                    window.setTimeout(function() {
+                        self._setValueAndSelect('');
+                        self._ignore = false;
+                    }, 0);
+                };
+            }
+            textField.addEventListener('copy', copyCutMozillaFn ||
+                copyCutBaseFn, false);
+            textField.addEventListener('cut',  copyCutMozillaFn ||
+                copyCutBaseFn, false);
+         } else {
+            // For Safari on Mac (only!) the copy and cut event only occurs if
+            // you have some text selected. Fortunately, the beforecopy and
+            // beforecut event occurs before the copy or cut event does so we
+            // can put the to be copied or cutted text in the textarea.
+
+            // Also, the cut event is fired twice. If it's fired twice within a
+            // certain time period, the second call will be skipped.
+            var lastCutCall = new Date().getTime();
+            var copyCutSafariMacFn = function(evt) {
+                var doCut = evt.type.indexOf('cut') != -1;
+                if (doCut && new Date().getTime() - lastCutCall < 10) {
+                    return;
+                }
+
+                // Call the basic copyCut function.
+                copyCutBaseFn(evt);
+
+                if (doCut) {
+                    lastCutCall = new Date().getTime();
+                }
+            };
+
+            textField.addEventListener('beforecopy', copyCutSafariMacFn,
+                false);
+            textField.addEventListener('beforecut',  copyCutSafariMacFn,
+                false);
+        }
     }
-});
+};
+
 
 });
 
@@ -4433,9 +3575,6 @@ exports.TextView = function(container, editor) {
     CanvasView.call(this, container, true /* preventDownsize */ );
     this.editor = editor;
 
-    // Takes the layoutManager of the editor and uses it.
-    var textInput = this.textInput = new TextInput(container, this);
-
     this.padding = {
         top: 0,
         bottom: 30,
@@ -4447,6 +3586,7 @@ exports.TextView = function(container, editor) {
 
     var dom = this.domNode;
     dom.style.cursor = "text";
+    dom.addEventListener('click', this.click.bind(this), false);
     dom.addEventListener('mousedown', this.mouseDown.bind(this), false);
     dom.addEventListener('mousemove', this.mouseMove.bind(this), false);
     window.addEventListener('mouseup', this.mouseUp.bind(this), false);
@@ -4459,6 +3599,8 @@ exports.TextView = function(container, editor) {
     this.endedChangeGroup = new Event();
     this.willReplaceRange = new Event();
     this.replacedCharacters = new Event();
+
+    this.textInput = new TextInput(container, this);
 };
 
 exports.TextView.prototype = new CanvasView();
@@ -4564,10 +3706,14 @@ util.mixin(exports.TextView.prototype, {
     },
 
     _drawLines: function(rect, context) {
-        var layoutManager = this.editor.layoutManager;
+        var editor = this.editor;
+        var layoutManager = editor.layoutManager;
         var textLines = layoutManager.textLines;
         var lineAscent = layoutManager.fontDimension.lineAscent;
-        var themeHighlighter = this.editor.themeData.highlighter
+
+        var themeData = editor.themeData;
+        var fgColors = themeData.highlighterFG;
+        var bgColors = themeData.highlighterBG;
 
         context.save();
         context.font = this.editor.font;
@@ -4616,15 +3762,24 @@ util.mixin(exports.TextView.prototype, {
                 var end = colorRange != null ? colorRange.end : endCol;
                 var tag = colorRange != null ? colorRange.tag : 'plain';
 
-                var color = themeHighlighter.hasOwnProperty(tag)
-                            ? themeHighlighter[tag]
-                            : 'red';
-                context.fillStyle = color;
-
                 var pos = { row: row, col: col };
                 var rect = layoutManager.characterRectForPosition(pos);
 
+                if (bgColors.hasOwnProperty(tag)) {
+                    var endPos = { row: row, col: end - 1 };
+                    var endRect = layoutManager.
+                        characterRectForPosition(endPos);
+
+                    var bg = bgColors[tag];
+                    context.fillStyle = bg;
+                    context.fillRect(rect.x, rect.y, endRect.x - rect.x +
+                        endRect.width, endRect.height);
+                }
+
+                var fg = fgColors.hasOwnProperty(tag) ? fgColors[tag] : 'red';
+
                 var snippet = characters.substring(col, end);
+                context.fillStyle = fg;
                 context.fillText(snippet, rect.x, rect.y + lineAscent);
 
                 if (DEBUG_TEXT_RANGES) {
@@ -4832,6 +3987,14 @@ util.mixin(exports.TextView.prototype, {
     },
 
     /**
+     * Handles click events and sets the focus appropriately. This is needed
+     * now that Firefox focus is tightened down; see bugs 125282 and 588381.
+     */
+    click: function(event) {
+        this.focus();
+    },
+
+    /**
      * This is where the editor is painted from head to toe. Pitiful tricks are
      * used to draw as little as possible.
      */
@@ -4991,8 +4154,6 @@ util.mixin(exports.TextView.prototype, {
     },
 
     mouseDown: function(evt) {
-        util.stopEvent(evt);
-
         this.hasFocus = true;
         this._mouseIsDown = true;
 
@@ -5449,7 +4610,7 @@ Object.defineProperties(exports.TextView.prototype, {
 
 });
 
-bespin.tiki.module("text_editor:views/textinput",function(require,exports,module) {
+bespin.tiki.module("text_editor:views/canvas",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -5488,281 +4649,2581 @@ bespin.tiki.module("text_editor:views/textinput",function(require,exports,module
  * ***** END LICENSE BLOCK ***** */
 
 var util = require('bespin:util/util');
+var Rect = require('utils/rect');
 var Event = require('events').Event;
 
-var KeyUtil = require('keyboard:keyutil');
-
 /**
- * @namespace
+ * @class
  *
- * This class provides a hidden text input to provide events similar to those
- * defined in the DOM Level 3 specification. It allows views to support
- * internationalized text input via non-US keyboards, dead keys, and/or IMEs.
- * It also provides support for copy and paste. Currently, an invisible
- * textarea is used, but in the future this module should use
- * DOM 3 TextInput events directly where available.
+ * This class provides support for manual scrolling and positioning for canvas-
+ * based elements. Getting these elements to play nicely with SproutCore is
+ * tricky and error-prone, so all canvas-based views should consider deriving
+ * from this class. Derived views should implement drawRect() in order to
+ * perform the appropriate canvas drawing logic.
  *
- * To use this class, instantiate it and provide the optional functions
- *   - copy: function() { return 'text for clipboard' }
- *   - cut: function() { 'Cut some text'; return 'text for clipboard'}
- *   - textInserted: function(newInsertedText) { 'handle new inserted text'; }
- * Note: Pasted text is provided through the textInserted(pastedText) function.
+ * The actual size of the canvas is always the size of the container the canvas
+ * view is placed in.
  *
- * You can also provide an DOM node to take focus from by providing the optional
- * "takeFocusFrom" parameter.
- *
- * The DOM node created for text input is in the "domNode" attribute
- * and that caller should add the DOM node to the document in the appropriate
- * place.
+ * The canvas that is created is available in the domNode attribute and should
+ * be added to the document by the caller.
  */
-exports.TextInput = function(container, delegate) {
-    var domNode = this.domNode = document.createElement('textarea');
-    domNode.setAttribute('style', 'position: absolute; z-index: -99999; ' +
-          'width: 0px; height: 0px; margin: 0px; outline: none; border: 0;');
-         // 'z-index: 100; top: 20px; left: 20px; width: 50px; ' +
-         // 'height: 50px');
+exports.CanvasView = function(container, preventDownsize, clearOnFullInvalid) {
+    if (!container) {
+        return;
+    }
 
-    container.appendChild(domNode);
+    this._preventDownsize = preventDownsize || false;
+    this._clearOnFullInvalid = clearOnFullInvalid || false;
+    this._clippingFrame = this._frame = {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0
+    };
+    this._invalidRects = [];
 
-    this.delegate = delegate;
+    var canvas = document.createElement('canvas');
+    canvas.setAttribute('style', 'position: absolute');
+    canvas.innerHTML = 'canvas tag not supported by your browser';
+    container.appendChild(canvas);
+    this.domNode = canvas;
 
-    this._attachEvents();
+    this.clippingChanged = new Event();
+    this.clippingChanged.add(this.clippingFrameChanged.bind(this));
 };
 
-exports.TextInput.prototype = {
-    _composing: false,
-
+exports.CanvasView.prototype = {
     domNode: null,
 
-    delegate: null,
+    clippingChanged: null,
 
-    // This function doesn't work on WebKit! The textContent comes out empty...
-    _textFieldChanged: function() {
-        if (this._composing || this._ignore) {
+    _canvasContext: null,
+    _canvasId: null,
+    _invalidRects: null,
+    _lastRedrawTime: null,
+    _redrawTimer: null,
+    _clippingFrame: null,
+    _preventDownsize: false,
+    _clearOnFullInvalid: false,
+
+    _frame: null,
+
+    _getContext: function() {
+        if (this._canvasContext === null) {
+            this._canvasContext = this.domNode.getContext('2d');
+        }
+        return this._canvasContext;
+    },
+
+    computeWithClippingFrame: function(x, y) {
+        var clippingFrame = this.clippingFrame;
+        return {
+            x: x + clippingFrame.x,
+            y: y + clippingFrame.y
+        };
+    },
+
+    /**
+     * @property{Number}
+     *
+     * The minimum delay between canvas redraws in milliseconds, equal to 1000
+     * divided by the desired number of frames per second.
+     */
+    minimumRedrawDelay: 1000.0 / 30.0,
+
+    /**
+     * Subclasses can override this method to provide custom behavior whenever
+     * the clipping frame changes. The default implementation simply
+     * invalidates the entire visible area.
+     */
+    clippingFrameChanged: function() {
+        this.invalidate();
+    },
+
+    drawRect: function(rect, context) { },
+
+    /**
+     * Render the canvas. Rendering is delayed by a few ms to empty the call
+     * stack first before rendering. If the canvas was rendered in less then
+     * this.minimumRedrawDelay ms, then the next rendering will take in
+     * this.minimumRedrawDelay - now + lastRendering ms.
+     */
+    render: function() {
+         // Don't continue if there is a rendering or redraw timer already.
+        if (this._renderTimer || this._redrawTimer) {
             return;
         }
 
-        var textField = this.domNode;
-        var text = textField.value;
-        // On FF textFieldChanged is called sometimes although nothing changed.
-        // -> don't call textInserted() in such a case.
-        if (text == '') {
+        // Queue the redraw at the end of the current event queue to make sure
+        // everyting is done when redrawing.
+        this._renderTimer = setTimeout(this._tryRedraw.bind(this), 0);
+    },
+
+    /**
+     * Invalidates the entire visible region of the canvas.
+     */
+    invalidate: function(rect) {
+        this._invalidRects = 'all';
+        this.render();
+    },
+
+    /**
+     * Invalidates the given rect of the canvas, and schedules that portion of
+     * the canvas to be redrawn at the end of the run loop.
+     */
+    invalidateRect: function(rect) {
+        var invalidRects = this._invalidRects;
+        if (invalidRects !== 'all') {
+            invalidRects.push(rect);
+            this.render();
+        }
+    },
+
+    _tryRedraw: function(context) {
+        this._renderTimer = null;
+
+        var now = new Date().getTime();
+        var lastRedrawTime = this._lastRedrawTime;
+        var minimumRedrawDelay = this.minimumRedrawDelay;
+
+        if (lastRedrawTime === null ||
+                now - lastRedrawTime >= minimumRedrawDelay) {
+            this._redraw();
             return;
         }
-        textField.value = '';
 
-        this._textInserted(text);
-    },
-
-    _copy: function() {
-        var copyData = false;
-        var delegate = this.delegate;
-        if (delegate && delegate.copy) {
-            copyData = delegate.copy();
+        var redrawTimer = this._redrawTimer;
+        if (redrawTimer !== null) {
+            return; // already scheduled
         }
-        return copyData;
+
+        // TODO This is not as good as SC.Timer... Will it work?
+        this._redrawTimer = window.setTimeout(this._redraw.bind(this),
+            minimumRedrawDelay);
     },
 
-    _cut: function() {
-        var cutData = false;
-        var delegate = this.delegate;
-        if (delegate && delegate.cut) {
-            cutData = delegate.cut();
-        }
-        return cutData;
-    },
-
-    _textInserted: function(text) {
-        var delegate = this.delegate;
-        if (delegate && delegate.textInserted) {
-            delegate.textInserted(text);
-        }
-    },
-
-    _setValueAndSelect: function(text) {
-        var textField = this.domNode;
-        textField.value = text;
-        textField.select();
-    },
-
-    /**
-     * Gives focus to the field editor so that input events will be
-     * delivered to the view. If you override willBecomeKeyResponderFrom(),
-     * you should call this function in your implementation.
+     /**
+     * Calls drawRect() on all the invalid rects to redraw the canvas contents.
+     * Generally, you should not need to call this function unless you override
+     * the default implementations of didCreateLayer() or render().
      */
-    focus: function() {
-        this.domNode.focus();
-    },
-
-    /**
-     * Removes focus from the invisible text input so that input events are no
-     * longer delivered to this view. If you override willLoseKeyResponderTo(),
-     * you should call this function in your implementation.
-     */
-     blur: function() {
-        this.domNode.blur();
-    },
-
-    /**
-     * Attaches notification listeners to the text field so that your view will
-     * be notified of events. If you override this method, you should call
-     * that function as well.
-     */
-    _attachEvents: function() {
-        var textField = this.domNode, self = this;
-
-        // Listen focus/blur event.
-        textField.addEventListener('focus', function(evt) {
-            if (self.delegate && self.delegate.didFocus) {
-                self.delegate.didFocus();
-            }
-        }, false);
-        textField.addEventListener('blur', function(evt) {
-            if (self.delegate && self.delegate.didBlur) {
-                self.delegate.didBlur();
-            }
-        }, false);
-
-        KeyUtil.addKeyDownListener(textField, function(evt) {
-            if (self.delegate && self.delegate.keyDown) {
-                return self.delegate.keyDown(evt);
-            } else {
-                return false;
-            }
-        });
-
-        // No way that I can see around this ugly browser sniffing, without
-        // more complicated hacks. No browsers have a complete enough
-        // implementation of DOM 3 events at the current time (12/2009). --pcw
-        if (util.isWebKit) {    // Chrome too
-            // On Chrome the compositionend event is fired as well as the
-            // textInput event, but only one of them has to be handled.
-            if (!util.isChrome) {
-                textField.addEventListener('compositionend', function(evt) {
-                    self._textInserted(evt.data);
-                }, false);
-            }
-            textField.addEventListener('textInput', function(evt) {
-                self._textInserted(evt.data);
-            }, false);
-            textField.addEventListener('paste', function(evt) {
-                self._textInserted(evt.clipboardData.
-                    getData('text/plain'));
-                evt.preventDefault();
-            }, false);
-        } else {
-            var textFieldChangedFn = self._textFieldChanged.bind(self);
-
-            // Same as above, but executes after all pending events. This
-            // ensures that content gets added to the text field before the
-            // value field is read.
-            var textFieldChangedLater = function() {
-                window.setTimeout(textFieldChangedFn, 0);
-            };
-
-            textField.addEventListener('keydown', textFieldChangedLater,
-                false);
-            textField.addEventListener('keypress', textFieldChangedFn, false);
-            textField.addEventListener('keyup', textFieldChangedFn, false);
-
-            textField.addEventListener('compositionstart', function(evt) {
-                self._composing = true;
-            }, false);
-            textField.addEventListener('compositionend', function(evt) {
-                self._composing = false;
-                self._textFieldChanged();
-            }, false);
-
-            textField.addEventListener('paste', function(evt) {
-                // FIXME: This is ugly and could result in extraneous text
-                // being included as part of the text if extra DOMNodeInserted
-                // or DOMCharacterDataModified events happen to be in the queue
-                // when this function runs. But until Fx supports TextInput
-                // events, there's nothing better we can do.
-
-                // Waits till the paste content is pasted to the textarea.
-                // Sometimes a delay of 0 is too short for Fx. In such a case
-                // the keyUp events occur a little bit later and the pasted
-                // content is detected there.
-                self._setValueAndSelect('');
-                window.setTimeout(function() {
-                    self._textFieldChanged();
-                }, 0);
-            }, false);
-        }
-
-        // Here comes the code for copy and cut...
-
-        // This is the basic copy and cut function. Depending on the
-        // OS and browser this function needs to be extended.
-        var copyCutBaseFn = function(evt) {
-            // Get the data that should be copied/cutted.
-            var copyCutData = evt.type.indexOf('copy') != -1 ?
-                            self._copy() :
-                            self._cut();
-            // Set the textField's value equal to the copyCutData.
-            // After this function is called, the real copy or cut
-            // event takes place and the selected text in the
-            // textField is pushed to the OS's clipboard.
-            self._setValueAndSelect(copyCutData);
+    _redraw: function() {
+        var clippingFrame = this.clippingFrame;
+        clippingFrame = {
+            x:      Math.round(clippingFrame.x),
+            y:      Math.round(clippingFrame.y),
+            width:  clippingFrame.width,
+            height: clippingFrame.height
         };
 
-        // For all browsers that are not Safari running on Mac.
-        if (!(util.isWebKit && !util.isChrome && util.isMac)) {
-            var copyCutMozillaFn = false;
-            if (util.isMozilla) {
-                // If the browser is Mozilla like, the copyCut function has to
-                // be extended.
-                copyCutMozillaFn = function(evt) {
-                    // Call the basic copyCut function.
-                    copyCutBaseFn(evt);
+        var context = this._getContext();
+        context.save();
+        context.translate(-clippingFrame.x, -clippingFrame.y);
 
-                    self._ignore = true;
-                    window.setTimeout(function() {
-                        self._setValueAndSelect('');
-                        self._ignore = false;
-                    }, 0);
-                };
+        var invalidRects = this._invalidRects;
+        if (invalidRects === 'all') {
+            if (this._clearOnFullInvalid) {
+                context.clearRect(0, 0, this.domNode.width, this.domNode.height);
             }
-            textField.addEventListener('copy', copyCutMozillaFn ||
-                copyCutBaseFn, false);
-            textField.addEventListener('cut',  copyCutMozillaFn ||
-                copyCutBaseFn, false);
-         } else {
-            // For Safari on Mac (only!) the copy and cut event only occurs if
-            // you have some text selected. Fortunately, the beforecopy and
-            // beforecut event occurs before the copy or cut event does so we
-            // can put the to be copied or cutted text in the textarea.
+            this.drawRect(clippingFrame, context);
+        } else {
+            Rect.merge(invalidRects).forEach(function(rect) {
+                rect = Rect.intersectRects(rect, clippingFrame);
+                if (rect.width !== 0 && rect.height !== 0) {
+                    context.save();
 
-            // Also, the cut event is fired twice. If it's fired twice within a
-            // certain time period, the second call will be skipped.
-            var lastCutCall = new Date().getTime();
-            var copyCutSafariMacFn = function(evt) {
-                var doCut = evt.type.indexOf('cut') != -1;
-                if (doCut && new Date().getTime() - lastCutCall < 10) {
-                    return;
+                    var x = rect.x, y = rect.y;
+                    var width = rect.width, height = rect.height;
+                    context.beginPath();
+                    context.moveTo(x, y);
+                    context.lineTo(x + width, y);
+                    context.lineTo(x + width, y + height);
+                    context.lineTo(x, y + height);
+                    context.closePath();
+                    context.clip();
+
+                    this.drawRect(rect, context);
+
+                    context.restore();
                 }
 
-                // Call the basic copyCut function.
-                copyCutBaseFn(evt);
-
-                if (doCut) {
-                    lastCutCall = new Date().getTime();
-                }
-            };
-
-            textField.addEventListener('beforecopy', copyCutSafariMacFn,
-                false);
-            textField.addEventListener('beforecut',  copyCutSafariMacFn,
-                false);
+            }, this);
         }
+
+        context.restore();
+
+        this._invalidRects = [];
+        this._redrawTimer = null;
+        this._lastRedrawTime = new Date().getTime();
+    }
+};
+
+Object.defineProperties(exports.CanvasView.prototype, {
+    clippingFrame: {
+        get: function() {
+            return this._clippingFrame;
+        },
+
+        set: function(clippingFrame) {
+            clippingFrame = util.mixin(util.clone(this._clippingFrame), clippingFrame);
+
+            if (this._clippingFrame === null ||
+                    !Rect.rectsEqual(clippingFrame, this._clippingFrame)) {
+                this._clippingFrame = clippingFrame;
+                this.clippingChanged();
+            }
+        }
+    },
+
+    frame: {
+        get: function() {
+            return this._frame;
+        },
+        
+        set: function(frame) {
+            var domNode = this.domNode;
+            var domStyle = domNode.style;
+            var preventDownsize = this._preventDownsize;
+            var domWidth = domNode.width;
+            var domHeight = domNode.height;
+            var domStyle = domNode.style;
+            domStyle.left = frame.x + 'px';
+            domStyle.top = frame.y + 'px';
+
+            var widthChanged, heightChanged;
+            if (frame.width !== domWidth) {
+                if (frame.width < domWidth) {
+                    if (!preventDownsize) {
+                        widthChanged = true;
+                    }
+                } else {
+                    widthChanged = true;
+                }
+            }
+            if (frame.height !== domHeight) {
+                if (frame.height < domHeight) {
+                    if (!preventDownsize) {
+                        heightChanged = true;
+                    }
+                } else {
+                    heightChanged = true;
+                }
+            }
+
+            if (widthChanged) {
+                this.domNode.width = frame.width;
+            }
+            if (heightChanged) {
+                this.domNode.height = frame.height;
+            }
+
+            this._frame = frame;
+
+            // The clipping frame might have changed if the size changed.
+            this.clippingFrame = {
+                width: frame.width,
+                height: frame.height
+            };
+        }
+    }
+});
+
+});
+
+bespin.tiki.module("text_editor:controllers/undo",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var console = require('bespin:console').console;
+var env = require('environment').env;
+
+/**
+ * @class
+ *
+ * The editor undo controller is a delegate of the text view that groups
+ * changes into patches and saves them with the undo manager.
+ *
+ * This object does not assume that it has exclusive write access to the text
+ * storage object, and as such it tries to maintain sensible behavior in the
+ * presence of direct modification to the text storage by other objects. This
+ * is important for collaboration.
+ */
+exports.EditorUndoController = function(editor) {
+    this.editor = editor;
+    var textView = this.textView = editor.textView;
+
+    textView.beganChangeGroup.add(function(sender, selection) {
+        this._beginTransaction();
+        this._record.selectionBefore = selection;
+    }.bind(this));
+
+    textView.endedChangeGroup.add(function(sender, selection) {
+        this._record.selectionAfter = selection;
+        this._endTransaction();
+    }.bind(this));
+
+    textView.replacedCharacters.add(function(sender, oldRange, characters) {
+        if (!this._inTransaction) {
+            throw new Error('UndoController.textViewReplacedCharacters()' +
+                ' called outside a transaction');
+        }
+
+        this._record.patches.push({
+            oldCharacters:  this._deletedCharacters,
+            oldRange:       oldRange,
+            newCharacters:  characters,
+            newRange:       this.editor.layoutManager.textStorage.
+                            resultingRangeForReplacement(oldRange,
+                            characters.split('\n'))
+        });
+
+        this._deletedCharacters = null;
+    }.bind(this));
+
+    textView.willReplaceRange.add(function(sender, oldRange) {
+        if (!this._inTransaction) {
+            throw new Error('UndoController.textViewWillReplaceRange() called' +
+                ' outside a transaction');
+        }
+
+        this._deletedCharacters = this.editor.layoutManager.textStorage.
+                            getCharacters(oldRange);
+    }.bind(this));
+};
+
+exports.EditorUndoController.prototype = {
+    _inTransaction: false,
+    _record: null,
+
+    /**
+     * @property{TextView}
+     *
+     * The view object to forward changes to. This property must be set upon
+     * instantiating the undo controller.
+     */
+    textView: null,
+
+    _beginTransaction: function() {
+        if (this._inTransaction) {
+            console.trace();
+            throw new Error('UndoController._beginTransaction() called with a ' +
+                'transaction already in place');
+        }
+
+        this._inTransaction = true;
+        this._record = { patches: [] };
+    },
+
+    _endTransaction: function() {
+        if (!this._inTransaction) {
+            throw new Error('UndoController._endTransaction() called without a ' +
+                'transaction in place');
+        }
+
+        this.editor.buffer.undoManager.registerUndo(this, this._record);
+        this._record = null;
+
+        this._inTransaction = false;
+    },
+
+    _tryApplyingPatches: function(patches) {
+        var textStorage = this.editor.layoutManager.textStorage;
+        patches.forEach(function(patch) {
+            textStorage.replaceCharacters(patch.oldRange, patch.newCharacters);
+        });
+        return true;
+    },
+
+    _undoOrRedo: function(patches, selection) {
+        if (this._inTransaction) {
+            // Can't think of any reason why this should be supported, and it's
+            // often an indication that someone forgot an endTransaction()
+            // call somewhere...
+            throw new Error('UndoController._undoOrRedo() called while in a transaction');
+        }
+
+        if (!this._tryApplyingPatches(patches)) {
+            return false;
+        }
+
+        this.textView.setSelection(selection, true);
+        return true;
+    },
+
+    redo: function(record) {
+        var patches = record.patches.concat();
+        patches.reverse();
+        return this._undoOrRedo(patches, record.selectionAfter);
+    },
+
+    undo: function(record) {
+        return this._undoOrRedo(record.patches.map(function(patch) {
+                return {
+                    oldCharacters:  patch.newCharacters,
+                    oldRange:       patch.newRange,
+                    newCharacters:  patch.oldCharacters,
+                    newRange:       patch.oldRange
+                };
+            }), record.selectionBefore);
+    }
+};
+
+exports.undoManagerCommand = function(args, request) {
+    var editor = env.editor;
+    editor.buffer.undoManager[request.commandExt.name]()
+};
+
+});
+
+bespin.tiki.module("text_editor:controllers/layoutmanager",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var util = require('bespin:util/util');
+var Event = require("events").Event;
+var Range = require('rangeutils:utils/range');
+var SyntaxManager = require('syntax_manager').SyntaxManager;
+var TextStorage = require('models/textstorage').TextStorage;
+var catalog = require('bespin:plugins').catalog;
+var settings = require('settings').settings;
+var m_scratchcanvas = require('bespin:util/scratchcanvas');
+
+var fontDimension = {};
+
+var computeFontDimension = function() {
+    var fontSize = settings.get('fontsize');
+    var fontFace = settings.get('fontface');
+    var font = fontSize + 'px ' + fontFace;
+
+    var canvas = m_scratchcanvas.get();
+
+    // Measure a large string to work around the fact that width and height
+    // are truncated to the nearest integer in the canvas API.
+    var str = '';
+    for (var i = 0; i < 100; i++) {
+        str += 'M';
+    }
+
+    var width = canvas.measureStringWidth(font, str) / 100;
+
+    fontDimension.characterWidth = width;
+
+    fontDimension.lineHeight = Math.floor(fontSize * 1.6);
+    fontDimension.lineAscent = Math.floor(fontSize * 1.3);
+};
+
+computeFontDimension();
+
+catalog.registerExtension('settingChange', {
+    match: "font[size|face]",
+    pointer: computeFontDimension
+});
+
+exports.LayoutManager = function(opts) {
+    this.changedTextAtRow = new Event();
+    this.invalidatedRects = new Event();
+
+    // Put the global variable on the instance.
+    this.fontDimension = fontDimension;
+
+    // There is no setter for textStorage so we have to change it to
+    // _textStorage to make things work with util.mixin().
+    if (opts.textStorage) {
+        opts._textStorage = opts.textStorage;
+        delete opts.textStorage;
+    } else {
+        this._textStorage = new TextStorage();
+    }
+
+    util.mixin(this, opts);
+
+    this._textStorage.changed.add(this.textStorageChanged.bind(this));
+
+    this.textLines = [
+        {
+            characters: '',
+            colors:     [
+                {
+                    start:  0,
+                    end:    0,
+                    color:  'plain'
+                }
+            ]
+        }
+    ];
+
+    var syntaxManager = new SyntaxManager(this);
+    this.syntaxManager = syntaxManager;
+    syntaxManager.attrsChanged.add(this._attrsChanged.bind(this));
+
+    this._size = { width: 0, height: 0 };
+    this.sizeChanged = new Event();
+
+    this._height = 0;
+
+    // Now that the syntax manager is set up, we can recompute the layout.
+    // (See comments in _textStorageChanged().)
+    this._recomputeEntireLayout();
+};
+
+exports.LayoutManager.prototype = {
+    _maximumWidth: 0,
+    _textStorage: null,
+
+    _size: null,
+    sizeChanged: null,
+
+    /**
+     * Theme colors. Value is set by editorView class. Don't change this
+     * property directly. Use the editorView function to adjust it.
+     */
+    _theme: { },
+
+    /**
+     * @property
+     *
+     * The margins on each edge in pixels, expressed as an object with 'left',
+     * 'bottom', 'top', and 'right' properties.
+     *
+     * Do not modify the properties of this object directly; clone, adjust, and
+     * reset the margin property of the layout manager instead.
+     */
+    margin: { left: 5, bottom: 6, top: 0, right: 12 },
+
+    /**
+     * @property
+     *
+     * The plugin catalog to use. Typically this will be plugins.catalog, but
+     * for testing this may be replaced with a mock object.
+     */
+    pluginCatalog: catalog,
+
+    /** The syntax manager in use. */
+    syntaxManager: null,
+
+    /**
+     * @property{Array<object>}
+     *
+     * The marked-up lines of text. Each line has the properties 'characters',
+     * 'colors', and 'lineHeight'.
+     */
+    textLines: null,
+
+    // Called whenever the text attributes (which usually consist of syntax
+    // highlighting) change.
+    _attrsChanged: function(startRow, endRow) {
+        this.updateTextRows(startRow, endRow);
+
+        var invalidRects = this.rectsForRange({
+            start:  { row: startRow, col: 0 },
+            end:    { row: endRow, col: 0 }
+        });
+
+        this.invalidatedRects(this, invalidRects);
+    },
+
+    _computeInvalidRects: function(oldRange, newRange) {
+        var startRect = this.characterRectForPosition(oldRange.start);
+
+        var lineRect = {
+            x:      startRect.x,
+            y:      startRect.y,
+            width:  Number.MAX_VALUE,
+            height: startRect.height
+        };
+
+        return oldRange.end.row === newRange.end.row ?
+            [ lineRect ] :
+            [
+                lineRect,
+                {
+                    x:      0,
+                    y:      startRect.y + fontDimension.lineHeight,
+                    width:  Number.MAX_VALUE,
+                    height: Number.MAX_VALUE
+                }
+            ];
+    },
+
+    // Returns the last valid position in the buffer.
+    _lastCharacterPosition: function() {
+        return {
+            row: this.textLines.length - 1,
+            col: this._maximumWidth
+        };
+    },
+
+    _recalculateMaximumWidth: function() {
+        // Lots of room for optimization here if this turns out to be slow. But
+        // for now...
+        var textLines = this.textLines;
+        var max = 0;
+        textLines.forEach(function(line) {
+            var width = line.characters.length;
+            if (max < width) {
+                max = width;
+            }
+        });
+        this._maximumWidth = max;
+
+        this.size = { width: max, height: this.textLines.length };
+    },
+
+    _recomputeEntireLayout: function() {
+        var entireRange = this._textStorage.range;
+        this._recomputeLayoutForRanges(entireRange, entireRange);
+    },
+
+    _recomputeLayoutForRanges: function(oldRange, newRange) {
+        var oldStartRow = oldRange.start.row, oldEndRow = oldRange.end.row;
+        var newEndRow = newRange.end.row;
+        var newRowCount = newEndRow - oldStartRow + 1;
+
+        var lines = this._textStorage.lines;
+        var theme = this._theme;
+        var plainColor = theme.plain;
+
+        var newTextLines = [];
+        for (var i = 0; i < newRowCount; i++) {
+            var line = lines[oldStartRow + i];
+            newTextLines[i] = {
+                characters: line,
+                colors: [ { start: 0, end: null, color: plainColor } ]
+            };
+        }
+
+        this.textLines = util.replace(this.textLines, oldStartRow,
+                                oldEndRow - oldStartRow + 1, newTextLines);
+        this._recalculateMaximumWidth();
+
+        // Resize if necessary.
+        var newHeight = this.textLines.length;
+        var syntaxManager = this.syntaxManager;
+        if (this._height !== newHeight) {
+            this._height = newHeight;
+        }
+
+        // Invalidate the start row (starting the syntax highlighting).
+        syntaxManager.invalidateRow(oldStartRow);
+
+        // Take the cached attributes from the syntax manager.
+        this.updateTextRows(oldStartRow, newEndRow + 1);
+
+        this.changedTextAtRow(this, oldStartRow);
+
+        var invalidRects = this._computeInvalidRects(oldRange, newRange);
+        this.invalidatedRects(this, invalidRects);
+    },
+
+    /**
+     * Determines the boundaries of the entire text area.
+     *
+     * TODO: Unit test.
+     */
+    boundingRect: function() {
+        return this.rectsForRange({
+            start:  { row: 0, col: 0 },
+            end:    {
+                row: this.textLines.length - 1,
+                col: this._maximumWidth
+            }
+        })[0];
+    },
+
+    /**
+     * Determines the location of the character underneath the given point.
+     *
+     * @return Returns an object with three properties:
+     *   * row: The row of the character nearest the point.
+     *   * col: The col of the character nearest the point.
+     *   * partialFraction: The fraction of the horizontal distance between
+     *       this character and the next character. The extreme left of the
+     *       character is 0.0, while the extreme right of the character is 1.0.
+     *       If you are calling this function to determine where to place the
+     *       cursor, then you should place the cursor after the returned
+     *       character if this value is greater than 0.5.
+     *
+     * If there is no character under the point, then the character nearest the
+     * given point is returned, according to the selection rules.
+     */
+    characterAtPoint: function(point) {
+        var margin = this.margin;
+        var x = point.x - margin.left, y = point.y - margin.top;
+
+        var characterWidth = fontDimension.characterWidth;
+        var textStorage = this._textStorage;
+        var clampedPosition = textStorage.clampPosition({
+            row: Math.floor(y / fontDimension.lineHeight),
+            col: Math.floor(x / characterWidth)
+        });
+
+        var lineLength = textStorage.lines[clampedPosition.row].length;
+        clampedPosition.partialFraction = x < 0 ||
+            clampedPosition.col === lineLength ? 0.0 :
+            x % characterWidth / characterWidth;
+
+        return clampedPosition;
+    },
+
+    /**
+     * Given a rectangle expressed in pixels, returns the range of characters
+     * that lie at least partially within the rectangle as an object.
+     *
+     * TODO: Write unit tests for this method.
+     */
+    characterRangeForBoundingRect: function(rect) {
+        // TODO: variable line heights, needed for word wrap and perhaps
+        // extensions as well
+        var lineHeight = fontDimension.lineHeight;
+        var characterWidth = fontDimension.characterWidth;
+        var margin = this.margin;
+        var x = rect.x - margin.left, y = rect.y - margin.top;
+        return {
+            start:  {
+                row: Math.max(Math.floor(y / lineHeight), 0),
+                col: Math.max(Math.floor(x / characterWidth), 0)
+            },
+            end:    {
+                row: Math.floor((y + rect.height - 1) / lineHeight),
+                col: Math.floor((x + rect.width - 1) / characterWidth) + 1
+            }
+        };
+    },
+
+    /**
+     * Returns the boundaries of the character at the given position.
+     */
+    characterRectForPosition: function(position) {
+        return this.rectsForRange({
+            start:  position,
+            end:    { row: position.row, col: position.col + 1 }
+        })[0];
+    },
+
+    /**
+     * Returns the pixel boundaries of the given line.
+     *
+     * TODO: Unit test.
+     */
+    lineRectForRow: function(row) {
+        return this.rectsForRange({
+            start:  { row: row, col: 0                   },
+            end:    { row: row, col: this._maximumWidth  }
+        })[0];
+    },
+
+    rectForPosition: function(position) {
+        var margin = this.margin;
+        var characterWidth = fontDimension.characterWidth;
+        var lineHeight = fontDimension.lineHeight;
+        return {
+            x:      margin.left + characterWidth * position.col,
+            y:      margin.top + lineHeight * position.row,
+            width:  characterWidth,
+            height: lineHeight
+        };
+    },
+
+    /**
+     * Returns the 1, 2, or 3 rectangles that make up the given range.
+     */
+    rectsForRange: function(range) {
+        var characterWidth = fontDimension.characterWidth;
+        var lineHeight = fontDimension.lineHeight;
+        var maximumWidth = this._maximumWidth;
+        var margin = this.margin;
+
+        var start = range.start, end = range.end;
+        var startRow = start.row, startColumn = start.col;
+        var endRow = end.row, endColumn = end.col;
+
+        if (startRow === endRow) {
+            // The simple rectangle case.
+            return [
+                {
+                    x:      margin.left + characterWidth * startColumn,
+                    y:      margin.top + lineHeight * startRow,
+                    width:  characterWidth * (endColumn - startColumn),
+                    height: lineHeight
+                }
+            ];
+        }
+
+        var rects = [];
+
+        // Top line
+        var middleStartRow;
+        if (startColumn === 0) {
+            middleStartRow = startRow;
+        } else {
+            middleStartRow = startRow + 1;
+            rects.push({
+                x:      margin.left + characterWidth * startColumn,
+                y:      margin.top + lineHeight * startRow,
+                width:  99999, // < Number.MAX_VALUE is not working here.
+                height: lineHeight
+            });
+        }
+
+        // Bottom line
+        var middleEndRow;
+        if (endColumn === 0) {
+            middleEndRow = endRow - 1;
+        } else if (endColumn === maximumWidth) {
+            middleEndRow = endRow;
+        } else {
+            middleEndRow = endRow - 1;
+            rects.push({
+                x:      margin.left,
+                y:      margin.top + lineHeight * endRow,
+                width:  characterWidth * endColumn,
+                height: lineHeight
+            });
+        }
+
+        // Middle area
+        rects.push({
+            x:      margin.left,
+            y:      margin.top + lineHeight * middleStartRow,
+            width:  99999, // < Number.MAX_VALUE is not working here.
+            height: lineHeight * (middleEndRow - middleStartRow + 1)
+        });
+
+        return rects;
+    },
+
+    textStorageChanged: function(oldRange, newRange) {
+        this._recomputeLayoutForRanges(oldRange, newRange);
+    },
+
+    /**
+     * Updates the text lines in the given range to correspond to the current
+     * state of the syntax highlighter. Does not actually run the syntax
+     * highlighters.
+     */
+    updateTextRows: function(startRow, endRow) {
+        var textLines = this.textLines;
+        var attrs = this.syntaxManager.getAttrsForRows(startRow, endRow);
+        var theme = this._theme;
+
+        for (var i = 0; i < attrs.length; i++) {
+            textLines[startRow + i].colors = attrs[i];
+        }
+    }
+};
+
+Object.defineProperties(exports.LayoutManager.prototype, {
+    size: {
+        set: function(size) {
+            if (size.width !== this._size.width || size.height !== this._size.height) {
+                this.sizeChanged(size);
+                this._size = size;
+            }
+        },
+
+        get: function() {
+            return this._size;
+        }
+    },
+
+    textStorage: {
+        get: function() {
+            return this._textStorage;
+        }
+    }
+})
+
+});
+
+bespin.tiki.module("text_editor:controllers/search",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var util = require('bespin:util/util');
+var Range = require('rangeutils:utils/range');
+var console = require('bespin:console').console;
+
+/**
+ * @class
+ *
+ * Manages the Find functionality.
+ */
+exports.EditorSearchController = function(editor) {
+    this.editor = editor;
+};
+
+exports.EditorSearchController.prototype = {
+
+    /**
+     * The editor holding the buffer object to search in.
+     */
+    editor: null,
+
+    /**
+     * This is based on the idea from:
+     *      http://simonwillison.net/2006/Jan/20/escape/.
+     */
+    _escapeString: /(\/|\.|\*|\+|\?|\||\(|\)|\[|\]|\{|\}|\\)/g,
+
+    _findMatchesInString: function(str) {
+        var result = [];
+        var searchRegExp = this.searchRegExp;
+        var searchResult;
+        var endIndex;
+
+        searchRegExp.lastIndex = 0;
+
+        while (true) {
+            searchResult = searchRegExp.exec(str);
+            if (searchResult === null) {
+                break;
+            }
+
+            result.push(searchResult);
+
+            var index = searchResult.index;
+            searchRegExp.lastIndex = index + searchResult[0].length;
+        }
+
+        return result;
+    },
+
+    _makeRange: function(searchResult, row) {
+        return {
+            start: { row: row, col: searchResult.index },
+            end: {
+                row: row,
+                col: searchResult.index + searchResult[0].length
+            }
+        };
+    },
+
+    /**
+     * @property{boolean}
+     *
+     * True if the search query is a regular expression, false if it's a
+     * literal string.
+     */
+    isRegExp: null,
+
+    /**
+     * @property{RegExp}
+     *
+     * The current search query as a regular expression.
+     */
+    searchRegExp: null,
+
+    /**
+     * @property{String}
+     *
+     * The current search text.
+     */
+    searchText: null,
+
+    /**
+     * Sets the search query.
+     *
+     * @param text     The search query to set.
+     * @param isRegExp True if the text is a regex, false if it's a literal
+     *                 string.
+     */
+    setSearchText: function(text, isRegExp) {
+        var regExp;
+        // If the search string is not a RegExp make sure to escape the
+        if (!isRegExp) {
+            regExp = new RegExp(text.replace(this._escapeString, '\\$1'), 'gi');
+        } else {
+            regExp = new RegExp(text);
+        }
+        this.searchRegExp = regExp;
+        this.isRegExp = isRegExp;
+        this.searchText = text;
+    },
+
+    /**
+     * Finds the next occurrence of the search query.
+     *
+     * @param startPos       The position at which to restart the search.
+     * @param allowFromStart True if the search is allowed to wrap.
+     */
+    findNext: function(startPos, allowFromStart) {
+        var searchRegExp = this.searchRegExp;
+        if (util.none(searchRegExp)) {
+            return null;
+        }
+
+        startPos = startPos || this.editor.textView.getSelectedRange().end;
+
+        var lines = this.editor.layoutManager.textStorage.lines;
+        var searchResult;
+
+        searchRegExp.lastIndex = startPos.col;
+
+        var row;
+        for (row = startPos.row; row < lines.length; row++) {
+            searchResult = searchRegExp.exec(lines[row]);
+            if (!util.none(searchResult)) {
+                return this._makeRange(searchResult, row);
+            }
+        }
+
+        if (!allowFromStart) {
+            return null;
+        }
+
+        // Wrap around.
+        for (row = 0; row <= startPos.row; row++) {
+            searchResult = searchRegExp.exec(lines[row]);
+            if (!util.none(searchResult)) {
+                return this._makeRange(searchResult, row);
+            }
+        }
+
+        return null;
+    },
+
+    /**
+     * Finds the previous occurrence of the search query.
+     *
+     * @param startPos       The position at which to restart the search.
+     * @param allowFromStart True if the search is allowed to wrap.
+     */
+    findPrevious: function(startPos, allowFromEnd) {
+        var searchRegExp = this.searchRegExp;
+        if (util.none(searchRegExp)) {
+            return null;
+        }
+
+        startPos = startPos || this.editor.textView.getSelectedRange().start;
+
+        var lines = this.editor.buffer.layoutManager.textStorage.lines;
+        var searchResults;
+
+        // Treat the first line specially.
+        var firstLine = lines[startPos.row].substring(0, startPos.col);
+        searchResults = this._findMatchesInString(firstLine);
+
+        if (searchResults.length !== 0) {
+            return this._makeRange(searchResults[searchResults.length - 1],
+                                                                startPos.row);
+        }
+
+        // Loop over all other lines.
+        var row;
+        for (row = startPos.row - 1; row !== -1; row--) {
+            searchResults = this._findMatchesInString(lines[row]);
+            if (searchResults.length !== 0) {
+                return this._makeRange(searchResults[searchResults.length - 1],
+                                                                        row);
+            }
+        }
+
+        if (!allowFromEnd) {
+            return null;
+        }
+
+        // Wrap around.
+        for (row = lines.length - 1; row >= startPos.row; row--) {
+            searchResults = this._findMatchesInString(lines[row]);
+            if (searchResults.length !== 0) {
+                return this._makeRange(searchResults[searchResults.length - 1],
+                                                                        row);
+            }
+        }
+
+        return null;
     }
 };
 
 
 });
 
+bespin.tiki.module("text_editor:models/buffer",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var env = require('environment').env;
+
+var util = require('bespin:util/util');
+
+var Promise = require('bespin:promise').Promise;
+var TextStorage = require('models/textstorage').TextStorage;
+var LayoutManager = require('controllers/layoutmanager').LayoutManager;
+var UndoManager = require('undomanager').UndoManager;
+
+/**
+ * A Buffer connects a model and file together. It also holds the layoutManager
+ * that is bound to the model. The syntaxManager can get accessed via the
+ * layoutManager as well.
+ *
+ * Per opened file there is one buffer which means that one buffer is
+ * corresponding to one file on the disk. If you open different file, you have
+ * to create a new buffer for that file.
+ *
+ * To create a buffer that is (not yet) bound to a file, just create the Buffer
+ * without a file passed.
+ */
+exports.Buffer = function(file, initialContent) {
+    this._file = file;
+    this._model = new TextStorage(initialContent);
+    this._layoutManager = new LayoutManager({
+        textStorage: this._model
+    });
+
+    this.undoManager = new UndoManager();
+
+    // If a file is passed, then load it. This is the same as calling reload.
+    if (file) {
+        this.reload().then(function() {
+            this._updateSyntaxManagerInitialContext();
+        }.bind(this));
+    } else {
+        this.loadPromise = new Promise();
+        this.loadPromise.resolve();
+    }
+
+    // Restore the state of the buffer (selection + scrollOffset).
+    // TODO: Refactor this code into the ViewState.
+    var history = (env.session ? env.session.history : null);
+    var item, selection, scrollOffset;
+
+    // If
+    //  1.  Check if a history exists and the buffer has a file (-> path)
+    //  2.  Ask the history object for the history for the current file.
+    //      If no history is found, null is returned.
+    if (history && file &&                                  // 1.
+            (item = history.getHistoryForPath(file.path))   // 2.
+    ) {
+        // There is no state saved in the buffer and the history object
+        // has a state saved.
+        selection = item.selection;
+        scrollOffset = item.scroll;
+    }
+
+    // Use the saved values from the history or the default values.
+    this._selectedRange = selection || {
+        start: { row: 0, col: 0 },
+        end: { row: 0, col: 0 }
+    };
+
+    this._scrollOffset = scrollOffset || { x: 0, y: 0 };
+};
+
+exports.Buffer.prototype = {
+    /**
+     * The undoManager where the undo/redo stack is stored and handled.
+     */
+    undoManager: null,
+
+    loadPromise: null,
+
+    _scrollOffset: null,
+    _selectedRange: null,
+    _selectedRangeEndVirtual: null,
+
+    /**
+     * The syntax manager associated with this file.
+     */
+    _layoutManager: null,
+
+    /**
+     * The file object associated with this buffer. The file instance can only
+     * be assigned when constructing the buffer or calling saveAs.
+     */
+    _file: null,
+
+   /**
+    * The text model that is holding the content of the file.
+    */
+    _model: null,
+
+    /**
+     * Save the contents of this buffer. Returns a promise that resolves
+     * once the file is saved.
+     */
+    save: function() {
+        return this._file.saveContents(this._model.value);
+    },
+
+    /**
+     * Saves the contents of this buffer to a new file, and updates the file
+     * field of this buffer to point to the result.
+     *
+     * @param {File} newFile The pathname to save to, as a File object.
+     * @return A promise to return the newly-saved file.
+     */
+    saveAs: function(newFile) {
+        var promise = new Promise();
+
+        newFile.saveContents(this._model.value).then(function() {
+            this._file = newFile;
+            this._updateSyntaxManagerInitialContext();
+            promise.resolve();
+        }.bind(this), function(error) {
+            promise.reject(error);
+        });
+
+        return promise;
+    },
+
+    /**
+     * Reload the existing file contents from the server.
+     */
+    reload: function() {
+        var file = this._file;
+        var self = this;
+
+        var pr;
+        pr =  file.loadContents().then(function(contents) {
+            self._model.value = contents;
+        });
+        this.loadPromise = pr;
+        return pr;
+    },
+
+    _updateSyntaxManagerInitialContext: function() {
+        var ext = this._file.extension();
+        var syntaxManager = this._layoutManager.syntaxManager;
+        syntaxManager.setSyntaxFromFileExt(ext === null ? '' : ext);
+    },
+
+    /**
+     * Returns true if the file is untitled (i.e. it is new and has not yet
+     * been saved with @saveAs) or false otherwise.
+     */
+    untitled: function() {
+        return util.none(this._file);
+    }
+};
+
+Object.defineProperties(exports.Buffer.prototype, {
+    layoutManager: {
+        get: function() {
+            return this._layoutManager;
+        }
+    },
+
+    syntaxManager: {
+        get: function() {
+            this._layoutManager.syntaxManager;
+        }
+    },
+
+    file: {
+        get: function() {
+            return this._file;
+        }
+    },
+
+    model: {
+        get: function() {
+            return this._model;
+        }
+    }
+});
+
+});
+
+bespin.tiki.module("text_editor:models/textstorage",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var Event = require('events').Event;
+var util = require('bespin:util/util');
+
+var TextStorage;
+
+/**
+ * Creates a new text storage object holding the given string (if supplied).
+ *
+ * @constructor
+ * @exports TextStorage as text_editor:models.textstorage.TextStorage
+ */
+TextStorage = function(initialValue) {
+    if (initialValue !== null && initialValue !== undefined) {
+        this._lines = initialValue.split("\n");
+    } else {
+        this._lines = [ '' ];
+    }
+
+    /**
+     * Called whenever the text changes with the old and new ranges supplied.
+     */
+    this.changed = new Event();
+
+    return this;
+};
+
+TextStorage.prototype = {
+    /** @lends TextStorage */
+
+    _lines: null,
+
+    /**
+     * Whether this model is read-only. Attempts to modify a read-only model
+     * result in exceptions.
+     *
+     * @type {boolean}
+     */
+    readOnly: false,
+
+    /**
+     * Returns the position of the nearest character to the given position,
+     * according to the selection rules.
+     *
+     * @param {position} pos The position to clamp.
+     */
+    clampPosition: function(pos) {
+        var lines = this._lines;
+
+        var row = pos.row;
+        if (row < 0) {
+            return { row: 0, col: 0 };
+        } else if (row >= lines.length) {
+            return this.range.end;
+        }
+
+        var col = Math.max(0, Math.min(pos.col, lines[row].length));
+        return { row: row, col: col };
+    },
+
+    /**
+     * Returns the actual range closest to the given range, according to the
+     * selection rules.
+     */
+    clampRange: function(range) {
+        var start = this.clampPosition(range.start);
+        var end = this.clampPosition(range.end);
+        return { start: start, end: end };
+    },
+
+    /** Deletes all characters in the range. */
+    deleteCharacters: function(range) {
+        this.replaceCharacters(range, '');
+    },
+
+    /**
+     * Returns the result of displacing the given position by count characters
+     * forward (if count > 0) or backward (if count < 0).
+     */
+    displacePosition: function(pos, count) {
+        var forward = count > 0;
+        var lines = this._lines;
+        var lineCount = lines.length;
+
+        for (var i = Math.abs(count); i !== 0; i--) {
+            if (forward) {
+                var rowLength = lines[pos.row].length;
+                if (pos.row === lineCount - 1 && pos.col === rowLength) {
+                    return pos;
+                }
+                pos = pos.col === rowLength ?
+                    { row: pos.row + 1, col: 0            } :
+                    { row: pos.row,     col: pos.col + 1  };
+            } else {
+                if (pos.row === 0 && pos.col == 0) {
+                    return pos;
+                }
+
+                if (pos.col === 0) {
+                    lines = this._lines;
+                    pos = {
+                        row:    pos.row - 1,
+                        col: lines[pos.row - 1].length
+                    };
+                } else {
+                    pos = { row: pos.row, col: pos.col - 1 };
+                }
+            }
+        }
+        return pos;
+    },
+
+    /**
+     * Returns the characters in the given range as a string.
+     */
+    getCharacters: function(range) {
+        var lines = this._lines;
+        var start = range.start, end = range.end;
+        var startRow = start.row, endRow = end.row;
+        var startCol = start.col, endCol = end.col;
+
+        if (startRow === endRow) {
+            return lines[startRow].substring(startCol, endCol);
+        }
+
+        var firstLine = lines[startRow].substring(startCol);
+        var middleLines = lines.slice(startRow + 1, endRow);
+        var endLine = lines[endRow].substring(0, endCol);
+        return [ firstLine ].concat(middleLines, endLine).join('\n');
+    },
+
+    /** Returns the lines of the text storage as a read-only array. */
+    getLines: function() {
+        return this._lines;
+    },
+
+    /** Returns the span of the entire text content. */
+    getRange: function() {
+        var lines = this._lines;
+        var endRow = lines.length - 1;
+        var endCol = lines[endRow].length;
+        var start = { row: 0, col: 0 }, end = { row: endRow, col: endCol };
+        return { start: start, end: end };
+    },
+
+    /** Returns the text in the text storage as a string. */
+    getValue: function() {
+        return this._lines.join('\n');
+    },
+
+    /** Inserts characters at the supplied position. */
+    insertCharacters: function(pos, chars) {
+        this.replaceCharacters({ start: pos, end: pos }, chars);
+    },
+
+    /** Replaces the characters within the supplied range. */
+    replaceCharacters: function(oldRange, characters) {
+        if (this.readOnly) {
+            throw new Error("Attempt to modify a read-only text storage " +
+                "object");
+        }
+
+        var addedLines = characters.split('\n');
+        var addedLineCount = addedLines.length;
+
+        var newRange = this.resultingRangeForReplacement(oldRange, addedLines);
+
+        var oldStart = oldRange.start, oldEnd = oldRange.end;
+        var oldStartRow = oldStart.row, oldEndRow = oldEnd.row;
+        var oldStartColumn = oldStart.col;
+
+        var lines = this._lines;
+        addedLines[0] = lines[oldStartRow].substring(0, oldStartColumn) +
+            addedLines[0];
+        addedLines[addedLineCount - 1] +=
+            lines[oldEndRow].substring(oldEnd.col);
+
+        this._lines = util.replace(lines, oldStartRow, oldEndRow - oldStartRow + 1, addedLines);
+
+        this.changed(oldRange, newRange, characters);
+    },
+
+    /**
+     * Returns the character range that would be modified if the range were
+     * replaced with the given lines.
+     */
+    resultingRangeForReplacement: function(range, lines) {
+        var lineCount = lines.length;
+        var lastLineLength = lines[lineCount - 1].length;
+        var start = range.start;
+        var endRow = start.row + lineCount - 1;
+        var endCol = (lineCount === 1 ? start.col : 0) + lastLineLength;
+        return { start: start, end: { row: endRow, col: endCol } };
+    },
+
+    setLines: function(newLines) {
+        this.setValue(newLines.join('\n'));
+    },
+
+    setValue: function(newValue) {
+        this.replaceCharacters(this.range, newValue);
+    }
+};
+
+exports.TextStorage = TextStorage;
+
+Object.defineProperties(exports.TextStorage.prototype, {
+    lines: {
+        get: function() {
+            return this.getLines();
+        },
+        set: function(newLines) {
+            return this.setLines(newLines);
+        }
+    },
+    
+    range: {
+        get: function() {
+            return this.getRange();
+        }
+    },
+    
+    value: {
+        get: function() {
+            return this.getValue();
+        },
+        set: function(newValue) {
+            this.setValue(newValue);
+        }
+    }
+});
+
+});
+
+bespin.tiki.module("text_editor:utils/rect",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+/**
+ * @private
+ *
+ * Returns the distance between the given value and the given inclusive upper
+ * and lower bounds, or 0 if the value lies between them.
+ *
+ * Exported so that the function can be unit tested.
+ */
+exports._distanceFromBounds = function(value, low, high) {
+    if (value < low) {
+        return value - low;
+    }
+    if (value >= high) {
+        return value - high;
+    }
+    return 0;
+};
+
+/**
+ * Merges the rectangles in a given set and returns the resulting set of non-
+ * overlapping rectanlges.
+ */
+exports.merge = function(set) {
+    var modified;
+    do {
+        modified = false;
+        var newSet = [];
+
+        for (var i = 0; i < set.length; i++) {
+            var rectA = set[i];
+            newSet.push(rectA);
+            for (var j = i+1; j < set.length; j++) {
+                var rectB = set[j];
+                if (exports.rectsSideBySide(rectA, rectB) ||
+                                        exports.rectsIntersect(rectA, rectB)) {
+                    set.splice(j, 1);
+
+                    // There's room for optimization here...
+                    newSet[newSet.length - 1] = exports.unionRects(rectA, rectB);
+
+                    modified = true;
+                    break;
+                }
+            }
+        }
+
+        set = newSet;
+    } while (modified);
+
+    return set;
+};
+
+/**
+ * Returns the vector representing the shortest offset between the given
+ * rectangle and the given point.
+ */
+exports.offsetFromRect = function(rect, point) {
+    return {
+        x: exports._distanceFromBounds(point.x, rect.x, exports.maxX(rect)),
+        y: exports._distanceFromBounds(point.y, rect.y, exports.maxY(rect))
+    };
+};
+
+/**
+ * Returns true if the rectanges intersect or false otherwise. Adjacent
+ * rectangles don't count; they must actually overlap some region.
+ */
+exports.rectsIntersect = function(a, b) {
+    var intersection = exports.intersectRects(a, b);
+    return intersection.width !== 0 && intersection.height !== 0;
+};
+
+/**
+ * Checks if two rects lay side by side. Returns true if this is true.
+ * For example:
+ *      +------------+---------------+
+ *      |    A       |       B       |
+ *      +------------+---------------+
+ * will be true, but if B is only one pixel shifted up,
+ * then it would return false.
+ */
+exports.rectsSideBySide = function(a, b) {
+    if (a.x == b.x && a.width == b.width) {
+        if (a.y < b.y) {
+            return (a.y + a.height) == b.y;
+        } else {
+            return (b.y + b.height) == a.y;
+        }
+    } else if (a.y == b.y && a.height == b.height) {
+        if (a.x < b.x) {
+            return (a.x + a.width) == b.x;
+        } else {
+            return (b.x + b.width) == a.x;
+        }
+    }
+    return false;
+};
+
+// extracted from SproutCore
+exports.intersectRects = function(r1, r2) {
+  // find all four edges
+  var ret = {
+    x: Math.max(exports.minX(r1), exports.minX(r2)),
+    y: Math.max(exports.minY(r1), exports.minY(r2)),
+    width: Math.min(exports.maxX(r1), exports.maxX(r2)),
+    height: Math.min(exports.maxY(r1), exports.maxY(r2))
+  } ;
+
+  // convert edges to w/h
+  ret.width = Math.max(0, ret.width - ret.x) ;
+  ret.height = Math.max(0, ret.height - ret.y) ;
+  return ret ;
+};
+
+/** Return the left edge of the frame */
+exports.minX = function(frame) {
+  return frame.x || 0;
+};
+
+/** Return the right edge of the frame. */
+exports.maxX = function(frame) {
+  return (frame.x || 0) + (frame.width || 0);
+};
+
+/** Return the top edge of the frame */
+exports.minY = function(frame) {
+  return frame.y || 0 ;
+};
+
+/** Return the bottom edge of the frame */
+exports.maxY = function(frame) {
+  return (frame.y || 0) + (frame.height || 0) ;
+};
+
+/** Check if the given point is inside the rect. */
+exports.pointInRect = function(point, f) {
+    return  (point.x >= exports.minX(f)) &&
+            (point.y >= exports.minY(f)) &&
+            (point.x <= exports.maxX(f)) &&
+            (point.y <= exports.maxY(f)) ;
+};
+
+/** Returns the union between two rectangles
+
+  @param r1 {Rect} The first rect
+  @param r2 {Rect} The second rect
+  @returns {Rect} The union rect.
+*/
+exports.unionRects = function(r1, r2) {
+  // find all four edges
+  var ret = {
+    x: Math.min(exports.minX(r1), exports.minX(r2)),
+    y: Math.min(exports.minY(r1), exports.minY(r2)),
+    width: Math.max(exports.maxX(r1), exports.maxX(r2)),
+    height: Math.max(exports.maxY(r1), exports.maxY(r2))
+  } ;
+
+  // convert edges to w/h
+  ret.width = Math.max(0, ret.width - ret.x) ;
+  ret.height = Math.max(0, ret.height - ret.y) ;
+  return ret ;
+};
+
+/** Return true if the two frames match.  You can also pass only points or sizes.
+
+  @param r1 {Rect} the first rect
+  @param r2 {Rect} the second rect
+  @param delta {Float} an optional delta that allows for rects that do not match exactly. Defaults to 0.1
+  @returns {Boolean} true if rects match
+ */
+exports.rectsEqual = function(r1, r2, delta) {
+    if (!r1 || !r2) return (r1 == r2) ;
+    if (!delta && delta !== 0) delta = 0.1;
+    if ((r1.y != r2.y) && (Math.abs(r1.y - r2.y) > delta)) return false ;
+    if ((r1.x != r2.x) && (Math.abs(r1.x - r2.x) > delta)) return false ;
+    if ((r1.width != r2.width) && (Math.abs(r1.width - r2.width) > delta)) return false ;
+    if ((r1.height != r2.height) && (Math.abs(r1.height - r2.height) > delta)) return false ;
+    return true ;
+};
+
+});
+
 bespin.tiki.module("text_editor:index",function(require,exports,module) {
+
+});
+;bespin.tiki.register("::jslint_command", {
+    name: "jslint_command",
+    dependencies: { "jslint": "0.0.0", "file_commands": "0.0.0" }
+});
+bespin.tiki.module("jslint_command:index",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+"define metadata";
+({
+    "dependencies": { "file_commands": "0.0.0", "jslint": "0.0.0" },
+    "description": "Provides the JSLint command to check code for errors.",
+    "objects": [],
+    "provides": [
+        {
+            "ep": "command",
+            "name": "jslint",
+            "params": [],
+            "description": "Run JSLint to check the current file",
+            "pointer": "#jslintCommand",
+            "predicates": { "context": "js" }
+        },
+        {
+            "ep": "savehook",
+            "name": "jslint",
+            "description": "Runs JSLint when a JavaScript file is saved",
+            "pointer": "#jslintSaveHook"
+        }
+    ]
+});
+"end";
+
+var env = require('environment').env;
+var jslint = require('jslint').jslint;
+
+function runJSLint(model) {
+    var ok = jslint(model.getValue());
+    if (ok) {
+        return "JSLint succeeded";
+    }
+
+    var errors = jslint.errors;
+    var plural = (errors.length === 1) ? "" : "s";
+    var output = [ "<div>JSLint reported ", errors.length, " error", plural,
+        ":</div>" ];
+
+    errors.forEach(function(err) {
+        if (err == null) {
+            return;
+        }
+
+        output.push("<div>");
+        output.push(err.line);
+        output.push(":");
+        output.push(err.character);
+        output.push(": ");
+        output.push(err.reason);
+        output.push("</div>");
+
+        var line = model.lines[err.line - 1];
+        var character = err.character - 1;
+        line = line.replace(/</g, "&lt;").replace(/\t/g, "    ");
+
+        output.push("<pre>");
+        output.push(line);
+        output.push("\n");
+        for (var i = 0; i < character; i++) {
+            output.push(".");
+        }
+        output.push('^</pre>');
+    });
+
+    return output.join("");
+}
+
+exports.jslintCommand = function(args, req) {
+    req.done(runJSLint(env.model));
+}
+
+exports.jslintSaveHook = function(file) {
+    var extension = file.extension();
+    if (extension !== "js" && extension !== "jsm") {
+        return "";
+    }
+
+    return runJSLint(env.model);
+}
+
+exports.runJSLint = runJSLint;
+
+
+});
+;bespin.tiki.register("::file_commands", {
+    name: "file_commands",
+    dependencies: { "text_editor": "0.0.0", "matcher": "0.0.0", "command_line": "0.0.0", "filesystem": "0.0.0" }
+});
+bespin.tiki.module("file_commands:index",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var catalog = require('bespin:plugins').catalog;
+var pathUtil = require('filesystem:path');
+var env = require('environment').env;
+var promise = require('bespin:promise');
+var _ = require('underscore')._;
+
+var Buffer = require('text_editor:models/buffer').Buffer;
+var Promise = promise.Promise;
+
+/*
+ * Creates a path based on the current working directory and the passed 'path'.
+ * This is also deals with '..' within the path and '/' at the beginning.
+ */
+exports.getCompletePath = function(path) {
+    var ret;
+    path = path || '';
+
+    if (path[0] == '/') {
+        ret = path.substring(1);
+    } else {
+        ret = (env.workingDir || '') + (path || '');
+    }
+
+    // If the path ends with '..', then add a / at the end
+    if (ret.substr(-2) == '..') {
+        ret += '/';
+    }
+
+    // Replace the '..' parts
+    var parts = ret.split('/');
+    var i = 0;
+    while (i < parts.length) {
+        if (parts[i] == '..') {
+            if (i != 0) {
+                parts.splice(i - 1, 2);
+                i -= 2;
+            } else {
+                parts.splice(0, 1);
+            }
+        } else {
+            i ++;
+        }
+    }
+
+    return parts.join('/');
+};
+
+/**
+ * 'files' command
+ */
+exports.filesCommand = function(args, request) {
+    var path = args.path;
+
+    path = exports.getCompletePath(path);
+
+    if (path && !pathUtil.isDir(path)) {
+        path += '/';
+    }
+
+    request.async();
+    env.files.listDirectory(path).then(function(contents) {
+        var files = '';
+        for (var x = 0; x < contents.length; x++) {
+            files += contents[x] + '<br/>';
+        }
+        request.done(files);
+
+    }, function(error) {
+        request.doneWithError(error.message);
+    });
+};
+
+/**
+ * 'mkdir' command
+ */
+exports.mkdirCommand = function(args, request) {
+    var path = args.path;
+
+    path = exports.getCompletePath(path);
+    request.async();
+
+    var files = env.files;
+    files.makeDirectory(path).then(function() {
+        request.done('Directory ' + path + ' created.');
+    }, function(error) {
+        request.doneWithError('Unable to make directory ' + path + ': '
+                              + error.message);
+    });
+};
+
+function runSaveHooks(file) {
+    var pr = new Promise();
+    var saveHooks = catalog.getExtensions('savehook');
+    promise.group(_(saveHooks).invoke('load')).then(function(hooks) {
+            var hookOutput = _(hooks).map(function(hook) {
+                return hook(file);
+            });
+            pr.resolve(hookOutput.join("\n"));
+        },
+        function(error) { pr.reject(error); });
+
+    return pr;
+}
+
+/**
+ * 'save' command
+ */
+exports.saveCommand = function(args, request) {
+    var buffer = env.buffer;
+    if (buffer.untitled()) {
+        env.commandLine.setInput('saveas ');
+        request.done('The current buffer is untitled. Please enter a name.');
+        return;
+    }
+
+    runSaveHooks(buffer.file).then(function(hookOutput) {
+        buffer.save().then(function() { request.done(hookOutput + "Saved."); },
+            function(error) {
+                var message = "Unable to save: " + error.message;
+                request.doneWithError(hookOutput + message);
+            });
+    }, function(err) {
+        request.doneWithError("Save hooks failed: " + err);
+    });
+
+    request.async();
+};
+
+/**
+ * 'save as' command
+ */
+exports.saveAsCommand = function(args, request) {
+    var files = env.files;
+    var path = exports.getCompletePath(args.path);
+    var newFile = files.getFile(path);
+
+    runSaveHooks(newFile).then(function(hookOutput) {
+        env.buffer.saveAs(newFile).then(function() {
+            request.done(hookOutput + 'Saved to \'' + path + '\'.');
+        }, function(err) {
+            var message = "Save failed: " + err.message;
+            request.doneWithError(hookOutput + message);
+        });
+    }, function(err) {
+        request.doneWithError("Save hooks failed: " + err);
+    });
+
+    request.async();
+};
+
+/**
+ * 'open' command
+ */
+exports.openCommand = function(args, request) {
+    if (!('path' in args)) {
+        env.commandLine.setInput('open ');
+        return;
+    }
+
+    var files = env.files;
+    var editor = env.editor;
+    var path = exports.getCompletePath(args.path);
+
+    // TODO: handle line number in args
+    request.async();
+    var file = files.getFile(path);
+
+    var loadPromise = new Promise();
+    var buffer;
+
+    // Create a new buffer based that is bound to 'file'.
+    // TODO: After editor reshape: EditorSession should track buffer instances.
+    buffer = new Buffer(file);
+    buffer.loadPromise.then(
+        function() {
+            // Set the buffer of the current editorView after it's loaded.
+            editor.buffer = buffer;
+            request.done();
+        },
+        function(error) {
+            request.doneWithError('Unable to open the file (' +
+                error.message + ')');
+        }
+    );
+};
+
+/**
+ * 'revert' command
+ */
+exports.revertCommand = function(args, request) {
+    request.async();
+    var buffer = env.buffer;
+    buffer.reload().then(function() {
+        request.done('File reverted');
+    }, function(error) {
+        request.doneWithError(error.message);
+    });
+};
+
+/**
+ * 'newfile' command
+ */
+exports.newfileCommand = function(args, request) {
+    env.editor.buffer = new Buffer();
+};
+
+/**
+ * 'rm' command
+ */
+exports.rmCommand = function(args, request) {
+    var files = env.files;
+    var buffer = env.buffer;
+
+    var path = args.path;
+    path = exports.getCompletePath(path);
+
+    files.remove(path).then(function() {
+        request.done(path + ' deleted.');
+    }, function(error) {
+        request.doneWithError('Unable to delete (' + error.message + ')');
+    });
+    request.async();
+};
+
+/**
+ * 'cd' command
+ */
+exports.cdCommand = function(args, request) {
+    var workingDir = args.workingDir || '';
+    if (workingDir != '' && workingDir.substr(-1) != '/') {
+        workingDir += '/';
+    }
+    env.workingDir = exports.getCompletePath(workingDir);
+    request.done('/' + env.workingDir);
+}
+
+/**
+ * 'pwd' command
+ */
+exports.pwdCommand = function(args, request) {
+    request.done('/' + (env.workingDir || ''));
+}
+
+});
+
+bespin.tiki.module("file_commands:tests/testCommands",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1
+ *
+ * The contents of this file are subject to the Mozilla Public License
+ * Version 1.1 (the "License"); you may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS"
+ * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied.
+ * See the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var t = require('plugindev');
+
+var fs = require('filesystem');
+var DummyFileSource = require('filesystem:tests/fixture').DummyFileSource;
+var EnvironmentTrait = require('canon:tests/fixture').MockEnvironment;
+var MockRequest = require('canon:tests/fixture').MockRequest;
+var file_commands = require('file_commands');
+var edit_session = require('edit_session');
+var Promise = require('bespin:promise').Promise;
+
+var source = new DummyFileSource([
+    {name: 'atTheTop.js', contents: 'the top file'},
+    {name: 'anotherAtTheTop.js', contents: 'another file'},
+    {name: 'foo/'},
+    {name: 'foo/1.txt', contents: 'firsttext'},
+    {name: 'foo/2.txt', contents: 'secondtext'},
+    {name: 'foo/bar/3.txt', contents: 'thirdtext'},
+    {name: 'deeply/nested/directory/andAFile.txt', contents: 'text file'}
+]);
+
+var getNewRoot = function() {
+    return fs.Filesystem.create({
+        source: source
+    });
+};
+
+var getEnv = function() {
+    var root = getNewRoot();
+    var buffer = edit_session.Buffer.create();
+
+    var session = new edit_session.EditSession(buffer);
+
+    var env = Environment.create({
+        files: root,
+        session: session
+    });
+    return env;
+};
+
+exports.testFilesCommand = function() {
+    var env = getEnv();
+    var request = new MockRequest();
+    var testpr = new Promise();
+    request.promise.then(function() {
+        output = request.outputs.join('');
+        t.ok(output.indexOf('foo/<br/>') > -1, 'foo/ should be in output');
+        t.ok(output.indexOf('atTheTop.js<br/>') > -1,
+            'atTheTop.js should be in output');
+        testpr.resolve();
+    });
+
+    file_commands.filesCommand({path: '/'}, request);
+
+    return testpr;
+};
+
+exports.testOpenFileWithNoOpenFile = function() {
+    var env = getEnv();
+    var request = new MockRequest();
+    var testpr = new Promise();
+    request.promise.then(function() {
+        var f = env.file;
+        t.ok(!request.error, 'Should not be in error state');
+        t.equal(f.path, '/foo/bar/3.txt', 'File should have been set');
+        testpr.resolve();
+    });
+
+    file_commands.openCommand({path: '/foo/bar/3.txt'}, request);
+};
+
+exports.testFilesCommandDefaultsToRoot = function() {
+    var env = getEnv();
+
+    var testpr = new Promise();
+
+    var request = new MockRequest();
+    request.promise.then(function() {
+        output = request.outputs.join('');
+        t.ok(output.indexOf('foo/<br/>') > -1, 'foo/ should be in output');
+        t.ok(output.indexOf('atTheTop.js<br/>') > -1,
+            'atTheTop.js should be in output');
+        testpr.resolve();
+    });
+
+    file_commands.filesCommand({path: null}, request);
+    return testpr;
+};
+
+exports.testFilesAreRelativeToCurrentOpenFile = function() {
+    var env = getEnv();
+    var buffer = env.buffer;
+    var files = env.files;
+    buffer.changeFileOnly(files.getFile('foo/1.txt'));
+
+    var testpr = new Promise();
+
+    var request = new MockRequest();
+    request.promise.then(function() {
+        output = request.outputs.join('');
+        t.ok(output.indexOf('1.txt<br/>') > -1, '1.txt should be in the output');
+        t.ok(output.indexOf('2.txt<br/>') > -1,
+            '2.txt should be in output');
+        testpr.resolve();
+    });
+
+    file_commands.filesCommand({path: null}, request);
+    return testpr;
+};
+
+exports.testFilesListingInDirectoryRelativeToOpenFile = function() {
+    var env = getEnv();
+    var buffer = env.buffer;
+    var files = env.files;
+    buffer.changeFileOnly(files.getFile('foo/1.txt'));
+    var testpr = new Promise();
+
+    var request = new MockRequest();
+    request.promise.then(function() {
+        output = request.outputs.join('');
+        t.ok(output.indexOf('3.txt<br/>') > -1, '3.txt should be in the output');
+        testpr.resolve();
+    });
+
+    file_commands.filesCommand({path: 'bar/'}, request);
+    return testpr;
+};
+
+exports.testMakeDirectoryForNewDirectory = function() {
+    var env = getEnv();
+    var request = new MockRequest();
+    var testpr = new Promise();
+    var files = env.files;
+
+    request.promise.then(function() {
+        files.listDirectory('/foo/').then(function(contents) {
+            t.equal(contents.length, 4, 'should have four items in directory');
+            t.equal(contents[3], 'one/', 'new directory should be last item');
+            testpr.resolve();
+        });
+    }, function(error) {
+        testpr.reject(error.message);
+    });
+
+    file_commands.mkdirCommand({path: '/foo/one/'}, request);
+
+    return testpr;
+};
+
+});
+
+bespin.tiki.module("file_commands:views/types",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var getCompletePath = require('index').getCompletePath;
+var QuickMatcher = require('matcher:quick').QuickMatcher;
+var MatcherMenu = require('command_line:views/menu').MatcherMenu;
+var env = require('environment').env;
+
+/**
+ * @see typehint#getHint()
+ */
+exports.existingFileHint = {
+    getHint: function(input, assignment, typeExt) {
+        var matcher = new QuickMatcher(assignment.value || '');
+        var menu = new MatcherMenu(input, assignment, matcher);
+
+        var typed = assignment.value;
+        typed = typed.substring(0, typed.lastIndexOf('/') + 1);
+
+        var currentDir = getCompletePath(typed);
+        currentDir = currentDir.substring(0, currentDir.lastIndexOf('/') + 1);
+
+        var files = env.files;
+        files.listAll().then(function(fileList) {
+            var matchRegExp = new RegExp('^' + currentDir);
+
+            matcher.addItems(fileList.filter(function(item){
+                return matchRegExp.test(item);
+            }).map(function(item) {
+                item = item.substring(currentDir.length);
+                var lastSep = item.lastIndexOf('/');
+                if (lastSep === -1) {
+                    return {
+                        name: item,
+                        path: typed
+                    };
+                }
+                return {
+                    name: item.substring(lastSep + 1),
+                    path: typed + item.substring(0, lastSep + 1)
+                };
+            }));
+        });
+
+        return menu.hint;
+    }
+};
 
 });
 ;bespin.tiki.register("::less", {
@@ -8029,7 +9490,7 @@ bespin.tiki.module("theme_manager_base:index",function(require,exports,module) {
     name: "canon",
     dependencies: { "environment": "0.0.0", "events": "0.0.0", "settings": "0.0.0" }
 });
-bespin.tiki.module("canon:history",function(require,exports,module) {
+bespin.tiki.module("canon:tests/fixture",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -8067,73 +9528,27 @@ bespin.tiki.module("canon:history",function(require,exports,module) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-var Trace = require('bespin:util/stacktrace').Trace;
-var catalog = require('bespin:plugins').catalog;
+var Promise = require('bespin:promise').Promise;
+var Request = require('canon:request').Request;
+var EnvironmentTrait = require('canon:environment').EnvironmentTrait;
 
-/**
- * Current requirements are around displaying the command line, and provision
- * of a 'history' command and cursor up|down navigation of history.
- * <p>Future requirements could include:
- * <ul>
- * <li>Multiple command lines
- * <li>The ability to recall key presses (i.e. requests with no output) which
- * will likely be needed for macro recording or similar
- * <li>The ability to store the command history either on the server or in the
- * browser local storage.
- * </ul>
- * <p>The execute() command doesn't really live here, except as part of that
- * last future requirement, and because it doesn't really have anywhere else to
- * live.
- */
+exports.MockEnvironmentTrait = EnvironmentTrait;
 
-/**
- * The array of requests that wish to announce their presence
- */
-exports.requests = [];
-
-/**
- * How many requests do we store?
- */
-var maxRequestLength = 100;
-
-/**
- * Called by Request instances when some output (or a cell to async() happens)
- */
-exports.addRequestOutput = function(request) {
-    exports.requests.push(request);
-    // This could probably be optimized with some maths, but 99.99% of the
-    // time we will only be off by one, and I'm feeling lazy.
-    while (exports.requests.length > maxRequestLength) {
-        exports.requests.shiftObject();
-    }
-
-    catalog.publish(this, 'addedRequestOutput', null, request);
+exports.MockRequest = function() {
+    Request.prototype.apply(this, arguments);
+    this.promise = new Promise();
 };
 
-/**
- * Execute a new command.
- * This is basically an error trapping wrapper around request.command(...)
- */
-exports.execute = function(args, request) {
-    // Check the function pointed to in the meta-data exists
-    if (!request.command) {
-        request.doneWithError('Command not found.');
-        return;
-    }
+exports.MockRequest.prototype = new Request();
 
-    try {
-        request.command(args, request);
-    } catch (ex) {
-        var trace = new Trace(ex, true);
-        console.group('Error executing command \'' + request.typed + '\'');
-        console.log('command=', request.commandExt);
-        console.log('args=', args);
-        console.error(ex);
-        trace.log(3);
-        console.groupEnd();
+exports.MockRequest.prototype.doneWithError = function(errorMessage) {
+    this.superclass(errorMessage);
+    this.promise.reject(this);
+};
 
-        request.doneWithError(ex);
-    }
+exports.MockRequest.prototype.done = function(content) {
+    this.superclass(content);
+    this.promise.resolve(this);
 };
 
 });
@@ -8281,6 +9696,116 @@ exports.Request.prototype.done = function(content) {
 
 });
 
+bespin.tiki.module("canon:history",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var Trace = require('bespin:util/stacktrace').Trace;
+var catalog = require('bespin:plugins').catalog;
+var console = require('bespin:console').console;
+
+/**
+ * Current requirements are around displaying the command line, and provision
+ * of a 'history' command and cursor up|down navigation of history.
+ * <p>Future requirements could include:
+ * <ul>
+ * <li>Multiple command lines
+ * <li>The ability to recall key presses (i.e. requests with no output) which
+ * will likely be needed for macro recording or similar
+ * <li>The ability to store the command history either on the server or in the
+ * browser local storage.
+ * </ul>
+ * <p>The execute() command doesn't really live here, except as part of that
+ * last future requirement, and because it doesn't really have anywhere else to
+ * live.
+ */
+
+/**
+ * The array of requests that wish to announce their presence
+ */
+exports.requests = [];
+
+/**
+ * How many requests do we store?
+ */
+var maxRequestLength = 100;
+
+/**
+ * Called by Request instances when some output (or a cell to async() happens)
+ */
+exports.addRequestOutput = function(request) {
+    exports.requests.push(request);
+    // This could probably be optimized with some maths, but 99.99% of the
+    // time we will only be off by one, and I'm feeling lazy.
+    while (exports.requests.length > maxRequestLength) {
+        exports.requests.shiftObject();
+    }
+
+    catalog.publish(this, 'addedRequestOutput', null, request);
+};
+
+/**
+ * Execute a new command.
+ * This is basically an error trapping wrapper around request.command(...)
+ */
+exports.execute = function(args, request) {
+    // Check the function pointed to in the meta-data exists
+    if (!request.command) {
+        request.doneWithError('Command not found.');
+        return;
+    }
+
+    try {
+        request.command(args, request);
+    } catch (ex) {
+        var trace = new Trace(ex, true);
+        console.group('Error executing command \'' + request.typed + '\'');
+        console.log('command=', request.commandExt);
+        console.log('args=', args);
+        console.error(ex);
+        trace.log(3);
+        console.groupEnd();
+
+        request.doneWithError(ex);
+    }
+};
+
+});
+
 bespin.tiki.module("canon:index",function(require,exports,module) {
 
 });
@@ -8314,49 +9839,101 @@ bespin.tiki.module("traits:index",function(require,exports,module) {
 });
 "end";
 
-// --- Begin traits-0.1.js ---
+// --- Begin traits-0.3.js ---
 
-exports.Trait = (function(){
+// Copyright (C) 2010 Google Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// See http://code.google.com/p/es-lab/wiki/Traits
+// for background on traits and a description of this library
+
+var Trait = (function(){
 
   // == Ancillary functions ==
   
-  // this signals that the current ES implementation supports properties,
-  // so probably also accessor properties
-  var SUPPORTS_DEFINEPROP = !!Object.defineProperty;
+  var SUPPORTS_DEFINEPROP = (function() {
+    try {
+      var test = {};
+      Object.defineProperty(test, 'x', {get: function() { return 0; } } );
+      return test.x === 0;
+    } catch(e) {
+      return false;
+    }
+  })();
+  
+  // IE8 implements Object.defineProperty and Object.getOwnPropertyDescriptor
+  // only for DOM objects. These methods don't work on plain objects.
+  // Hence, we need a more elaborate feature-test to see whether the
+  // browser truly supports these methods:
+  function supportsGOPD() {
+    try {
+      if (Object.getOwnPropertyDescriptor) {
+        var test = {x:0};
+        return !!Object.getOwnPropertyDescriptor(test,'x');        
+      }
+    } catch(e) {}
+    return false;
+  };
+  function supportsDP() {
+    try {
+      if (Object.defineProperty) {
+        var test = {};
+        Object.defineProperty(test,'x',{value:0});
+        return test.x === 0;
+      }
+    } catch(e) {}
+    return false;
+  };
 
   var call = Function.prototype.call;
 
   /**
    * An ad hoc version of bind that only binds the 'this' parameter.
    */
-  var bindThis = Function.prototype.bind
-    ? function(fun, self) { return Function.prototype.bind.call(fun, self); }
-    : function(fun, self) {
-        function funcBound(var_args) {
-          return fun.apply(self, arguments);
-        }
-        return funcBound;
-      };
+  var bindThis = Function.prototype.bind ?
+    function(fun, self) { return Function.prototype.bind.call(fun, self); } :
+    function(fun, self) {
+      function funcBound(var_args) {
+        return fun.apply(self, arguments);
+      }
+      return funcBound;
+    };
 
   var hasOwnProperty = bindThis(call, Object.prototype.hasOwnProperty);
   var slice = bindThis(call, Array.prototype.slice);
     
   // feature testing such that traits.js runs on both ES3 and ES5
-  var forEach = Array.prototype.forEach
-      ? bindThis(call, Array.prototype.forEach)
-      : function(arr, fun) {
-          for (var i = 0, len = arr.length; i < len; i++) { fun(arr[i]); }
-        };
-      
-  var freeze = Object.freeze || function(obj) { return obj; };
-  var getPrototypeOf = Object.getPrototypeOf || function(obj) { return Object.prototype };
+  var forEach = Array.prototype.forEach ?
+      bindThis(call, Array.prototype.forEach) :
+      function(arr, fun) {
+        for (var i = 0, len = arr.length; i < len; i++) { fun(arr[i]); }
+      };
+  
+  // on v8 version 2.3.4.1, Object.freeze(obj) returns undefined instead of obj
+  var freeze = (Object.freeze ? function(obj) { Object.freeze(obj); return obj; }
+                              : function(obj) { return obj; });
+  var getPrototypeOf = Object.getPrototypeOf || function(obj) { 
+    return Object.prototype;
+  };
   var getOwnPropertyNames = Object.getOwnPropertyNames ||
       function(obj) {
         var props = [];
         for (var p in obj) { if (hasOwnProperty(obj,p)) { props.push(p); } }
         return props;
       };
-  var getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor ||
+  var getOwnPropertyDescriptor = supportsGOPD() ?
+      Object.getOwnPropertyDescriptor :
       function(obj, name) {
         return {
           value: obj[name],
@@ -8365,7 +9942,7 @@ exports.Trait = (function(){
           configurable: true
         };
       };
-  var defineProperty = Object.defineProperty ||
+  var defineProperty = supportsDP() ? Object.defineProperty :
       function(obj, name, pd) {
         obj[name] = pd.value;
       };
@@ -8450,7 +10027,8 @@ exports.Trait = (function(){
 
   // Note: isSameDesc should return true if both
   // desc1 and desc2 represent a 'required' property
-  // (otherwise two composed required properties would be turned into a conflict)
+  // (otherwise two composed required properties would be turned into
+  // a conflict) 
   function isSameDesc(desc1, desc2) {
     // for conflicting properties, don't compare values because
     // the conflicting property values are never equal
@@ -8487,9 +10065,12 @@ exports.Trait = (function(){
     return freeze(set);
   }
 
-  // == singleton object to be used as the placeholder for a required property ==
+  // == singleton object to be used as the placeholder for a required
+  // property == 
   
-  var required = freeze({ toString: function() { return '<Trait.required>'; } });
+  var required = freeze({ 
+    toString: function() { return '<Trait.required>'; } 
+  });
 
   // == The public API methods ==
 
@@ -8500,20 +10081,23 @@ exports.Trait = (function(){
    * @returns a new trait describing all of the own properties of the object
    *          (both enumerable and non-enumerable)
    *
-   * As a general rule, 'trait' should be invoked with an
-   * object literal, since the object merely serves as a record
-   * descriptor. Both its identity and its prototype chain are irrelevant.
+   * As a general rule, 'trait' should be invoked with an object
+   * literal, since the object merely serves as a record
+   * descriptor. Both its identity and its prototype chain are
+   * irrelevant.
    * 
-   * Data properties bound to function objects in the argument will be flagged
-   * as 'method' properties. The prototype of these function objects is frozen.
+   * Data properties bound to function objects in the argument will be
+   * flagged as 'method' properties. The prototype of these function
+   * objects is frozen.
    * 
-   * Data properties bound to the 'required' singleton exported by this module
-   * will be marked as 'required' properties.
+   * Data properties bound to the 'required' singleton exported by
+   * this module will be marked as 'required' properties.
    *
-   * The <tt>trait</tt> function is pure if no other code can witness the
-   * side-effects of freezing the prototypes of the methods. If <tt>trait</tt>
-   * is invoked with an object literal whose methods are represented as
-   * in-place anonymous functions, this should normally be the case.
+   * The <tt>trait</tt> function is pure if no other code can witness
+   * the side-effects of freezing the prototypes of the methods. If
+   * <tt>trait</tt> is invoked with an object literal whose methods
+   * are represented as in-place anonymous functions, this should
+   * normally be the case.
    */
   function trait(obj) {
     var map = {};
@@ -8561,15 +10145,18 @@ exports.Trait = (function(){
         if (hasOwnProperty(newTrait, name) &&
             !newTrait[name].required) {
           
-          // a non-required property with the same name was previously defined
-          // this is not a conflict if pd represents a 'required' property itself:
+          // a non-required property with the same name was previously
+          // defined this is not a conflict if pd represents a
+          // 'required' property itself:
           if (pd.required) {
-            return; // skip this property, the required property is now present
+            return; // skip this property, the required property is
+   	            // now present 
           }
             
           if (!isSameDesc(newTrait[name], pd)) {
             // a distinct, non-required property with the same name
-            // was previously defined by another trait => mark as conflicting property
+            // was previously defined by another trait => mark as
+	    // conflicting property
             newTrait[name] = makeConflictingPropDesc(name); 
           } // else,
           // properties are not in conflict if they refer to the same value
@@ -8613,16 +10200,18 @@ exports.Trait = (function(){
   /**
    * var newTrait = override(trait_1, trait_2, ..., trait_N)
    *
-   * @returns a new trait with all of the combined properties of the argument traits.
-   *          In contrast to 'compose', 'override' immediately resolves all conflicts
-   *          resulting from this composition by overriding the properties of later
-   *          traits. Trait priority is from left to right. I.e. the properties of the
-   *          leftmost trait are never overridden.
+   * @returns a new trait with all of the combined properties of the
+   *          argument traits.  In contrast to 'compose', 'override'
+   *          immediately resolves all conflicts resulting from this
+   *          composition by overriding the properties of later
+   *          traits. Trait priority is from left to right. I.e. the
+   *          properties of the leftmost trait are never overridden.
    *
    *  override is associative:
    *    override(t1,t2,t3) is equivalent to override(t1, override(t2, t3)) or
    *    to override(override(t1, t2), t3)
-   *  override is not commutative: override(t1,t2) is not equivalent to override(t2,t1)
+   *  override is not commutative: override(t1,t2) is not equivalent
+   *    to override(t2,t1)
    *
    * override() returns an empty trait
    * override(trait_1) returns a trait equivalent to trait_1
@@ -8651,7 +10240,8 @@ exports.Trait = (function(){
    *          and all of the properties of recessiveTrait not in dominantTrait
    *
    * Note: override is associative:
-   *   override(t1, override(t2, t3)) is equivalent to override(override(t1, t2), t3)
+   *   override(t1, override(t2, t3)) is equivalent to
+   *   override(override(t1, t2), t3) 
    */
   /*function override(frontT, backT) {
     var newTrait = {};
@@ -8686,12 +10276,14 @@ exports.Trait = (function(){
    *                                 { a: { required: true },
    *                                   b: t[a] })
    *
-   * For each renamed property, a required property is generated.
-   * If the map renames two properties to the same name, a conflict is generated.
-   * If the map renames a property to an existing unrenamed property, a conflict is generated.
+   * For each renamed property, a required property is generated.  If
+   * the map renames two properties to the same name, a conflict is
+   * generated.  If the map renames a property to an existing
+   * unrenamed property, a conflict is generated.
    *
-   * Note: rename(A, rename(B, t)) is equivalent to rename(\n -> A(B(n)), t)
-   * Note: rename({...},exclude([...], t)) is not eqv to exclude([...],rename({...}, t))
+   * Note: rename(A, rename(B, t)) is equivalent to rename(\n ->
+   * A(B(n)), t) Note: rename({...},exclude([...], t)) is not eqv to
+   * exclude([...],rename({...}, t))
    */
   function rename(map, trait) {
     var renamedTrait = {};
@@ -8699,7 +10291,8 @@ exports.Trait = (function(){
       // required props are never renamed
       if (hasOwnProperty(map, name) && !trait[name].required) {
         var alias = map[name]; // alias defined in map
-        if (hasOwnProperty(renamedTrait, alias) && !renamedTrait[alias].required) {
+        if (hasOwnProperty(renamedTrait, alias) && 
+	    !renamedTrait[alias].required) {
           // could happen if 2 props are mapped to the same alias
           renamedTrait[alias] = makeConflictingPropDesc(alias);
         } else {
@@ -8708,8 +10301,8 @@ exports.Trait = (function(){
         }
         // add a required property under the original name
         // but only if a property under the original name does not exist
-        // such a prop could exist if an earlier prop in the trait was previously
-        // aliased to this name
+        // such a prop could exist if an earlier prop in the trait was
+        // previously aliased to this name
         if (!hasOwnProperty(renamedTrait, name)) {
           renamedTrait[name] = makeRequiredPropDesc(name);     
         }
@@ -8719,8 +10312,8 @@ exports.Trait = (function(){
           if (!trait[name].required) {
             renamedTrait[name] = makeConflictingPropDesc(name);            
           }
-          // else required property overridden by a previously aliased property
-          // and otherwise ignored
+          // else required property overridden by a previously aliased
+          // property and otherwise ignored
         } else {
           renamedTrait[name] = trait[name];
         }
@@ -8731,17 +10324,21 @@ exports.Trait = (function(){
   }
   
   /**
-   * var newTrait = resolve({ oldName: 'newName', excludeName: undefined, ... }, trait)
+   * var newTrait = resolve({ oldName: 'newName', excludeName:
+   * undefined, ... }, trait)
    *
-   * This is a convenience function combining renaming and exclusion. It can be implemented
-   * as <tt>rename(map, exclude(exclusions, trait))</tt> where map is the subset of
-   * mappings from oldName to newName and exclusions is an array of all the keys that map
-   * to undefined (or another falsy value).
+   * This is a convenience function combining renaming and
+   * exclusion. It can be implemented as <tt>rename(map,
+   * exclude(exclusions, trait))</tt> where map is the subset of
+   * mappings from oldName to newName and exclusions is an array of
+   * all the keys that map to undefined (or another falsy value).
    *
-   * @param resolutions an object whose own properties serve as a mapping from
-            old names to new names, or to undefined if the property should be excluded
+   * @param resolutions an object whose own properties serve as a
+            mapping from old names to new names, or to undefined if
+            the property should be excluded
    * @param trait a trait object
-   * @returns a resolved trait with the same own properties as the original trait.
+   * @returns a resolved trait with the same own properties as the
+   * original trait.
    *
    * In a resolved trait, all own properties whose name is an own property
    * of resolutions will be renamed to resolutions[name] if it is truthy,
@@ -8751,10 +10348,12 @@ exports.Trait = (function(){
    * Note, it's important to _first_ exclude, _then_ rename, since exclude
    * and rename are not associative, for example:
    * rename({a: 'b'}, exclude(['b'], trait({ a:1,b:2 }))) eqv trait({b:1})
-   * exclude(['b'], rename({a: 'b'}, trait({ a:1,b:2 }))) eqv trait({b:Trait.required})
+   * exclude(['b'], rename({a: 'b'}, trait({ a:1,b:2 }))) eqv
+   * trait({b:Trait.required}) 
    *
-   * writing resolve({a:'b', b: undefined},trait({a:1,b:2})) makes it clear that
-   * what is meant is to simply drop the old 'b' and rename 'a' to 'b'
+   * writing resolve({a:'b', b: undefined},trait({a:1,b:2})) makes it
+   * clear that what is meant is to simply drop the old 'b' and rename
+   * 'a' to 'b'
    */
   function resolve(resolutions, trait) {
     var renames = {};
@@ -8778,27 +10377,31 @@ exports.Trait = (function(){
    * @param proto denotes the prototype of the completed object
    * @param trait a trait object to be turned into a complete object
    * @returns an object with all of the properties described by the trait.
-   * @throws 'Missing required property' the trait still contains a required property.
-   * @throws 'Remaining conflicting property' if the trait still contains a conflicting property.
+   * @throws 'Missing required property' the trait still contains a
+   *         required property.
+   * @throws 'Remaining conflicting property' if the trait still
+   *         contains a conflicting property. 
    *
    * Trait.create is like Object.create, except that it generates
    * high-integrity or final objects. In addition to creating a new object
    * from a trait, it also ensures that:
    *    - an exception is thrown if 'trait' still contains required properties
-   *    - an exception is thrown if 'trait' still contains conflicting properties
+   *    - an exception is thrown if 'trait' still contains conflicting
+   *      properties 
    *    - the object is and all of its accessor and method properties are frozen
-   *    - the 'this' pseudovariable in all accessors and methods of the object is
-   *      bound to the composed object.
+   *    - the 'this' pseudovariable in all accessors and methods of
+   *      the object is bound to the composed object.
    *
    *  Use Object.create instead of Trait.create if you want to create
    *  abstract or malleable objects. Keep in mind that for such objects:
    *    - no exception is thrown if 'trait' still contains required properties
    *      (the properties are simply dropped from the composite object)
-   *    - no exception is thrown if 'trait' still contains conflicting properties
-   *      (these properties remain as conflicting properties in the composite object)
+   *    - no exception is thrown if 'trait' still contains conflicting
+   *      properties (these properties remain as conflicting
+   *      properties in the composite object) 
    *    - neither the object nor its accessor and method properties are frozen
-   *    - the 'this' pseudovariable in all accessors and methods of the object is
-   *      left unbound.
+   *    - the 'this' pseudovariable in all accessors and methods of
+   *      the object is left unbound.
    */
   function create(proto, trait) {
     var self = Object_create(proto);
@@ -8808,8 +10411,10 @@ exports.Trait = (function(){
       var pd = trait[name];
       // check for remaining 'required' properties
       // Note: it's OK for the prototype to provide the properties
-      if (pd.required && !(name in proto)) {
-        throw new Error('Missing required property: '+name);
+      if (pd.required) {
+        if (!(name in proto)) {
+          throw new Error('Missing required property: '+name);
+        }
       } else if (pd.conflict) { // check for remaining conflicting properties
         throw new Error('Remaining conflicting property: '+name);
       } else if ('value' in pd) { // data property
@@ -8851,7 +10456,8 @@ exports.Trait = (function(){
    * names n, T1[n] is equivalent to T2[n]. Two property descriptors are
    * equivalent if they have the same value, accessors and attributes.
    *
-   * @return a boolean indicating whether the two argument traits are equivalent.
+   * @return a boolean indicating whether the two argument traits are
+   *         equivalent.
    */
   function eqv(trait1, trait2) {
     var names1 = getOwnPropertyNames(trait1);
@@ -8875,7 +10481,8 @@ exports.Trait = (function(){
     Object.create = Object_create;
   }
   // ES5 does not by default provide Object.getOwnProperties
-  // if it's not defined, the Traits library defines this utility function on Object
+  // if it's not defined, the Traits library defines this utility
+  // function on Object 
   if(!Object.getOwnProperties) {
     Object.getOwnProperties = getOwnProperties;
   }
@@ -8896,7 +10503,11 @@ exports.Trait = (function(){
   
 })();
 
-// --- End traits-0.1.js ---
+if (typeof exports !== "undefined") { // CommonJS module support
+  exports.Trait = Trait;
+}
+
+// --- End traits-0.3.js ---
 
 
 });
@@ -8904,6 +10515,99 @@ exports.Trait = (function(){
     name: "keyboard",
     dependencies: { "canon": "0.0.0", "settings": "0.0.0" }
 });
+bespin.tiki.module("keyboard:tests/testKeyboard",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var keyboard = require('keyboard:keyboard');
+var t = require('plugindev');
+
+exports.testKeyMatching = function() {
+    var km = keyboard.keyboardManager;
+    var command = {};
+    t.equal(km._commandMatches(command, 'meta_z', {}), false,
+        'no keymapping means false');
+
+    command = {
+        key: 'meta_z'
+    };
+    t.equal(km._commandMatches(command, 'meta_z', {}), true,
+        'matching keys, simple string');
+    t.equal(km._commandMatches(command, 'meta_a', {}), false,
+        'not matching key, simple string');
+
+    command = {
+        key: {key: 'meta_z', predicates: {isGreen: true}}
+    };
+    t.equal(km._commandMatches(command, 'meta_z', {}), false,
+        'object with not matching predicate');
+    t.equal(km._commandMatches(command, 'meta_z', {isGreen: true}), true,
+        'object with matching key and predicate');
+    t.equal(km._commandMatches(command, 'meta_a', {isGreen: true}), false,
+        'object with not matching key');
+    t.equal(km._commandMatches(command, 'meta_a', {isGreen: false}), false,
+        'object with neither matching');
+    t.equal(km._commandMatches(command, 'meta_z', {isGreen: false}), false,
+        'object with matching key and but different predicate');
+
+    command = {
+        key: ['meta_b', {key: 'meta_z', predicates: {isGreen: true}},
+            {key: 'meta_c'}]
+    };
+    t.equal(km._commandMatches(command, 'meta_z', {}), false,
+        'list: object with not matching predicate');
+    t.equal(km._commandMatches(command, 'meta_z', {isGreen: true}), true,
+        'list: object with matching key and predicate');
+    t.equal(km._commandMatches(command, 'meta_a', {isGreen: true}), false,
+        'list: object with not matching key');
+    t.equal(km._commandMatches(command, 'meta_a', {isGreen: false}), false,
+        'list: object with neither matching');
+    t.equal(km._commandMatches(command, 'meta_z', {isGreen: false}), false,
+        'list: object with matching key and but different predicate');
+    t.equal(km._commandMatches(command, 'meta_b'), true,
+        'list: simple key match');
+    t.equal(km._commandMatches(command, 'meta_c'), true,
+        'list: object without predicate match');
+    t.equal(km._commandMatches(command, 'meta_c', {isGreen: false}), true,
+        'list: flags don\'t matter without predicates');
+};
+
+});
+
 bespin.tiki.module("keyboard:keyboard",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -9878,11 +11582,6 @@ bespin.tiki.module("diff:index",function(require,exports,module) {
     "description": "Diff/Match/Patch module (support code, no UI)"
 });
 "end";
-
-// TODO: I suspect this Diff module will become important to Bespin, and likely
-// to be depended on by things in bespin-supported, so it shouldn't have a
-// lower priority. Maybe however there is a need for a bespin-3rdparty or
-// similar???
 
 /**
  * @fileoverview Computes the difference between two texts to create a patch.
@@ -12238,6 +13937,135 @@ exports.createSession = function(view, user) {
 };
 
 });
+
+bespin.tiki.module("edit_session:tests/testSession",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var t = require('plugindev');
+var DummyFileSource = require('filesystem:tests/fixture').DummyFileSource;
+var fs = require('filesystem');
+var editsession = require('edit_session');
+var Promise = require('bespin:promise').Promise;
+
+var source = new DummyFileSource([
+    {name: 'atTheTop.js', contents: 'the top file'},
+    {name: 'anotherAtTheTop.js', contents: 'another file'},
+    {name: 'foo/'},
+    {name: 'deeply/nested/directory/andAFile.txt', contents: 'text file'}
+]);
+
+exports.testBufferFileChange = function() {
+    var root = fs.Filesystem.create({
+        source: source
+    });
+    var buffer = editsession.Buffer.create();
+    t.ok(buffer.get('model') != null,
+        'Model should be set to a TextStorage by default');
+    t.ok(buffer.untitled(), 'Buffer should initially be untitled');
+    var f = root.getFile('atTheTop.js');
+    buffer.changeFileOnly(f);
+    t.ok(!buffer.untitled(), 'Buffer should no longer be untitled');
+    t.equal('', buffer.get('model').getValue(), 'Should be empty now');
+    buffer.changeFileOnly(null);
+    t.ok(buffer.untitled(), 'Buffer should be untitled again');
+    buffer.set('file', f);
+    var pr = new Promise();
+    setTimeout(function() {
+        var newtext = buffer.get('model').getValue();
+        t.equal(newtext, 'the top file', 'Expected file contents to be loaded');
+
+        // now we want to reset the buffer.
+        buffer.changeFile(null);
+        t.ok(buffer.untitled(), 'Buffer should be untitled again');
+        newtext = buffer.get('model').getValue();
+        t.equal(newtext, '', 'editor text should be empty');
+        pr.resolve();
+    }, 1);
+    return pr;
+};
+
+exports.testBufferFileChangeWithCallback = function() {
+    var root = fs.Filesystem.create({
+        source: source
+    });
+    var buffer = editsession.Buffer.create();
+    var f = root.getFile('atTheTop.js');
+    var pr = buffer.changeFile(f);
+    var testpr = pr.then(function(b) {
+        t.equal(b, buffer, 'should have gotten the buffer object in');
+        t.equal(b.get('model').getValue(), 'the top file', 'contents should be loaded');
+        if (testpr != undefined) {
+            testpr.resolve();
+        }
+    });
+    return testpr;
+};
+
+exports.testBufferSaving = function() {
+    source.reset();
+    var testpr = new Promise();
+    var root = fs.Filesystem.create({ source: source });
+    var buffer = editsession.Buffer.create();
+    var model = buffer.get('model');
+    model.setValue('foobar');
+    t.equal(model.getValue(), 'foobar', 'the value stored in ' +
+        'the model and the string that was just written to it');
+
+    var file1 = root.getFile('bar.txt');
+    file1.exists().then(function(exists) {
+        t.ok(!exists, 'file should not be there now');
+        buffer.saveAs(file1).then(function() {
+            var request = source.requests.pop();
+            t.equal(request[0], 'saveContents');
+            t.equal(request[1][0], 'bar.txt');
+            t.equal(request[1][1], 'foobar');
+
+            file1.exists().then(function(exists) {
+                t.ok(exists, 'file should now exist');
+                testpr.resolve();
+            });
+        });
+    });
+
+    return testpr;
+};
+
+});
 ;bespin.tiki.register("::syntax_manager", {
     name: "syntax_manager",
     dependencies: { "worker_manager": "0.0.0", "events": "0.0.0", "underscore": "0.0.0", "syntax_directory": "0.0.0" }
@@ -13048,6 +14876,163 @@ bespin.tiki.module("completion:index",function(require,exports,module) {
     name: "rangeutils",
     dependencies: {  }
 });
+bespin.tiki.module("rangeutils:tests/test",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var t = require('plugindev');
+var Range = require('utils/range');
+
+exports.testAddPositions = function() {
+    t.deepEqual(Range.addPositions({ row: 0, col: 0 },
+        { row: 0, col: 0 }), { row: 0, col: 0 }, '0,0 + 0,0 and 0,0');
+    t.deepEqual(Range.addPositions({ row: 1, col: 0 },
+        { row: 2, col: 0 }), { row: 3, col: 0 }, '1,0 + 2,0 and 3,0');
+    t.deepEqual(Range.addPositions({ row: 0, col: 1 },
+        { row: 0, col: 1 }), { row: 0, col: 2 }, '0,1 + 0,1 and 0,2');
+    t.deepEqual(Range.addPositions({ row: 1, col: 2 },
+        { row: -1, col: -2 }), { row: 0, col: 0 }, '1,2 + -1,-2 and 0,0');
+};
+
+exports.testCloneRange = function() {
+    var oldRange = { start: { row: 1, col: 2 }, end: { row: 3, col: 4 } };
+    var newRange = Range.cloneRange(oldRange);
+    t.deepEqual(oldRange, newRange, "the old range and the new range");
+    t.ok(oldRange.start !== newRange.start, "the old range's start position " +
+        "is distinct from the new range's start position");
+    t.ok(oldRange.end !== newRange.end, "the old range's end position is " +
+        "distinct from the new range's end position");
+    t.ok(oldRange !== newRange, "the old range is distinct from the new " +
+        "range");
+};
+
+exports.testComparePositions = function() {
+    t.equal(Range.comparePositions({ row: 0, col: 0 },
+        { row: 0, col: 0 }), 0, '0,0 = 0,0');
+    t.ok(Range.comparePositions({ row: 0, col: 0 },
+        { row: 1, col: 0 }) < 0, '0,0 < 1,0');
+    t.ok(Range.comparePositions({ row: 0, col: 0 },
+        { row: 0, col: 1 }) < 0, '0,0 < 0,1');
+    t.ok(Range.comparePositions({ row: 1, col: 0 },
+        { row: 0, col: 0 }) > 0, '1,0 > 0,0');
+    t.ok(Range.comparePositions({ row: 0, col: 1 },
+        { row: 0, col: 0 }) > 0, '0,1 > 0,0');
+};
+
+exports.testExtendRange = function() {
+    t.deepEqual(Range.extendRange({
+            start:  { row: 1, col: 2 },
+            end:    { row: 3, col: 4 }
+        }, { row: 5, col: 6 }), {
+            start:  { row: 1, col: 2 },
+            end:    { row: 8, col: 10 }
+        }, '[ 1,2 3,4 ] extended by 5,6 = [ 1,2 8,10 ]');
+    t.deepEqual(Range.extendRange({
+            start:  { row: 7, col: 8 },
+            end:    { row: 9, col: 10 }
+        }, { row: 0, col: 0 }), {
+            start:  { row: 7, col: 8 },
+            end:    { row: 9, col: 10 }
+        }, '[ 7,8 9,10 ] extended by 0,0 remains the same');
+};
+
+exports.testMaxPosition = function() {
+    t.deepEqual(Range.maxPosition({ row: 0, col: 0 },
+        { row: 0, col: 0 }), { row: 0, col: 0 }, 'max(0,0 0,0) = 0,0');
+    t.deepEqual(Range.maxPosition({ row: 0, col: 0 },
+        { row: 1, col: 0 }), { row: 1, col: 0 }, 'max(0,0 1,0) = 1,0');
+    t.deepEqual(Range.maxPosition({ row: 0, col: 0 },
+        { row: 0, col: 1 }), { row: 0, col: 1 }, 'max(0,0 0,1) = 0,1');
+    t.deepEqual(Range.maxPosition({ row: 1, col: 0 },
+        { row: 0, col: 0 }), { row: 1, col: 0 }, 'max(1,0 0,0) = 1,0');
+    t.deepEqual(Range.maxPosition({ row: 0, col: 1 },
+        { row: 0, col: 0 }), { row: 0, col: 1 }, 'max(0,1 0,0) = 0,1');
+};
+
+exports.testNormalizeRange = function() {
+    t.deepEqual(Range.normalizeRange({
+            start:  { row: 0, col: 0 },
+            end:    { row: 0, col: 0 }
+        }), {
+            start:  { row: 0, col: 0 },
+            end:    { row: 0, col: 0 }
+        }, 'normalize(0,0 0,0) and (0,0 0,0)');
+    t.deepEqual(Range.normalizeRange({
+            start:  { row: 1, col: 2 },
+            end:    { row: 3, col: 4 }
+        }), {
+            start:  { row: 1, col: 2 },
+            end:    { row: 3, col: 4 }
+        }, 'normalize(1,2 3,4) and (1,2 3,4)');
+    t.deepEqual(Range.normalizeRange({
+            start:  { row: 4, col: 3 },
+            end:    { row: 2, col: 1 }
+        }), {
+            start:  { row: 2, col: 1 },
+            end:    { row: 4, col: 3 }
+        }, 'normalize(4,3 2,1) and (2,1 4,3)');
+};
+
+exports.testUnionRanges = function() {
+    t.deepEqual(Range.unionRanges({
+            start:  { row: 1, col: 2 },
+            end:    { row: 3, col: 4 }
+        }, {
+            start:  { row: 5, col: 6 },
+            end:    { row: 7, col: 8 }
+        }), {
+            start:  { row: 1, col: 2 },
+            end:    { row: 7, col: 8 }
+        }, '[ 1,2 3,4 ] union [ 5,6 7,8 ] = [ 1,2 7,8 ]');
+    t.deepEqual(Range.unionRanges({
+            start:  { row: 4, col: 4 },
+            end:    { row: 5, col: 5 }
+        }, {
+            start:  { row: 3, col: 3 },
+            end:    { row: 4, col: 5 }
+        }), {
+            start:  { row: 3, col: 3 },
+            end:    { row: 5, col: 5 }
+        }, '[ 4,4 5,5 ] union [ 3,3 4,5 ] = [ 3,3 5,5 ]');
+};
+
+
+});
+
 bespin.tiki.module("rangeutils:utils/range",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -13349,10 +15334,250 @@ exports.undoManagerCommand = function(args, request) {
 };
 
 });
+
+bespin.tiki.module("undomanager:tests/testUndomanager",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var UndoManager = require('index').UndoManager;
+var t = require('plugindev');
+
+exports.testUndoAndRedo = function() {
+    var undoManager = new UndoManager();
+
+    var redoReceived = null;
+    var undoReceived = null;
+
+    var receiver = {
+        redo: function(context) {
+            redoReceived = context;
+            return true;
+        },
+
+        undo: function(context) {
+            undoReceived = context;
+            return true;
+        }
+    };
+
+    undoManager.registerUndo(receiver, 'foo');
+    t.equal(undoManager._undoStack.length, 1, 'the size of the undo stack ' +
+        'after one action and 1');
+    t.equal(undoManager._redoStack.length, 0, 'the size of the redo stack ' +
+        'after one action and 0');
+
+    undoManager.registerUndo(receiver, 'bar');
+    t.equal(undoManager._undoStack.length, 2, 'the size of the undo stack ' +
+        'after two actions and 2');
+    t.equal(undoManager._redoStack.length, 0, 'the size of the redo stack ' +
+        'after two actions and 0');
+
+    undoManager.undo();
+    t.equal(undoReceived, 'bar', 'the context received after undoing \'bar\' ' +
+        'and \'bar\'');
+    t.equal(undoManager._undoStack.length, 1, 'the size of the undo stack ' +
+        'after two actions and one undo and 1');
+    t.equal(undoManager._redoStack.length, 1, 'the size of the redo stack ' +
+        'after two actions and one undo and 1');
+
+    undoManager.undo();
+    t.equal(undoReceived, 'foo', 'the context received after undoing \'foo\' ' +
+        'and \'foo\'');
+    t.equal(undoManager._undoStack.length, 0, 'the size of the undo stack ' +
+        'after undoing two actions and 0');
+    t.equal(undoManager._redoStack.length, 2, 'the size of the redo stack ' +
+        'after undoing two actions and 2');
+
+    undoManager.redo();
+    t.equal(redoReceived, 'foo', 'the context received after redoing \'foo\' ' +
+        'and \'foo\'');
+    t.equal(undoManager._undoStack.length, 1, 'the size of the undo stack ' +
+        'after redoing \'foo\' and 1');
+    t.equal(undoManager._redoStack.length, 1, 'the size of the redo stack ' +
+        'after redoing \'foo\' and 1');
+
+    undoManager.registerUndo(receiver, 'baz');
+    t.equal(undoManager._undoStack.length, 2, 'the size of the undo stack ' +
+        'after undoing twice, redoing once, and performing an action; and 2');
+    t.equal(undoManager._redoStack.length, 0, 'the size of the redo stack ' +
+        'after undoing twice, redoing once, and performing an action; and 0');
+};
+
+
+});
 ;bespin.tiki.register("::command_line", {
     name: "command_line",
     dependencies: { "templater": "0.0.0", "settings": "0.0.0", "matcher": "0.0.0", "theme_manager_base": "0.0.0", "canon": "0.0.0", "keyboard": "0.0.0", "diff": "0.0.0", "types": "0.0.0" }
 });
+bespin.tiki.module("command_line:tests/testInput",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var Promise = require('bespin:promise').Promise;
+
+var keyboard = require('keyboard:keyboard');
+
+var Input = require('command_line:input').Input;
+var t = require('plugindev');
+
+function parse(command) {
+    var promise = new Promise();
+
+    new Input(command).argsPromise.then(function(args) {
+        promise.resolve({
+            args: args,
+            input: command
+        });
+    }, t.never());
+
+    return promise;
+}
+
+exports.testInput = function() {
+    parse('set maxConsoleHeight 300').then(function(data) {
+        console.log('data', data);
+        t.deepEquals(data.args, {}, '');
+    });
+};
+
+/*
+ *
+ */
+
+({
+    "description": "blah blah",
+    "provides":
+    [
+        {
+            "ep": "command",
+            "name": "tst",
+            "description": "Test Command"
+        },
+        {
+            "ep": "command",
+            "name": "tst list",
+            "params":
+            [
+                {
+                    "name": "first",
+                    "type": "text",
+                    "description": "First param"
+                }
+            ],
+            "description": "Tst List",
+            "pointer": "test/testcommands#tstList"
+        },
+        {
+            "ep": "command",
+            "name": "tst add",
+            "params":
+            [
+                {
+                    "name": "first",
+                    "type": "text",
+                    "description": "First param"
+                },
+                {
+                    "name": "second",
+                    "type": { "name": "selection", "data": [ "aa", "bb" ] },
+                    "description": "Second param"
+                },
+                {
+                    "name": "third",
+                    "type": "number",
+                    "description": "Third param",
+                    "defaultValue": 42
+                },
+                {
+                    "name": "fourth",
+                    "type": "boolean",
+                    "description": "Fourth param",
+                    "defaultValue": true
+                }
+            ],
+            "description": "Tst Add",
+            "pointer": "test/testcommands#tstAdd"
+        },
+        {
+            "ep": "command",
+            "name": "tst remove",
+            "params": [],
+            "description": "Tst Remove",
+            "pointer": "test/testcommands#tstRemove"
+        }
+    ]
+});
+
+});
+
 bespin.tiki.module("command_line:commands/basic",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -13478,111 +15703,6 @@ var messages = [
 exports.bespinCommand = function(args, request) {
     var index = Math.floor(Math.random() * messages.length);
     request.done('Bespin ' + messages[index]);
-};
-
-});
-
-bespin.tiki.module("command_line:commands/history",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var catalog = require('bespin:plugins').catalog;
-var history = require('canon:history');
-var env = require('environment').env;
-
-/**
- * The pointer to the command that we show on up|down
- */
-var pointer = 0;
-
-/**
- * CLI 'up'
- * Decrement the 'current entry' pointer
- */
-exports.historyPreviousCommand = function(args, request) {
-    if (pointer > 0) {
-        pointer--;
-    }
-
-    var display = history.requests[pointer].typed;
-    env.commandLine.setInput(display);
-};
-
-/**
- * CLI 'down'
- * Increment the 'current entry' pointer
- */
-exports.historyNextCommand = function(args, request) {
-    if (pointer < history.requests.length) {
-        pointer++;
-    }
-
-    var display = (pointer === history.requests.length)
-        ? ''
-        : history.requests[pointer].typed;
-
-    env.commandLine.setInput(display);
-};
-
-/**
- * 'history' command
- */
-exports.historyCommand = function(args, request) {
-    var output = [];
-    output.push('<table>');
-    var count = 1;
-
-    history.requests.forEach(function(request) {
-        output.push('<tr>');
-        output.push('<th>' + count + '</th>');
-        output.push('<td>' + request.typed + '</td>');
-        output.push('</tr>');
-        count++;
-    });
-    output.push('</table>');
-
-    request.done(output.join(''));
-};
-
-/**
- * Reset the pointer to the latest command execution
- */
-exports.addedRequestOutput = function() {
-    pointer = history.requests.length;
 };
 
 });
@@ -13794,7 +15914,7 @@ exports.aliasCommand = function(args, request) {
 
 });
 
-bespin.tiki.module("command_line:hint",function(require,exports,module) {
+bespin.tiki.module("command_line:commands/history",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -13832,51 +15952,69 @@ bespin.tiki.module("command_line:hint",function(require,exports,module) {
  *
  * ***** END LICENSE BLOCK ***** */
 
+var catalog = require('bespin:plugins').catalog;
+var history = require('canon:history');
+var env = require('environment').env;
+
 /**
- * Various methods on Input return a set of hints, each of which includes an
- * indicator of the severity of the hint.
+ * The pointer to the command that we show on up|down
  */
-exports.Level = {
-    /**
-     * This means that the user has typed something wrong, and needs to go back
-     * to correct it. The input field should indicate the error, and we should
-     * prevent the action of Return.
-     */
-    Error: 3,
+var pointer = 0;
 
-    /**
-     * The command won't work, and we should prevent the action of Return, but
-     * not because of anything the user has done. The problem is that they've
-     * not finished yet.
-     */
-    Incomplete: 2,
+/**
+ * CLI 'up'
+ * Decrement the 'current entry' pointer
+ */
+exports.historyPreviousCommand = function(args, request) {
+    if (pointer > 0) {
+        pointer--;
+    }
 
-    /**
-     * The command can be executed, however we want to warn the user of
-     * something before they press Return. It is likely that this will result
-     * in a visual indicator.
-     */
-    Warning: 1,
-
-    /**
-     * We think we can help the user by displaying this hint, but it's
-     * existence does not imply anything that the user has done wrong.
-     */
-    Info: 0
+    var display = history.requests[pointer].typed;
+    env.commandLine.setInput(display);
 };
 
 /**
- * A Quick wrapper for a Hint, data about something we show to the user as part
- * of typing at the command line.
- * @param element {Element|string} The thing to display
- * @param level {number} See exports.Level
- * @param completion {string} Describes how the command line should look if the
- * user presses TAB
+ * CLI 'down'
+ * Increment the 'current entry' pointer
  */
-exports.Hint = function(level, element, completion) {
-    this.level = level;
-    this.element = element;
-    this.completion = completion;
+exports.historyNextCommand = function(args, request) {
+    if (pointer < history.requests.length) {
+        pointer++;
+    }
+
+    var display = (pointer === history.requests.length)
+        ? ''
+        : history.requests[pointer].typed;
+
+    env.commandLine.setInput(display);
+};
+
+/**
+ * 'history' command
+ */
+exports.historyCommand = function(args, request) {
+    var output = [];
+    output.push('<table>');
+    var count = 1;
+
+    history.requests.forEach(function(request) {
+        output.push('<tr>');
+        output.push('<th>' + count + '</th>');
+        output.push('<td>' + request.typed + '</td>');
+        output.push('</tr>');
+        count++;
+    });
+    output.push('</table>');
+
+    request.done(output.join(''));
+};
+
+/**
+ * Reset the pointer to the latest command execution
+ */
+exports.addedRequestOutput = function() {
+    pointer = history.requests.length;
 };
 
 });
@@ -14472,7 +16610,7 @@ exports.documentCommand = function(cmdExt, typed) {
 
 });
 
-bespin.tiki.module("command_line:typehint",function(require,exports,module) {
+bespin.tiki.module("command_line:hint",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -14510,154 +16648,51 @@ bespin.tiki.module("command_line:typehint",function(require,exports,module) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-var catalog = require('bespin:plugins').catalog;
-var console = require('bespin:console').console;
-var Promise = require('bespin:promise').Promise;
-var types = require('types:types');
-
-var Hint = require('command_line:hint').Hint;
-var Level = require('command_line:hint').Level;
-
 /**
- * If there isn't a typehint to define a hint UI component then we just use the
- * default - a simple text node containing the description.
+ * Various methods on Input return a set of hints, each of which includes an
+ * indicator of the severity of the hint.
  */
-function createDefaultHint(description) {
-    var parent = document.createElement('article');
-    parent.innerHTML = description;
+exports.Level = {
+    /**
+     * This means that the user has typed something wrong, and needs to go back
+     * to correct it. The input field should indicate the error, and we should
+     * prevent the action of Return.
+     */
+    Error: 3,
 
-    return new Hint(Level.Info, parent);
+    /**
+     * The command won't work, and we should prevent the action of Return, but
+     * not because of anything the user has done. The problem is that they've
+     * not finished yet.
+     */
+    Incomplete: 2,
+
+    /**
+     * The command can be executed, however we want to warn the user of
+     * something before they press Return. It is likely that this will result
+     * in a visual indicator.
+     */
+    Warning: 1,
+
+    /**
+     * We think we can help the user by displaying this hint, but it's
+     * existence does not imply anything that the user has done wrong.
+     */
+    Info: 0
 };
 
 /**
- * resolve the passed promise by calling
+ * A Quick wrapper for a Hint, data about something we show to the user as part
+ * of typing at the command line.
+ * @param element {Element|string} The thing to display
+ * @param level {number} See exports.Level
+ * @param completion {string} Describes how the command line should look if the
+ * user presses TAB
  */
-function getHintOrDefault(promise, input, assignment, ext, typeHint) {
-    var hint;
-
-    try {
-        if (ext && typeof typeHint.getHint === 'function') {
-            hint = typeHint.getHint(input, assignment, ext);
-        }
-    }
-    catch (ex) {
-        console.error('Failed to get hint for ', ext, ' reason: ', ex);
-    }
-
-    if (!hint) {
-        hint = createDefaultHint(assignment.param.description);
-    }
-
-    promise.resolve(hint);
-    return promise;
-};
-
-// Warning: These next 2 functions are virtually cut and paste from
-// types:type.js
-// If you change this, there are probably parallel changes to be made there
-// There are 2 differences between the functions:
-// - We lookup type|typehint in the catalog
-// - There is a concept of a default typehint, where there is no similar
-//   thing for types. This is sensible, because hints are optional nice
-//   to have things. Not so for types.
-// Whilst we could abstract out the changes, I'm not sure this simplifies
-// already complex code
-
-/**
- * Given a string, look up the type extension in the catalog
- * @param name The type name. Object type specs are not allowed
- * @returns A promise that resolves to a type extension
- */
-function resolveObjectTypeHint(typeSpec) {
-    var promise = new Promise();
-    var ext = catalog.getExtensionByKey('typehint', typeSpec.name);
-    promise.resolve({ ext: ext, typeSpec: typeSpec });
-    return promise;
-};
-
-/**
- * Look-up a typeSpec and find a corresponding typehint extension. This function
- * does not attempt to load the typehint or go through the resolution process,
- * for that you probably want #resolveType()
- * @param typeSpec A string containing the type name or an object with a name
- * and other type parameters e.g. { name: 'selection', data: [ 'one', 'two' ] }
- * @return a promise that resolves to an object containing the resolved typehint
- * extension and the typeSpec used to resolve the type (which could be different
- * from the passed typeSpec if this was deferred). The object will be in the
- * form { ext:... typeSpec:... }
- */
-function resolveTypeHintExt(typeSpec) {
-    if (typeof typeSpec === 'string') {
-        return resolveObjectTypeHint({ name: typeSpec });
-    }
-
-    if (typeof typeSpec === 'object') {
-        if (typeSpec.name === 'deferred') {
-            var promise = new Promise();
-            types.undeferTypeSpec(typeSpec).then(function(newTypeSpec) {
-                resolveTypeHintExt(newTypeSpec).then(function(reply) {
-                    promise.resolve(reply);
-                }, function(ex) {
-                    promise.reject(ex);
-                });
-            });
-            return promise;
-        } else {
-            return resolveObjectTypeHint(typeSpec);
-        }
-    }
-
-    throw new Error('Unknown typeSpec type: ' + typeof typeSpec);
-};
-
-/**
- * Asynchronously find a UI component to match a typeSpec
- * @param input i.e. an instance of input#Input
- * @param assignment The last argument that we are hinting. Specifically it must
- * be an object with the following shape:
- * <tt>{ param: { type:.., description:... }, value:... }</tt>
- * Where:
- * <ul>
- * <li>value - Data typed for this parameter so far, by which the hint can be
- * customized, for example by reducing the options in a selection
- * <li>param - Structure like a param field from command meta-data:
- * <li>param.type - The data type for validation
- * <li>param.description - Description of the field for help purposes
- * </ul>
- * @return An object containing hint data { element:.., completion:... }
- * where <tt>element</tt> is a string / dom node / sc component and
- * <tt>completion</tt> (if set) is a string containing the only possible
- * outcome.
- * @see input#Input.assign() and input#Input.getAssignmentForLastArg()
- */
-exports.getHint = function(input, assignment) {
-    var promise = new Promise();
-    var typeSpec = assignment.param.type;
-
-    resolveTypeHintExt(typeSpec).then(function(data) {
-        if (!data.ext) {
-            return getHintOrDefault(promise, input, assignment);
-        }
-
-        data.ext.load().then(function(typeHint) {
-            // We might need to resolve the typeSpec in a custom way
-            if (typeof typeHint.resolveTypeSpec === 'function') {
-                typeHint.resolveTypeSpec(data.ext, data.typeSpec).then(function() {
-                    getHintOrDefault(promise, input, assignment, data.ext, typeHint);
-                }, function(ex) {
-                    promise.reject(ex);
-                });
-            } else {
-                // Nothing to resolve - just go
-                getHintOrDefault(promise, input, assignment, data.ext, typeHint);
-            }
-        }, function(ex) {
-            hint = createDefaultHint(assignment.param.description);
-            promise.resolve(hint);
-        });
-    });
-
-    return promise;
+exports.Hint = function(level, element, completion) {
+    this.level = level;
+    this.element = element;
+    this.completion = completion;
 };
 
 });
@@ -15602,6 +17637,196 @@ exports.createHandler = function(cliInputView) {
 
 });
 
+bespin.tiki.module("command_line:typehint",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var catalog = require('bespin:plugins').catalog;
+var console = require('bespin:console').console;
+var Promise = require('bespin:promise').Promise;
+var types = require('types:types');
+
+var Hint = require('command_line:hint').Hint;
+var Level = require('command_line:hint').Level;
+
+/**
+ * If there isn't a typehint to define a hint UI component then we just use the
+ * default - a simple text node containing the description.
+ */
+function createDefaultHint(description) {
+    var parent = document.createElement('article');
+    parent.innerHTML = description;
+
+    return new Hint(Level.Info, parent);
+};
+
+/**
+ * resolve the passed promise by calling
+ */
+function getHintOrDefault(promise, input, assignment, ext, typeHint) {
+    var hint;
+
+    try {
+        if (ext && typeof typeHint.getHint === 'function') {
+            hint = typeHint.getHint(input, assignment, ext);
+        }
+    }
+    catch (ex) {
+        console.error('Failed to get hint for ', ext, ' reason: ', ex);
+    }
+
+    if (!hint) {
+        hint = createDefaultHint(assignment.param.description);
+    }
+
+    promise.resolve(hint);
+    return promise;
+};
+
+// Warning: These next 2 functions are virtually cut and paste from
+// types:type.js
+// If you change this, there are probably parallel changes to be made there
+// There are 2 differences between the functions:
+// - We lookup type|typehint in the catalog
+// - There is a concept of a default typehint, where there is no similar
+//   thing for types. This is sensible, because hints are optional nice
+//   to have things. Not so for types.
+// Whilst we could abstract out the changes, I'm not sure this simplifies
+// already complex code
+
+/**
+ * Given a string, look up the type extension in the catalog
+ * @param name The type name. Object type specs are not allowed
+ * @returns A promise that resolves to a type extension
+ */
+function resolveObjectTypeHint(typeSpec) {
+    var promise = new Promise();
+    var ext = catalog.getExtensionByKey('typehint', typeSpec.name);
+    promise.resolve({ ext: ext, typeSpec: typeSpec });
+    return promise;
+};
+
+/**
+ * Look-up a typeSpec and find a corresponding typehint extension. This function
+ * does not attempt to load the typehint or go through the resolution process,
+ * for that you probably want #resolveType()
+ * @param typeSpec A string containing the type name or an object with a name
+ * and other type parameters e.g. { name: 'selection', data: [ 'one', 'two' ] }
+ * @return a promise that resolves to an object containing the resolved typehint
+ * extension and the typeSpec used to resolve the type (which could be different
+ * from the passed typeSpec if this was deferred). The object will be in the
+ * form { ext:... typeSpec:... }
+ */
+function resolveTypeHintExt(typeSpec) {
+    if (typeof typeSpec === 'string') {
+        return resolveObjectTypeHint({ name: typeSpec });
+    }
+
+    if (typeof typeSpec === 'object') {
+        if (typeSpec.name === 'deferred') {
+            var promise = new Promise();
+            types.undeferTypeSpec(typeSpec).then(function(newTypeSpec) {
+                resolveTypeHintExt(newTypeSpec).then(function(reply) {
+                    promise.resolve(reply);
+                }, function(ex) {
+                    promise.reject(ex);
+                });
+            });
+            return promise;
+        } else {
+            return resolveObjectTypeHint(typeSpec);
+        }
+    }
+
+    throw new Error('Unknown typeSpec type: ' + typeof typeSpec);
+};
+
+/**
+ * Asynchronously find a UI component to match a typeSpec
+ * @param input i.e. an instance of input#Input
+ * @param assignment The last argument that we are hinting. Specifically it must
+ * be an object with the following shape:
+ * <tt>{ param: { type:.., description:... }, value:... }</tt>
+ * Where:
+ * <ul>
+ * <li>value - Data typed for this parameter so far, by which the hint can be
+ * customized, for example by reducing the options in a selection
+ * <li>param - Structure like a param field from command meta-data:
+ * <li>param.type - The data type for validation
+ * <li>param.description - Description of the field for help purposes
+ * </ul>
+ * @return An object containing hint data { element:.., completion:... }
+ * where <tt>element</tt> is a string / dom node / sc component and
+ * <tt>completion</tt> (if set) is a string containing the only possible
+ * outcome.
+ * @see input#Input.assign() and input#Input.getAssignmentForLastArg()
+ */
+exports.getHint = function(input, assignment) {
+    var promise = new Promise();
+    var typeSpec = assignment.param.type;
+
+    resolveTypeHintExt(typeSpec).then(function(data) {
+        if (!data.ext) {
+            return getHintOrDefault(promise, input, assignment);
+        }
+
+        data.ext.load().then(function(typeHint) {
+            // We might need to resolve the typeSpec in a custom way
+            if (typeof typeHint.resolveTypeSpec === 'function') {
+                typeHint.resolveTypeSpec(data.ext, data.typeSpec).then(function() {
+                    getHintOrDefault(promise, input, assignment, data.ext, typeHint);
+                }, function(ex) {
+                    promise.reject(ex);
+                });
+            } else {
+                // Nothing to resolve - just go
+                getHintOrDefault(promise, input, assignment, data.ext, typeHint);
+            }
+        }, function(ex) {
+            hint = createDefaultHint(assignment.param.description);
+            promise.resolve(hint);
+        });
+    });
+
+    return promise;
+};
+
+});
+
 bespin.tiki.module("command_line:index",function(require,exports,module) {
 
 });
@@ -15610,7 +17835,133 @@ bespin.tiki.module("command_line:templates",function(require,exports,module) {
 
 var templater = require('templater');
 
-templater.compileAll({"requestOutput.htmlt": "\n<!-- The div for the input (i.e. what was typed) -->\n<div class=\"cmd_rowin\" save=\"${actions.rowin}\"\n    onclick=\"${actions.copyToInput}\"\n    ondblclick=\"${actions.executeRequest}\">\n\n  <!-- What the user actually typed -->\n  <div class=\"cmd_gt\">&gt; </div>\n  <div class=\"cmd_typed\" save=\"${actions.typed}\"></div>\n\n  <!-- The extra details that appear on hover -->\n  <div class=\"cmd_duration cmd_hover\" save=\"${actions.duration}\"></div>\n  <img class=\"cmd_hover\" onclick=\"${actions.hideOutput}\" save=\"${actions.hide}\"\n      alt=\"Hide command output\" src=\"${imagePath}/minus.png\"/>\n  <img class=\"cmd_hover cmd_hidden\" onclick=\"${actions.showOutput}\" save=\"${actions.show}\"\n      alt=\"Show command output\" src=\"${imagePath}/plus.png\"/>\n  <img class=\"cmd_hover\" onclick=\"${actions.remove}\"\n      alt=\"Remove this command from the history\" src=\"${imagePath}/closer.png\"/>\n\n</div>\n\n<!-- The div for the command output -->\n<div class=\"cmd_rowout\" save=\"${actions.rowout}\">\n  <div class=\"cmd_output\" save=\"${actions.output}\"></div>\n  <img src=\"${imagePath}/throbber.gif\" save=\"${actions.throb}\"/>\n</div>\n", "cli.htmlt": "\n<div class=\"cmd_line\" save=\"${cliInputView.element}\"\n    onfocus=\"${cliInputView._focusCheck [useCapture:true]}\"\n    onblur=\"${cliInputView._focusCheck [useCapture:true]}\"\n    onclick=\"${cliInputView.focus [useCapture:true]}\">\n\n  <!-- The output area that changes height -->\n  <div class=\"cmd_tog stack_children\" save=\"${cliInputView._tog}\">\n\n    <div class=\"cmd_top\">\n      <!-- Side toolbar -->\n      <div class=\"cmd_toolbar\">\n        <img src=\"${imagePath}/dot_clear.gif\" class=\"cmd_pin check\"\n            alt=\"Pin/Unpin the console output\"\n            onclick=\"${cliInputView._togglePin}\"/>\n      </div>\n  \n      <!-- CLI output table -->\n      <div class=\"cmd_table\" save=\"${cliInputView._table}\"></div>\n    </div>\n\n    <!-- A div to hang hints on -->\n    <div class=\"cmd_hints\" save=\"${cliInputView._hints}\"></div>\n\n  </div>\n\n  <!-- The input area, with fixed height -->\n  <div class=\"cmd_cli\">\n\n    <!-- The prompt -->\n    <div class=\"cmd_prompt cmd_gt\">\n      <span class=\"cmd_brackets\">{ }</span> &gt;\n    </div>\n\n    <!-- Where you type commands -->\n    <div class=\"cmd_kbd stack_children\">\n      <div class=\"cmd_completion\" save=\"${cliInputView._completer}\"></div>\n      <div>\n        <input class=\"cmd_input\" type=\"text\" save=\"${cliInputView._inputer}\"/>\n      </div>\n    </div>\n\n  </div>\n\n</div>\n"}, exports);
+templater.compileAll({"requestOutput.htmlt": "\n<!-- The div for the input (i.e. what was typed) -->\n<div class=\"cmd_rowin\" save=\"${actions.rowin}\"\n    onclick=\"${actions.copyToInput}\"\n    ondblclick=\"${actions.executeRequest}\">\n\n  <!-- What the user actually typed -->\n  <div class=\"cmd_gt\">&gt; </div>\n  <div class=\"cmd_typed\" save=\"${actions.typed}\"></div>\n\n  <!-- The extra details that appear on hover -->\n  <div class=\"cmd_duration cmd_hover\" save=\"${actions.duration}\"></div>\n  <img class=\"cmd_hover\" onclick=\"${actions.hideOutput}\" save=\"${actions.hide}\"\n      alt=\"Hide command output\" src=\"${imagePath}/minus.png\"/>\n  <img class=\"cmd_hover cmd_hidden\" onclick=\"${actions.showOutput}\" save=\"${actions.show}\"\n      alt=\"Show command output\" src=\"${imagePath}/plus.png\"/>\n  <img class=\"cmd_hover\" onclick=\"${actions.remove}\"\n      alt=\"Remove this command from the history\" src=\"${imagePath}/closer.png\"/>\n\n</div>\n\n<!-- The div for the command output -->\n<div class=\"cmd_rowout\" save=\"${actions.rowout}\">\n  <div class=\"cmd_output\" save=\"${actions.output}\"></div>\n  <img src=\"${imagePath}/throbber.gif\" save=\"${actions.throb}\"/>\n</div>\n", "cli.htmlt": "\n<div class=\"cmd_line\" save=\"${cliInputView.element}\"\n    onfocus=\"${cliInputView._focusCheck}\" capturefocus=\"capturefocus\"\n    onblur=\"${cliInputView._focusCheck}\" captureblur=\"captureblur\"\n    onclick=\"${cliInputView.focus}\" captureclick=\"captureclick\">\n\n  <!-- The output area that changes height -->\n  <div class=\"cmd_tog stack_children\" save=\"${cliInputView._tog}\">\n\n    <div class=\"cmd_top\">\n      <!-- Side toolbar -->\n      <div class=\"cmd_toolbar\">\n        <img src=\"${imagePath}/dot_clear.gif\" class=\"cmd_pin check\"\n            alt=\"Pin/Unpin the console output\"\n            onclick=\"${cliInputView._togglePin}\"/>\n      </div>\n  \n      <!-- CLI output table -->\n      <div class=\"cmd_table\" save=\"${cliInputView._table}\"></div>\n    </div>\n\n    <!-- A div to hang hints on -->\n    <div class=\"cmd_hints\" save=\"${cliInputView._hints}\"></div>\n\n  </div>\n\n  <!-- The input area, with fixed height -->\n  <div class=\"cmd_cli\">\n\n    <!-- The prompt -->\n    <div class=\"cmd_prompt cmd_gt\">\n      <span class=\"cmd_brackets\">{ }</span> &gt;\n    </div>\n\n    <!-- Where you type commands -->\n    <div class=\"cmd_kbd stack_children\">\n      <div class=\"cmd_completion\" save=\"${cliInputView._completer}\"></div>\n      <div>\n        <input class=\"cmd_input\" type=\"text\" save=\"${cliInputView._inputer}\"/>\n      </div>\n    </div>\n\n  </div>\n\n</div>\n"}, exports);
+
+});
+;bespin.tiki.register("::editing_commands", {
+    name: "editing_commands",
+    dependencies: {  }
+});
+bespin.tiki.module("editing_commands:index",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+"define metadata";
+({
+    "description": "Provides higher level commands for working with the text.",
+    "objects": ["commandLine"],
+    "provides": [
+        {
+            "ep": "command",
+            "name": "find",
+            "key": "ctrl_f",
+            "params":
+            [
+                {
+                    "name": "value",
+                    "type": "text",
+                    "description": "string to search for"
+                }
+            ],
+            "description": "Search for text within this buffer",
+            "pointer": "#findCommand"
+        },
+        {
+            "ep": "command",
+            "name": "goto",
+            "key": "ctrl_l",
+            "params":
+            [
+                {
+                    "name": "line",
+                    "type": "text",
+                    "description": "add the line number to move to in the file"
+                }
+            ],
+            "description": "move it! make the editor head to a line number.",
+            "pointer": "#gotoCommand"
+        }
+    ]
+});
+"end";
+
+var env = require('environment').env;
+
+/**
+ * 'find' command
+ */
+exports.findCommand = function(args, request) {
+    if (!('value' in args)) {
+        env.commandLine.setInput('find ');
+        return;
+    }
+
+    var view = env.view, search = view.editor.searchController;
+    var sel = view.getSelectedRange();
+    var output = '';
+
+    search.setSearchText(args.value, false);
+
+    var match = search.findNext(sel.end, true);
+    if (match) {
+        view.setSelection(match, true);
+        view.focus();
+    } else {
+        output += '<i>No matches found</i><br>';
+    }
+
+    output += 'Searching for "' + args.value + '"';
+    request.done(output);
+};
+
+/**
+ * Moves the cursor to the specified line.
+ */
+exports.gotoCommand = function(args, request) {
+    if (!('line' in args)) {
+        env.commandLine.setInput('goto ');
+        return;
+    }
+
+    var view = env.view;
+    view.moveCursorTo({ row: args.line - 1, col: 0 });
+    view.focus();
+};
+
 
 });
 ;bespin.tiki.register("::environment", {
@@ -16031,6 +18382,194 @@ exports.TagReader = Trait({
 
 
 });
+;bespin.tiki.register("::events", {
+    name: "events",
+    dependencies: { "traits": "0.0.0" }
+});
+bespin.tiki.module("events:index",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+exports.Event = function() {
+    var handlers = [];
+    var evt = function() {
+        var args = arguments;
+        handlers.forEach(function(handler) { handler.func.apply(null, args); });
+    };
+
+    /**
+     * Adds a new handler via
+     *  a) evt.add(handlerFunc)
+     *  b) evt.add(reference, handlerFunc)
+     */
+    evt.add = function() {
+        if (arguments.length == 1) {
+            handlers.push({
+                ref: arguments[0],
+                func: arguments[0]
+            });
+        } else {
+            handlers.push({
+                ref: arguments[0],
+                func: arguments[1]
+            });
+        }
+    };
+
+    evt.remove = function(ref) {
+        var notEqual = function(other) { return ref !== other.ref; };
+        handlers = handlers.filter(notEqual);
+    };
+
+    evt.removeAll = function() {
+        handlers = [];
+    };
+
+    return evt;
+};
+
+
+});
+
+bespin.tiki.module("events:tests/test",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var t = require('plugindev');
+var Event = require('events').Event;
+
+exports.testEventsAreCallable = function() {
+    var evt = new Event();
+    evt();
+    t.ok(true, "events are callable");
+};
+
+exports.testAddingEvents = function() {
+    var evt = new Event();
+    var run1 = false, run2 = false, run3 = false;
+    evt.add(function() { run1 = true; });
+    evt.add(function() { run2 = true; });
+    evt();
+    t.ok(run1, "run1 handler was run");
+    t.ok(run2, "run2 handler was run");
+
+    run1 = false, run2 = false, run3 = false;
+    evt.add(function() { run3 = true; });
+    evt();
+    t.ok(run1, "run1 handler was run");
+    t.ok(run2, "run2 handler was run");
+    t.ok(run3, "run3 handler was run");
+};
+
+exports.testRemovingEvents = function() {
+    var evt = new Event();
+    var ref = { hello: 'world' };
+    var run1 = false, run2 = false, run3 = false;
+    var callback1 = function() { run1 = true; };
+    var callback2 = function() { run2 = true; };
+    var callback3 = function() { run3 = true; };
+
+    evt.add(callback1);
+    evt.add(callback2);
+    evt.remove(callback1);
+    evt();
+    t.equal(run1, false, "run1 handler was not run after removed");
+    t.equal(run2, true, "run2 handler was run after run1 was removed");
+
+    run1 = false, run2 = false, run3 = false;
+    evt.add(callback3);
+    evt.remove(callback2);
+    evt.remove(callback3);
+    evt();
+    t.equal(run1, false, "run1 handler was not run after all callbacks were " +
+        "removed");
+    t.equal(run2, false, "run2 handler was not run after all callbacks were " +
+        "removed");
+    t.equal(run3, false, "run3 handler was not run after all callbacks were " +
+        "removed");
+
+    run1 = false, run2 = false, run3 = false;
+    evt.add(ref, callback3);
+    evt.remove(ref);
+    evt();
+    t.equal(run1, false, "run1 handler was not run after all callbacks were " +
+        "removed");
+    t.equal(run2, false, "run2 handler was not run after all callbacks were " +
+        "removed");
+    t.equal(run3, false, "run3 handler was not run after all callbacks were " +
+        "removed");
+};
+
+
+});
 ;bespin.tiki.register("::templater", {
     name: "templater",
     dependencies: {  }
@@ -16079,65 +18618,10 @@ bespin.tiki.module("templater:index",function(require,exports,module) {
 
 // WARNING: do not 'use_strict' without reading the notes in environmentEval;
 
-/*
- * This is intended to be a lightweight templating solution. It replaces
- * John Resig's Micro-templating solution:
- * - http://ejohn.org/blog/javascript-micro-templating/
- * Whilst being slightly bigger it adds the ability to extract references to
- * created element and add event handlers. It exchanges Javascript as a template
- * language (and the <%=x%> syntax) for ${} elements.
- *
- * - Logical Processing -
- * As a result of losing the Javascript base, it loses the ability to do logical
- * constructs like if/while/for/etc. It is currently felt that the addition of
- * event handlers and element references is more important. Should these
- * features be required they could be added by making an element that references
- * an array result the cloning of the element by the number of items in the
- * array, and by making an element that references a boolean result in the
- * stripping of the element if the boolean is false.
- *
- * - 2 Way Templating -
- * As a result of functioning using DOM manipulation rather than string
- * manipulation, we could also register javascript getters and setters on the
- * Javascript data structures and onchange listeners on the DOM to effect
- * 2-way templating.
- */
-
 /**
- * Turn the template into a DOM node, resolving the ${} references to the data
- * For example:
- * <pre>
- * var templ = '&lt;input value="${person.firstname} ${person.surname}" ' +
- *     'save="${elements.input}" ' +
- *     'onchange="${changer}" ' +
- *     '>';
- * var data = {
- *   person: { firstname: "Fred", surname: "Blogs" },
- *   elements: {},
- *   changer: function() { console.log(data.elements.value); }
- * };
- * processTemplate(templ, data);
- * </pre>
- *
- * <p>This gives an example of the 3 types of processing done:<ul>
- * <li>Event listener registration for all onXXX attributes
- * <li>Element extraction for 'save' attributes
- * <li>Attribute value processing for other attributes.
- * </ul>
- *
- * <p>For event listener registration there are 2 things to look out for:<ul>
- * <li>Although it looks like we are using DOM level 0 event registration (i.e.
- * element.onfoo = somefunc) we are actually using DOM level 2, by stripping
- * off the 'on' prefix and then using addEventListener('foo', ...). Watch out
- * for case sensitivity, and if you successfully use an event like DOMFocusIn
- * then consider updating these docs or the code.
- * <li>Sometimes we might need to use the capture phase of an event (for example
- * when processing mouse or focus events). The way to do that is as follows:
- * <tt>onfocus="${object.handler [useCapture:true]}"</tt>. Currently the only
- * supported option is useCapture, and it must be specified EXACTLY as the
- * example. In the future we might add other options, or make the syntax
- * simpler.
- * </ul>
+ * Turn the template into a DOM node, resolving the ${} references to the data.
+ * See docs/devguide/template.html.markdown for instructions on writing
+ * templates.
  */
 exports.processTemplate = function(template, data) {
     data = data || {};
@@ -16150,7 +18634,8 @@ exports.processTemplate = function(template, data) {
 /**
  * Recursive function to walk the tree processing the attributes as it goes.
  */
-var processNode = function(node, data) {
+function processNode(node, data) {
+    var recurse = true;
     // Process attributes
     if (node.attributes && node.attributes.length) {
         // It's good to clean up the attributes when we've processed them,
@@ -16165,28 +18650,59 @@ var processNode = function(node, data) {
                 value = stripBraces(value);
                 property(value, data, node);
                 node.removeAttribute(name);
+            } else if (name === 'if') {
+                value = stripBraces(value);
+                try {
+                    var reply = environmentEval(value, data);
+                    recurse = !!reply;
+                } catch (ex) {
+                    console.error('Error with \'', value, '\'', ex);
+                    recurse = false;
+                }
+                if (!recurse) {
+                    node.parentNode.removeChild(node);
+                }
+                node.removeAttribute(name);
+            } else if (name === 'foreach') {
+                value = stripBraces(value);
+                recurse = false;
+                try {
+                    var array = environmentEval(value, data);
+                    array.forEach(function(param) {
+                        var clone = node.cloneNode(true);
+                        node.parentNode.insertBefore(clone, node);
+                        data.param = param;
+                        processChildren(clone, data);
+                        delete data.param;
+                    });
+                    node.parentNode.removeChild(node);
+                } catch (ex) {
+                    console.error('Error with \'', value, '\'', ex);
+                    recurse = false;
+                }
+                node.removeAttribute(name);
             } else if (name.substring(0, 2) === 'on') {
                 // Event registration relies on property doing a bind
                 value = stripBraces(value);
-                var useCapture = false;
-                value = value.replace(/\s*\[useCapture:true\]$/, function(path) {
-                    // TODO: Don't assume useCapture:true
-                    useCapture = true;
-                    return '';
-                });
                 var func = property(value, data);
                 if (typeof func !== 'function') {
                     console.error('Expected ' + value +
                             ' to resolve to a function, but got ', typeof func);
                 }
                 node.removeAttribute(name);
-                node.addEventListener(name.substring(2), func, useCapture);
+                var capture = node.hasAttribute('capture' + name.substring(2));
+                node.addEventListener(name.substring(2), func, capture);
             } else {
                 // Replace references in other attributes
                 var newValue = value.replace(/\$\{[^}]*\}/, function(path) {
                     return environmentEval(path.slice(2, -1), data);
                 });
-                if (value !== newValue) {
+                // Remove '_' prefix of attribute names so the DOM won't try
+                // to use them before we've processed the template
+                if (name.indexOf('_') === 0) {
+                    node.removeAttribute(name);
+                    node.setAttribute(name.substring(1), newValue);
+                } else if (value !== newValue) {
                     attrs[i].value = newValue;
                 }
             }
@@ -16194,12 +18710,40 @@ var processNode = function(node, data) {
     }
 
     // Process child nodes
-    processChildren(node, data);
+    if (recurse) {
+        processChildren(node, data);
+    }
 
     // Process TextNodes
     if (node.nodeType === 3) {
         // Replace references in other attributes
         value = node.textContent;
+        // We can't use the string.replace() with function trick because we need
+        // to support functions that return DOM nodes, so we can't have the
+        // conversion to a string.
+        // Instead we process the string as an array of parts. In order to split
+        // the string up, we first replace ${ with \uF001$ and } with \uF002
+        // We can then split using \uF001 or \uF002 to get an array of strings
+        // where scripts are prefixed with $.
+        // \uF001 and \uF002 are just unicode chars reserved for private use.
+        value = value.replace(/\$\{([^}]*)\}/, '\uF001$$$1\uF002');
+        var parts = value.split(/\uF001|\uF002/);
+        if (parts.length > 1) {
+            parts.forEach(function(part) {
+                if (!part || part === '') {
+                    return;
+                }
+                if (part.charAt(0) === '$') {
+                    part = environmentEval(part.slice(1), data);
+                }
+                // Hmmm isDOMElement ...
+                if (typeof part.cloneNode !== 'function') {
+                    part = document.createTextNode(part.toString());
+                }
+                node.parentNode.insertBefore(part, node);
+            });
+            node.parentNode.removeChild(node);
+        }
         newValue = value.replace(/\$\{[^}]*\}/, function(path) {
             return environmentEval(path.slice(2, -1), data);
         });
@@ -16227,13 +18771,13 @@ function processChildren(node, data) {
  * Warn of string does not begin '${' and end '}'
  * @return The string stripped of ${ and }, or untouched if it does not match
  */
-var stripBraces = function(str) {
+function stripBraces(str) {
     if (!str.match(/\$\{.*\}/)) {
         console.error('Expected ' + str + ' to match ${...}');
         return str;
     }
     return str.slice(2, -1);
-};
+}
 
 /**
  * Combined getter and setter that works with a path through some data set.
@@ -16292,10 +18836,10 @@ function environmentEval(script, env) {
 /**
  * Strip the extension off of a name
  */
-var basename = function(name) {
+function basename(name) {
     var lastDot = name.lastIndexOf('.');
     return name.substring(0, lastDot);
-};
+}
 
 /**
  * "compiles" a template. with the current version of templating,
@@ -16398,110 +18942,126 @@ exports.Matcher = function(query) {
     this._maxScore = null;
 };
 
-/**
- * Add a single item to be considered by this matcher
- */
-exports.Matcher.prototype.addItem = function(item) {
-    this.addItems([ item ]);
-};
+Object.defineProperties(exports.Matcher.prototype, {
+    query: {
+        get: function() {
+            return this._query;
+        },
 
-/**
- * Add multiple items to be considered by this matcher.
- */
-exports.Matcher.prototype.addItems = function(items) {
-    var addedScoredItems = [];
-    var maxScoreChanged = false;
+        set: function(value) {
+            this._query = value;
+            var addedItems = [];
+            this._scoredItems.forEach(function(scoredItem) {
+                scoredItem.score = this.score(this._query, scoredItem.item);
+                if (scoredItem.score > 0) {
+                    addedItems.push(scoredItem.item);
+                }
+            }, this);
 
-    items.forEach(function(item) {
-        var scoredItem = {
-            score: this.score(this._query, item),
-            item: item
-        };
-        if (scoredItem.score > 0) {
-            addedScoredItems.push(scoredItem);
+            this._callListeners('itemsCleared');
+            this._callListeners('itemsAdded', addedItems);
         }
-        if (scoredItem.score > this._maxScore) {
-            this._maxScore = scoredItem.score;
-            maxScoreChanged = true;
-        }
-        this._scoredItems.push(scoredItem);
-    }, this);
+    },
 
-    var itemsRemoved = false;
-    if (maxScoreChanged) {
-        // The max score has changed - this could mean that existing
-        // entries are no longer relevant. Check
-        this._scoredItems.forEach(function(scoredItem) {
-            if (scoredItem.score + excludeScoreMargin < this._maxScore) {
-                itemsRemoved = true;
+    /**
+     * Add a single item to be considered by this matcher
+     */
+    addItem: {
+        value: function(item) {
+            this.addItems([ item ]);
+        }
+    },
+
+    /**
+     * Add multiple items to be considered by this matcher.
+     */
+    addItems: {
+        value: function(items) {
+            var addedScoredItems = [];
+            var maxScoreChanged = false;
+
+            items.forEach(function(item) {
+                var scoredItem = {
+                    score: this.score(this._query, item),
+                    item: item
+                };
+                if (scoredItem.score > 0) {
+                    addedScoredItems.push(scoredItem);
+                }
+                if (scoredItem.score > this._maxScore) {
+                    this._maxScore = scoredItem.score;
+                    maxScoreChanged = true;
+                }
+                this._scoredItems.push(scoredItem);
+            }, this);
+
+            var itemsRemoved = false;
+            if (maxScoreChanged) {
+                // The max score has changed - this could mean that existing
+                // entries are no longer relevant. Check
+                this._scoredItems.forEach(function(scoredItem) {
+                    if (scoredItem.score + excludeScoreMargin < this._maxScore) {
+                        itemsRemoved = true;
+                    }
+                });
             }
-        });
-    }
 
-    // TODO: There is a bug here in that listeners will not know how to
-    // slot these matches into the previously notified matches (we're not
-    // passing the score on).
-    var sorter = function(a, b) {
-        return b.score - a.score;
-    };
-    this._scoredItems.sort(sorter);
-    addedScoredItems.sort(sorter);
+            // TODO: There is a bug here in that listeners will not know how to
+            // slot these matches into the previously notified matches (we're not
+            // passing the score on).
+            var sorter = function(a, b) {
+                return b.score - a.score;
+            };
+            this._scoredItems.sort(sorter);
+            addedScoredItems.sort(sorter);
 
-    var scoredItems;
-    if (itemsRemoved) {
-        this._callListeners('itemsCleared');
-        scoredItems = this._scoredItems;
-    } else {
-        scoredItems = addedScoredItems;
-    }
+            var scoredItems;
+            if (itemsRemoved) {
+                this._callListeners('itemsCleared');
+                scoredItems = this._scoredItems;
+            } else {
+                scoredItems = addedScoredItems;
+            }
 
-    var addedItems = [];
-    scoredItems.forEach(function(scoredItem) {
-        if (scoredItem.score + excludeScoreMargin > this._maxScore) {
-            addedItems.push(scoredItem.item);
+            var addedItems = [];
+            scoredItems.forEach(function(scoredItem) {
+                if (scoredItem.score + excludeScoreMargin > this._maxScore) {
+                    addedItems.push(scoredItem.item);
+                }
+            }.bind(this));
+            this._callListeners('itemsAdded', addedItems);
         }
-    }.bind(this));
-    this._callListeners('itemsAdded', addedItems);
-};
+    },
 
-exports.Matcher.prototype.addListener = function(listener) {
-    this._listeners.push(listener);
+    addListener: {
+        value: function(listener) {
+            this._listeners.push(listener);
 
-    var items = [];
-    this._scoredItems.forEach(function(scoredItem) {
-        if (scoredItem.score > 0) {
-            items.push(scoredItem.item);
+            var items = [];
+            this._scoredItems.forEach(function(scoredItem) {
+                if (scoredItem.score > 0) {
+                    items.push(scoredItem.item);
+                }
+            }, this);
+
+            if (typeof listener.itemsAdded === 'function') {
+                listener.itemsAdded(items);
+            }
         }
-    }, this);
+    },
 
-    if (typeof listener.itemsAdded === 'function') {
-        listener.itemsAdded(items);
+    _callListeners: {
+        value: function() {
+            var args = Array.prototype.slice.call(arguments);
+            var method = args.shift();
+            this._listeners.forEach(function(listener) {
+                if (typeof listener[method] === 'function') {
+                    listener[method].apply(null, args);
+                }
+            });
+        }
     }
-};
-
-exports.Matcher.prototype.__defineSetter__('query', function(value) {
-    this._query = value;
-    var addedItems = [];
-    this._scoredItems.forEach(function(scoredItem) {
-        scoredItem.score = this.score(this._query, scoredItem.item);
-        if (scoredItem.score > 0) {
-            addedItems.push(scoredItem.item);
-        }
-    }, this);
-
-    this._callListeners('itemsCleared');
-    this._callListeners('itemsAdded', addedItems);
 });
-
-exports.Matcher.prototype._callListeners = function() {
-    var args = Array.prototype.slice.call(arguments);
-    var method = args.shift();
-    this._listeners.forEach(function(listener) {
-        if (typeof listener[method] === 'function') {
-            listener[method].apply(null, args);
-        }
-    });
-};
 
 });
 
@@ -16565,6 +19125,291 @@ exports.PrefixMatcher.prototype.score = function(query, item) {
     }
 
     return 0;
+};
+
+});
+
+bespin.tiki.module("matcher:tests/testIndex",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var Matcher = require('matcher').Matcher;
+var t = require('plugindev');
+
+/**
+ * Performs simple prefix matching.
+ */
+var MockMatcher = function(scores) {
+    this.scores = scores;
+};
+
+MockMatcher.prototype = new Matcher('subclassPrototype');
+
+MockMatcher.prototype.score = function(query, item) {
+    return this.scores[item.name];
+};
+
+exports.testAddingStrings = function() {
+    var matcher = new MockMatcher({ scores: { foo: 1, bar: 2, baz: 3 } });
+
+    var items1 = null;
+    var cleared1 = 0;
+    matcher.addListener({
+        itemsAdded: function(addedItems) {
+            items1 = addedItems;
+        },
+        itemsCleared: function() {
+            cleared1++;
+        }
+    });
+
+    matcher.addItem({ name: 'foo' });
+    t.equal(items1.length, 1, 'the length of the matcher\'s list of items ' +
+        'after adding \"foo\"; and 1');
+    t.equal(items1[0], 'foo', 'the text of the matcher\'s first item ' +
+        'after adding \"foo\" and \"foo\"');
+
+    matcher.addItems([ { name: 'bar' }, { name: 'baz' } ]);
+
+    t.equal(items1.length, 2, 'the length of the matcher\'s list of items ' +
+        'after adding \"bar\" and \"baz\"; and 2');
+    t.equal(items1[0], 'baz', 'the text of the matcher\'s first item ' +
+        'after adding \"bar\" and \"baz\"; and \"baz\"');
+    t.equal(items1[1], 'bar', 'the text of the matcher\'s second item ' +
+        'after adding \"bar\" and \"baz\"; and \"bar\"');
+
+    // Matchers added after the date get the whole list
+    var items2 = null;
+    var cleared2 = 0;
+    matcher.addListener({
+        itemsAdded: function(addedItems) {
+            items2 = addedItems;
+        },
+        itemsCleared: function() {
+            cleared2++;
+        }
+    });
+
+    t.equal(items2.length, 3, 'the length of the matcher\'s list of ' +
+        'items after adding \"foo\"; and 3');
+    t.equal(items2[0], 'baz', 'the text of the matcher\'s first item ' +
+        'after adding \"bar\" and \"baz\"; and \"baz\"');
+    t.equal(items2[1], 'bar', 'the text of the matcher\'s second item ' +
+        'after adding \"bar\" and \"baz\"; and \"bar\"');
+    t.equal(items2[2], 'foo', 'the text of the matcher\'s first item ' +
+        'after adding \"foo\" and \"foo\"');
+
+    t.equal(cleared1, 0, "itemsCleared (1) called too early");
+    t.equal(cleared2, 0, "itemsCleared (2) called too early");
+
+    matcher.set('query', 'wibble');
+
+    t.equal(cleared1, 1, "itemsCleared (1) not called properly");
+    t.equal(cleared2, 1, "itemsCleared (2) not called properly");
+
+    t.equal(items1.length, 3, 'the length of the matcher\'s list of ' +
+        'items after adding \"foo\"; and 3');
+    t.equal(items1[0], 'baz', 'the text of the matcher\'s first item ' +
+        'after adding \"bar\" and \"baz\"; and \"baz\"');
+    t.equal(items1[1], 'bar', 'the text of the matcher\'s second item ' +
+        'after adding \"bar\" and \"baz\"; and \"bar\"');
+    t.equal(items1[2], 'foo', 'the text of the matcher\'s first item ' +
+        'after adding \"foo\" and \"foo\"');
+
+    t.equal(items2.length, 3, 'the length of the matcher\'s list of ' +
+        'items after adding \"foo\"; and 3');
+    t.equal(items2[0], 'baz', 'the text of the matcher\'s first item ' +
+        'after adding \"bar\" and \"baz\"; and \"baz\"');
+    t.equal(items2[1], 'bar', 'the text of the matcher\'s second item ' +
+        'after adding \"bar\" and \"baz\"; and \"bar\"');
+    t.equal(items2[2], 'foo', 'the text of the matcher\'s first item ' +
+        'after adding \"foo\" and \"foo\"');
+};
+
+});
+
+bespin.tiki.module("matcher:tests/testPrefix",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var PrefixMatcher = require('matcher:prefix').PrefixMatcher;
+var t = require('plugindev');
+
+exports.testPrefixMatching = function() {
+    var matcher = new PrefixMatcher('b');
+    matcher.addItems([
+        { name:'foo' },
+        { name:'foobar' },
+        { name:'bar' }
+    ]);
+
+    var items;
+    matcher.addListener({
+        itemsAdded: function(addedItems) { items = addedItems; }
+    });
+
+    t.equal(items.length, 1, 'the length of the list of matches when ' +
+        'searching for \"b\" and 1');
+    t.equal(items[0].item, 'bar', 'the text of the first matched item when ' +
+        'searching for \"b\" and \"foo\"');
+
+    matcher.set('query', 'FOO');
+    t.equal(items.length, 2, 'the length of the list of matches when ' +
+        'searching for \"FOO\" and 2');
+    t.equal(items[0].item, 'foo', 'the text of the first matched item when ' +
+        'searching for \"FOO\" and \"foo\"');
+    t.equal(items[1].item, 'foobar', 'the text of the second matched item ' +
+        'when searching for \"FOO\" and \"foobar\"');
+};
+
+});
+
+bespin.tiki.module("matcher:tests/testQuick",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var QuickMatcher = require('matcher:quick').QuickMatcher;
+var t = require('plugindev');
+
+exports.testQuickMatcher = function() {
+    var matcher = new QuickMatcher('foo');
+    matcher.addItems([
+        { name:'foo' },
+        { name:'foobar' },
+        { name:'bar' },
+        { name:'baz' },
+        { name:'baAaz' }
+    ]);
+
+    var items;
+    matcher.addListener({
+        itemsAdded: function(addedItems) { items = addedItems; }
+    });
+
+    t.equal(items.length, 2, 'the number of matches when searching for ' +
+        '\'foo\' and 2');
+    t.equal(items[0], 'foo', 'the first match when searching for ' +
+        '\'foo\' and \'foo\'');
+    t.equal(items[1], 'foobar', 'the second match when searching for ' +
+        '\'foo\' and \'foobar\'');
+
+    matcher.set('query', 'ar');
+    t.equal(items.length, 2, 'the number of matches when searching for ' +
+        '\'ar\' and 2');
+    t.equal(items[0], 'bar', 'the first match when searching for ' +
+        '\'ar\' and \'bar\'');
+    t.equal(items[1], 'foobar', 'the second match when searching for ' +
+        '\'ar\' and \'foobar\'');
+
+    matcher.set('query', 'bZ');
+    t.equal(items.length, 2, 'the number of matches when searching for ' +
+        '\'bZ\' and 2');
+    t.equal(items[0], 'baz', 'the first match when searching for ' +
+        '\'bZ\' and \'baz\'');
+    t.equal(items[1], 'baAaz', 'the second match when searching for ' +
+        '\'bZ\' and \'baAaz\'');
 };
 
 });
@@ -16666,6 +19511,5688 @@ exports.QuickMatcher.prototype.score = function(query, item) {
     // No match.
     return 0;
 };
+
+});
+;bespin.tiki.register("::jslint", {
+    name: "jslint",
+    dependencies: {  }
+});
+bespin.tiki.module("jslint:index",function(require,exports,module) {
+// jslint.js
+// 2010-08-28
+
+// Mozilla: Plugin metadata
+"define metadata";
+({
+    "description": "JSLint support code"
+});
+"end";
+
+/*
+Copyright (c) 2002 Douglas Crockford  (www.JSLint.com)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+The Software shall be used for Good, not Evil.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+/*
+    JSLINT is a global function. It takes two parameters.
+
+        var myResult = JSLINT(source, option);
+
+    The first parameter is either a string or an array of strings. If it is a
+    string, it will be split on '\n' or '\r'. If it is an array of strings, it
+    is assumed that each string represents one line. The source can be a
+    JavaScript text, or HTML text, or a Konfabulator text.
+
+    The second parameter is an optional object of options which control the
+    operation of JSLINT. Most of the options are booleans: They are all are
+    optional and have a default value of false.
+
+    If it checks out, JSLINT returns true. Otherwise, it returns false.
+
+    If false, you can inspect JSLINT.errors to find out the problems.
+    JSLINT.errors is an array of objects containing these members:
+
+    {
+        line      : The line (relative to 0) at which the lint was found
+        character : The character (relative to 0) at which the lint was found
+        reason    : The problem
+        evidence  : The text line in which the problem occurred
+        raw       : The raw message before the details were inserted
+        a         : The first detail
+        b         : The second detail
+        c         : The third detail
+        d         : The fourth detail
+    }
+
+    If a fatal error was found, a null will be the last element of the
+    JSLINT.errors array.
+
+    You can request a Function Report, which shows all of the functions
+    and the parameters and vars that they use. This can be used to find
+    implied global variables and other problems. The report is in HTML and
+    can be inserted in an HTML <body>.
+
+        var myReport = JSLINT.report(limited);
+
+    If limited is true, then the report will be limited to only errors.
+
+    You can request a data structure which contains JSLint's results.
+
+        var myData = JSLINT.data();
+
+    It returns a structure with this form:
+
+    {
+        errors: [
+            {
+                line: NUMBER,
+                character: NUMBER,
+                reason: STRING,
+                evidence: STRING
+            }
+        ],
+        functions: [
+            name: STRING,
+            line: NUMBER,
+            last: NUMBER,
+            param: [
+                STRING
+            ],
+            closure: [
+                STRING
+            ],
+            var: [
+                STRING
+            ],
+            exception: [
+                STRING
+            ],
+            outer: [
+                STRING
+            ],
+            unused: [
+                STRING
+            ],
+            global: [
+                STRING
+            ],
+            label: [
+                STRING
+            ]
+        ],
+        globals: [
+            STRING
+        ],
+        member: {
+            STRING: NUMBER
+        },
+        unuseds: [
+            {
+                name: STRING,
+                line: NUMBER
+            }
+        ],
+        implieds: [
+            {
+                name: STRING,
+                line: NUMBER
+            }
+        ],
+        urls: [
+            STRING
+        ],
+        json: BOOLEAN
+    }
+
+    Empty arrays will not be included.
+
+*/
+
+/*jslint
+    evil: true, nomen: false, onevar: false, regexp: false, strict: true
+*/
+
+/*members "\b", "\t", "\n", "\f", "\r", "!=", "!==", "\"", "%",
+    "(begin)", "(breakage)", "(context)", "(error)", "(global)",
+    "(identifier)", "(last)", "(line)", "(loopage)", "(name)", "(onevar)",
+    "(params)", "(scope)", "(verb)", "*", "+", "++", "-", "--", "\/",
+    "<", "<=", "==", "===", ">", ">=", ADSAFE, ActiveXObject,
+    Array, Boolean, COM, CScript, Canvas, CustomAnimation, Date, Debug, E,
+    Enumerator, Error, EvalError, FadeAnimation, Flash, FormField, Frame,
+    Function, HotKey, Image, JSON, LN10, LN2, LOG10E, LOG2E, MAX_VALUE,
+    MIN_VALUE, Math, MenuItem, MoveAnimation, NEGATIVE_INFINITY, Number,
+    Object, Option, PI, POSITIVE_INFINITY, Point, RangeError, Rectangle,
+    ReferenceError, RegExp, ResizeAnimation, RotateAnimation, SQRT1_2,
+    SQRT2, ScrollBar, String, Style, SyntaxError, System, Text, TextArea,
+    Timer, TypeError, URIError, URL, VBArray, WScript, Web, Window, XMLDOM,
+    XMLHttpRequest, "\\", a, abbr, acronym, addEventListener, address,
+    adsafe, alert, aliceblue, animator, antiquewhite, appleScript, applet,
+    apply, approved, aqua, aquamarine, area, arguments, arity, article,
+    aside, audio, autocomplete, azure, b, background,
+    "background-attachment", "background-color", "background-image",
+    "background-position", "background-repeat", base, bdo, beep, beige, big,
+    bisque, bitwise, black, blanchedalmond, block, blockquote, blue,
+    blueviolet, blur, body, border, "border-bottom", "border-bottom-color",
+    "border-bottom-style", "border-bottom-width", "border-collapse",
+    "border-color", "border-left", "border-left-color", "border-left-style",
+    "border-left-width", "border-right", "border-right-color",
+    "border-right-style", "border-right-width", "border-spacing",
+    "border-style", "border-top", "border-top-color", "border-top-style",
+    "border-top-width", "border-width", bottom, br, brown, browser,
+    burlywood, button, bytesToUIString, c, cadetblue, call, callee, caller,
+    canvas, cap, caption, "caption-side", cases, center, charAt, charCodeAt,
+    character, chartreuse, chocolate, chooseColor, chooseFile, chooseFolder,
+    cite, clear, clearInterval, clearTimeout, clip, close, closeWidget,
+    closed, closure, cm, code, col, colgroup, color, command, comment,
+    condition, confirm, console, constructor, content, convertPathToHFS,
+    convertPathToPlatform, coral, cornflowerblue, cornsilk,
+    "counter-increment", "counter-reset", create, crimson, css, cursor,
+    cyan, d, darkblue, darkcyan, darkgoldenrod, darkgray, darkgreen,
+    darkkhaki, darkmagenta, darkolivegreen, darkorange, darkorchid, darkred,
+    darksalmon, darkseagreen, darkslateblue, darkslategray, darkturquoise,
+    darkviolet, data, datalist, dd, debug, decodeURI, decodeURIComponent,
+    deeppink, deepskyblue, defaultStatus, defineClass, del, deserialize,
+    details, devel, dfn, dialog, dimension, dimgray, dir, direction,
+    display, div, dl, document, dodgerblue, dt, edition, else, em, embed,
+    empty, "empty-cells", encodeURI, encodeURIComponent, entityify, eqeqeq,
+    errors, es5, escape, eval, event, evidence, evil, ex, exception, exec, exps,
+    fieldset, figure, filesystem, firebrick, first, float, floor,
+    floralwhite, focus, focusWidget, font, "font-face", "font-family",
+    "font-size", "font-size-adjust", "font-stretch", "font-style",
+    "font-variant", "font-weight", footer, forestgreen, forin, form,
+    fragment, frame, frames, frameset, from, fromCharCode, fuchsia, fud,
+    funct, function, functions, g, gainsboro, gc, getComputedStyle,
+    ghostwhite, global, globals, gold, goldenrod, gray, green, greenyellow,
+    h1, h2, h3, h4, h5, h6, hasOwnProperty, head, header, height, help,
+    hgroup, history, honeydew, hotpink, hr, 'hta:application', html,
+    i, iTunes, id, identifier,
+    iframe, img, immed, implieds, in, include, indent, indexOf, indianred,
+    indigo, init, input, ins, isAlpha, isApplicationRunning, isDigit,
+    isFinite, isNaN, ivory, join, jslint, json, kbd, keygen, khaki,
+    konfabulatorVersion, label, labelled, lang, last, lavender,
+    lavenderblush, lawngreen, laxbreak, lbp, led, left, legend,
+    lemonchiffon, length, "letter-spacing", li, lib, lightblue, lightcoral,
+    lightcyan, lightgoldenrodyellow, lightgreen, lightpink, lightsalmon,
+    lightseagreen, lightskyblue, lightslategray, lightsteelblue,
+    lightyellow, lime, limegreen, line, "line-height", linen, link,
+    "list-style", "list-style-image", "list-style-position",
+    "list-style-type", load, loadClass, location, log, m, magenta, map,
+    margin, "margin-bottom", "margin-left", "margin-right", "margin-top",
+    mark, "marker-offset", maroon, match, "max-height", "max-width", maxerr,
+    maxlen, md5, media, mediumaquamarine, mediumblue, mediumorchid,
+    mediumpurple, mediumseagreen, mediumslateblue, mediumspringgreen,
+    mediumturquoise, mediumvioletred, member, menu, message, meta, meter,
+    midnightblue, "min-height", "min-width", mintcream, mistyrose, mm,
+    moccasin, moveBy, moveTo, name, nav, navajowhite, navigator, navy, new,
+    newcap, noframes, nomen, noscript, nud, object, ol, oldlace, olive,
+    olivedrab, on, onbeforeunload, onblur, onerror, onevar, onfocus, onload,
+    onresize, onunload, opacity, open, openURL, opener, opera, optgroup,
+    option, orange, orangered, orchid, outer, outline, "outline-color",
+    "outline-style", "outline-width", output, overflow, "overflow-x",
+    "overflow-y", p, padding, "padding-bottom", "padding-left",
+    "padding-right", "padding-top", page, "page-break-after",
+    "page-break-before", palegoldenrod, palegreen, paleturquoise,
+    palevioletred, papayawhip, param, parent, parseFloat, parseInt,
+    passfail, pc, peachpuff, peru, pink, play, plum, plusplus, pop,
+    popupMenu, position, powderblue, pre, predef, preferenceGroups,
+    preferences, print, progress, prompt, prototype, pt, purple, push, px,
+    q, quit, quotes, random, range, raw, reach, readFile, readUrl, reason,
+    red, regexp, reloadWidget, removeEventListener, replace, report,
+    reserved, resizeBy, resizeTo, resolvePath, resumeUpdates, rhino, right,
+    rosybrown, royalblue, rp, rt, ruby, runCommand, runCommandInBg,
+    saddlebrown, safe, salmon, samp, sandybrown, saveAs, savePreferences,
+    screen, script, scroll, scrollBy, scrollTo, seagreen, seal, search,
+    seashell, section, select, serialize, setInterval, setTimeout, shift,
+    showWidgetPreferences, sienna, silver, skyblue, slateblue, slategray,
+    sleep, slice, small, snow, sort, source, span, spawn, speak, split,
+    springgreen, src, stack, status, steelblue, strict, strong, style,
+    styleproperty, sub, substr, sup, supplant, suppressUpdates, sync,
+    system, table, "table-layout", tan, tbody, td, teal, tellWidget, test,
+    "text-align", "text-decoration", "text-indent", "text-shadow",
+    "text-transform", textarea, tfoot, th, thead, thistle, time, title,
+    toLowerCase, toString, toUpperCase, toint32, token, tomato, top, tr, tt,
+    turquoise, type, u, ul, undef, unescape, "unicode-bidi", unused,
+    unwatch, updateNow, urls, value, valueOf, var, version,
+    "vertical-align", video, violet, visibility, watch, wheat, white,
+    "white-space", whitesmoke, widget, width, windows, "word-spacing",
+    "word-wrap", yahooCheckLogin, yahooLogin, yahooLogout, yellow,
+    yellowgreen, "z-index"
+*/
+
+// We build the application inside a function so that we produce only a single
+// global variable. The function will be invoked, its return value is the JSLINT
+// application itself.
+
+"use strict";
+
+var JSLINT = (function () {
+    var adsafe_id,      // The widget's ADsafe id.
+        adsafe_may,     // The widget may load approved scripts.
+        adsafe_went,    // ADSAFE.go has been called.
+        anonname,       // The guessed name for anonymous functions.
+        approved,       // ADsafe approved urls.
+
+        atrule = {
+            media      : true,
+            'font-face': true,
+            page       : true
+        },
+
+// These are operators that should not be used with the ! operator.
+
+        bang = {
+            '<': true,
+            '<=': true,
+            '==': true,
+            '===': true,
+            '!==': true,
+            '!=': true,
+            '>': true,
+            '>=': true,
+            '+': true,
+            '-': true,
+            '*': true,
+            '/': true,
+            '%': true
+        },
+
+// These are members that should not be permitted in the safe subset.
+
+        banned = {              // the member names that ADsafe prohibits.
+            'arguments'     : true,
+            callee          : true,
+            caller          : true,
+            constructor     : true,
+            'eval'          : true,
+            prototype       : true,
+            stack           : true,
+            unwatch         : true,
+            valueOf         : true,
+            watch           : true
+        },
+
+
+// These are the JSLint boolean options.
+
+        boolOptions = {
+            adsafe     : true, // if ADsafe should be enforced
+            bitwise    : true, // if bitwise operators should not be allowed
+            browser    : true, // if the standard browser globals should be predefined
+            cap        : true, // if upper case HTML should be allowed
+            css        : true, // if CSS workarounds should be tolerated
+            debug      : true, // if debugger statements should be allowed
+            devel      : true, // if logging should be allowed (console, alert, etc.)
+            eqeqeq     : true, // if === should be required
+            es5        : true, // if ES5 syntax should be allowed
+            evil       : true, // if eval should be allowed
+            forin      : true, // if for in statements must filter
+            fragment   : true, // if HTML fragments should be allowed
+            immed      : true, // if immediate invocations must be wrapped in parens
+            laxbreak   : true, // if line breaks should not be checked
+            newcap     : true, // if constructor names must be capitalized
+            nomen      : true, // if names should be checked
+            on         : true, // if HTML event handlers should be allowed
+            onevar     : true, // if only one var statement per function should be allowed
+            passfail   : true, // if the scan should stop on first error
+            plusplus   : true, // if increment/decrement should not be allowed
+            regexp     : true, // if the . should not be allowed in regexp literals
+            rhino      : true, // if the Rhino environment globals should be predefined
+            undef      : true, // if variables should be declared before used
+            safe       : true, // if use of some browser features should be restricted
+            windows    : true, // if MS Windows-specigic globals should be predefined
+            strict     : true, // require the "use strict"; pragma
+            sub        : true, // if all forms of subscript notation are tolerated
+            white      : true, // if strict whitespace rules apply
+            widget     : true  // if the Yahoo Widgets globals should be predefined
+        },
+
+// browser contains a set of global names which are commonly provided by a
+// web browser environment.
+
+        browser = {
+            addEventListener: false,
+            blur            : false,
+            clearInterval   : false,
+            clearTimeout    : false,
+            close           : false,
+            closed          : false,
+            defaultStatus   : false,
+            document        : false,
+            event           : false,
+            focus           : false,
+            frames          : false,
+            getComputedStyle: false,
+            history         : false,
+            Image           : false,
+            length          : false,
+            location        : false,
+            moveBy          : false,
+            moveTo          : false,
+            name            : false,
+            navigator       : false,
+            onbeforeunload  : true,
+            onblur          : true,
+            onerror         : true,
+            onfocus         : true,
+            onload          : true,
+            onresize        : true,
+            onunload        : true,
+            open            : false,
+            opener          : false,
+            Option          : false,
+            parent          : false,
+            print           : false,
+            removeEventListener: false,
+            resizeBy        : false,
+            resizeTo        : false,
+            screen          : false,
+            scroll          : false,
+            scrollBy        : false,
+            scrollTo        : false,
+            setInterval     : false,
+            setTimeout      : false,
+            status          : false,
+            top             : false,
+            XMLHttpRequest  : false
+        },
+
+        cssAttributeData,
+        cssAny,
+
+        cssColorData = {
+            "aliceblue"             : true,
+            "antiquewhite"          : true,
+            "aqua"                  : true,
+            "aquamarine"            : true,
+            "azure"                 : true,
+            "beige"                 : true,
+            "bisque"                : true,
+            "black"                 : true,
+            "blanchedalmond"        : true,
+            "blue"                  : true,
+            "blueviolet"            : true,
+            "brown"                 : true,
+            "burlywood"             : true,
+            "cadetblue"             : true,
+            "chartreuse"            : true,
+            "chocolate"             : true,
+            "coral"                 : true,
+            "cornflowerblue"        : true,
+            "cornsilk"              : true,
+            "crimson"               : true,
+            "cyan"                  : true,
+            "darkblue"              : true,
+            "darkcyan"              : true,
+            "darkgoldenrod"         : true,
+            "darkgray"              : true,
+            "darkgreen"             : true,
+            "darkkhaki"             : true,
+            "darkmagenta"           : true,
+            "darkolivegreen"        : true,
+            "darkorange"            : true,
+            "darkorchid"            : true,
+            "darkred"               : true,
+            "darksalmon"            : true,
+            "darkseagreen"          : true,
+            "darkslateblue"         : true,
+            "darkslategray"         : true,
+            "darkturquoise"         : true,
+            "darkviolet"            : true,
+            "deeppink"              : true,
+            "deepskyblue"           : true,
+            "dimgray"               : true,
+            "dodgerblue"            : true,
+            "firebrick"             : true,
+            "floralwhite"           : true,
+            "forestgreen"           : true,
+            "fuchsia"               : true,
+            "gainsboro"             : true,
+            "ghostwhite"            : true,
+            "gold"                  : true,
+            "goldenrod"             : true,
+            "gray"                  : true,
+            "green"                 : true,
+            "greenyellow"           : true,
+            "honeydew"              : true,
+            "hotpink"               : true,
+            "indianred"             : true,
+            "indigo"                : true,
+            "ivory"                 : true,
+            "khaki"                 : true,
+            "lavender"              : true,
+            "lavenderblush"         : true,
+            "lawngreen"             : true,
+            "lemonchiffon"          : true,
+            "lightblue"             : true,
+            "lightcoral"            : true,
+            "lightcyan"             : true,
+            "lightgoldenrodyellow"  : true,
+            "lightgreen"            : true,
+            "lightpink"             : true,
+            "lightsalmon"           : true,
+            "lightseagreen"         : true,
+            "lightskyblue"          : true,
+            "lightslategray"        : true,
+            "lightsteelblue"        : true,
+            "lightyellow"           : true,
+            "lime"                  : true,
+            "limegreen"             : true,
+            "linen"                 : true,
+            "magenta"               : true,
+            "maroon"                : true,
+            "mediumaquamarine"      : true,
+            "mediumblue"            : true,
+            "mediumorchid"          : true,
+            "mediumpurple"          : true,
+            "mediumseagreen"        : true,
+            "mediumslateblue"       : true,
+            "mediumspringgreen"     : true,
+            "mediumturquoise"       : true,
+            "mediumvioletred"       : true,
+            "midnightblue"          : true,
+            "mintcream"             : true,
+            "mistyrose"             : true,
+            "moccasin"              : true,
+            "navajowhite"           : true,
+            "navy"                  : true,
+            "oldlace"               : true,
+            "olive"                 : true,
+            "olivedrab"             : true,
+            "orange"                : true,
+            "orangered"             : true,
+            "orchid"                : true,
+            "palegoldenrod"         : true,
+            "palegreen"             : true,
+            "paleturquoise"         : true,
+            "palevioletred"         : true,
+            "papayawhip"            : true,
+            "peachpuff"             : true,
+            "peru"                  : true,
+            "pink"                  : true,
+            "plum"                  : true,
+            "powderblue"            : true,
+            "purple"                : true,
+            "red"                   : true,
+            "rosybrown"             : true,
+            "royalblue"             : true,
+            "saddlebrown"           : true,
+            "salmon"                : true,
+            "sandybrown"            : true,
+            "seagreen"              : true,
+            "seashell"              : true,
+            "sienna"                : true,
+            "silver"                : true,
+            "skyblue"               : true,
+            "slateblue"             : true,
+            "slategray"             : true,
+            "snow"                  : true,
+            "springgreen"           : true,
+            "steelblue"             : true,
+            "tan"                   : true,
+            "teal"                  : true,
+            "thistle"               : true,
+            "tomato"                : true,
+            "turquoise"             : true,
+            "violet"                : true,
+            "wheat"                 : true,
+            "white"                 : true,
+            "whitesmoke"            : true,
+            "yellow"                : true,
+            "yellowgreen"           : true
+        },
+
+        cssBorderStyle,
+        cssBreak,
+
+        cssLengthData = {
+            '%': true,
+            'cm': true,
+            'em': true,
+            'ex': true,
+            'in': true,
+            'mm': true,
+            'pc': true,
+            'pt': true,
+            'px': true
+        },
+
+        cssOverflow,
+
+        devel = {
+            alert           : false,
+            confirm         : false,
+            console         : false,
+            Debug           : false,
+            opera           : false,
+            prompt          : false
+        },
+
+        escapes = {
+            '\b': '\\b',
+            '\t': '\\t',
+            '\n': '\\n',
+            '\f': '\\f',
+            '\r': '\\r',
+            '"' : '\\"',
+            '/' : '\\/',
+            '\\': '\\\\'
+        },
+
+        funct,          // The current function
+
+        functionicity = [
+            'closure', 'exception', 'global', 'label',
+            'outer', 'unused', 'var'
+        ],
+
+        functions,      // All of the functions
+
+        global,         // The global scope
+        htmltag = {
+            a:        {},
+            abbr:     {},
+            acronym:  {},
+            address:  {},
+            applet:   {},
+            area:     {empty: true, parent: ' map '},
+            article:  {},
+            aside:    {},
+            audio:    {},
+            b:        {},
+            base:     {empty: true, parent: ' head '},
+            bdo:      {},
+            big:      {},
+            blockquote: {},
+            body:     {parent: ' html noframes '},
+            br:       {empty: true},
+            button:   {},
+            canvas:   {parent: ' body p div th td '},
+            caption:  {parent: ' table '},
+            center:   {},
+            cite:     {},
+            code:     {},
+            col:      {empty: true, parent: ' table colgroup '},
+            colgroup: {parent: ' table '},
+            command:  {parent: ' menu '},
+            datalist: {},
+            dd:       {parent: ' dl '},
+            del:      {},
+            details:  {},
+            dialog:   {},
+            dfn:      {},
+            dir:      {},
+            div:      {},
+            dl:       {},
+            dt:       {parent: ' dl '},
+            em:       {},
+            embed:    {},
+            fieldset: {},
+            figure:   {},
+            font:     {},
+            footer:   {},
+            form:     {},
+            frame:    {empty: true, parent: ' frameset '},
+            frameset: {parent: ' html frameset '},
+            h1:       {},
+            h2:       {},
+            h3:       {},
+            h4:       {},
+            h5:       {},
+            h6:       {},
+            head:     {parent: ' html '},
+            header:   {},
+            hgroup:   {},
+            hr:       {empty: true},
+            'hta:application':
+                      {empty: true, parent: ' head '},
+            html:     {parent: '*'},
+            i:        {},
+            iframe:   {},
+            img:      {empty: true},
+            input:    {empty: true},
+            ins:      {},
+            kbd:      {},
+            keygen:   {},
+            label:    {},
+            legend:   {parent: ' details fieldset figure '},
+            li:       {parent: ' dir menu ol ul '},
+            link:     {empty: true, parent: ' head '},
+            map:      {},
+            mark:     {},
+            menu:     {},
+            meta:     {empty: true, parent: ' head noframes noscript '},
+            meter:    {},
+            nav:      {},
+            noframes: {parent: ' html body '},
+            noscript: {parent: ' body head noframes '},
+            object:   {},
+            ol:       {},
+            optgroup: {parent: ' select '},
+            option:   {parent: ' optgroup select '},
+            output:   {},
+            p:        {},
+            param:    {empty: true, parent: ' applet object '},
+            pre:      {},
+            progress: {},
+            q:        {},
+            rp:       {},
+            rt:       {},
+            ruby:     {},
+            samp:     {},
+            script:   {empty: true, parent: ' body div frame head iframe p pre span '},
+            section:  {},
+            select:   {},
+            small:    {},
+            span:     {},
+            source:   {},
+            strong:   {},
+            style:    {parent: ' head ', empty: true},
+            sub:      {},
+            sup:      {},
+            table:    {},
+            tbody:    {parent: ' table '},
+            td:       {parent: ' tr '},
+            textarea: {},
+            tfoot:    {parent: ' table '},
+            th:       {parent: ' tr '},
+            thead:    {parent: ' table '},
+            time:     {},
+            title:    {parent: ' head '},
+            tr:       {parent: ' table tbody thead tfoot '},
+            tt:       {},
+            u:        {},
+            ul:       {},
+            'var':    {},
+            video:    {}
+        },
+
+        ids,            // HTML ids
+        implied,        // Implied globals
+        inblock,
+        indent,
+        jsonmode,
+        lines,
+        lookahead,
+        member,
+        membersOnly,
+        nexttoken,
+        noreach,
+        option,
+        predefined,     // Global variables defined by option
+        prereg,
+        prevtoken,
+
+        rhino = {
+            defineClass : false,
+            deserialize : false,
+            gc          : false,
+            help        : false,
+            load        : false,
+            loadClass   : false,
+            print       : false,
+            quit        : false,
+            readFile    : false,
+            readUrl     : false,
+            runCommand  : false,
+            seal        : false,
+            serialize   : false,
+            spawn       : false,
+            sync        : false,
+            toint32     : false,
+            version     : false
+        },
+
+        scope,      // The current scope
+
+        windows = {
+            ActiveXObject: false,
+            CScript      : false,
+            Debug        : false,
+            Enumerator   : false,
+            System       : false,
+            VBArray      : false,
+            WScript      : false
+        },
+
+        src,
+        stack,
+
+// standard contains the global names that are provided by the
+// ECMAScript standard.
+
+        standard = {
+            Array               : false,
+            Boolean             : false,
+            Date                : false,
+            decodeURI           : false,
+            decodeURIComponent  : false,
+            encodeURI           : false,
+            encodeURIComponent  : false,
+            Error               : false,
+            'eval'              : false,
+            EvalError           : false,
+            Function            : false,
+            hasOwnProperty      : false,
+            isFinite            : false,
+            isNaN               : false,
+            JSON                : false,
+            Math                : false,
+            Number              : false,
+            Object              : false,
+            parseInt            : false,
+            parseFloat          : false,
+            RangeError          : false,
+            ReferenceError      : false,
+            RegExp              : false,
+            String              : false,
+            SyntaxError         : false,
+            TypeError           : false,
+            URIError            : false
+        },
+
+        standard_member = {
+            E                   : true,
+            LN2                 : true,
+            LN10                : true,
+            LOG2E               : true,
+            LOG10E              : true,
+            PI                  : true,
+            SQRT1_2             : true,
+            SQRT2               : true,
+            MAX_VALUE           : true,
+            MIN_VALUE           : true,
+            NEGATIVE_INFINITY   : true,
+            POSITIVE_INFINITY   : true
+        },
+
+        strict_mode,
+        syntax = {},
+        tab,
+        token,
+        urls,
+        warnings,
+
+// widget contains the global names which are provided to a Yahoo
+// (fna Konfabulator) widget.
+
+        widget = {
+            alert                   : true,
+            animator                : true,
+            appleScript             : true,
+            beep                    : true,
+            bytesToUIString         : true,
+            Canvas                  : true,
+            chooseColor             : true,
+            chooseFile              : true,
+            chooseFolder            : true,
+            closeWidget             : true,
+            COM                     : true,
+            convertPathToHFS        : true,
+            convertPathToPlatform   : true,
+            CustomAnimation         : true,
+            escape                  : true,
+            FadeAnimation           : true,
+            filesystem              : true,
+            Flash                   : true,
+            focusWidget             : true,
+            form                    : true,
+            FormField               : true,
+            Frame                   : true,
+            HotKey                  : true,
+            Image                   : true,
+            include                 : true,
+            isApplicationRunning    : true,
+            iTunes                  : true,
+            konfabulatorVersion     : true,
+            log                     : true,
+            md5                     : true,
+            MenuItem                : true,
+            MoveAnimation           : true,
+            openURL                 : true,
+            play                    : true,
+            Point                   : true,
+            popupMenu               : true,
+            preferenceGroups        : true,
+            preferences             : true,
+            print                   : true,
+            prompt                  : true,
+            random                  : true,
+            Rectangle               : true,
+            reloadWidget            : true,
+            ResizeAnimation         : true,
+            resolvePath             : true,
+            resumeUpdates           : true,
+            RotateAnimation         : true,
+            runCommand              : true,
+            runCommandInBg          : true,
+            saveAs                  : true,
+            savePreferences         : true,
+            screen                  : true,
+            ScrollBar               : true,
+            showWidgetPreferences   : true,
+            sleep                   : true,
+            speak                   : true,
+            Style                   : true,
+            suppressUpdates         : true,
+            system                  : true,
+            tellWidget              : true,
+            Text                    : true,
+            TextArea                : true,
+            Timer                   : true,
+            unescape                : true,
+            updateNow               : true,
+            URL                     : true,
+            Web                     : true,
+            widget                  : true,
+            Window                  : true,
+            XMLDOM                  : true,
+            XMLHttpRequest          : true,
+            yahooCheckLogin         : true,
+            yahooLogin              : true,
+            yahooLogout             : true
+        },
+
+//  xmode is used to adapt to the exceptions in html parsing.
+//  It can have these states:
+//      false   .js script file
+//      html
+//      outer
+//      script
+//      style
+//      scriptstring
+//      styleproperty
+
+        xmode,
+        xquote,
+
+// unsafe comment or string
+        ax = /@cc|<\/?|script|\]*s\]|<\s*!|&lt/i,
+// unsafe characters that are silently deleted by one or more browsers
+        cx = /[\u0000-\u001f\u007f-\u009f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/,
+// token
+        tx = /^\s*([(){}\[.,:;'"~\?\]#@]|==?=?|\/(\*(jslint|members?|global)?|=|\/)?|\*[\/=]?|\+(?:=|\++)?|-(?:=|-+)?|%=?|&[&=]?|\|[|=]?|>>?>?=?|<([\/=!]|\!(\[|--)?|<=?)?|\^=?|\!=?=?|[a-zA-Z_$][a-zA-Z0-9_$]*|[0-9]+([xX][0-9a-fA-F]+|\.[0-9]*)?([eE][+\-]?[0-9]+)?)/,
+// html token
+        hx = /^\s*(['"=>\/&#]|<(?:\/|\!(?:--)?)?|[a-zA-Z][a-zA-Z0-9_\-:]*|[0-9]+|--)/,
+// characters in strings that need escapement
+        nx = /[\u0000-\u001f&<"\/\\\u007f-\u009f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/,
+        nxg = /[\u0000-\u001f&<"\/\\\u007f-\u009f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
+// outer html token
+        ox = /[>&]|<[\/!]?|--/,
+// star slash
+        lx = /\*\/|\/\*/,
+// identifier
+        ix = /^([a-zA-Z_$][a-zA-Z0-9_$]*)$/,
+// javascript url
+        jx = /^(?:javascript|jscript|ecmascript|vbscript|mocha|livescript)\s*:/i,
+// url badness
+        ux = /&|\+|\u00AD|\.\.|\/\*|%[^;]|base64|url|expression|data|mailto/i,
+// style
+        sx = /^\s*([{:#%.=,>+\[\]@()"';]|\*=?|\$=|\|=|\^=|~=|[a-zA-Z_][a-zA-Z0-9_\-]*|[0-9]+|<\/|\/\*)/,
+        ssx = /^\s*([@#!"'};:\-%.=,+\[\]()*_]|[a-zA-Z][a-zA-Z0-9._\-]*|\/\*?|\d+(?:\.\d+)?|<\/)/,
+// attributes characters
+        qx = /[^a-zA-Z0-9+\-_\/ ]/,
+// query characters for ids
+        dx = /[\[\]\/\\"'*<>.&:(){}+=#]/,
+
+        rx = {
+            outer: hx,
+            html: hx,
+            style: sx,
+            styleproperty: ssx
+        };
+
+    function F() {}
+
+    if (typeof Object.create !== 'function') {
+        Object.create = function (o) {
+            F.prototype = o;
+            return new F();
+        };
+    }
+
+
+    function is_own(object, name) {
+        return Object.prototype.hasOwnProperty.call(object, name);
+    }
+
+
+    function combine(t, o) {
+        var n;
+        for (n in o) {
+            if (is_own(o, n)) {
+                t[n] = o[n];
+            }
+        }
+    }
+
+    String.prototype.entityify = function () {
+        return this
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    };
+
+    String.prototype.isAlpha = function () {
+        return (this >= 'a' && this <= 'z\uffff') ||
+            (this >= 'A' && this <= 'Z\uffff');
+    };
+
+
+    String.prototype.isDigit = function () {
+        return (this >= '0' && this <= '9');
+    };
+
+
+    String.prototype.supplant = function (o) {
+        return this.replace(/\{([^{}]*)\}/g, function (a, b) {
+            var r = o[b];
+            return typeof r === 'string' || typeof r === 'number' ? r : a;
+        });
+    };
+
+    String.prototype.name = function () {
+
+// If the string looks like an identifier, then we can return it as is.
+// If the string contains no control characters, no quote characters, and no
+// backslash characters, then we can simply slap some quotes around it.
+// Otherwise we must also replace the offending characters with safe
+// sequences.
+
+        if (ix.test(this)) {
+            return this;
+        }
+        if (nx.test(this)) {
+            return '"' + this.replace(nxg, function (a) {
+                var c = escapes[a];
+                if (c) {
+                    return c;
+                }
+                return '\\u' + ('0000' + a.charCodeAt().toString(16)).slice(-4);
+            }) + '"';
+        }
+        return '"' + this + '"';
+    };
+
+
+    function assume() {
+        if (!option.safe) {
+            if (option.rhino) {
+                combine(predefined, rhino);
+            }
+            if (option.devel) {
+                combine(predefined, devel);
+            }
+            if (option.browser) {
+                combine(predefined, browser);
+            }
+            if (option.windows) {
+                combine(predefined, windows);
+            }
+            if (option.widget) {
+                combine(predefined, widget);
+            }
+        }
+    }
+
+
+// Produce an error warning.
+
+    function quit(m, l, ch) {
+        throw {
+            name: 'JSLintError',
+            line: l,
+            character: ch,
+            message: m + " (" + Math.floor((l / lines.length) * 100) +
+                    "% scanned)."
+        };
+    }
+
+    function warning(m, t, a, b, c, d) {
+        var ch, l, w;
+        t = t || nexttoken;
+        if (t.id === '(end)') {  // `~
+            t = token;
+        }
+        l = t.line || 0;
+        ch = t.from || 0;
+        w = {
+            id: '(error)',
+            raw: m,
+            evidence: lines[l - 1] || '',
+            line: l,
+            character: ch,
+            a: a,
+            b: b,
+            c: c,
+            d: d
+        };
+        w.reason = m.supplant(w);
+        JSLINT.errors.push(w);
+        if (option.passfail) {
+            quit('Stopping. ', l, ch);
+        }
+        warnings += 1;
+        if (warnings >= option.maxerr) {
+            quit("Too many errors.", l, ch);
+        }
+        return w;
+    }
+
+    function warningAt(m, l, ch, a, b, c, d) {
+        return warning(m, {
+            line: l,
+            from: ch
+        }, a, b, c, d);
+    }
+
+    function error(m, t, a, b, c, d) {
+        var w = warning(m, t, a, b, c, d);
+        quit("Stopping, unable to continue.", w.line, w.character);
+    }
+
+    function errorAt(m, l, ch, a, b, c, d) {
+        return error(m, {
+            line: l,
+            from: ch
+        }, a, b, c, d);
+    }
+
+
+
+// lexical analysis
+
+    var lex = (function lex() {
+        var character, from, line, s;
+
+// Private lex methods
+
+        function nextLine() {
+            var at;
+            if (line >= lines.length) {
+                return false;
+            }
+            character = 1;
+            s = lines[line];
+            line += 1;
+            at = s.search(/ \t/);
+            if (at >= 0) {
+                warningAt("Mixed spaces and tabs.", line, at + 1);
+            }
+            s = s.replace(/\t/g, tab);
+            at = s.search(cx);
+            if (at >= 0) {
+                warningAt("Unsafe character.", line, at);
+            }
+            if (option.maxlen && option.maxlen < s.length) {
+                warningAt("Line too long.", line, s.length);
+            }
+            return true;
+        }
+
+// Produce a token object.  The token inherits from a syntax symbol.
+
+        function it(type, value) {
+            var i, t;
+            if (type === '(color)') {
+                t = {type: type};
+            } else if (type === '(punctuator)' ||
+                    (type === '(identifier)' && is_own(syntax, value))) {
+                t = syntax[value] || syntax['(error)'];
+            } else {
+                t = syntax[type];
+            }
+            t = Object.create(t);
+            if (type === '(string)' || type === '(range)') {
+                if (jx.test(value)) {
+                    warningAt("Script URL.", line, from);
+                }
+            }
+            if (type === '(identifier)') {
+                t.identifier = true;
+                if (value === '__iterator__' || value === '__proto__') {
+                    errorAt("Reserved name '{a}'.",
+                        line, from, value);
+                } else if (option.nomen &&
+                        (value.charAt(0) === '_' ||
+                         value.charAt(value.length - 1) === '_')) {
+                    warningAt("Unexpected {a} in '{b}'.", line, from,
+                        "dangling '_'", value);
+                }
+            }
+            t.value = value;
+            t.line = line;
+            t.character = character;
+            t.from = from;
+            i = t.id;
+            if (i !== '(endline)') {
+                prereg = i &&
+                    (('(,=:[!&|?{};'.indexOf(i.charAt(i.length - 1)) >= 0) ||
+                    i === 'return');
+            }
+            return t;
+        }
+
+// Public lex methods
+
+        return {
+            init: function (source) {
+                if (typeof source === 'string') {
+                    lines = source
+                        .replace(/\r\n/g, '\n')
+                        .replace(/\r/g, '\n')
+                        .split('\n');
+                } else {
+                    lines = source;
+                }
+                line = 0;
+                nextLine();
+                from = 1;
+            },
+
+            range: function (begin, end) {
+                var c, value = '';
+                from = character;
+                if (s.charAt(0) !== begin) {
+                    errorAt("Expected '{a}' and instead saw '{b}'.",
+                            line, character, begin, s.charAt(0));
+                }
+                for (;;) {
+                    s = s.slice(1);
+                    character += 1;
+                    c = s.charAt(0);
+                    switch (c) {
+                    case '':
+                        errorAt("Missing '{a}'.", line, character, c);
+                        break;
+                    case end:
+                        s = s.slice(1);
+                        character += 1;
+                        return it('(range)', value);
+                    case xquote:
+                    case '\\':
+                        warningAt("Unexpected '{a}'.", line, character, c);
+                    }
+                    value += c;
+                }
+
+            },
+
+// token -- this is called by advance to get the next token.
+
+            token: function () {
+                var b, c, captures, d, depth, high, i, l, low, q, t;
+
+                function match(x) {
+                    var r = x.exec(s), r1;
+                    if (r) {
+                        l = r[0].length;
+                        r1 = r[1];
+                        c = r1.charAt(0);
+                        s = s.substr(l);
+                        from = character + l - r1.length;
+                        character += l;
+                        return r1;
+                    }
+                }
+
+                function string(x) {
+                    var c, j, r = '';
+
+                    if (jsonmode && x !== '"') {
+                        warningAt("Strings must use doublequote.",
+                                line, character);
+                    }
+
+                    if (xquote === x || (xmode === 'scriptstring' && !xquote)) {
+                        return it('(punctuator)', x);
+                    }
+
+                    function esc(n) {
+                        var i = parseInt(s.substr(j + 1, n), 16);
+                        j += n;
+                        if (i >= 32 && i <= 126 &&
+                                i !== 34 && i !== 92 && i !== 39) {
+                            warningAt("Unnecessary escapement.", line, character);
+                        }
+                        character += n;
+                        c = String.fromCharCode(i);
+                    }
+                    j = 0;
+                    for (;;) {
+                        while (j >= s.length) {
+                            j = 0;
+                            if (xmode !== 'html' || !nextLine()) {
+                                errorAt("Unclosed string.", line, from);
+                            }
+                        }
+                        c = s.charAt(j);
+                        if (c === x) {
+                            character += 1;
+                            s = s.substr(j + 1);
+                            return it('(string)', r, x);
+                        }
+                        if (c < ' ') {
+                            if (c === '\n' || c === '\r') {
+                                break;
+                            }
+                            warningAt("Control character in string: {a}.",
+                                    line, character + j, s.slice(0, j));
+                        } else if (c === xquote) {
+                            warningAt("Bad HTML string", line, character + j);
+                        } else if (c === '<') {
+                            if (option.safe && xmode === 'html') {
+                                warningAt("ADsafe string violation.",
+                                        line, character + j);
+                            } else if (s.charAt(j + 1) === '/' && (xmode || option.safe)) {
+                                warningAt("Expected '<\\/' and instead saw '</'.", line, character);
+                            } else if (s.charAt(j + 1) === '!' && (xmode || option.safe)) {
+                                warningAt("Unexpected '<!' in a string.", line, character);
+                            }
+                        } else if (c === '\\') {
+                            if (xmode === 'html') {
+                                if (option.safe) {
+                                    warningAt("ADsafe string violation.",
+                                            line, character + j);
+                                }
+                            } else if (xmode === 'styleproperty') {
+                                j += 1;
+                                character += 1;
+                                c = s.charAt(j);
+                                if (c !== x) {
+                                    warningAt("Escapement in style string.",
+                                            line, character + j);
+                                }
+                            } else {
+                                j += 1;
+                                character += 1;
+                                c = s.charAt(j);
+                                switch (c) {
+                                case xquote:
+                                    warningAt("Bad HTML string", line,
+                                        character + j);
+                                    break;
+                                case '\\':
+                                case '\'':
+                                case '"':
+                                case '/':
+                                    break;
+                                case 'b':
+                                    c = '\b';
+                                    break;
+                                case 'f':
+                                    c = '\f';
+                                    break;
+                                case 'n':
+                                    c = '\n';
+                                    break;
+                                case 'r':
+                                    c = '\r';
+                                    break;
+                                case 't':
+                                    c = '\t';
+                                    break;
+                                case 'u':
+                                    esc(4);
+                                    break;
+                                case 'v':
+                                    c = '\v';
+                                    break;
+                                case 'x':
+                                    if (jsonmode) {
+                                        warningAt("Avoid \\x-.", line, character);
+                                    }
+                                    esc(2);
+                                    break;
+                                default:
+                                    warningAt("Bad escapement.", line, character);
+                                }
+                            }
+                        }
+                        r += c;
+                        character += 1;
+                        j += 1;
+                    }
+                }
+
+                for (;;) {
+                    if (!s) {
+                        return it(nextLine() ? '(endline)' : '(end)', '');
+                    }
+                    while (xmode === 'outer') {
+                        i = s.search(ox);
+                        if (i === 0) {
+                            break;
+                        } else if (i > 0) {
+                            character += 1;
+                            s = s.slice(i);
+                            break;
+                        } else {
+                            if (!nextLine()) {
+                                return it('(end)', '');
+                            }
+                        }
+                    }
+//                     t = match(rx[xmode] || tx);
+//                     if (!t) {
+//                         if (xmode === 'html') {
+//                             return it('(error)', s.charAt(0));
+//                         } else {
+//                             t = '';
+//                             c = '';
+//                             while (s && s < '!') {
+//                                 s = s.substr(1);
+//                             }
+//                             if (s) {
+//                                 errorAt("Unexpected '{a}'.",
+//                                         line, character, s.substr(0, 1));
+//                             }
+//                         }
+                    t = match(rx[xmode] || tx);
+                    if (!t) {
+                        t = '';
+                        c = '';
+                        while (s && s < '!') {
+                            s = s.substr(1);
+                        }
+                        if (s) {
+                            if (xmode === 'html') {
+                                return it('(error)', s.charAt(0));
+                            } else {
+                                errorAt("Unexpected '{a}'.",
+                                        line, character, s.substr(0, 1));
+                            }
+                        }
+                    } else {
+
+    //      identifier
+
+                        if (c.isAlpha() || c === '_' || c === '$') {
+                            return it('(identifier)', t);
+                        }
+
+    //      number
+
+                        if (c.isDigit()) {
+                            if (xmode !== 'style' && !isFinite(Number(t))) {
+                                warningAt("Bad number '{a}'.",
+                                    line, character, t);
+                            }
+                            if (xmode !== 'style' &&
+                                     xmode !== 'styleproperty' &&
+                                     s.substr(0, 1).isAlpha()) {
+                                warningAt("Missing space after '{a}'.",
+                                        line, character, t);
+                            }
+                            if (c === '0') {
+                                d = t.substr(1, 1);
+                                if (d.isDigit()) {
+                                    if (token.id !== '.' && xmode !== 'styleproperty') {
+                                        warningAt("Don't use extra leading zeros '{a}'.",
+                                            line, character, t);
+                                    }
+                                } else if (jsonmode && (d === 'x' || d === 'X')) {
+                                    warningAt("Avoid 0x-. '{a}'.",
+                                            line, character, t);
+                                }
+                            }
+                            if (t.substr(t.length - 1) === '.') {
+                                warningAt(
+        "A trailing decimal point can be confused with a dot '{a}'.",
+                                        line, character, t);
+                            }
+                            return it('(number)', t);
+                        }
+                        switch (t) {
+
+    //      string
+
+                        case '"':
+                        case "'":
+                            return string(t);
+
+    //      // comment
+
+                        case '//':
+                            if (src || (xmode && xmode !== 'script')) {
+                                warningAt("Unexpected comment.", line, character);
+                            } else if (xmode === 'script' && /<\s*\//i.test(s)) {
+                                warningAt("Unexpected <\/ in comment.", line, character);
+                            } else if ((option.safe || xmode === 'script') && ax.test(s)) {
+                                warningAt("Dangerous comment.", line, character);
+                            }
+                            s = '';
+                            token.comment = true;
+                            break;
+
+    //      /* comment
+
+                        case '/*':
+                            if (src || (xmode && xmode !== 'script' && xmode !== 'style' && xmode !== 'styleproperty')) {
+                                warningAt("Unexpected comment.", line, character);
+                            }
+                            if (option.safe && ax.test(s)) {
+                                warningAt("ADsafe comment violation.", line, character);
+                            }
+                            for (;;) {
+                                i = s.search(lx);
+                                if (i >= 0) {
+                                    break;
+                                }
+                                if (!nextLine()) {
+                                    errorAt("Unclosed comment.", line, character);
+                                } else {
+                                    if (option.safe && ax.test(s)) {
+                                        warningAt("ADsafe comment violation.",
+                                                line, character);
+                                    }
+                                }
+                            }
+                            character += i + 2;
+                            if (s.substr(i, 1) === '/') {
+                                errorAt("Nested comment.", line, character);
+                            }
+                            s = s.substr(i + 2);
+                            token.comment = true;
+                            break;
+
+    //      /*members /*jslint /*global
+
+                        case '/*members':
+                        case '/*member':
+                        case '/*jslint':
+                        case '/*global':
+                        case '*/':
+                            return {
+                                value: t,
+                                type: 'special',
+                                line: line,
+                                character: character,
+                                from: from
+                            };
+
+                        case '':
+                            break;
+    //      /
+                        case '/':
+                            if (token.id === '/=') {
+                                errorAt(
+"A regular expression literal can be confused with '/='.", line, from);
+                            }
+                            if (prereg) {
+                                depth = 0;
+                                captures = 0;
+                                l = 0;
+                                for (;;) {
+                                    b = true;
+                                    c = s.charAt(l);
+                                    l += 1;
+                                    switch (c) {
+                                    case '':
+                                        errorAt("Unclosed regular expression.",
+                                                line, from);
+                                        return;
+                                    case '/':
+                                        if (depth > 0) {
+                                            warningAt("Unescaped '{a}'.",
+                                                    line, from + l, '/');
+                                        }
+                                        c = s.substr(0, l - 1);
+                                        q = {
+                                            g: true,
+                                            i: true,
+                                            m: true
+                                        };
+                                        while (q[s.charAt(l)] === true) {
+                                            q[s.charAt(l)] = false;
+                                            l += 1;
+                                        }
+                                        character += l;
+                                        s = s.substr(l);
+                                        q = s.charAt(0);
+                                        if (q === '/' || q === '*') {
+                                            errorAt("Confusing regular expression.",
+                                                    line, from);
+                                        }
+                                        return it('(regexp)', c);
+                                    case '\\':
+                                        c = s.charAt(l);
+                                        if (c < ' ') {
+                                            warningAt(
+"Unexpected control character in regular expression.", line, from + l);
+                                        } else if (c === '<') {
+                                            warningAt(
+"Unexpected escaped character '{a}' in regular expression.", line, from + l, c);
+                                        }
+                                        l += 1;
+                                        break;
+                                    case '(':
+                                        depth += 1;
+                                        b = false;
+                                        if (s.charAt(l) === '?') {
+                                            l += 1;
+                                            switch (s.charAt(l)) {
+                                            case ':':
+                                            case '=':
+                                            case '!':
+                                                l += 1;
+                                                break;
+                                            default:
+                                                warningAt(
+"Expected '{a}' and instead saw '{b}'.", line, from + l, ':', s.charAt(l));
+                                            }
+                                        } else {
+                                            captures += 1;
+                                        }
+                                        break;
+                                    case '|':
+                                        b = false;
+                                        break;
+                                    case ')':
+                                        if (depth === 0) {
+                                            warningAt("Unescaped '{a}'.",
+                                                    line, from + l, ')');
+                                        } else {
+                                            depth -= 1;
+                                        }
+                                        break;
+                                    case ' ':
+                                        q = 1;
+                                        while (s.charAt(l) === ' ') {
+                                            l += 1;
+                                            q += 1;
+                                        }
+                                        if (q > 1) {
+                                            warningAt(
+"Spaces are hard to count. Use {{a}}.", line, from + l, q);
+                                        }
+                                        break;
+                                    case '[':
+                                        c = s.charAt(l);
+                                        if (c === '^') {
+                                            l += 1;
+                                            if (option.regexp) {
+                                                warningAt("Insecure '{a}'.",
+                                                        line, from + l, c);
+                                            }
+                                        }
+                                        q = false;
+                                        if (c === ']') {
+                                            warningAt("Empty class.", line,
+                                                    from + l - 1);
+                                            q = true;
+                                        }
+klass:                                  do {
+                                            c = s.charAt(l);
+                                            l += 1;
+                                            switch (c) {
+                                            case '[':
+                                            case '^':
+                                                warningAt("Unescaped '{a}'.",
+                                                        line, from + l, c);
+                                                q = true;
+                                                break;
+                                            case '-':
+                                                if (q) {
+                                                    q = false;
+                                                } else {
+                                                    warningAt("Unescaped '{a}'.",
+                                                            line, from + l, '-');
+                                                    q = true;
+                                                }
+                                                break;
+                                            case ']':
+                                                if (!q) {
+                                                    warningAt("Unescaped '{a}'.",
+                                                            line, from + l - 1, '-');
+                                                }
+                                                break klass;
+                                            case '\\':
+                                                c = s.charAt(l);
+                                                if (c < ' ') {
+                                                    warningAt(
+"Unexpected control character in regular expression.", line, from + l);
+                                                } else if (c === '<') {
+                                                    warningAt(
+"Unexpected escaped character '{a}' in regular expression.", line, from + l, c);
+                                                }
+                                                l += 1;
+                                                q = true;
+                                                break;
+                                            case '/':
+                                                warningAt("Unescaped '{a}'.",
+                                                        line, from + l - 1, '/');
+                                                q = true;
+                                                break;
+                                            case '<':
+                                                if (xmode === 'script') {
+                                                    c = s.charAt(l);
+                                                    if (c === '!' || c === '/') {
+                                                        warningAt(
+"HTML confusion in regular expression '<{a}'.", line, from + l, c);
+                                                    }
+                                                }
+                                                q = true;
+                                                break;
+                                            default:
+                                                q = true;
+                                            }
+                                        } while (c);
+                                        break;
+                                    case '.':
+                                        if (option.regexp) {
+                                            warningAt("Insecure '{a}'.", line,
+                                                    from + l, c);
+                                        }
+                                        break;
+                                    case ']':
+                                    case '?':
+                                    case '{':
+                                    case '}':
+                                    case '+':
+                                    case '*':
+                                        warningAt("Unescaped '{a}'.", line,
+                                                from + l, c);
+                                        break;
+                                    case '<':
+                                        if (xmode === 'script') {
+                                            c = s.charAt(l);
+                                            if (c === '!' || c === '/') {
+                                                warningAt(
+"HTML confusion in regular expression '<{a}'.", line, from + l, c);
+                                            }
+                                        }
+                                    }
+                                    if (b) {
+                                        switch (s.charAt(l)) {
+                                        case '?':
+                                        case '+':
+                                        case '*':
+                                            l += 1;
+                                            if (s.charAt(l) === '?') {
+                                                l += 1;
+                                            }
+                                            break;
+                                        case '{':
+                                            l += 1;
+                                            c = s.charAt(l);
+                                            if (c < '0' || c > '9') {
+                                                warningAt(
+"Expected a number and instead saw '{a}'.", line, from + l, c);
+                                            }
+                                            l += 1;
+                                            low = +c;
+                                            for (;;) {
+                                                c = s.charAt(l);
+                                                if (c < '0' || c > '9') {
+                                                    break;
+                                                }
+                                                l += 1;
+                                                low = +c + (low * 10);
+                                            }
+                                            high = low;
+                                            if (c === ',') {
+                                                l += 1;
+                                                high = Infinity;
+                                                c = s.charAt(l);
+                                                if (c >= '0' && c <= '9') {
+                                                    l += 1;
+                                                    high = +c;
+                                                    for (;;) {
+                                                        c = s.charAt(l);
+                                                        if (c < '0' || c > '9') {
+                                                            break;
+                                                        }
+                                                        l += 1;
+                                                        high = +c + (high * 10);
+                                                    }
+                                                }
+                                            }
+                                            if (s.charAt(l) !== '}') {
+                                                warningAt(
+"Expected '{a}' and instead saw '{b}'.", line, from + l, '}', c);
+                                            } else {
+                                                l += 1;
+                                            }
+                                            if (s.charAt(l) === '?') {
+                                                l += 1;
+                                            }
+                                            if (low > high) {
+                                                warningAt(
+"'{a}' should not be greater than '{b}'.", line, from + l, low, high);
+                                            }
+                                        }
+                                    }
+                                }
+                                c = s.substr(0, l - 1);
+                                character += l;
+                                s = s.substr(l);
+                                return it('(regexp)', c);
+                            }
+                            return it('(punctuator)', t);
+
+    //      punctuator
+
+                        case '<!--':
+                            l = line;
+                            c = character;
+                            for (;;) {
+                                i = s.indexOf('--');
+                                if (i >= 0) {
+                                    break;
+                                }
+                                i = s.indexOf('<!');
+                                if (i >= 0) {
+                                    errorAt("Nested HTML comment.",
+                                        line, character + i);
+                                }
+                                if (!nextLine()) {
+                                    errorAt("Unclosed HTML comment.", l, c);
+                                }
+                            }
+                            l = s.indexOf('<!');
+                            if (l >= 0 && l < i) {
+                                errorAt("Nested HTML comment.",
+                                    line, character + l);
+                            }
+                            character += i;
+                            if (s[i + 2] !== '>') {
+                                errorAt("Expected -->.", line, character);
+                            }
+                            character += 3;
+                            s = s.slice(i + 3);
+                            break;
+                        case '#':
+                            if (xmode === 'html' || xmode === 'styleproperty') {
+                                for (;;) {
+                                    c = s.charAt(0);
+                                    if ((c < '0' || c > '9') &&
+                                            (c < 'a' || c > 'f') &&
+                                            (c < 'A' || c > 'F')) {
+                                        break;
+                                    }
+                                    character += 1;
+                                    s = s.substr(1);
+                                    t += c;
+                                }
+                                if (t.length !== 4 && t.length !== 7) {
+                                    warningAt("Bad hex color '{a}'.", line,
+                                        from + l, t);
+                                }
+                                return it('(color)', t);
+                            }
+                            return it('(punctuator)', t);
+                        default:
+                            if (xmode === 'outer' && c === '&') {
+                                character += 1;
+                                s = s.substr(1);
+                                for (;;) {
+                                    c = s.charAt(0);
+                                    character += 1;
+                                    s = s.substr(1);
+                                    if (c === ';') {
+                                        break;
+                                    }
+                                    if (!((c >= '0' && c <= '9') ||
+                                            (c >= 'a' && c <= 'z') ||
+                                            c === '#')) {
+                                        errorAt("Bad entity", line, from + l,
+                                        character);
+                                    }
+                                }
+                                break;
+                            }
+                            return it('(punctuator)', t);
+                        }
+                    }
+                }
+            }
+        };
+    }());
+
+
+    function addlabel(t, type) {
+
+        if (option.safe && funct['(global)'] &&
+                typeof predefined[t] !== 'boolean') {
+            warning('ADsafe global: ' + t + '.', token);
+        } else if (t === 'hasOwnProperty') {
+            warning("'hasOwnProperty' is a really bad name.");
+        }
+
+// Define t in the current function in the current scope.
+
+        if (is_own(funct, t) && !funct['(global)']) {
+            warning(funct[t] === true ?
+                "'{a}' was used before it was defined." :
+                "'{a}' is already defined.",
+                nexttoken, t);
+        }
+        funct[t] = type;
+        if (funct['(global)']) {
+            global[t] = funct;
+            if (is_own(implied, t)) {
+                warning("'{a}' was used before it was defined.", nexttoken, t);
+                delete implied[t];
+            }
+        } else {
+            scope[t] = funct;
+        }
+    }
+
+
+    function doOption() {
+        var b, obj, filter, o = nexttoken.value, t, v;
+        switch (o) {
+        case '*/':
+            error("Unbegun comment.");
+            break;
+        case '/*members':
+        case '/*member':
+            o = '/*members';
+            if (!membersOnly) {
+                membersOnly = {};
+            }
+            obj = membersOnly;
+            break;
+        case '/*jslint':
+            if (option.safe) {
+                warning("ADsafe restriction.");
+            }
+            obj = option;
+            filter = boolOptions;
+            break;
+        case '/*global':
+            if (option.safe) {
+                warning("ADsafe restriction.");
+            }
+            obj = predefined;
+            break;
+        default:
+        }
+        t = lex.token();
+loop:   for (;;) {
+            for (;;) {
+                if (t.type === 'special' && t.value === '*/') {
+                    break loop;
+                }
+                if (t.id !== '(endline)' && t.id !== ',') {
+                    break;
+                }
+                t = lex.token();
+            }
+            if (t.type !== '(string)' && t.type !== '(identifier)' &&
+                    o !== '/*members') {
+                error("Bad option.", t);
+            }
+            v = lex.token();
+            if (v.id === ':') {
+                v = lex.token();
+                if (obj === membersOnly) {
+                    error("Expected '{a}' and instead saw '{b}'.",
+                            t, '*/', ':');
+                }
+                if (t.value === 'indent' && o === '/*jslint') {
+                    b = +v.value;
+                    if (typeof b !== 'number' || !isFinite(b) || b <= 0 ||
+                            Math.floor(b) !== b) {
+                        error("Expected a small integer and instead saw '{a}'.",
+                                v, v.value);
+                    }
+                    obj.white = true;
+                    obj.indent = b;
+                } else if (t.value === 'maxerr' && o === '/*jslint') {
+                    b = +v.value;
+                    if (typeof b !== 'number' || !isFinite(b) || b <= 0 ||
+                            Math.floor(b) !== b) {
+                        error("Expected a small integer and instead saw '{a}'.",
+                                v, v.value);
+                    }
+                    obj.maxerr = b;
+                } else if (t.value === 'maxlen' && o === '/*jslint') {
+                    b = +v.value;
+                    if (typeof b !== 'number' || !isFinite(b) || b <= 0 ||
+                            Math.floor(b) !== b) {
+                        error("Expected a small integer and instead saw '{a}'.",
+                                v, v.value);
+                    }
+                    obj.maxlen = b;
+                } else if (v.value === 'true') {
+                    obj[t.value] = true;
+                } else if (v.value === 'false') {
+                    obj[t.value] = false;
+                } else {
+                    error("Bad option value.", v);
+                }
+                t = lex.token();
+            } else {
+                if (o === '/*jslint') {
+                    error("Missing option value.", t);
+                }
+                obj[t.value] = false;
+                t = v;
+            }
+        }
+        if (filter) {
+            assume();
+        }
+    }
+
+
+// We need a peek function. If it has an argument, it peeks that much farther
+// ahead. It is used to distinguish
+//     for ( var i in ...
+// from
+//     for ( var i = ...
+
+    function peek(p) {
+        var i = p || 0, j = 0, t;
+
+        while (j <= i) {
+            t = lookahead[j];
+            if (!t) {
+                t = lookahead[j] = lex.token();
+            }
+            j += 1;
+        }
+        return t;
+    }
+
+
+
+// Produce the next token. It looks for programming errors.
+
+    function advance(id, t) {
+        switch (token.id) {
+        case '(number)':
+            if (nexttoken.id === '.') {
+                warning(
+"A dot following a number can be confused with a decimal point.", token);
+            }
+            break;
+        case '-':
+            if (nexttoken.id === '-' || nexttoken.id === '--') {
+                warning("Confusing minusses.");
+            }
+            break;
+        case '+':
+            if (nexttoken.id === '+' || nexttoken.id === '++') {
+                warning("Confusing plusses.");
+            }
+            break;
+        }
+        if (token.type === '(string)' || token.identifier) {
+            anonname = token.value;
+        }
+
+        if (id && nexttoken.id !== id) {
+            if (t) {
+                if (nexttoken.id === '(end)') {
+                    warning("Unmatched '{a}'.", t, t.id);
+                } else {
+                    warning(
+"Expected '{a}' to match '{b}' from line {c} and instead saw '{d}'.",
+                            nexttoken, id, t.id, t.line, nexttoken.value);
+                }
+            } else if (nexttoken.type !== '(identifier)' ||
+                            nexttoken.value !== id) {
+                warning("Expected '{a}' and instead saw '{b}'.",
+                        nexttoken, id, nexttoken.value);
+            }
+        }
+        prevtoken = token;
+        token = nexttoken;
+        for (;;) {
+            nexttoken = lookahead.shift() || lex.token();
+            if (nexttoken.id === '(end)' || nexttoken.id === '(error)') {
+                return;
+            }
+            if (nexttoken.type === 'special') {
+                doOption();
+            } else {
+                if (nexttoken.id !== '(endline)') {
+                    break;
+                }
+            }
+        }
+    }
+
+
+// This is the heart of JSLINT, the Pratt parser. In addition to parsing, it
+// is looking for ad hoc lint patterns. We add to Pratt's model .fud, which is
+// like nud except that it is only used on the first token of a statement.
+// Having .fud makes it much easier to define JavaScript. I retained Pratt's
+// nomenclature.
+
+// .nud     Null denotation
+// .fud     First null denotation
+// .led     Left denotation
+//  lbp     Left binding power
+//  rbp     Right binding power
+
+// They are key to the parsing method called Top Down Operator Precedence.
+
+    function parse(rbp, initial) {
+        var left;
+        if (nexttoken.id === '(end)') {
+            error("Unexpected early end of program.", token);
+        }
+        advance();
+        if (option.safe && typeof predefined[token.value] === 'boolean' &&
+                (nexttoken.id !== '(' && nexttoken.id !== '.')) {
+            warning('ADsafe violation.', token);
+        }
+        if (initial) {
+            anonname = 'anonymous';
+            funct['(verb)'] = token.value;
+        }
+        if (initial === true && token.fud) {
+            left = token.fud();
+        } else {
+            if (token.nud) {
+                left = token.nud();
+            } else {
+                if (nexttoken.type === '(number)' && token.id === '.') {
+                    warning(
+"A leading decimal point can be confused with a dot: '.{a}'.",
+                            token, nexttoken.value);
+                    advance();
+                    return token;
+                } else {
+                    error("Expected an identifier and instead saw '{a}'.",
+                            token, token.id);
+                }
+            }
+            while (rbp < nexttoken.lbp) {
+                advance();
+                if (token.led) {
+                    left = token.led(left);
+                } else {
+                    error("Expected an operator and instead saw '{a}'.",
+                        token, token.id);
+                }
+            }
+        }
+        return left;
+    }
+
+
+// Functions for conformance of style.
+
+    function adjacent(left, right) {
+        left = left || token;
+        right = right || nexttoken;
+        if (option.white || xmode === 'styleproperty' || xmode === 'style') {
+            if (left.character !== right.from && left.line === right.line) {
+                warning("Unexpected space after '{a}'.", right, left.value);
+            }
+        }
+    }
+
+    function nobreak(left, right) {
+        left = left || token;
+        right = right || nexttoken;
+        if (left.character !== right.from || left.line !== right.line) {
+            warning("Unexpected space before '{a}'.", right, right.value);
+        }
+    }
+
+    function nospace(left, right) {
+        left = left || token;
+        right = right || nexttoken;
+        if (option.white && !left.comment) {
+            if (left.line === right.line) {
+                adjacent(left, right);
+            }
+        }
+    }
+
+
+    function nonadjacent(left, right) {
+        if (option.white) {
+            left = left || token;
+            right = right || nexttoken;
+            if (left.line === right.line && left.character === right.from) {
+                warning("Missing space after '{a}'.",
+                        nexttoken, left.value);
+            }
+        }
+    }
+
+    function nobreaknonadjacent(left, right) {
+        left = left || token;
+        right = right || nexttoken;
+        if (!option.laxbreak && left.line !== right.line) {
+            warning("Bad line breaking before '{a}'.", right, right.id);
+        } else if (option.white) {
+            left = left || token;
+            right = right || nexttoken;
+            if (left.character === right.from) {
+                warning("Missing space after '{a}'.",
+                        nexttoken, left.value);
+            }
+        }
+    }
+
+    function indentation(bias) {
+        var i;
+        if (option.white && nexttoken.id !== '(end)') {
+            i = indent + (bias || 0);
+            if (nexttoken.from !== i) {
+                warning(
+"Expected '{a}' to have an indentation at {b} instead at {c}.",
+                        nexttoken, nexttoken.value, i, nexttoken.from);
+            }
+        }
+    }
+
+    function nolinebreak(t) {
+        t = t || token;
+        if (t.line !== nexttoken.line) {
+            warning("Line breaking error '{a}'.", t, t.value);
+        }
+    }
+
+
+    function comma() {
+        if (token.line !== nexttoken.line) {
+            if (!option.laxbreak) {
+                warning("Bad line breaking before '{a}'.", token, nexttoken.id);
+            }
+        } else if (token.character !== nexttoken.from && option.white) {
+            warning("Unexpected space after '{a}'.", nexttoken, token.value);
+        }
+        advance(',');
+        nonadjacent(token, nexttoken);
+    }
+
+
+// Functional constructors for making the symbols that will be inherited by
+// tokens.
+
+    function symbol(s, p) {
+        var x = syntax[s];
+        if (!x || typeof x !== 'object') {
+            syntax[s] = x = {
+                id: s,
+                lbp: p,
+                value: s
+            };
+        }
+        return x;
+    }
+
+
+    function delim(s) {
+        return symbol(s, 0);
+    }
+
+
+    function stmt(s, f) {
+        var x = delim(s);
+        x.identifier = x.reserved = true;
+        x.fud = f;
+        return x;
+    }
+
+
+    function blockstmt(s, f) {
+        var x = stmt(s, f);
+        x.block = true;
+        return x;
+    }
+
+
+    function reserveName(x) {
+        var c = x.id.charAt(0);
+        if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+            x.identifier = x.reserved = true;
+        }
+        return x;
+    }
+
+
+    function prefix(s, f) {
+        var x = symbol(s, 150);
+        reserveName(x);
+        x.nud = (typeof f === 'function') ? f : function () {
+            this.right = parse(150);
+            this.arity = 'unary';
+            if (this.id === '++' || this.id === '--') {
+                if (option.plusplus) {
+                    warning("Unexpected use of '{a}'.", this, this.id);
+                } else if ((!this.right.identifier || this.right.reserved) &&
+                        this.right.id !== '.' && this.right.id !== '[') {
+                    warning("Bad operand.", this);
+                }
+            }
+            return this;
+        };
+        return x;
+    }
+
+
+    function type(s, f) {
+        var x = delim(s);
+        x.type = s;
+        x.nud = f;
+        return x;
+    }
+
+
+    function reserve(s, f) {
+        var x = type(s, f);
+        x.identifier = x.reserved = true;
+        return x;
+    }
+
+
+    function reservevar(s, v) {
+        return reserve(s, function () {
+            if (this.id === 'this' || this.id === 'arguments' ||
+                    this.id === 'eval') {
+                if (strict_mode && funct['(global)']) {
+                    warning("Strict violation.", this);
+                } else if (option.safe) {
+                    warning("ADsafe violation.", this);
+                }
+            }
+            return this;
+        });
+    }
+
+
+    function infix(s, f, p, w) {
+        var x = symbol(s, p);
+        reserveName(x);
+        x.led = function (left) {
+            if (!w) {
+                nobreaknonadjacent(prevtoken, token);
+                nonadjacent(token, nexttoken);
+            }
+            if (typeof f === 'function') {
+                return f(left, this);
+            } else {
+                this.left = left;
+                this.right = parse(p);
+                return this;
+            }
+        };
+        return x;
+    }
+
+
+    function relation(s, f) {
+        var x = symbol(s, 100);
+        x.led = function (left) {
+            nobreaknonadjacent(prevtoken, token);
+            nonadjacent(token, nexttoken);
+            var right = parse(100);
+            if ((left && left.id === 'NaN') || (right && right.id === 'NaN')) {
+                warning("Use the isNaN function to compare with NaN.", this);
+            } else if (f) {
+                f.apply(this, [left, right]);
+            }
+            if (left.id === '!') {
+                warning("Confusing use of '{a}'.", left, '!');
+            }
+            if (right.id === '!') {
+                warning("Confusing use of '{a}'.", left, '!');
+            }
+            this.left = left;
+            this.right = right;
+            return this;
+        };
+        return x;
+    }
+
+
+    function isPoorRelation(node) {
+        return node &&
+              ((node.type === '(number)' && +node.value === 0) ||
+               (node.type === '(string)' && node.value === '') ||
+                node.type === 'true' ||
+                node.type === 'false' ||
+                node.type === 'undefined' ||
+                node.type === 'null');
+    }
+
+
+    function assignop(s, f) {
+        symbol(s, 20).exps = true;
+        return infix(s, function (left, that) {
+            var l;
+            that.left = left;
+            if (predefined[left.value] === false &&
+                    scope[left.value]['(global)'] === true) {
+                warning('Read only.', left);
+            }
+            if (option.safe) {
+                l = left;
+                do {
+                    if (typeof predefined[l.value] === 'boolean') {
+                        warning('ADsafe violation.', l);
+                    }
+                    l = l.left;
+                } while (l);
+            }
+            if (left) {
+                if (left.id === '.' || left.id === '[') {
+                    if (!left.left || left.left.value === 'arguments') {
+                        warning('Bad assignment.', that);
+                    }
+                    that.right = parse(19);
+                    return that;
+                } else if (left.identifier && !left.reserved) {
+                    if (funct[left.value] === 'exception') {
+                        warning("Do not assign to the exception parameter.", left);
+                    }
+                    that.right = parse(19);
+                    return that;
+                }
+                if (left === syntax['function']) {
+                    warning(
+"Expected an identifier in an assignment and instead saw a function invocation.",
+                                token);
+                }
+            }
+            error("Bad assignment.", that);
+        }, 20);
+    }
+
+    function bitwise(s, f, p) {
+        var x = symbol(s, p);
+        reserveName(x);
+        x.led = (typeof f === 'function') ? f : function (left) {
+            if (option.bitwise) {
+                warning("Unexpected use of '{a}'.", this, this.id);
+            }
+            this.left = left;
+            this.right = parse(p);
+            return this;
+        };
+        return x;
+    }
+
+    function bitwiseassignop(s) {
+        symbol(s, 20).exps = true;
+        return infix(s, function (left, that) {
+            if (option.bitwise) {
+                warning("Unexpected use of '{a}'.", that, that.id);
+            }
+            nonadjacent(prevtoken, token);
+            nonadjacent(token, nexttoken);
+            if (left) {
+                if (left.id === '.' || left.id === '[' ||
+                        (left.identifier && !left.reserved)) {
+                    parse(19);
+                    return that;
+                }
+                if (left === syntax['function']) {
+                    warning(
+"Expected an identifier in an assignment, and instead saw a function invocation.",
+                                token);
+                }
+                return that;
+            }
+            error("Bad assignment.", that);
+        }, 20);
+    }
+
+
+    function suffix(s, f) {
+        var x = symbol(s, 150);
+        x.led = function (left) {
+            if (option.plusplus) {
+                warning("Unexpected use of '{a}'.", this, this.id);
+            } else if ((!left.identifier || left.reserved) &&
+                    left.id !== '.' && left.id !== '[') {
+                warning("Bad operand.", this);
+            }
+            this.left = left;
+            return this;
+        };
+        return x;
+    }
+
+
+    function optionalidentifier() {
+        if (nexttoken.identifier) {
+            advance();
+            if (option.safe && banned[token.value]) {
+                warning("ADsafe violation: '{a}'.", token, token.value);
+            } else if (token.reserved && !option.es5) {
+                warning("Expected an identifier and instead saw '{a}' (a reserved word).",
+                        token, token.id);
+            }
+            return token.value;
+        }
+    }
+
+
+    function identifier() {
+        var i = optionalidentifier();
+        if (i) {
+            return i;
+        }
+        if (token.id === 'function' && nexttoken.id === '(') {
+            warning("Missing name in function statement.");
+        } else {
+            error("Expected an identifier and instead saw '{a}'.",
+                    nexttoken, nexttoken.value);
+        }
+    }
+
+    function reachable(s) {
+        var i = 0, t;
+        if (nexttoken.id !== ';' || noreach) {
+            return;
+        }
+        for (;;) {
+            t = peek(i);
+            if (t.reach) {
+                return;
+            }
+            if (t.id !== '(endline)') {
+                if (t.id === 'function') {
+                    warning(
+"Inner functions should be listed at the top of the outer function.", t);
+                    break;
+                }
+                warning("Unreachable '{a}' after '{b}'.", t, t.value, s);
+                break;
+            }
+            i += 1;
+        }
+    }
+
+
+    function statement(noindent) {
+        var i = indent, r, s = scope, t = nexttoken;
+
+// We don't like the empty statement.
+
+        if (t.id === ';') {
+            warning("Unnecessary semicolon.", t);
+            advance(';');
+            return;
+        }
+
+// Is this a labelled statement?
+
+        if (t.identifier && !t.reserved && peek().id === ':') {
+            advance();
+            advance(':');
+            scope = Object.create(s);
+            addlabel(t.value, 'label');
+            if (!nexttoken.labelled) {
+                warning("Label '{a}' on {b} statement.",
+                        nexttoken, t.value, nexttoken.value);
+            }
+            if (jx.test(t.value + ':')) {
+                warning("Label '{a}' looks like a javascript url.",
+                        t, t.value);
+            }
+            nexttoken.label = t.value;
+            t = nexttoken;
+        }
+
+// Parse the statement.
+
+        if (!noindent) {
+            indentation();
+        }
+        r = parse(0, true);
+
+// Look for the final semicolon.
+
+        if (!t.block) {
+            if (!r || !r.exps) {
+                warning(
+"Expected an assignment or function call and instead saw an expression.",
+                        token);
+            } else if (r.id === '(' && r.left.id === 'new') {
+                warning("Do not use 'new' for side effects.");
+            }
+            if (nexttoken.id !== ';') {
+                warningAt("Missing semicolon.", token.line,
+                        token.from + token.value.length);
+            } else {
+                adjacent(token, nexttoken);
+                advance(';');
+                nonadjacent(token, nexttoken);
+            }
+        }
+
+// Restore the indentation.
+
+        indent = i;
+        scope = s;
+        return r;
+    }
+
+
+    function use_strict() {
+        if (nexttoken.value === 'use strict') {
+            advance();
+            advance(';');
+            strict_mode = true;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+
+    function statements(begin) {
+        var a = [], f, p;
+        if (begin && !use_strict() && option.strict) {
+            warning('Missing "use strict" statement.', nexttoken);
+        }
+        if (option.adsafe) {
+            switch (begin) {
+            case 'script':
+                if (!adsafe_may) {
+                    if (nexttoken.value !== 'ADSAFE' ||
+                            peek(0).id !== '.' ||
+                            (peek(1).value !== 'id' &&
+                            peek(1).value !== 'go')) {
+                        error('ADsafe violation: Missing ADSAFE.id or ADSAFE.go.',
+                            nexttoken);
+                    }
+                }
+                if (nexttoken.value === 'ADSAFE' &&
+                        peek(0).id === '.' &&
+                        peek(1).value === 'id') {
+                    if (adsafe_may) {
+                        error('ADsafe violation.', nexttoken);
+                    }
+                    advance('ADSAFE');
+                    advance('.');
+                    advance('id');
+                    advance('(');
+                    if (nexttoken.value !== adsafe_id) {
+                        error('ADsafe violation: id does not match.', nexttoken);
+                    }
+                    advance('(string)');
+                    advance(')');
+                    advance(';');
+                    adsafe_may = true;
+                }
+                break;
+            case 'lib':
+                if (nexttoken.value === 'ADSAFE') {
+                    advance('ADSAFE');
+                    advance('.');
+                    advance('lib');
+                    advance('(');
+                    advance('(string)');
+                    comma();
+                    f = parse(0);
+                    if (f.id !== 'function') {
+                        error('The second argument to lib must be a function.', f);
+                    }
+                    p = f.funct['(params)'];
+                    p = p && p.join(', ');
+                    if (p && p !== 'lib') {
+                        error("Expected '{a}' and instead saw '{b}'.",
+                            f, '(lib)', '(' + p + ')');
+                    }
+                    advance(')');
+                    advance(';');
+                    return a;
+                } else {
+                    error("ADsafe lib violation.");
+                }
+            }
+        }
+        while (!nexttoken.reach && nexttoken.id !== '(end)') {
+            if (nexttoken.id === ';') {
+                warning("Unnecessary semicolon.");
+                advance(';');
+            } else {
+                a.push(statement());
+            }
+        }
+        return a;
+    }
+
+
+    function block(f) {
+        var a, b = inblock, old_indent = indent, s = scope, t;
+        inblock = f;
+        scope = Object.create(scope);
+        nonadjacent(token, nexttoken);
+        t = nexttoken;
+        if (nexttoken.id === '{') {
+            advance('{');
+            if (nexttoken.id !== '}' || token.line !== nexttoken.line) {
+                indent += option.indent;
+                while (!f && nexttoken.from > indent) {
+                    indent += option.indent;
+                }
+                if (!f) {
+                    use_strict();
+                }
+                a = statements();
+                indent -= option.indent;
+                indentation();
+            }
+            advance('}', t);
+            indent = old_indent;
+        } else {
+            warning("Expected '{a}' and instead saw '{b}'.",
+                    nexttoken, '{', nexttoken.value);
+            noreach = true;
+            a = [statement()];
+            noreach = false;
+        }
+        funct['(verb)'] = null;
+        scope = s;
+        inblock = b;
+        return a;
+    }
+
+
+// An identity function, used by string and number tokens.
+
+    function idValue() {
+        return this;
+    }
+
+
+    function countMember(m) {
+        if (membersOnly && typeof membersOnly[m] !== 'boolean') {
+            warning("Unexpected /*member '{a}'.", token, m);
+        }
+        if (typeof member[m] === 'number') {
+            member[m] += 1;
+        } else {
+            member[m] = 1;
+        }
+    }
+
+
+    function note_implied(token) {
+        var name = token.value, line = token.line, a = implied[name];
+        if (typeof a === 'function') {
+            a = false;
+        }
+        if (!a) {
+            a = [line];
+            implied[name] = a;
+        } else if (a[a.length - 1] !== line) {
+            a.push(line);
+        }
+    }
+
+// CSS parsing.
+
+
+    function cssName() {
+        if (nexttoken.identifier) {
+            advance();
+            return true;
+        }
+    }
+
+    function cssNumber() {
+        if (nexttoken.id === '-') {
+            advance('-');
+            adjacent();
+            nolinebreak();
+        }
+        if (nexttoken.type === '(number)') {
+            advance('(number)');
+            return true;
+        }
+    }
+
+    function cssString() {
+        if (nexttoken.type === '(string)') {
+            advance();
+            return true;
+        }
+    }
+
+    function cssColor() {
+        var i, number, value;
+        if (nexttoken.identifier) {
+            value = nexttoken.value;
+            if (value === 'rgb' || value === 'rgba') {
+                advance();
+                advance('(');
+                for (i = 0; i < 3; i += 1) {
+                    if (i) {
+                        advance(',');
+                    }
+                    number = nexttoken.value;
+                    if (nexttoken.type !== '(number)' || number < 0) {
+                        warning("Expected a positive number and instead saw '{a}'",
+                            nexttoken, number);
+                        advance();
+                    } else {
+                        advance();
+                        if (nexttoken.id === '%') {
+                            advance('%');
+                            if (number > 100) {
+                                warning("Expected a percentage and instead saw '{a}'",
+                                    token, number);
+                            }
+                        } else {
+                            if (number > 255) {
+                                warning("Expected a small number and instead saw '{a}'",
+                                    token, number);
+                            }
+                        }
+                    }
+                }
+                if (value === 'rgba') {
+                    advance(',');
+                    number = +nexttoken.value;
+                    if (nexttoken.type !== '(number)' || number < 0 || number > 1) {
+                        warning("Expected a number between 0 and 1 and instead saw '{a}'",
+                            nexttoken, number);
+                    }
+                    advance();
+                    if (nexttoken.id === '%') {
+                        warning("Unexpected '%'.");
+                        advance('%');
+                    }
+                }
+                advance(')');
+                return true;
+            } else if (cssColorData[nexttoken.value] === true) {
+                advance();
+                return true;
+            }
+        } else if (nexttoken.type === '(color)') {
+            advance();
+            return true;
+        }
+        return false;
+    }
+
+    function cssLength() {
+        if (nexttoken.id === '-') {
+            advance('-');
+            adjacent();
+            nolinebreak();
+        }
+        if (nexttoken.type === '(number)') {
+            advance();
+            if (nexttoken.type !== '(string)' &&
+                    cssLengthData[nexttoken.value] === true) {
+                adjacent();
+                advance();
+            } else if (+token.value !== 0) {
+                warning("Expected a linear unit and instead saw '{a}'.",
+                    nexttoken, nexttoken.value);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    function cssLineHeight() {
+        if (nexttoken.id === '-') {
+            advance('-');
+            adjacent();
+        }
+        if (nexttoken.type === '(number)') {
+            advance();
+            if (nexttoken.type !== '(string)' &&
+                    cssLengthData[nexttoken.value] === true) {
+                adjacent();
+                advance();
+            }
+            return true;
+        }
+        return false;
+    }
+
+    function cssWidth() {
+        if (nexttoken.identifier) {
+            switch (nexttoken.value) {
+            case 'thin':
+            case 'medium':
+            case 'thick':
+                advance();
+                return true;
+            }
+        } else {
+            return cssLength();
+        }
+    }
+
+    function cssMargin() {
+        if (nexttoken.identifier) {
+            if (nexttoken.value === 'auto') {
+                advance();
+                return true;
+            }
+        } else {
+            return cssLength();
+        }
+    }
+
+    function cssAttr() {
+        if (nexttoken.identifier && nexttoken.value === 'attr') {
+            advance();
+            advance('(');
+            if (!nexttoken.identifier) {
+                warning("Expected a name and instead saw '{a}'.",
+                        nexttoken, nexttoken.value);
+            }
+            advance();
+            advance(')');
+            return true;
+        }
+        return false;
+    }
+
+    function cssCommaList() {
+        while (nexttoken.id !== ';') {
+            if (!cssName() && !cssString()) {
+                warning("Expected a name and instead saw '{a}'.",
+                        nexttoken, nexttoken.value);
+            }
+            if (nexttoken.id !== ',') {
+                return true;
+            }
+            comma();
+        }
+    }
+
+    function cssCounter() {
+        if (nexttoken.identifier && nexttoken.value === 'counter') {
+            advance();
+            advance('(');
+            if (!nexttoken.identifier) {
+            }
+            advance();
+            if (nexttoken.id === ',') {
+                comma();
+                if (nexttoken.type !== '(string)') {
+                    warning("Expected a string and instead saw '{a}'.",
+                        nexttoken, nexttoken.value);
+                }
+                advance();
+            }
+            advance(')');
+            return true;
+        }
+        if (nexttoken.identifier && nexttoken.value === 'counters') {
+            advance();
+            advance('(');
+            if (!nexttoken.identifier) {
+                warning("Expected a name and instead saw '{a}'.",
+                        nexttoken, nexttoken.value);
+            }
+            advance();
+            if (nexttoken.id === ',') {
+                comma();
+                if (nexttoken.type !== '(string)') {
+                    warning("Expected a string and instead saw '{a}'.",
+                        nexttoken, nexttoken.value);
+                }
+                advance();
+            }
+            if (nexttoken.id === ',') {
+                comma();
+                if (nexttoken.type !== '(string)') {
+                    warning("Expected a string and instead saw '{a}'.",
+                        nexttoken, nexttoken.value);
+                }
+                advance();
+            }
+            advance(')');
+            return true;
+        }
+        return false;
+    }
+
+
+    function cssShape() {
+        var i;
+        if (nexttoken.identifier && nexttoken.value === 'rect') {
+            advance();
+            advance('(');
+            for (i = 0; i < 4; i += 1) {
+                if (!cssLength()) {
+                    warning("Expected a number and instead saw '{a}'.",
+                        nexttoken, nexttoken.value);
+                    break;
+                }
+            }
+            advance(')');
+            return true;
+        }
+        return false;
+    }
+
+    function cssUrl() {
+        var c, url;
+        if (nexttoken.identifier && nexttoken.value === 'url') {
+            nexttoken = lex.range('(', ')');
+            url = nexttoken.value;
+            c = url.charAt(0);
+            if (c === '"' || c === '\'') {
+                if (url.slice(-1) !== c) {
+                    warning("Bad url string.");
+                } else {
+                    url = url.slice(1, -1);
+                    if (url.indexOf(c) >= 0) {
+                        warning("Bad url string.");
+                    }
+                }
+            }
+            if (!url) {
+                warning("Missing url.");
+            }
+            advance();
+            if (option.safe && ux.test(url)) {
+                error("ADsafe URL violation.");
+            }
+            urls.push(url);
+            return true;
+        }
+        return false;
+    }
+
+    cssAny = [cssUrl, function () {
+        for (;;) {
+            if (nexttoken.identifier) {
+                switch (nexttoken.value.toLowerCase()) {
+                case 'url':
+                    cssUrl();
+                    break;
+                case 'expression':
+                    warning("Unexpected expression '{a}'.",
+                        nexttoken, nexttoken.value);
+                    advance();
+                    break;
+                default:
+                    advance();
+                }
+            } else {
+                if (nexttoken.id === ';' || nexttoken.id === '!'  ||
+                        nexttoken.id === '(end)' || nexttoken.id === '}') {
+                    return true;
+                }
+                advance();
+            }
+        }
+    }];
+
+    cssBorderStyle = [
+        'none', 'hidden', 'dotted', 'dashed', 'solid', 'double', 'ridge',
+        'inset', 'outset'
+    ];
+
+    cssBreak = [
+        'auto', 'always', 'avoid', 'left', 'right'
+    ];
+
+    cssOverflow = [
+        'auto', 'hidden', 'scroll', 'visible'
+    ];
+
+    cssAttributeData = {
+        background: [
+            true, 'background-attachment', 'background-color',
+            'background-image', 'background-position', 'background-repeat'
+        ],
+        'background-attachment': ['scroll', 'fixed'],
+        'background-color': ['transparent', cssColor],
+        'background-image': ['none', cssUrl],
+        'background-position': [
+            2, [cssLength, 'top', 'bottom', 'left', 'right', 'center']
+        ],
+        'background-repeat': [
+            'repeat', 'repeat-x', 'repeat-y', 'no-repeat'
+        ],
+        'border': [true, 'border-color', 'border-style', 'border-width'],
+        'border-bottom': [
+            true, 'border-bottom-color', 'border-bottom-style',
+            'border-bottom-width'
+        ],
+        'border-bottom-color': cssColor,
+        'border-bottom-style': cssBorderStyle,
+        'border-bottom-width': cssWidth,
+        'border-collapse': ['collapse', 'separate'],
+        'border-color': ['transparent', 4, cssColor],
+        'border-left': [
+            true, 'border-left-color', 'border-left-style', 'border-left-width'
+        ],
+        'border-left-color': cssColor,
+        'border-left-style': cssBorderStyle,
+        'border-left-width': cssWidth,
+        'border-right': [
+            true, 'border-right-color', 'border-right-style',
+            'border-right-width'
+        ],
+        'border-right-color': cssColor,
+        'border-right-style': cssBorderStyle,
+        'border-right-width': cssWidth,
+        'border-spacing': [2, cssLength],
+        'border-style': [4, cssBorderStyle],
+        'border-top': [
+            true, 'border-top-color', 'border-top-style', 'border-top-width'
+        ],
+        'border-top-color': cssColor,
+        'border-top-style': cssBorderStyle,
+        'border-top-width': cssWidth,
+        'border-width': [4, cssWidth],
+        bottom: [cssLength, 'auto'],
+        'caption-side' : ['bottom', 'left', 'right', 'top'],
+        clear: ['both', 'left', 'none', 'right'],
+        clip: [cssShape, 'auto'],
+        color: cssColor,
+        content: [
+            'open-quote', 'close-quote', 'no-open-quote', 'no-close-quote',
+            cssString, cssUrl, cssCounter, cssAttr
+        ],
+        'counter-increment': [
+            cssName, 'none'
+        ],
+        'counter-reset': [
+            cssName, 'none'
+        ],
+        cursor: [
+            cssUrl, 'auto', 'crosshair', 'default', 'e-resize', 'help', 'move',
+            'n-resize', 'ne-resize', 'nw-resize', 'pointer', 's-resize',
+            'se-resize', 'sw-resize', 'w-resize', 'text', 'wait'
+        ],
+        direction: ['ltr', 'rtl'],
+        display: [
+            'block', 'compact', 'inline', 'inline-block', 'inline-table',
+            'list-item', 'marker', 'none', 'run-in', 'table', 'table-caption',
+            'table-cell', 'table-column', 'table-column-group',
+            'table-footer-group', 'table-header-group', 'table-row',
+            'table-row-group'
+        ],
+        'empty-cells': ['show', 'hide'],
+        'float': ['left', 'none', 'right'],
+        font: [
+            'caption', 'icon', 'menu', 'message-box', 'small-caption',
+            'status-bar', true, 'font-size', 'font-style', 'font-weight',
+            'font-family'
+        ],
+        'font-family': cssCommaList,
+        'font-size': [
+            'xx-small', 'x-small', 'small', 'medium', 'large', 'x-large',
+            'xx-large', 'larger', 'smaller', cssLength
+        ],
+        'font-size-adjust': ['none', cssNumber],
+        'font-stretch': [
+            'normal', 'wider', 'narrower', 'ultra-condensed',
+            'extra-condensed', 'condensed', 'semi-condensed',
+            'semi-expanded', 'expanded', 'extra-expanded'
+        ],
+        'font-style': [
+            'normal', 'italic', 'oblique'
+        ],
+        'font-variant': [
+            'normal', 'small-caps'
+        ],
+        'font-weight': [
+            'normal', 'bold', 'bolder', 'lighter', cssNumber
+        ],
+        height: [cssLength, 'auto'],
+        left: [cssLength, 'auto'],
+        'letter-spacing': ['normal', cssLength],
+        'line-height': ['normal', cssLineHeight],
+        'list-style': [
+            true, 'list-style-image', 'list-style-position', 'list-style-type'
+        ],
+        'list-style-image': ['none', cssUrl],
+        'list-style-position': ['inside', 'outside'],
+        'list-style-type': [
+            'circle', 'disc', 'square', 'decimal', 'decimal-leading-zero',
+            'lower-roman', 'upper-roman', 'lower-greek', 'lower-alpha',
+            'lower-latin', 'upper-alpha', 'upper-latin', 'hebrew', 'katakana',
+            'hiragana-iroha', 'katakana-oroha', 'none'
+        ],
+        margin: [4, cssMargin],
+        'margin-bottom': cssMargin,
+        'margin-left': cssMargin,
+        'margin-right': cssMargin,
+        'margin-top': cssMargin,
+        'marker-offset': [cssLength, 'auto'],
+        'max-height': [cssLength, 'none'],
+        'max-width': [cssLength, 'none'],
+        'min-height': cssLength,
+        'min-width': cssLength,
+        opacity: cssNumber,
+        outline: [true, 'outline-color', 'outline-style', 'outline-width'],
+        'outline-color': ['invert', cssColor],
+        'outline-style': [
+            'dashed', 'dotted', 'double', 'groove', 'inset', 'none',
+            'outset', 'ridge', 'solid'
+        ],
+        'outline-width': cssWidth,
+        overflow: cssOverflow,
+        'overflow-x': cssOverflow,
+        'overflow-y': cssOverflow,
+        padding: [4, cssLength],
+        'padding-bottom': cssLength,
+        'padding-left': cssLength,
+        'padding-right': cssLength,
+        'padding-top': cssLength,
+        'page-break-after': cssBreak,
+        'page-break-before': cssBreak,
+        position: ['absolute', 'fixed', 'relative', 'static'],
+        quotes: [8, cssString],
+        right: [cssLength, 'auto'],
+        'table-layout': ['auto', 'fixed'],
+        'text-align': ['center', 'justify', 'left', 'right'],
+        'text-decoration': [
+            'none', 'underline', 'overline', 'line-through', 'blink'
+        ],
+        'text-indent': cssLength,
+        'text-shadow': ['none', 4, [cssColor, cssLength]],
+        'text-transform': ['capitalize', 'uppercase', 'lowercase', 'none'],
+        top: [cssLength, 'auto'],
+        'unicode-bidi': ['normal', 'embed', 'bidi-override'],
+        'vertical-align': [
+            'baseline', 'bottom', 'sub', 'super', 'top', 'text-top', 'middle',
+            'text-bottom', cssLength
+        ],
+        visibility: ['visible', 'hidden', 'collapse'],
+        'white-space': [
+            'normal', 'nowrap', 'pre', 'pre-line', 'pre-wrap', 'inherit'
+        ],
+        width: [cssLength, 'auto'],
+        'word-spacing': ['normal', cssLength],
+        'word-wrap': ['break-word', 'normal'],
+        'z-index': ['auto', cssNumber]
+    };
+
+    function styleAttribute() {
+        var v;
+        while (nexttoken.id === '*' || nexttoken.id === '#' ||
+                nexttoken.value === '_') {
+            if (!option.css) {
+                warning("Unexpected '{a}'.", nexttoken, nexttoken.value);
+            }
+            advance();
+        }
+        if (nexttoken.id === '-') {
+            if (!option.css) {
+                warning("Unexpected '{a}'.", nexttoken, nexttoken.value);
+            }
+            advance('-');
+            if (!nexttoken.identifier) {
+                warning(
+"Expected a non-standard style attribute and instead saw '{a}'.",
+                    nexttoken, nexttoken.value);
+            }
+            advance();
+            return cssAny;
+        } else {
+            if (!nexttoken.identifier) {
+                warning("Excepted a style attribute, and instead saw '{a}'.",
+                    nexttoken, nexttoken.value);
+            } else {
+                if (is_own(cssAttributeData, nexttoken.value)) {
+                    v = cssAttributeData[nexttoken.value];
+                } else {
+                    v = cssAny;
+                    if (!option.css) {
+                        warning("Unrecognized style attribute '{a}'.",
+                                nexttoken, nexttoken.value);
+                    }
+                }
+            }
+            advance();
+            return v;
+        }
+    }
+
+    function styleValue(v) {
+        var i = 0,
+            n,
+            once,
+            match,
+            round,
+            start = 0,
+            vi;
+        switch (typeof v) {
+        case 'function':
+            return v();
+        case 'string':
+            if (nexttoken.identifier && nexttoken.value === v) {
+                advance();
+                return true;
+            }
+            return false;
+        }
+        for (;;) {
+            if (i >= v.length) {
+                return false;
+            }
+            vi = v[i];
+            i += 1;
+            if (vi === true) {
+                break;
+            } else if (typeof vi === 'number') {
+                n = vi;
+                vi = v[i];
+                i += 1;
+            } else {
+                n = 1;
+            }
+            match = false;
+            while (n > 0) {
+                if (styleValue(vi)) {
+                    match = true;
+                    n -= 1;
+                } else {
+                    break;
+                }
+            }
+            if (match) {
+                return true;
+            }
+        }
+        start = i;
+        once = [];
+        for (;;) {
+            round = false;
+            for (i = start; i < v.length; i += 1) {
+                if (!once[i]) {
+                    if (styleValue(cssAttributeData[v[i]])) {
+                        match = true;
+                        round = true;
+                        once[i] = true;
+                        break;
+                    }
+                }
+            }
+            if (!round) {
+                return match;
+            }
+        }
+    }
+
+    function styleChild() {
+        if (nexttoken.id === '(number)') {
+            advance();
+            if (nexttoken.value === 'n' && nexttoken.identifier) {
+                adjacent();
+                advance();
+                if (nexttoken.id === '+') {
+                    adjacent();
+                    advance('+');
+                    adjacent();
+                    advance('(number)');
+                }
+            }
+            return;
+        } else {
+            switch (nexttoken.value) {
+            case 'odd':
+            case 'even':
+                if (nexttoken.identifier) {
+                    advance();
+                    return;
+                }
+            }
+        }
+        warning("Unexpected token '{a}'.", nexttoken, nexttoken.value);
+    }
+
+    function substyle() {
+        var v;
+        for (;;) {
+            if (nexttoken.id === '}' || nexttoken.id === '(end)' ||
+                    xquote && nexttoken.id === xquote) {
+                return;
+            }
+            while (nexttoken.id === ';') {
+                warning("Misplaced ';'.");
+                advance(';');
+            }
+            v = styleAttribute();
+            advance(':');
+            if (nexttoken.identifier && nexttoken.value === 'inherit') {
+                advance();
+            } else {
+                if (!styleValue(v)) {
+                    warning("Unexpected token '{a}'.", nexttoken,
+                        nexttoken.value);
+                    advance();
+                }
+            }
+            if (nexttoken.id === '!') {
+                advance('!');
+                adjacent();
+                if (nexttoken.identifier && nexttoken.value === 'important') {
+                    advance();
+                } else {
+                    warning("Expected '{a}' and instead saw '{b}'.",
+                        nexttoken, 'important', nexttoken.value);
+                }
+            }
+            if (nexttoken.id === '}' || nexttoken.id === xquote) {
+                warning("Missing '{a}'.", nexttoken, ';');
+            } else {
+                advance(';');
+            }
+        }
+    }
+
+    function styleSelector() {
+        if (nexttoken.identifier) {
+            if (!is_own(htmltag, nexttoken.value)) {
+                warning("Expected a tagName, and instead saw {a}.",
+                    nexttoken, nexttoken.value);
+            }
+            advance();
+        } else {
+            switch (nexttoken.id) {
+            case '>':
+            case '+':
+                advance();
+                styleSelector();
+                break;
+            case ':':
+                advance(':');
+                switch (nexttoken.value) {
+                case 'active':
+                case 'after':
+                case 'before':
+                case 'checked':
+                case 'disabled':
+                case 'empty':
+                case 'enabled':
+                case 'first-child':
+                case 'first-letter':
+                case 'first-line':
+                case 'first-of-type':
+                case 'focus':
+                case 'hover':
+                case 'last-of-type':
+                case 'link':
+                case 'only-of-type':
+                case 'root':
+                case 'target':
+                case 'visited':
+                    advance();
+                    break;
+                case 'lang':
+                    advance();
+                    advance('(');
+                    if (!nexttoken.identifier) {
+                        warning("Expected a lang code, and instead saw :{a}.",
+                            nexttoken, nexttoken.value);
+                    }
+                    advance(')');
+                    break;
+                case 'nth-child':
+                case 'nth-last-child':
+                case 'nth-last-of-type':
+                case 'nth-of-type':
+                    advance();
+                    advance('(');
+                    styleChild();
+                    advance(')');
+                    break;
+                case 'not':
+                    advance();
+                    advance('(');
+                    if (nexttoken.id === ':' && peek(0).value === 'not') {
+                        warning("Nested not.");
+                    }
+                    styleSelector();
+                    advance(')');
+                    break;
+                default:
+                    warning("Expected a pseudo, and instead saw :{a}.",
+                        nexttoken, nexttoken.value);
+                }
+                break;
+            case '#':
+                advance('#');
+                if (!nexttoken.identifier) {
+                    warning("Expected an id, and instead saw #{a}.",
+                        nexttoken, nexttoken.value);
+                }
+                advance();
+                break;
+            case '*':
+                advance('*');
+                break;
+            case '.':
+                advance('.');
+                if (!nexttoken.identifier) {
+                    warning("Expected a class, and instead saw #.{a}.",
+                        nexttoken, nexttoken.value);
+                }
+                advance();
+                break;
+            case '[':
+                advance('[');
+                if (!nexttoken.identifier) {
+                    warning("Expected an attribute, and instead saw [{a}].",
+                        nexttoken, nexttoken.value);
+                }
+                advance();
+                if (nexttoken.id === '=' || nexttoken.value === '~=' ||
+                        nexttoken.value === '$=' ||
+                        nexttoken.value === '|=' ||
+                        nexttoken.id === '*=' ||
+                        nexttoken.id === '^=') {
+                    advance();
+                    if (nexttoken.type !== '(string)') {
+                        warning("Expected a string, and instead saw {a}.",
+                            nexttoken, nexttoken.value);
+                    }
+                    advance();
+                }
+                advance(']');
+                break;
+            default:
+                error("Expected a CSS selector, and instead saw {a}.",
+                    nexttoken, nexttoken.value);
+            }
+        }
+    }
+
+    function stylePattern() {
+        var name;
+        if (nexttoken.id === '{') {
+            warning("Expected a style pattern, and instead saw '{a}'.", nexttoken,
+                nexttoken.id);
+        } else if (nexttoken.id === '@') {
+            advance('@');
+            name = nexttoken.value;
+            if (nexttoken.identifier && atrule[name] === true) {
+                advance();
+                return name;
+            }
+            warning("Expected an at-rule, and instead saw @{a}.", nexttoken, name);
+        }
+        for (;;) {
+            styleSelector();
+            if (nexttoken.id === '</' || nexttoken.id === '{' ||
+                    nexttoken.id === '(end)') {
+                return '';
+            }
+            if (nexttoken.id === ',') {
+                comma();
+            }
+        }
+    }
+
+    function styles() {
+        var i;
+        while (nexttoken.id === '@') {
+            i = peek();
+            if (i.identifier && i.value === 'import') {
+                advance('@');
+                advance();
+                if (!cssUrl()) {
+                    warning("Expected '{a}' and instead saw '{b}'.", nexttoken,
+                        'url', nexttoken.value);
+                    advance();
+                }
+                advance(';');
+            } else {
+                break;
+            }
+        }
+        while (nexttoken.id !== '</' && nexttoken.id !== '(end)') {
+            stylePattern();
+            xmode = 'styleproperty';
+            if (nexttoken.id === ';') {
+                advance(';');
+            } else {
+                advance('{');
+                substyle();
+                xmode = 'style';
+                advance('}');
+            }
+        }
+    }
+
+
+// HTML parsing.
+
+    function doBegin(n) {
+        if (n !== 'html' && !option.fragment) {
+            if (n === 'div' && option.adsafe) {
+                error("ADSAFE: Use the fragment option.");
+            } else {
+                error("Expected '{a}' and instead saw '{b}'.",
+                    token, 'html', n);
+            }
+        }
+        if (option.adsafe) {
+            if (n === 'html') {
+                error(
+"Currently, ADsafe does not operate on whole HTML documents. It operates on <div> fragments and .js files.", token);
+            }
+            if (option.fragment) {
+                if (n !== 'div') {
+                    error("ADsafe violation: Wrap the widget in a div.", token);
+                }
+            } else {
+                error("Use the fragment option.", token);
+            }
+        }
+        option.browser = true;
+        assume();
+    }
+
+    function doAttribute(n, a, v) {
+        var u, x;
+        if (a === 'id') {
+            u = typeof v === 'string' ? v.toUpperCase() : '';
+            if (ids[u] === true) {
+                warning("Duplicate id='{a}'.", nexttoken, v);
+            }
+            if (!/^[A-Za-z][A-Za-z0-9._:\-]*$/.test(v)) {
+                warning("Bad id: '{a}'.", nexttoken, v);
+            } else if (option.adsafe) {
+                if (adsafe_id) {
+                    if (v.slice(0, adsafe_id.length) !== adsafe_id) {
+                        warning("ADsafe violation: An id must have a '{a}' prefix",
+                                nexttoken, adsafe_id);
+                    } else if (!/^[A-Z]+_[A-Z]+$/.test(v)) {
+                        warning("ADSAFE violation: bad id.");
+                    }
+                } else {
+                    adsafe_id = v;
+                    if (!/^[A-Z]+_$/.test(v)) {
+                        warning("ADSAFE violation: bad id.");
+                    }
+                }
+            }
+            x = v.search(dx);
+            if (x >= 0) {
+                warning("Unexpected character '{a}' in {b}.", token, v.charAt(x), a);
+            }
+            ids[u] = true;
+        } else if (a === 'class' || a === 'type' || a === 'name') {
+            x = v.search(qx);
+            if (x >= 0) {
+                warning("Unexpected character '{a}' in {b}.", token, v.charAt(x), a);
+            }
+            ids[u] = true;
+        } else if (a === 'href' || a === 'background' ||
+                a === 'content' || a === 'data' ||
+                a.indexOf('src') >= 0 || a.indexOf('url') >= 0) {
+            if (option.safe && ux.test(v)) {
+                error("ADsafe URL violation.");
+            }
+            urls.push(v);
+        } else if (a === 'for') {
+            if (option.adsafe) {
+                if (adsafe_id) {
+                    if (v.slice(0, adsafe_id.length) !== adsafe_id) {
+                        warning("ADsafe violation: An id must have a '{a}' prefix",
+                                nexttoken, adsafe_id);
+                    } else if (!/^[A-Z]+_[A-Z]+$/.test(v)) {
+                        warning("ADSAFE violation: bad id.");
+                    }
+                } else {
+                    warning("ADSAFE violation: bad id.");
+                }
+            }
+        } else if (a === 'name') {
+            if (option.adsafe && v.indexOf('_') >= 0) {
+                warning("ADsafe name violation.");
+            }
+        }
+    }
+
+    function doTag(n, a) {
+        var i, t = htmltag[n], x;
+        src = false;
+        if (!t) {
+            error("Unrecognized tag '<{a}>'.",
+                    nexttoken,
+                    n === n.toLowerCase() ? n :
+                        n + ' (capitalization error)');
+        }
+        if (stack.length > 0) {
+            if (n === 'html') {
+                error("Too many <html> tags.", token);
+            }
+            x = t.parent;
+            if (x) {
+                if (x.indexOf(' ' + stack[stack.length - 1].name + ' ') < 0) {
+                    error("A '<{a}>' must be within '<{b}>'.",
+                            token, n, x);
+                }
+            } else if (!option.adsafe && !option.fragment) {
+                i = stack.length;
+                do {
+                    if (i <= 0) {
+                        error("A '<{a}>' must be within '<{b}>'.",
+                                token, n, 'body');
+                    }
+                    i -= 1;
+                } while (stack[i].name !== 'body');
+            }
+        }
+        switch (n) {
+        case 'div':
+            if (option.adsafe && stack.length === 1 && !adsafe_id) {
+                warning("ADSAFE violation: missing ID_.");
+            }
+            break;
+        case 'script':
+            xmode = 'script';
+            advance('>');
+            indent = nexttoken.from;
+            if (a.lang) {
+                warning("lang is deprecated.", token);
+            }
+            if (option.adsafe && stack.length !== 1) {
+                warning("ADsafe script placement violation.", token);
+            }
+            if (a.src) {
+                if (option.adsafe && (!adsafe_may || !approved[a.src])) {
+                    warning("ADsafe unapproved script source.", token);
+                }
+                if (a.type) {
+                    warning("type is unnecessary.", token);
+                }
+            } else {
+                if (adsafe_went) {
+                    error("ADsafe script violation.", token);
+                }
+                statements('script');
+            }
+            xmode = 'html';
+            advance('</');
+            if (!nexttoken.identifier && nexttoken.value !== 'script') {
+                warning("Expected '{a}' and instead saw '{b}'.",
+                        nexttoken, 'script', nexttoken.value);
+            }
+            advance();
+            xmode = 'outer';
+            break;
+        case 'style':
+            xmode = 'style';
+            advance('>');
+            styles();
+            xmode = 'html';
+            advance('</');
+            if (!nexttoken.identifier && nexttoken.value !== 'style') {
+                warning("Expected '{a}' and instead saw '{b}'.",
+                        nexttoken, 'style', nexttoken.value);
+            }
+            advance();
+            xmode = 'outer';
+            break;
+        case 'input':
+            switch (a.type) {
+            case 'radio':
+            case 'checkbox':
+            case 'button':
+            case 'reset':
+            case 'submit':
+                break;
+            case 'text':
+            case 'file':
+            case 'password':
+            case 'file':
+            case 'hidden':
+            case 'image':
+                if (option.adsafe && a.autocomplete !== 'off') {
+                    warning("ADsafe autocomplete violation.");
+                }
+                break;
+            default:
+                warning("Bad input type.");
+            }
+            break;
+        case 'applet':
+        case 'body':
+        case 'embed':
+        case 'frame':
+        case 'frameset':
+        case 'head':
+        case 'iframe':
+        case 'noembed':
+        case 'noframes':
+        case 'object':
+        case 'param':
+            if (option.adsafe) {
+                warning("ADsafe violation: Disallowed tag: " + n);
+            }
+            break;
+        }
+    }
+
+
+    function closetag(n) {
+        return '</' + n + '>';
+    }
+
+    function html() {
+        var a, attributes, e, n, q, t, v, w = option.white, wmode;
+        xmode = 'html';
+        xquote = '';
+        stack = null;
+        for (;;) {
+            switch (nexttoken.value) {
+            case '<':
+                xmode = 'html';
+                advance('<');
+                attributes = {};
+                t = nexttoken;
+                if (!t.identifier) {
+                    warning("Bad identifier {a}.", t, t.value);
+                }
+                n = t.value;
+                if (option.cap) {
+                    n = n.toLowerCase();
+                }
+                t.name = n;
+                advance();
+                if (!stack) {
+                    stack = [];
+                    doBegin(n);
+                }
+                v = htmltag[n];
+                if (typeof v !== 'object') {
+                    error("Unrecognized tag '<{a}>'.", t, n);
+                }
+                e = v.empty;
+                t.type = n;
+                for (;;) {
+                    if (nexttoken.id === '/') {
+                        advance('/');
+                        if (nexttoken.id !== '>') {
+                            warning("Expected '{a}' and instead saw '{b}'.",
+                                    nexttoken, '>', nexttoken.value);
+                        }
+                        break;
+                    }
+                    if (nexttoken.id && nexttoken.id.substr(0, 1) === '>') {
+                        break;
+                    }
+                    if (!nexttoken.identifier) {
+                        if (nexttoken.id === '(end)' || nexttoken.id === '(error)') {
+                            error("Missing '>'.", nexttoken);
+                        }
+                        warning("Bad identifier.");
+                    }
+                    option.white = true;
+                    nonadjacent(token, nexttoken);
+                    a = nexttoken.value;
+                    option.white = w;
+                    advance();
+                    if (!option.cap && a !== a.toLowerCase()) {
+                        warning("Attribute '{a}' not all lower case.", nexttoken, a);
+                    }
+                    a = a.toLowerCase();
+                    xquote = '';
+                    if (is_own(attributes, a)) {
+                        warning("Attribute '{a}' repeated.", nexttoken, a);
+                    }
+                    if (a.slice(0, 2) === 'on') {
+                        if (!option.on) {
+                            warning("Avoid HTML event handlers.");
+                        }
+                        xmode = 'scriptstring';
+                        advance('=');
+                        q = nexttoken.id;
+                        if (q !== '"' && q !== "'") {
+                            error("Missing quote.");
+                        }
+                        xquote = q;
+                        wmode = option.white;
+                        option.white = false;
+                        advance(q);
+                        statements('on');
+                        option.white = wmode;
+                        if (nexttoken.id !== q) {
+                            error("Missing close quote on script attribute.");
+                        }
+                        xmode = 'html';
+                        xquote = '';
+                        advance(q);
+                        v = false;
+                    } else if (a === 'style') {
+                        xmode = 'scriptstring';
+                        advance('=');
+                        q = nexttoken.id;
+                        if (q !== '"' && q !== "'") {
+                            error("Missing quote.");
+                        }
+                        xmode = 'styleproperty';
+                        xquote = q;
+                        advance(q);
+                        substyle();
+                        xmode = 'html';
+                        xquote = '';
+                        advance(q);
+                        v = false;
+                    } else {
+                        if (nexttoken.id === '=') {
+                            advance('=');
+                            v = nexttoken.value;
+                            if (!nexttoken.identifier &&
+                                    nexttoken.id !== '"' &&
+                                    nexttoken.id !== '\'' &&
+                                    nexttoken.type !== '(string)' &&
+                                    nexttoken.type !== '(number)' &&
+                                    nexttoken.type !== '(color)') {
+                                warning("Expected an attribute value and instead saw '{a}'.", token, a);
+                            }
+                            advance();
+                        } else {
+                            v = true;
+                        }
+                    }
+                    attributes[a] = v;
+                    doAttribute(n, a, v);
+                }
+                doTag(n, attributes);
+                if (!e) {
+                    stack.push(t);
+                }
+                xmode = 'outer';
+                advance('>');
+                break;
+            case '</':
+                xmode = 'html';
+                advance('</');
+                if (!nexttoken.identifier) {
+                    warning("Bad identifier.");
+                }
+                n = nexttoken.value;
+                if (option.cap) {
+                    n = n.toLowerCase();
+                }
+                advance();
+                if (!stack) {
+                    error("Unexpected '{a}'.", nexttoken, closetag(n));
+                }
+                t = stack.pop();
+                if (!t) {
+                    error("Unexpected '{a}'.", nexttoken, closetag(n));
+                }
+                if (t.name !== n) {
+                    error("Expected '{a}' and instead saw '{b}'.",
+                            nexttoken, closetag(t.name), closetag(n));
+                }
+                if (nexttoken.id !== '>') {
+                    error("Missing '{a}'.", nexttoken, '>');
+                }
+                xmode = 'outer';
+                advance('>');
+                break;
+            case '<!':
+                if (option.safe) {
+                    warning("ADsafe HTML violation.");
+                }
+                xmode = 'html';
+                for (;;) {
+                    advance();
+                    if (nexttoken.id === '>' || nexttoken.id === '(end)') {
+                        break;
+                    }
+                    if (nexttoken.value.indexOf('--') >= 0) {
+                        error("Unexpected --.");
+                    }
+                    if (nexttoken.value.indexOf('<') >= 0) {
+                        error("Unexpected <.");
+                    }
+                    if (nexttoken.value.indexOf('>') >= 0) {
+                        error("Unexpected >.");
+                    }
+                }
+                xmode = 'outer';
+                advance('>');
+                break;
+            case '(end)':
+                return;
+            default:
+                if (nexttoken.id === '(end)') {
+                    error("Missing '{a}'.", nexttoken,
+                            '</' + stack[stack.length - 1].value + '>');
+                } else {
+                    advance();
+                }
+            }
+            if (stack && stack.length === 0 && (option.adsafe ||
+                    !option.fragment || nexttoken.id === '(end)')) {
+                break;
+            }
+        }
+        if (nexttoken.id !== '(end)') {
+            error("Unexpected material after the end.");
+        }
+    }
+
+
+// Build the syntax table by declaring the syntactic elements of the language.
+
+    type('(number)', idValue);
+    type('(string)', idValue);
+
+    syntax['(identifier)'] = {
+        type: '(identifier)',
+        lbp: 0,
+        identifier: true,
+        nud: function () {
+            var v = this.value,
+                s = scope[v],
+                f;
+            if (typeof s === 'function') {
+                s = undefined;
+            } else if (typeof s === 'boolean') {
+                f = funct;
+                funct = functions[0];
+                addlabel(v, 'var');
+                s = funct;
+                funct = f;
+            }
+
+// The name is in scope and defined in the current function.
+
+            if (funct === s) {
+
+//      Change 'unused' to 'var', and reject labels.
+
+                switch (funct[v]) {
+                case 'unused':
+                    funct[v] = 'var';
+                    break;
+                case 'label':
+                    warning("'{a}' is a statement label.", token, v);
+                    break;
+                }
+
+// The name is not defined in the function.  If we are in the global scope,
+// then we have an undefined variable.
+
+            } else if (funct['(global)']) {
+                if (option.undef && predefined[v] !== 'boolean') {
+                    warning("'{a}' is not defined.", token, v);
+                }
+                note_implied(token);
+
+// If the name is already defined in the current
+// function, but not as outer, then there is a scope error.
+
+            } else {
+                switch (funct[v]) {
+                case 'closure':
+                case 'function':
+                case 'var':
+                case 'unused':
+                    warning("'{a}' used out of scope.", token, v);
+                    break;
+                case 'label':
+                    warning("'{a}' is a statement label.", token, v);
+                    break;
+                case 'outer':
+                case 'global':
+                    break;
+                default:
+
+// If the name is defined in an outer function, make an outer entry, and if
+// it was unused, make it var.
+
+                    if (s === true) {
+                        funct[v] = true;
+                    } else if (s === null) {
+                        warning("'{a}' is not allowed.", token, v);
+                        note_implied(token);
+                    } else if (typeof s !== 'object') {
+                        if (option.undef) {
+                            warning("'{a}' is not defined.", token, v);
+                        } else {
+                            funct[v] = true;
+                        }
+                        note_implied(token);
+                    } else {
+                        switch (s[v]) {
+                        case 'function':
+                        case 'var':
+                        case 'unused':
+                            s[v] = 'closure';
+                            funct[v] = s['(global)'] ? 'global' : 'outer';
+                            break;
+                        case 'closure':
+                        case 'parameter':
+                            funct[v] = s['(global)'] ? 'global' : 'outer';
+                            break;
+                        case 'label':
+                            warning("'{a}' is a statement label.", token, v);
+                        }
+                    }
+                }
+            }
+            return this;
+        },
+        led: function () {
+            error("Expected an operator and instead saw '{a}'.",
+                nexttoken, nexttoken.value);
+        }
+    };
+
+    type('(regexp)', function () {
+        return this;
+    });
+
+
+// ECMAScript parser
+
+    delim('(endline)');
+    delim('(begin)');
+    delim('(end)').reach = true;
+    delim('</').reach = true;
+    delim('<!');
+    delim('<!--');
+    delim('-->');
+    delim('(error)').reach = true;
+    delim('}').reach = true;
+    delim(')');
+    delim(']');
+    delim('"').reach = true;
+    delim("'").reach = true;
+    delim(';');
+    delim(':').reach = true;
+    delim(',');
+    delim('#');
+    delim('@');
+    reserve('else');
+    reserve('case').reach = true;
+    reserve('catch');
+    reserve('default').reach = true;
+    reserve('finally');
+    reservevar('arguments');
+    reservevar('eval');
+    reservevar('false');
+    reservevar('Infinity');
+    reservevar('NaN');
+    reservevar('null');
+    reservevar('this');
+    reservevar('true');
+    reservevar('undefined');
+    assignop('=', 'assign', 20);
+    assignop('+=', 'assignadd', 20);
+    assignop('-=', 'assignsub', 20);
+    assignop('*=', 'assignmult', 20);
+    assignop('/=', 'assigndiv', 20).nud = function () {
+        error("A regular expression literal can be confused with '/='.");
+    };
+    assignop('%=', 'assignmod', 20);
+    bitwiseassignop('&=', 'assignbitand', 20);
+    bitwiseassignop('|=', 'assignbitor', 20);
+    bitwiseassignop('^=', 'assignbitxor', 20);
+    bitwiseassignop('<<=', 'assignshiftleft', 20);
+    bitwiseassignop('>>=', 'assignshiftright', 20);
+    bitwiseassignop('>>>=', 'assignshiftrightunsigned', 20);
+    infix('?', function (left, that) {
+        that.left = left;
+        that.right = parse(10);
+        advance(':');
+        that['else'] = parse(10);
+        return that;
+    }, 30);
+
+    infix('||', 'or', 40);
+    infix('&&', 'and', 50);
+    bitwise('|', 'bitor', 70);
+    bitwise('^', 'bitxor', 80);
+    bitwise('&', 'bitand', 90);
+    relation('==', function (left, right) {
+        if (option.eqeqeq) {
+            warning("Expected '{a}' and instead saw '{b}'.",
+                    this, '===', '==');
+        } else if (isPoorRelation(left)) {
+            warning("Use '{a}' to compare with '{b}'.",
+                this, '===', left.value);
+        } else if (isPoorRelation(right)) {
+            warning("Use '{a}' to compare with '{b}'.",
+                this, '===', right.value);
+        }
+        return this;
+    });
+    relation('===');
+    relation('!=', function (left, right) {
+        if (option.eqeqeq) {
+            warning("Expected '{a}' and instead saw '{b}'.",
+                    this, '!==', '!=');
+        } else if (isPoorRelation(left)) {
+            warning("Use '{a}' to compare with '{b}'.",
+                    this, '!==', left.value);
+        } else if (isPoorRelation(right)) {
+            warning("Use '{a}' to compare with '{b}'.",
+                    this, '!==', right.value);
+        }
+        return this;
+    });
+    relation('!==');
+    relation('<');
+    relation('>');
+    relation('<=');
+    relation('>=');
+    bitwise('<<', 'shiftleft', 120);
+    bitwise('>>', 'shiftright', 120);
+    bitwise('>>>', 'shiftrightunsigned', 120);
+    infix('in', 'in', 120);
+    infix('instanceof', 'instanceof', 120);
+    infix('+', function (left, that) {
+        var right = parse(130);
+        if (left && right && left.id === '(string)' && right.id === '(string)') {
+            left.value += right.value;
+            left.character = right.character;
+            if (jx.test(left.value)) {
+                warning("JavaScript URL.", left);
+            }
+            return left;
+        }
+        that.left = left;
+        that.right = right;
+        return that;
+    }, 130);
+    prefix('+', 'num');
+    prefix('+++', function () {
+        warning("Confusing pluses.");
+        this.right = parse(150);
+        this.arity = 'unary';
+        return this;
+    });
+    infix('+++', function (left) {
+        warning("Confusing pluses.");
+        this.left = left;
+        this.right = parse(130);
+        return this;
+    }, 130);
+    infix('-', 'sub', 130);
+    prefix('-', 'neg');
+    prefix('---', function () {
+        warning("Confusing minuses.");
+        this.right = parse(150);
+        this.arity = 'unary';
+        return this;
+    });
+    infix('---', function (left) {
+        warning("Confusing minuses.");
+        this.left = left;
+        this.right = parse(130);
+        return this;
+    }, 130);
+    infix('*', 'mult', 140);
+    infix('/', 'div', 140);
+    infix('%', 'mod', 140);
+
+    suffix('++', 'postinc');
+    prefix('++', 'preinc');
+    syntax['++'].exps = true;
+
+    suffix('--', 'postdec');
+    prefix('--', 'predec');
+    syntax['--'].exps = true;
+    prefix('delete', function () {
+        var p = parse(0);
+        if (!p || (p.id !== '.' && p.id !== '[')) {
+            warning("Variables should not be deleted.");
+        }
+        this.first = p;
+        return this;
+    }).exps = true;
+
+
+    prefix('~', function () {
+        if (option.bitwise) {
+            warning("Unexpected '{a}'.", this, '~');
+        }
+        parse(150);
+        return this;
+    });
+    prefix('!', function () {
+        this.right = parse(150);
+        this.arity = 'unary';
+        if (bang[this.right.id] === true) {
+            warning("Confusing use of '{a}'.", this, '!');
+        }
+        return this;
+    });
+    prefix('typeof', 'typeof');
+    prefix('new', function () {
+        var c = parse(155), i;
+        if (c && c.id !== 'function') {
+            if (c.identifier) {
+                c['new'] = true;
+                switch (c.value) {
+                case 'Object':
+                    warning("Use the object literal notation {}.", token);
+                    break;
+                case 'Array':
+                    if (nexttoken.id !== '(') {
+                        warning("Use the array literal notation [].", token);
+                    } else {
+                        advance('(');
+                        if (nexttoken.id === ')') {
+                            warning("Use the array literal notation [].", token);
+                        } else {
+                            i = parse(0);
+                            c.dimension = i;
+                            if ((i.id === '(number)' && /[.+\-Ee]/.test(i.value)) ||
+                                    (i.id === '-' && !i.right) ||
+                                    i.id === '(string)' || i.id === '[' ||
+                                    i.id === '{' || i.id === 'true' ||
+                                    i.id === 'false' ||
+                                    i.id === 'null' || i.id === 'undefined' ||
+                                    i.id === 'Infinity') {
+                                warning("Use the array literal notation [].", token);
+                            }
+                            if (nexttoken.id !== ')') {
+                                error("Use the array literal notation [].", token);
+                            }
+                        }
+                        advance(')');
+                    }
+                    this.first = c;
+                    return this;
+                case 'Number':
+                case 'String':
+                case 'Boolean':
+                case 'Math':
+                case 'JSON':
+                    warning("Do not use {a} as a constructor.", token, c.value);
+                    break;
+                case 'Function':
+                    if (!option.evil) {
+                        warning("The Function constructor is eval.");
+                    }
+                    break;
+                case 'Date':
+                case 'RegExp':
+                    break;
+                default:
+                    if (c.id !== 'function') {
+                        i = c.value.substr(0, 1);
+                        if (option.newcap && (i < 'A' || i > 'Z')) {
+                            warning(
+                    "A constructor name should start with an uppercase letter.",
+                                token);
+                        }
+                    }
+                }
+            } else {
+                if (c.id !== '.' && c.id !== '[' && c.id !== '(') {
+                    warning("Bad constructor.", token);
+                }
+            }
+        } else {
+            warning("Weird construction. Delete 'new'.", this);
+        }
+        adjacent(token, nexttoken);
+        if (nexttoken.id !== '(') {
+            warning("Missing '()' invoking a constructor.");
+        }
+        this.first = c;
+        return this;
+    });
+    syntax['new'].exps = true;
+
+    infix('.', function (left, that) {
+        adjacent(prevtoken, token);
+        nobreak();
+        var m = identifier();
+        if (typeof m === 'string') {
+            countMember(m);
+        }
+        that.left = left;
+        that.right = m;
+        if (!option.evil && left && left.value === 'document' &&
+                (m === 'write' || m === 'writeln')) {
+            warning("document.write can be a form of eval.", left);
+        } else if (option.adsafe) {
+            if (left && left.value === 'ADSAFE') {
+                if (m === 'id' || m === 'lib') {
+                    warning("ADsafe violation.", that);
+                } else if (m === 'go') {
+                    if (xmode !== 'script') {
+                        warning("ADsafe violation.", that);
+                    } else if (adsafe_went || nexttoken.id !== '(' ||
+                            peek(0).id !== '(string)' ||
+                            peek(0).value !== adsafe_id ||
+                            peek(1).id !== ',') {
+                        error("ADsafe violation: go.", that);
+                    }
+                    adsafe_went = true;
+                    adsafe_may = false;
+                }
+            }
+        }
+        if (!option.evil && (m === 'eval' || m === 'execScript')) {
+            warning('eval is evil.');
+        } else if (option.safe) {
+            for (;;) {
+                if (banned[m] === true) {
+                    warning("ADsafe restricted word '{a}'.", token, m);
+                }
+                if (typeof predefined[left.value] !== 'boolean' ||
+                        nexttoken.id === '(') {
+                    break;
+                }
+                if (standard_member[m] === true) {
+                    if (nexttoken.id === '.') {
+                        warning("ADsafe violation.", that);
+                    }
+                    break;
+                }
+                if (nexttoken.id !== '.') {
+                    warning("ADsafe violation.", that);
+                    break;
+                }
+                advance('.');
+                token.left = that;
+                token.right = m;
+                that = token;
+                m = identifier();
+                if (typeof m === 'string') {
+                    countMember(m);
+                }
+            }
+        }
+        return that;
+    }, 160, true);
+
+    infix('(', function (left, that) {
+        adjacent(prevtoken, token);
+        nospace();
+        if (option.immed && !left.immed && left.id === 'function') {
+            warning("Wrap an immediate function invocation in parentheses " +
+                "to assist the reader in understanding that the expression " +
+                "is the result of a function, and not the function itself.");
+        }
+        var n = 0,
+            p = [];
+        if (left) {
+            if (left.type === '(identifier)') {
+                if (left.value.match(/^[A-Z]([A-Z0-9_$]*[a-z][A-Za-z0-9_$]*)?$/)) {
+                    if (left.value !== 'Number' && left.value !== 'String' &&
+                            left.value !== 'Boolean' &&
+                            left.value !== 'Date') {
+                        if (left.value === 'Math') {
+                            warning("Math is not a function.", left);
+                        } else if (option.newcap) {
+                            warning(
+"Missing 'new' prefix when invoking a constructor.", left);
+                        }
+                    }
+                }
+            } else if (left.id === '.') {
+                if (option.safe && left.left.value === 'Math' &&
+                        left.right === 'random') {
+                    warning("ADsafe violation.", left);
+                }
+            }
+        }
+        if (nexttoken.id !== ')') {
+            for (;;) {
+                p[p.length] = parse(10);
+                n += 1;
+                if (nexttoken.id !== ',') {
+                    break;
+                }
+                comma();
+            }
+        }
+        advance(')');
+        nospace(prevtoken, token);
+        if (typeof left === 'object') {
+            if (left.value === 'parseInt' && n === 1) {
+                warning("Missing radix parameter.", left);
+            }
+            if (!option.evil) {
+                if (left.value === 'eval' || left.value === 'Function' ||
+                        left.value === 'execScript') {
+                    warning("eval is evil.", left);
+                } else if (p[0] && p[0].id === '(string)' &&
+                       (left.value === 'setTimeout' ||
+                        left.value === 'setInterval')) {
+                    warning(
+    "Implied eval is evil. Pass a function instead of a string.", left);
+                }
+            }
+            if (!left.identifier && left.id !== '.' && left.id !== '[' &&
+                    left.id !== '(' && left.id !== '&&' && left.id !== '||' &&
+                    left.id !== '?') {
+                warning("Bad invocation.", left);
+            }
+        }
+        that.left = left;
+        return that;
+    }, 155, true).exps = true;
+
+    prefix('(', function () {
+        nospace();
+        if (nexttoken.id === 'function') {
+            nexttoken.immed = true;
+        }
+        var v = parse(0);
+        advance(')', this);
+        nospace(prevtoken, token);
+        if (option.immed && v.id === 'function') {
+            if (nexttoken.id === '(') {
+                warning(
+"Move the invocation into the parens that contain the function.", nexttoken);
+            } else {
+                warning(
+"Do not wrap function literals in parens unless they are to be immediately invoked.",
+                        this);
+            }
+        }
+        return v;
+    });
+
+    infix('[', function (left, that) {
+        nospace();
+        var e = parse(0), s;
+        if (e && e.type === '(string)') {
+            if (option.safe && banned[e.value] === true) {
+                warning("ADsafe restricted word '{a}'.", that, e.value);
+            } else if (!option.evil &&
+                    (e.value === 'eval' || e.value === 'execScript')) {
+                warning("eval is evil.", that);
+            } else if (option.safe &&
+                    (e.value.charAt(0) === '_' || e.value.charAt(0) === '-')) {
+                warning("ADsafe restricted subscript '{a}'.", that, e.value);
+            }
+            countMember(e.value);
+            if (!option.sub && ix.test(e.value)) {
+                s = syntax[e.value];
+                if (!s || !s.reserved) {
+                    warning("['{a}'] is better written in dot notation.",
+                            e, e.value);
+                }
+            }
+        } else if (!e || e.type !== '(number)' || e.value < 0) {
+            if (option.safe) {
+                warning('ADsafe subscripting.');
+            }
+        }
+        advance(']', that);
+        nospace(prevtoken, token);
+        that.left = left;
+        that.right = e;
+        return that;
+    }, 160, true);
+
+    prefix('[', function () {
+        var b = token.line !== nexttoken.line;
+        this.first = [];
+        if (b) {
+            indent += option.indent;
+            if (nexttoken.from === indent + option.indent) {
+                indent += option.indent;
+            }
+        }
+        while (nexttoken.id !== '(end)') {
+            while (nexttoken.id === ',') {
+                warning("Extra comma.");
+                advance(',');
+            }
+            if (nexttoken.id === ']') {
+                break;
+            }
+            if (b && token.line !== nexttoken.line) {
+                indentation();
+            }
+            this.first.push(parse(10));
+            if (nexttoken.id === ',') {
+                comma();
+                if (nexttoken.id === ']' && !option.es5) {
+                    warning("Extra comma.", token);
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+        if (b) {
+            indent -= option.indent;
+            indentation();
+        }
+        advance(']', this);
+        return this;
+    }, 160);
+
+
+    function property_name() {
+        var id = optionalidentifier(true);
+        if (!id) {
+            if (nexttoken.id === '(string)') {
+                id = nexttoken.value;
+                if (option.adsafe &&
+                        (id.charAt(0) === '_' ||
+                         id.charAt(id.length - 1) === '_')) {
+                    warning("Unexpected {a} in '{b}'.", token,
+                        "dangling '_'", id);
+                }
+                advance();
+            } else if (nexttoken.id === '(number)') {
+                id = nexttoken.value.toString();
+                advance();
+            }
+        }
+        return id;
+    }
+
+
+    function functionparams() {
+        var i, t = nexttoken, p = [];
+        advance('(');
+        nospace();
+        if (nexttoken.id === ')') {
+            advance(')');
+            nospace(prevtoken, token);
+            return;
+        }
+        for (;;) {
+            i = identifier();
+            p.push(i);
+            addlabel(i, 'parameter');
+            if (nexttoken.id === ',') {
+                comma();
+            } else {
+                advance(')', t);
+                nospace(prevtoken, token);
+                return p;
+            }
+        }
+    }
+
+
+    function doFunction(i) {
+        var f, s = scope;
+        scope = Object.create(s);
+        funct = {
+            '(name)'    : i || '"' + anonname + '"',
+            '(line)'    : nexttoken.line,
+            '(context)' : funct,
+            '(breakage)': 0,
+            '(loopage)' : 0,
+            '(scope)'   : scope
+        };
+        f = funct;
+        token.funct = funct;
+        functions.push(funct);
+        if (i) {
+            addlabel(i, 'function');
+        }
+        funct['(params)'] = functionparams();
+
+        block(false);
+        scope = s;
+        funct['(last)'] = token.line;
+        funct = funct['(context)'];
+        return f;
+    }
+
+
+    (function (x) {
+        x.nud = function () {
+            var b, f, i, j, p, seen = {}, t;
+            b = token.line !== nexttoken.line;
+            if (b) {
+                indent += option.indent;
+                if (nexttoken.from === indent + option.indent) {
+                    indent += option.indent;
+                }
+            }
+            for (;;) {
+                if (nexttoken.id === '}') {
+                    break;
+                }
+                if (b) {
+                    indentation();
+                }
+                if (nexttoken.value === 'get' && peek().id !== ':') {
+                    advance('get');
+                    if (!option.es5) {
+                        error("get/set are ES5 features.");
+                    }
+                    i = property_name();
+                    if (!i) {
+                        error("Missing property name.");
+                    }
+                    t = nexttoken;
+                    adjacent(token, nexttoken);
+                    f = doFunction(i);
+                    if (funct['(loopage)']) {
+                        warning("Don't make functions within a loop.", t);
+                    }
+                    p = f['(params)'];
+                    if (p) {
+                        warning("Unexpected parameter '{a}' in get {b} function.", t, p[0], i);
+                    }
+                    adjacent(token, nexttoken);
+                    advance(',');
+                    indentation();
+                    advance('set');
+                    j = property_name();
+                    if (i !== j) {
+                        error("Expected {a} and instead saw {b}.", token, i, j);
+                    }
+                    t = nexttoken;
+                    adjacent(token, nexttoken);
+                    f = doFunction(i);
+                    p = f['(params)'];
+                    if (!p || p.length !== 1 || p[0] !== 'value') {
+                        warning("Expected (value) in set {a} function.", t, i);
+                    }
+                } else {
+                    i = property_name();
+                    if (typeof i !== 'string') {
+                        break;
+                    }
+                    advance(':');
+                    nonadjacent(token, nexttoken);
+                    parse(10);
+                }
+                if (seen[i] === true) {
+                    warning("Duplicate member '{a}'.", nexttoken, i);
+                }
+                seen[i] = true;
+                countMember(i);
+                if (nexttoken.id === ',') {
+                    comma();
+                    if (nexttoken.id === ',') {
+                        warning("Extra comma.", token);
+                    } else if (nexttoken.id === '}' && !option.es5) {
+                        warning("Extra comma.", token);
+                    }
+                } else {
+                    break;
+                }
+            }
+            if (b) {
+                indent -= option.indent;
+                indentation();
+            }
+            advance('}', this);
+            return this;
+        };
+        x.fud = function () {
+            error("Expected to see a statement and instead saw a block.", token);
+        };
+    }(delim('{')));
+
+
+    function varstatement(prefix) {
+
+// JavaScript does not have block scope. It only has function scope. So,
+// declaring a variable in a block can have unexpected consequences.
+
+        var id, name, value;
+
+        if (funct['(onevar)'] && option.onevar) {
+            warning("Too many var statements.");
+        } else if (!funct['(global)']) {
+            funct['(onevar)'] = true;
+        }
+        this.first = [];
+        for (;;) {
+            nonadjacent(token, nexttoken);
+            id = identifier();
+            if (funct['(global)'] && predefined[id] === false) {
+                warning("Redefinition of '{a}'.", token, id);
+            }
+            addlabel(id, 'unused');
+            if (prefix) {
+                break;
+            }
+            name = token;
+            this.first.push(token);
+            if (nexttoken.id === '=') {
+                nonadjacent(token, nexttoken);
+                advance('=');
+                nonadjacent(token, nexttoken);
+                if (nexttoken.id === 'undefined') {
+                    warning("It is not necessary to initialize '{a}' to 'undefined'.", token, id);
+                }
+                if (peek(0).id === '=' && nexttoken.identifier) {
+                    error("Variable {a} was not declared correctly.",
+                            nexttoken, nexttoken.value);
+                }
+                value = parse(0);
+                name.first = value;
+            }
+            if (nexttoken.id !== ',') {
+                break;
+            }
+            comma();
+        }
+        return this;
+    }
+
+
+    stmt('var', varstatement).exps = true;
+
+
+    blockstmt('function', function () {
+        if (inblock) {
+            warning(
+"Function statements cannot be placed in blocks. Use a function expression or move the statement to the top of the outer function.", token);
+
+        }
+        var i = identifier();
+        adjacent(token, nexttoken);
+        addlabel(i, 'unused');
+        doFunction(i);
+        if (nexttoken.id === '(' && nexttoken.line === token.line) {
+            error(
+"Function statements are not invocable. Wrap the whole function invocation in parens.");
+        }
+        return this;
+    });
+
+    prefix('function', function () {
+        var i = optionalidentifier();
+        if (i) {
+            adjacent(token, nexttoken);
+        } else {
+            nonadjacent(token, nexttoken);
+        }
+        doFunction(i);
+        if (funct['(loopage)']) {
+            warning("Don't make functions within a loop.");
+        }
+        return this;
+    });
+
+    blockstmt('if', function () {
+        var t = nexttoken;
+        advance('(');
+        nonadjacent(this, t);
+        nospace();
+        parse(20);
+        if (nexttoken.id === '=') {
+            warning("Expected a conditional expression and instead saw an assignment.");
+            advance('=');
+            parse(20);
+        }
+        advance(')', t);
+        nospace(prevtoken, token);
+        block(true);
+        if (nexttoken.id === 'else') {
+            nonadjacent(token, nexttoken);
+            advance('else');
+            if (nexttoken.id === 'if' || nexttoken.id === 'switch') {
+                statement(true);
+            } else {
+                block(true);
+            }
+        }
+        return this;
+    });
+
+    blockstmt('try', function () {
+        var b, e, s;
+        if (option.adsafe) {
+            warning("ADsafe try violation.", this);
+        }
+        block(false);
+        if (nexttoken.id === 'catch') {
+            advance('catch');
+            nonadjacent(token, nexttoken);
+            advance('(');
+            s = scope;
+            scope = Object.create(s);
+            e = nexttoken.value;
+            if (nexttoken.type !== '(identifier)') {
+                warning("Expected an identifier and instead saw '{a}'.",
+                    nexttoken, e);
+            } else {
+                addlabel(e, 'exception');
+            }
+            advance();
+            advance(')');
+            block(false);
+            b = true;
+            scope = s;
+        }
+        if (nexttoken.id === 'finally') {
+            advance('finally');
+            block(false);
+            return;
+        } else if (!b) {
+            error("Expected '{a}' and instead saw '{b}'.",
+                    nexttoken, 'catch', nexttoken.value);
+        }
+        return this;
+    });
+
+    blockstmt('while', function () {
+        var t = nexttoken;
+        funct['(breakage)'] += 1;
+        funct['(loopage)'] += 1;
+        advance('(');
+        nonadjacent(this, t);
+        nospace();
+        parse(20);
+        if (nexttoken.id === '=') {
+            warning("Expected a conditional expression and instead saw an assignment.");
+            advance('=');
+            parse(20);
+        }
+        advance(')', t);
+        nospace(prevtoken, token);
+        block(true);
+        funct['(breakage)'] -= 1;
+        funct['(loopage)'] -= 1;
+        return this;
+    }).labelled = true;
+
+    reserve('with');
+
+    blockstmt('switch', function () {
+        var t = nexttoken,
+            g = false;
+        funct['(breakage)'] += 1;
+        advance('(');
+        nonadjacent(this, t);
+        nospace();
+        this.condition = parse(20);
+        advance(')', t);
+        nospace(prevtoken, token);
+        nonadjacent(token, nexttoken);
+        t = nexttoken;
+        advance('{');
+        nonadjacent(token, nexttoken);
+        indent += option.indent;
+        this.cases = [];
+        for (;;) {
+            switch (nexttoken.id) {
+            case 'case':
+                switch (funct['(verb)']) {
+                case 'break':
+                case 'case':
+                case 'continue':
+                case 'return':
+                case 'switch':
+                case 'throw':
+                    break;
+                default:
+                    warning(
+                        "Expected a 'break' statement before 'case'.",
+                        token);
+                }
+                indentation(-option.indent);
+                advance('case');
+                this.cases.push(parse(20));
+                g = true;
+                advance(':');
+                funct['(verb)'] = 'case';
+                break;
+            case 'default':
+                switch (funct['(verb)']) {
+                case 'break':
+                case 'continue':
+                case 'return':
+                case 'throw':
+                    break;
+                default:
+                    warning(
+                        "Expected a 'break' statement before 'default'.",
+                        token);
+                }
+                indentation(-option.indent);
+                advance('default');
+                g = true;
+                advance(':');
+                break;
+            case '}':
+                indent -= option.indent;
+                indentation();
+                advance('}', t);
+                if (this.cases.length === 1 || this.condition.id === 'true' ||
+                        this.condition.id === 'false') {
+                    warning("This 'switch' should be an 'if'.", this);
+                }
+                funct['(breakage)'] -= 1;
+                funct['(verb)'] = undefined;
+                return;
+            case '(end)':
+                error("Missing '{a}'.", nexttoken, '}');
+                return;
+            default:
+                if (g) {
+                    switch (token.id) {
+                    case ',':
+                        error("Each value should have its own case label.");
+                        return;
+                    case ':':
+                        statements();
+                        break;
+                    default:
+                        error("Missing ':' on a case clause.", token);
+                    }
+                } else {
+                    error("Expected '{a}' and instead saw '{b}'.",
+                        nexttoken, 'case', nexttoken.value);
+                }
+            }
+        }
+    }).labelled = true;
+
+    stmt('debugger', function () {
+        if (!option.debug) {
+            warning("All 'debugger' statements should be removed.");
+        }
+        return this;
+    }).exps = true;
+
+    (function () {
+        var x = stmt('do', function () {
+            funct['(breakage)'] += 1;
+            funct['(loopage)'] += 1;
+            this.first = block(true);
+            advance('while');
+            var t = nexttoken;
+            nonadjacent(token, t);
+            advance('(');
+            nospace();
+            parse(20);
+            if (nexttoken.id === '=') {
+                warning("Expected a conditional expression and instead saw an assignment.");
+                advance('=');
+                parse(20);
+            }
+            advance(')', t);
+            nospace(prevtoken, token);
+            funct['(breakage)'] -= 1;
+            funct['(loopage)'] -= 1;
+            return this;
+        });
+        x.labelled = true;
+        x.exps = true;
+    }());
+
+    blockstmt('for', function () {
+        var f = option.forin, s, t = nexttoken;
+        funct['(breakage)'] += 1;
+        funct['(loopage)'] += 1;
+        advance('(');
+        nonadjacent(this, t);
+        nospace();
+        if (peek(nexttoken.id === 'var' ? 1 : 0).id === 'in') {
+            if (nexttoken.id === 'var') {
+                advance('var');
+                varstatement(true);
+            } else {
+                switch (funct[nexttoken.value]) {
+                case 'unused':
+                    funct[nexttoken.value] = 'var';
+                    break;
+                case 'var':
+                    break;
+                default:
+                    warning("Bad for in variable '{a}'.",
+                            nexttoken, nexttoken.value);
+                }
+                advance();
+            }
+            advance('in');
+            parse(20);
+            advance(')', t);
+            s = block(true);
+            if (!f && (s.length > 1 || typeof s[0] !== 'object' ||
+                    s[0].value !== 'if')) {
+                warning("The body of a for in should be wrapped in an if statement to filter unwanted properties from the prototype.", this);
+            }
+            funct['(breakage)'] -= 1;
+            funct['(loopage)'] -= 1;
+            return this;
+        } else {
+            if (nexttoken.id !== ';') {
+                if (nexttoken.id === 'var') {
+                    advance('var');
+                    varstatement();
+                } else {
+                    for (;;) {
+                        parse(0, 'for');
+                        if (nexttoken.id !== ',') {
+                            break;
+                        }
+                        comma();
+                    }
+                }
+            }
+            nolinebreak(token);
+            advance(';');
+            if (nexttoken.id !== ';') {
+                parse(20);
+                if (nexttoken.id === '=') {
+                    warning("Expected a conditional expression and instead saw an assignment.");
+                    advance('=');
+                    parse(20);
+                }
+            }
+            nolinebreak(token);
+            advance(';');
+            if (nexttoken.id === ';') {
+                error("Expected '{a}' and instead saw '{b}'.",
+                        nexttoken, ')', ';');
+            }
+            if (nexttoken.id !== ')') {
+                for (;;) {
+                    parse(0, 'for');
+                    if (nexttoken.id !== ',') {
+                        break;
+                    }
+                    comma();
+                }
+            }
+            advance(')', t);
+            nospace(prevtoken, token);
+            block(true);
+            funct['(breakage)'] -= 1;
+            funct['(loopage)'] -= 1;
+            return this;
+        }
+    }).labelled = true;
+
+
+    stmt('break', function () {
+        var v = nexttoken.value;
+        if (funct['(breakage)'] === 0) {
+            warning("Unexpected '{a}'.", nexttoken, this.value);
+        }
+        nolinebreak(this);
+        if (nexttoken.id !== ';') {
+            if (token.line === nexttoken.line) {
+                if (funct[v] !== 'label') {
+                    warning("'{a}' is not a statement label.", nexttoken, v);
+                } else if (scope[v] !== funct) {
+                    warning("'{a}' is out of scope.", nexttoken, v);
+                }
+                this.first = nexttoken;
+                advance();
+            }
+        }
+        reachable('break');
+        return this;
+    }).exps = true;
+
+
+    stmt('continue', function () {
+        var v = nexttoken.value;
+        if (funct['(breakage)'] === 0) {
+            warning("Unexpected '{a}'.", nexttoken, this.value);
+        }
+        nolinebreak(this);
+        if (nexttoken.id !== ';') {
+            if (token.line === nexttoken.line) {
+                if (funct[v] !== 'label') {
+                    warning("'{a}' is not a statement label.", nexttoken, v);
+                } else if (scope[v] !== funct) {
+                    warning("'{a}' is out of scope.", nexttoken, v);
+                }
+                this.first = nexttoken;
+                advance();
+            }
+        } else if (!funct['(loopage)']) {
+            warning("Unexpected '{a}'.", nexttoken, this.value);
+        }
+        reachable('continue');
+        return this;
+    }).exps = true;
+
+
+    stmt('return', function () {
+        nolinebreak(this);
+        if (nexttoken.id === '(regexp)') {
+            warning("Wrap the /regexp/ literal in parens to disambiguate the slash operator.");
+        }
+        if (nexttoken.id !== ';' && !nexttoken.reach) {
+            nonadjacent(token, nexttoken);
+            this.first = parse(20);
+        }
+        reachable('return');
+        return this;
+    }).exps = true;
+
+
+    stmt('throw', function () {
+        nolinebreak(this);
+        nonadjacent(token, nexttoken);
+        this.first = parse(20);
+        reachable('throw');
+        return this;
+    }).exps = true;
+
+    reserve('void');
+
+//  Superfluous reserved words
+
+    reserve('class');
+    reserve('const');
+    reserve('enum');
+    reserve('export');
+    reserve('extends');
+    reserve('import');
+    reserve('super');
+
+    reserve('let');
+    reserve('yield');
+    reserve('implements');
+    reserve('interface');
+    reserve('package');
+    reserve('private');
+    reserve('protected');
+    reserve('public');
+    reserve('static');
+
+
+// Parse JSON
+
+    function jsonValue() {
+
+        function jsonObject() {
+            var o = {}, t = nexttoken;
+            advance('{');
+            if (nexttoken.id !== '}') {
+                for (;;) {
+                    if (nexttoken.id === '(end)') {
+                        error("Missing '}' to match '{' from line {a}.",
+                                nexttoken, t.line);
+                    } else if (nexttoken.id === '}') {
+                        warning("Unexpected comma.", token);
+                        break;
+                    } else if (nexttoken.id === ',') {
+                        error("Unexpected comma.", nexttoken);
+                    } else if (nexttoken.id !== '(string)') {
+                        warning("Expected a string and instead saw {a}.",
+                                nexttoken, nexttoken.value);
+                    }
+                    if (o[nexttoken.value] === true) {
+                        warning("Duplicate key '{a}'.",
+                                nexttoken, nexttoken.value);
+                    } else if (nexttoken.value === '__proto__') {
+                        warning("Stupid key '{a}'.",
+                                nexttoken, nexttoken.value);
+                    } else {
+                        o[nexttoken.value] = true;
+                    }
+                    advance();
+                    advance(':');
+                    jsonValue();
+                    if (nexttoken.id !== ',') {
+                        break;
+                    }
+                    advance(',');
+                }
+            }
+            advance('}');
+        }
+
+        function jsonArray() {
+            var t = nexttoken;
+            advance('[');
+            if (nexttoken.id !== ']') {
+                for (;;) {
+                    if (nexttoken.id === '(end)') {
+                        error("Missing ']' to match '[' from line {a}.",
+                                nexttoken, t.line);
+                    } else if (nexttoken.id === ']') {
+                        warning("Unexpected comma.", token);
+                        break;
+                    } else if (nexttoken.id === ',') {
+                        error("Unexpected comma.", nexttoken);
+                    }
+                    jsonValue();
+                    if (nexttoken.id !== ',') {
+                        break;
+                    }
+                    advance(',');
+                }
+            }
+            advance(']');
+        }
+
+        switch (nexttoken.id) {
+        case '{':
+            jsonObject();
+            break;
+        case '[':
+            jsonArray();
+            break;
+        case 'true':
+        case 'false':
+        case 'null':
+        case '(number)':
+        case '(string)':
+            advance();
+            break;
+        case '-':
+            advance('-');
+            if (token.character !== nexttoken.from) {
+                warning("Unexpected space after '-'.", token);
+            }
+            adjacent(token, nexttoken);
+            advance('(number)');
+            break;
+        default:
+            error("Expected a JSON value.", nexttoken);
+        }
+    }
+
+
+// The actual JSLINT function itself.
+
+    var itself = function (s, o) {
+        var a, i;
+        JSLINT.errors = [];
+        predefined = Object.create(standard);
+        if (o) {
+            a = o.predef;
+            if (a instanceof Array) {
+                for (i = 0; i < a.length; i += 1) {
+                    predefined[a[i]] = true;
+                }
+            }
+            if (o.adsafe) {
+                o.safe = true;
+            }
+            if (o.safe) {
+                o.browser =
+                o.css     =
+                o.debug   =
+                o.devel   =
+                o.evil    =
+                o.forin   =
+                o.on      =
+                o.rhino   =
+                o.windows =
+                o.sub     =
+                o.widget  = false;
+
+                o.eqeqeq  =
+                o.nomen   =
+                o.safe    =
+                o.strict  =
+                o.undef   = true;
+
+                predefined.Date =
+                predefined['eval'] =
+                predefined.Function =
+                predefined.Object = null;
+
+                predefined.ADSAFE =
+                predefined.lib = false;
+            }
+            option = o;
+        } else {
+            option = {};
+        }
+        option.indent = option.indent || 4;
+        option.maxerr = option.maxerr || 50;
+        adsafe_id = '';
+        adsafe_may = false;
+        adsafe_went = false;
+        approved = {};
+        if (option.approved) {
+            for (i = 0; i < option.approved.length; i += 1) {
+                approved[option.approved[i]] = option.approved[i];
+            }
+        } else {
+            approved.test = 'test';
+        }
+        tab = '';
+        for (i = 0; i < option.indent; i += 1) {
+            tab += ' ';
+        }
+        indent = 1;
+        global = Object.create(predefined);
+        scope = global;
+        funct = {
+            '(global)': true,
+            '(name)': '(global)',
+            '(scope)': scope,
+            '(breakage)': 0,
+            '(loopage)': 0
+        };
+        functions = [funct];
+        ids = {};
+        urls = [];
+        src = false;
+        xmode = false;
+        stack = null;
+        member = {};
+        membersOnly = null;
+        implied = {};
+        inblock = false;
+        lookahead = [];
+        jsonmode = false;
+        warnings = 0;
+        lex.init(s);
+        prereg = true;
+        strict_mode = false;
+
+        prevtoken = token = nexttoken = syntax['(begin)'];
+        assume();
+
+        try {
+            advance();
+            if (nexttoken.value.charAt(0) === '<') {
+                html();
+                if (option.adsafe && !adsafe_went) {
+                    warning("ADsafe violation: Missing ADSAFE.go.", this);
+                }
+            } else {
+                switch (nexttoken.id) {
+                case '{':
+                case '[':
+                    option.laxbreak = true;
+                    jsonmode = true;
+                    jsonValue();
+                    break;
+                case '@':
+                case '*':
+                case '#':
+                case '.':
+                case ':':
+                    xmode = 'style';
+                    advance();
+                    if (token.id !== '@' || !nexttoken.identifier ||
+                            nexttoken.value !== 'charset' || token.line !== 1 ||
+                            token.from !== 1) {
+                        error('A css file should begin with @charset "UTF-8";');
+                    }
+                    advance();
+                    if (nexttoken.type !== '(string)' &&
+                            nexttoken.value !== 'UTF-8') {
+                        error('A css file should begin with @charset "UTF-8";');
+                    }
+                    advance();
+                    advance(';');
+                    styles();
+                    break;
+
+                default:
+                    if (option.adsafe && option.fragment) {
+                        error("Expected '{a}' and instead saw '{b}'.",
+                            nexttoken, '<div>', nexttoken.value);
+                    }
+                    statements('lib');
+                }
+            }
+            advance('(end)');
+        } catch (e) {
+            if (e) {
+                JSLINT.errors.push({
+                    reason    : e.message,
+                    line      : e.line || nexttoken.line,
+                    character : e.character || nexttoken.from
+                }, null);
+            }
+        }
+        return JSLINT.errors.length === 0;
+    };
+
+    function is_array(o) {
+        return Object.prototype.toString.apply(o) === '[object Array]';
+    }
+
+    function to_array(o) {
+        var a = [], k;
+        for (k in o) {
+            if (is_own(o, k)) {
+                a.push(k);
+            }
+        }
+        return a;
+    }
+
+
+// Data summary.
+
+    itself.data = function () {
+
+        var data = {functions: []}, fu, globals, implieds = [], f, i, j,
+            members = [], n, unused = [], v;
+        if (itself.errors.length) {
+            data.errors = itself.errors;
+        }
+
+        if (jsonmode) {
+            data.json = true;
+        }
+
+        for (n in implied) {
+            if (is_own(implied, n)) {
+                implieds.push({
+                    name: n,
+                    line: implied[n]
+                });
+            }
+        }
+        if (implieds.length > 0) {
+            data.implieds = implieds;
+        }
+
+        if (urls.length > 0) {
+            data.urls = urls;
+        }
+
+        globals = to_array(scope);
+        if (globals.length > 0) {
+            data.globals = globals;
+        }
+
+        for (i = 1; i < functions.length; i += 1) {
+            f = functions[i];
+            fu = {};
+            for (j = 0; j < functionicity.length; j += 1) {
+                fu[functionicity[j]] = [];
+            }
+            for (n in f) {
+                if (is_own(f, n) && n.charAt(0) !== '(') {
+                    v = f[n];
+                    if (is_array(fu[v])) {
+                        fu[v].push(n);
+                        if (v === 'unused') {
+                            unused.push({
+                                name: n,
+                                line: f['(line)'],
+                                'function': f['(name)']
+                            });
+                        }
+                    }
+                }
+            }
+            for (j = 0; j < functionicity.length; j += 1) {
+                if (fu[functionicity[j]].length === 0) {
+                    delete fu[functionicity[j]];
+                }
+            }
+            fu.name = f['(name)'];
+            fu.param = f['(params)'];
+            fu.line = f['(line)'];
+            fu.last = f['(last)'];
+            data.functions.push(fu);
+        }
+
+        if (unused.length > 0) {
+            data.unused = unused;
+        }
+
+        members = [];
+        for (n in member) {
+            if (typeof member[n] === 'number') {
+                data.member = member;
+                break;
+            }
+        }
+
+        return data;
+    };
+
+    itself.report = function (option) {
+        var data = itself.data();
+
+        var a = [], c, e, err, f, i, k, l, m = '', n, o = [], s;
+
+        function detail(h, array) {
+            var b, i, singularity;
+            if (array) {
+                o.push('<div><i>' + h + '</i> ');
+                array = array.sort();
+                for (i = 0; i < array.length; i += 1) {
+                    if (array[i] !== singularity) {
+                        singularity = array[i];
+                        o.push((b ? ', ' : '') + singularity);
+                        b = true;
+                    }
+                }
+                o.push('</div>');
+            }
+        }
+
+
+        if (data.errors || data.implieds || data.unused) {
+            err = true;
+            o.push('<div id=errors><i>Error:</i>');
+            if (data.errors) {
+                for (i = 0; i < data.errors.length; i += 1) {
+                    c = data.errors[i];
+                    if (c) {
+                        e = c.evidence || '';
+                        o.push('<p>Problem' + (isFinite(c.line) ? ' at line ' +
+                                c.line + ' character ' + c.character : '') +
+                                ': ' + c.reason.entityify() +
+                                '</p><p class=evidence>' +
+                                (e && (e.length > 80 ? e.slice(0, 77) + '...' :
+                                e).entityify()) + '</p>');
+                    }
+                }
+            }
+
+            if (data.implieds) {
+                s = [];
+                for (i = 0; i < data.implieds.length; i += 1) {
+                    s[i] = '<code>' + data.implieds[i].name + '</code>&nbsp;<i>' +
+                        data.implieds[i].line + '</i>';
+                }
+                o.push('<p><i>Implied global:</i> ' + s.join(', ') + '</p>');
+            }
+
+            if (data.unused) {
+                s = [];
+                for (i = 0; i < data.unused.length; i += 1) {
+                    s[i] = '<code><u>' + data.unused[i].name + '</u></code>&nbsp;<i>' +
+                        data.unused[i].line + '</i> <code>' +
+                        data.unused[i]['function'] + '</code>';
+                }
+                o.push('<p><i>Unused variable:</i> ' + s.join(', ') + '</p>');
+            }
+            if (data.json) {
+                o.push('<p>JSON: bad.</p>');
+            }
+            o.push('</div>');
+        }
+
+        if (!option) {
+
+            o.push('<br><div id=functions>');
+
+            if (data.urls) {
+                detail("URLs<br>", data.urls, '<br>');
+            }
+
+            if (xmode === 'style') {
+                o.push('<p>CSS.</p>');
+            } else if (data.json && !err) {
+                o.push('<p>JSON: good.</p>');
+            } else if (data.globals) {
+                o.push('<div><i>Global</i> ' +
+                        data.globals.sort().join(', ') + '</div>');
+            } else {
+                o.push('<div><i>No new global variables introduced.</i></div>');
+            }
+
+            for (i = 0; i < data.functions.length; i += 1) {
+                f = data.functions[i];
+
+                o.push('<br><div class=function><i>' + f.line + '-' +
+                        f.last + '</i> ' + (f.name || '') + '(' +
+                        (f.param ? f.param.join(', ') : '') + ')</div>');
+                detail('<big><b>Unused</b></big>', f.unused);
+                detail('Closure', f.closure);
+                detail('Variable', f['var']);
+                detail('Exception', f.exception);
+                detail('Outer', f.outer);
+                detail('Global', f.global);
+                detail('Label', f.label);
+            }
+
+            if (data.member) {
+                a = to_array(data.member);
+                if (a.length) {
+                    a = a.sort();
+                    m = '<br><pre id=members>/*members ';
+                    l = 10;
+                    for (i = 0; i < a.length; i += 1) {
+                        k = a[i];
+                        n = k.name();
+                        if (l + n.length > 72) {
+                            o.push(m + '<br>');
+                            m = '    ';
+                            l = 1;
+                        }
+                        l += n.length + 2;
+                        if (data.member[k] === 1) {
+                            n = '<i>' + n + '</i>';
+                        }
+                        if (i < a.length - 1) {
+                            n += ', ';
+                        }
+                        m += n;
+                    }
+                    o.push(m + '<br>*/</pre>');
+                }
+                o.push('</div>');
+            }
+        }
+        return o.join('');
+    };
+    itself.jslint = itself;
+
+    itself.edition = '2010-08-28';
+
+    return itself;
+
+}());
+
+// Mozilla: export JSLINT
+exports.jslint = JSLINT;
+
 
 });
 ;bespin.tiki.register("::theme_manager", {
@@ -17626,7 +26153,7 @@ exports.whiteTheme = function() {
             },
 
             // Variables for the syntax highlighter.
-            highlighter: {
+            highlighterFG: {
                 plain:     '#030303',
                 comment:   '#919191',
                 directive: '#999999',
@@ -17634,7 +26161,15 @@ exports.whiteTheme = function() {
                 identifier: '#A7379F',
                 keyword:    '#1414EF',
                 operator:   '#477ABE',
-                string:     '#017F19'
+                string:     '#017F19',
+                addition:   '#ffffff',
+                deletion:   '#ffffff'
+            },
+
+            highlighterBG: {
+                plain:      'rgb(0, 0, 0, 0)',
+                addition:   '#008000',
+                deletion:   '#800000'
             },
 
             // Variables for the scrollers.
@@ -17669,6 +26204,421 @@ exports.whiteTheme = function() {
     name: "types",
     dependencies: {  }
 });
+bespin.tiki.module("types:tests/testBasic",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var types = require('types:types');
+var t = require('plugindev');
+
+exports.testTextFromString = function() {
+    types.fromString('Foo', 'text').then(function(converted) {
+        t.equal('Foo', converted);
+    });
+};
+
+exports.testTextToString = function() {
+    types.toString('Foo', 'text').then(function(converted) {
+        t.equal('Foo', converted);
+    });
+    types.toString('4', 'text').then(function(converted) {
+        t.equal('4', converted);
+    });
+};
+
+exports.testTextIsValid = function() {
+    types.isValid('Foo', 'text').then(function(valid) {
+        t.equal(true, valid);
+    });
+    types.isValid('', 'text').then(function(valid) {
+        t.equal(true, valid);
+    });
+    types.isValid('null', 'text').then(function(valid) {
+        t.equal(true, valid);
+    });
+    types.isValid(4, 'text').then(function(valid) {
+        t.equal(false, valid);
+    });
+    types.isValid(null, 'text').then(function(valid) {
+        t.equal(false, valid);
+    });
+};
+
+exports.testNumberFromString = function() {
+    types.fromString('4', 'number').then(function(converted) {
+        t.equal(4, converted);
+    });
+    types.fromString(null, 'number').then(function(converted) {
+        t.equal(null, converted);
+    });
+    // There isn't a spec for stuff like this, but at least we should know
+    // if we're changing stuff
+    types.fromString('010', 'number').then(function(converted) {
+        t.equal(10, converted);
+    });
+    types.fromString('0x10', 'number').then(function(converted) {
+        t.equal(0, converted);
+    });
+};
+
+exports.testNumberToString = function() {
+    types.toString('Foo', 'number').then(function(converted) {
+        t.equal('Foo', converted);
+    });
+    types.toString(4, 'number').then(function(converted) {
+        t.equal('4', converted);
+    });
+};
+
+exports.testNumberIsValid = function() {
+    types.isValid(0, 'number').then(function(valid) {
+        t.equal(true, valid, 'Zero');
+    });
+    types.isValid(-1, 'number').then(function(valid) {
+        t.equal(true, valid, '-1');
+    });
+    types.isValid(Infinity, 'number').then(function(valid) {
+        t.equal(false, valid, 'Infinity');
+    });
+    types.isValid(NaN, 'number').then(function(valid) {
+        t.equal(false, valid, 'NaN');
+    });
+    types.isValid(null, 'number').then(function(valid) {
+        t.equal(false, valid, 'null');
+    });
+    types.isValid('0', 'number').then(function(valid) {
+        t.equal(false, valid, 'string 0');
+    });
+    types.isValid('-1', 'number').then(function(valid) {
+        t.equal(false, valid, 'string -1');
+    });
+    types.isValid('null', 'number').then(function(valid) {
+        t.equal(false, valid, 'string null');
+    });
+    types.isValid({}, 'number').then(function(valid) {
+        t.equal(false, valid, 'object');
+    });
+};
+
+exports.testBooleanFromString = function() {
+    types.fromString('true', 'boolean').then(function(converted) {
+        t.equal(converted, true, '\'true\' should be true');
+    });
+    types.fromString('false', 'boolean').then(function(converted) {
+        t.equal(converted, false, '\'false\' should be false');
+    });
+    types.fromString('TRUE', 'boolean').then(function(converted) {
+        t.equal(converted, true, '\'TRUE\' should be true');
+    });
+    types.fromString('FALSE', 'boolean').then(function(converted) {
+        t.equal(converted, false, '\'FALSE\' should be false');
+    });
+    types.fromString(null, 'boolean').then(function(converted) {
+        t.equal(converted, null, 'null should be null');
+    });
+};
+
+exports.testBooleanToString = function() {
+    types.toString(true, 'boolean').then(function(converted) {
+        t.equal('true', converted);
+    });
+    types.toString(false, 'boolean').then(function(converted) {
+        t.equal('false', converted);
+    });
+};
+
+exports.testBooleanIsValid = function() {
+    types.isValid(0, 'boolean').then(function(valid) {
+        t.equal(false, valid, 'zero');
+    });
+    types.isValid(-1, 'boolean').then(function(valid) {
+        t.equal(false, valid, 'minus 1');
+    });
+    types.isValid(Infinity, 'boolean').then(function(valid) {
+        t.equal(false, valid, 'Infinity');
+    });
+    types.isValid(NaN, 'boolean').then(function(valid) {
+        t.equal(false, valid, 'NaN');
+    });
+    types.isValid(null, 'boolean').then(function(valid) {
+        t.equal(false, valid, 'null');
+    });
+    types.isValid('0', 'boolean').then(function(valid) {
+        t.equal(false, valid, 'string zero');
+    });
+    types.isValid('-1', 'boolean').then(function(valid) {
+        t.equal(false, valid, 'string -1');
+    });
+    types.isValid('null', 'boolean').then(function(valid) {
+        t.equal(false, valid, 'string null');
+    });
+    types.isValid({}, 'boolean').then(function(valid) {
+        t.equal(false, valid, 'object');
+    });
+    types.isValid(true, 'boolean').then(function(valid) {
+        t.equal(true, valid, 'true');
+    });
+    types.isValid(false, 'boolean').then(function(valid) {
+        t.equal(true, valid, 'false');
+    });
+};
+
+});
+
+bespin.tiki.module("types:tests/testTypes",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var Promise = require('bespin:promise').Promise;
+var types = require('types:types');
+var t = require('plugindev');
+
+exports.testGetSimpleName = function() {
+    t.equal(types.getSimpleName('text'), 'text', 'text is simple');
+    t.equal(types.getSimpleName('selection'), 'selection', 'selection simple');
+    t.equal(types.getSimpleName({ name: 'text' }), 'text', 'text complex');
+
+    var selType = { name: 'selection' };
+    t.equal(types.getSimpleName(selType), 'selection', 'selection complex');
+
+    selType = { name: 'selection', data: [ 1, 2, 3, 4 ] };
+    t.equal(types.getSimpleName(selType), 'selection', 'selection complex');
+};
+
+exports.testEquals = function() {
+    var textType = { name: 'text' };
+    t.ok(types.equals('text', 'text'), '2 already simple names are equal');
+    t.ok(types.equals('text', textType), 'simple type = complex type');
+    t.ok(types.equals(textType, 'text'), 'complex type = simple type');
+    t.ok(types.equals(textType, { name: 'text' }), 'complex = complex');
+    t.ok(types.equals('WRONG', 'WRONG'), 'We don\'t test for actual types');
+
+    var sel1 = { name: 'selection' };
+    var sel2 = 'selection';
+    t.ok(types.equals(sel1, sel2), 'complex type = simple type 1');
+
+    sel1 = { name: 'selection', data: [ 1, 2, 3, 4 ] };
+    sel2 = 'selection';
+    t.ok(types.equals(sel1, sel2), 'complex type with data = simple type');
+
+    sel1 = { name: 'selection', data: [ 1, 2, 3, 4 ] };
+    sel2 = { name: 'selection', data: [ 4, 3, 2, 1 ] };
+    t.ok(types.equals(sel1, sel2), 'complex + data = complex + other data');
+
+    //t.ok(!types.equals('text', ''), 'text != ""');
+    t.ok(!types.equals('text', 'selection'), 'text != ""');
+    t.ok(!types.equals('text', 'DOESNOTEXIST'), 'text != ""');
+
+    sel1 = { name: 'selection', data: [ 1, 2, 3, 4 ] };
+    t.ok(!types.equals(sel1, 'text'), 'complex + data != simple');
+};
+
+/**
+ * types.resolveType returns a typeData thing that is { type:... typeExt }
+ * @param name
+ * @returns {Function}
+ */
+function createTypeDataTester(name) {
+    return function(typeData) {
+        t.equal(typeData.ext.ep, 'type', 'TypeExts do give you types?');
+
+        t.equal(typeData.ext.name, name, 'type[text].name == ' + name);
+
+        t.equal(typeof typeData.ext.description, 'string', 'descr = string');
+        t.ok(typeData.ext.description.length > 0, 'type[text].description len');
+
+        t.equal(typeof typeData.ext.pointer, 'string', 'type.pointer = string');
+        t.ok(typeData.ext.pointer.length > 0, 'type[text].pointer exists');
+
+        t.equal(typeof typeData.ext.load, 'function', 'type.load = function');
+    };
+}
+
+exports.testResolveSimpleTypes = function() {
+    var typeSpec = 'text';
+    types.resolveType(typeSpec).then(createTypeDataTester('text'));
+
+    typeSpec = { name: 'text' };
+    types.resolveType(typeSpec).then(createTypeDataTester('text'));
+
+    typeSpec = { name: 'selection' };
+    types.resolveType(typeSpec).then(createTypeDataTester('selection'));
+
+    try {
+        typeSpec = { name: 'wrong' };
+        types.resolveType(typeSpec).then(t.never('should die before here'));
+    } catch (ex) {}
+};
+
+/*
+ * For #testSelection
+ */
+exports.resolver = function() { return [ 4, 3 ]; };
+exports.lateResolver = function() { return new Promise().resolve([ 'a' ]); };
+
+exports.testSelection = function() {
+    var typeSpec = { name: 'selection', data: [ 1, 2 ] };
+    types.resolveType(typeSpec).then(function(typeData) {
+        createTypeDataTester('selection')(typeData);
+        t.deepEqual(typeData.ext.data, [ 1, 2 ], 'selection data pass thru');
+    });
+
+    typeSpec = {
+        name: 'selection',
+        pointer: 'types:tests/testTypes#resolver'
+    };
+    types.resolveType(typeSpec).then(function(typeData) {
+        createTypeDataTester('selection')(typeData);
+        t.deepEqual(typeData.ext.data, [ 4, 3 ], 'selection data resolved');
+    });
+
+    typeSpec = {
+        name: 'selection',
+        pointer: 'types:tests/testTypes#lateResolver'
+    };
+    types.resolveType(typeSpec).then(function(typeData) {
+        createTypeDataTester('selection')(typeData);
+        t.deepEqual(typeData.ext.data, [ 'a' ], 'selection data resolved');
+    });
+};
+
+exports.deferText = function() { return 'text'; };
+exports.lateDeferText = function() { return new Promise().resolve('text'); };
+exports.deferComplexText = function() { return { name: 'text' }; };
+exports.lateDeferComplexText = function() {
+    return new Promise().resolve({ name: 'text' });
+};
+exports.lateDeferComplexSelection = function() {
+    return new Promise().resolve({ name: 'selection', data: [ 42, 43 ] });
+};
+exports.lateDoubleDeferText = function() {
+    return new Promise().resolve({
+        name: 'deferred',
+        pointer: 'types:tests/testTypes#lateDeferText'
+    });
+};
+
+exports.testDeferred = function() {
+    var typeSpec = {
+        name: 'deferred',
+        pointer: 'types:tests/testTypes#deferText'
+    };
+    types.resolveType(typeSpec).then(function(typeData) {
+        createTypeDataTester('text')(typeData);
+    });
+
+    typeSpec = {
+        name: 'deferred',
+        pointer: 'types:tests/testTypes#lateDeferText'
+    };
+    types.resolveType(typeSpec).then(function(typeData) {
+        createTypeDataTester('text')(typeData);
+    });
+
+    typeSpec = {
+        name: 'deferred',
+        pointer: 'types:tests/testTypes#deferComplexText'
+    };
+    types.resolveType(typeSpec).then(function(typeData) {
+        createTypeDataTester('text')(typeData);
+    });
+
+    typeSpec = {
+        name: 'deferred',
+        pointer: 'types:tests/testTypes#lateDoubleDeferText'
+    };
+    types.resolveType(typeSpec).then(function(typeData) {
+        createTypeDataTester('text')(typeData);
+    });
+
+    typeSpec = {
+        name: 'deferred',
+        pointer: 'types:tests/testTypes#lateDeferComplexText'
+    };
+    types.resolveType(typeSpec).then(function(typeData) {
+        createTypeDataTester('text')(typeData);
+    });
+
+    typeSpec = {
+        name: 'deferred',
+        pointer: 'types:tests/testTypes#lateDeferComplexSelection'
+    };
+    types.resolveType(typeSpec).then(function(typeData) {
+        createTypeDataTester('selection')(typeData);
+        t.deepEqual(typeData.ext.data, [ 42, 43 ], 'selection data resolved');
+    });
+};
+
+});
+
 bespin.tiki.module("types:basic",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -18144,6 +27094,7 @@ bespin.tiki.module("types:index",function(require,exports,module) {
     dependencies: {  }
 });
 bespin.tiki.module("jquery:index",function(require,exports,module) {
+
 "define metadata";
 ({});
 "end";
@@ -18163,6 +27114,7 @@ bespin.tiki.module("jquery:index",function(require,exports,module) {
  *
  * Date: Sat Feb 13 22:33:48 2010 -0500
  */
+(function( window, undefined ) {
 
 // Define a local copy of jQuery
 var jQuery = function( selector, context ) {
@@ -24383,8 +33335,12 @@ jQuery.each([ "Height", "Width" ], function( i, name ) {
 	};
 
 });
+// Expose jQuery to the global object
+window.jQuery = window.$ = jQuery;
 
-exports.$ = exports.jQuery = jQuery;
+})(window);
+
+exports.$ = $.noConflict(true);
 
 });
 ;bespin.tiki.register("::embedded", {
@@ -24449,177 +33405,6 @@ bespin.tiki.module("embedded:index",function(require,exports,module) {
     name: "settings",
     dependencies: { "types": "0.0.0" }
 });
-bespin.tiki.module("settings:commands",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var catalog = require('bespin:plugins').catalog;
-var env = require('environment').env;
-
-var settings = require('settings').settings;
-
-/**
- * 'set' command
- */
-exports.setCommand = function(args, request) {
-    var html;
-
-    if (!args.setting) {
-        var settingsList = settings._list();
-        html = '';
-        // first sort the settingsList based on the key
-        settingsList.sort(function(a, b) {
-            if (a.key < b.key) {
-                return -1;
-            } else if (a.key == b.key) {
-                return 0;
-            } else {
-                return 1;
-            }
-        });
-
-        settingsList.forEach(function(setting) {
-            html += '<a class="setting" href="https://wiki.mozilla.org/Labs/Bespin/Settings#' +
-                    setting.key +
-                    '" title="View external documentation on setting: ' +
-                    setting.key +
-                    '" target="_blank">' +
-                    setting.key +
-                    '</a> = ' +
-                    setting.value +
-                    '<br/>';
-        });
-    } else {
-        if (args.value === undefined) {
-            html = '<strong>' + args.setting + '</strong> = ' + settings.get(args.setting);
-        } else {
-            html = 'Setting: <strong>' + args.setting + '</strong> = ' + args.value;
-            settings.set(args.setting, args.value);
-        }
-    }
-
-    request.done(html);
-};
-
-/**
- * 'unset' command
- */
-exports.unsetCommand = function(args, request) {
-    settings.resetValue(args.setting);
-    request.done('Reset ' + args.setting + ' to default: ' + settings.get(args.setting));
-};
-
-});
-
-bespin.tiki.module("settings:cookie",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var cookie = require('bespin:util/cookie');
-
-/**
- * Save the settings in a cookie
- * This code has not been tested since reboot
- * @constructor
- */
-exports.CookiePersister = function() {
-};
-
-exports.CookiePersister.prototype = {
-    loadInitialValues: function(settings) {
-        settings._loadDefaultValues().then(function() {
-            var data = cookie.get('settings');
-            settings._loadFromObject(JSON.parse(data));
-        }.bind(this));
-    },
-
-    persistValue: function(settings, key, value) {
-        try {
-            // Aggregate the settings into a file
-            var data = {};
-            settings._getSettingNames().forEach(function(key) {
-                data[key] = settings.get(key);
-            });
-
-            var stringData = JSON.stringify(data);
-            cookie.set('settings', stringData);
-        } catch (ex) {
-            console.error('Unable to JSONify the settings! ' + ex);
-            return;
-        }
-    }
-};
-
-});
-
 bespin.tiki.module("settings:index",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -25056,6 +33841,177 @@ exports.MemorySettings.prototype = {
 exports.settings = new exports.MemorySettings();
 
 });
+
+bespin.tiki.module("settings:commands",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var catalog = require('bespin:plugins').catalog;
+var env = require('environment').env;
+
+var settings = require('settings').settings;
+
+/**
+ * 'set' command
+ */
+exports.setCommand = function(args, request) {
+    var html;
+
+    if (!args.setting) {
+        var settingsList = settings._list();
+        html = '';
+        // first sort the settingsList based on the key
+        settingsList.sort(function(a, b) {
+            if (a.key < b.key) {
+                return -1;
+            } else if (a.key == b.key) {
+                return 0;
+            } else {
+                return 1;
+            }
+        });
+
+        settingsList.forEach(function(setting) {
+            html += '<a class="setting" href="https://wiki.mozilla.org/Labs/Bespin/Settings#' +
+                    setting.key +
+                    '" title="View external documentation on setting: ' +
+                    setting.key +
+                    '" target="_blank">' +
+                    setting.key +
+                    '</a> = ' +
+                    setting.value +
+                    '<br/>';
+        });
+    } else {
+        if (args.value === undefined) {
+            html = '<strong>' + args.setting + '</strong> = ' + settings.get(args.setting);
+        } else {
+            html = 'Setting: <strong>' + args.setting + '</strong> = ' + args.value;
+            settings.set(args.setting, args.value);
+        }
+    }
+
+    request.done(html);
+};
+
+/**
+ * 'unset' command
+ */
+exports.unsetCommand = function(args, request) {
+    settings.resetValue(args.setting);
+    request.done('Reset ' + args.setting + ' to default: ' + settings.get(args.setting));
+};
+
+});
+
+bespin.tiki.module("settings:cookie",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var cookie = require('bespin:util/cookie');
+
+/**
+ * Save the settings in a cookie
+ * This code has not been tested since reboot
+ * @constructor
+ */
+exports.CookiePersister = function() {
+};
+
+exports.CookiePersister.prototype = {
+    loadInitialValues: function(settings) {
+        settings._loadDefaultValues().then(function() {
+            var data = cookie.get('settings');
+            settings._loadFromObject(JSON.parse(data));
+        }.bind(this));
+    },
+
+    persistValue: function(settings, key, value) {
+        try {
+            // Aggregate the settings into a file
+            var data = {};
+            settings._getSettingNames().forEach(function(key) {
+                data[key] = settings.get(key);
+            });
+
+            var stringData = JSON.stringify(data);
+            cookie.set('settings', stringData);
+        } catch (ex) {
+            console.error('Unable to JSONify the settings! ' + ex);
+            return;
+        }
+    }
+};
+
+});
 ;bespin.tiki.register("::appconfig", {
     name: "appconfig",
     dependencies: { "jquery": "0.0.0", "canon": "0.0.0", "settings": "0.0.0" }
@@ -25324,6 +34280,9 @@ exports.normalizeConfig = function(catalog, config) {
         config.objects.commandLine = {
         };
     }
+    if (!config.objects.toolbar && catalog.plugins.toolbar) {
+        config.objects.toolbar = {};
+    }
 
     if (config.gui === undefined) {
         config.gui = {};
@@ -25337,6 +34296,10 @@ exports.normalizeConfig = function(catalog, config) {
         }
     }
 
+    if (!config.gui.north && config.objects.toolbar
+        && !alreadyRegistered.toolbar) {
+        config.gui.north = { component: "toolbar" };
+    }
     if (!config.gui.center && config.objects.editor
         && !alreadyRegistered.editor) {
         config.gui.center = { component: "editor" };
@@ -25385,15 +34348,20 @@ var generateGUI = function(catalog, config, pr) {
 
     var centerContainer = document.createElement('div');
     centerContainer.setAttribute('class', 'center-container');
-    container.appendChild(centerContainer);
+    var centerAdded = false;
 
     var element = config.element || document.body;
     // Add the 'bespin' class to the element in case it doesn't have this already.
     util.addClass(element, 'bespin');
     element.appendChild(container);
-
-    for (var place in config.gui) {
+    
+    // this shouldn't be necessary, but it looks like Firefox has an issue
+    // with the box-ordinal-group CSS property
+    ['north', 'west', 'center', 'east', 'south'].forEach(function(place) {
         var descriptor = config.gui[place];
+        if (!descriptor) {
+            return;
+        }
 
         var component = catalog.getObject(descriptor.component);
         if (!component) {
@@ -25416,6 +34384,10 @@ var generateGUI = function(catalog, config, pr) {
         $(element).addClass(place);
 
         if (place == 'west' || place == 'east' || place == 'center') {
+            if (!centerAdded) {
+                container.appendChild(centerContainer);
+                centerAdded = true;
+            }
             centerContainer.appendChild(element);
         } else {
             container.appendChild(element);
@@ -25425,17 +34397,359 @@ var generateGUI = function(catalog, config, pr) {
         if (component.elementAppended) {
             component.elementAppended();
         }
-    }
+    });
 
     pr.resolve();
 };
 
 });
-;bespin.tiki.register("::events", {
-    name: "events",
-    dependencies: { "traits": "0.0.0" }
+;bespin.tiki.register("::filesystem", {
+    name: "filesystem",
+    dependencies: { "types": "0.0.0" }
 });
-bespin.tiki.module("events:index",function(require,exports,module) {
+bespin.tiki.module("filesystem:index",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1
+ *
+ * The contents of this file are subject to the Mozilla Public License
+ * Version 1.1 (the "License"); you may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS"
+ * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied.
+ * See the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var console = require('bespin:console').console;
+var util = require('bespin:util/util');
+var m_promise = require('bespin:promise');
+var catalog = require('bespin:plugins').catalog;
+
+var pathUtil = require('filesystem:path');
+
+var Promise = m_promise.Promise;
+
+// Does a binary search on a sorted array, returning
+// the *first* index in the array with the prefix
+exports._prefixSearch = function(arr, find) {
+    var low = 0;
+    var high = arr.length - 1;
+    var findlength = find.length;
+    var i;
+    var lowmark = null;
+    var sub;
+
+    while (low <= high) {
+        i = parseInt((low + high) / 2, 10);
+        sub = arr[i].substring(0, findlength);
+        if (i == lowmark) {
+            return i;
+        }
+
+        if (sub == find) {
+            lowmark = i;
+            high = i - 1;
+        } else {
+            if (sub < find) {
+                low = i + 1;
+            } else {
+                high = i - 1;
+            }
+        }
+    }
+    return lowmark;
+};
+
+// Standard binary search
+exports._binarySearch = function(arr, find) {
+    var low = 0;
+    var high = arr.length - 1;
+    var i;
+    var current;
+
+    while (low <= high) {
+        i = parseInt((low + high) / 2, 10);
+        current = arr[i];
+        if (current < find) {
+            low = i + 1;
+        } else if (current > find) {
+            high = i - 1;
+        } else {
+            return i;
+        }
+    }
+    return null;
+};
+
+exports.NEW = { name: 'NEW' };
+exports.LOADING = { name: 'LOADING' };
+exports.READY = { name: 'READY' };
+
+exports.Filesystem = function(source) {
+    if (!source) {
+        throw new Error('Filesystem must have a source.');
+    }
+
+    this._loadingPromises = [];
+    this.source = source;
+};
+
+exports.Filesystem.prototype = {
+    // FileSource for this filesytem
+    source: null,
+
+    // list of filenames
+    _files: null,
+
+    status: exports.NEW,
+    _loadingPromises: null,
+
+    _load: function() {
+        var pr = new Promise();
+        if (this.status === exports.READY) {
+            pr.resolve();
+        } else if (this.status === exports.LOADING) {
+            this._loadingPromises.push(pr);
+        } else {
+            this.status = exports.LOADING;
+            this._loadingPromises.push(pr);
+            this.source.loadAll().then(this._fileListReceived.bind(this));
+        }
+        return pr;
+    },
+
+    _fileListReceived: function(filelist) {
+        filelist.sort();
+        this._files = filelist;
+        this.status = exports.READY;
+        var lp = this._loadingPromises;
+        while (lp.length > 0) {
+            var pr = lp.pop();
+            pr.resolve();
+        }
+    },
+
+    /**
+     * Call this if you make a big change to the files in the filesystem. This will cause the entire cache
+     * to be reloaded on the next call that requires it.
+     */
+    invalidate: function() {
+        this._files = [];
+        this.status = exports.NEW;
+    },
+
+    /**
+     * Get a list of all files in the filesystem.
+     */
+    listAll: function() {
+        return this._load().chainPromise(function() {
+            return this._files;
+        }.bind(this));
+    },
+
+    /**
+     * Loads the contents of the file at path. When the promise is
+     * resolved, the contents are passed in.
+     */
+    loadContents: function(path) {
+        path = pathUtil.trimLeadingSlash(path);
+        var source = this.source;
+        return source.loadContents(path);
+    },
+
+    /**
+     * Save a contents to the path provided. If the file does not
+     * exist, it will be created.
+     */
+    saveContents: function(path, contents) {
+        var pr = new Promise();
+        path = pathUtil.trimLeadingSlash(path);
+        var source = this.source;
+        var self = this;
+        source.saveContents(path, contents).then(function() {
+            self.exists(path).then(function(exists) {
+                if (!exists) {
+                    self._files.push(path);
+                    self._files.sort();
+                }
+                pr.resolve();
+            });
+        }, function(error) {
+            pr.reject(error);
+        });
+        return pr;
+    },
+
+    /**
+     * get a File object that provides convenient path
+     * manipulation and access to the file data.
+     */
+    getFile: function(path) {
+        return new exports.File(this, path);
+    },
+
+    /**
+     * Returns a promise that will resolve to true if the given path
+     * exists.
+     */
+    exists: function(path) {
+        path = pathUtil.trimLeadingSlash(path);
+        var pr = new Promise();
+        this._load().then(function() {
+            var result = exports._binarySearch(this._files, path);
+            pr.resolve(result !== null);
+        }.bind(this));
+        return pr;
+    },
+
+    /**
+     * Deletes the file or directory at a path.
+     */
+    remove: function(path) {
+        path = pathUtil.trimLeadingSlash(path);
+        var pr = new Promise();
+        var self = this;
+        var source = this.source;
+        source.remove(path).then(function() {
+            // Check if the file list is already loaded or about to load.
+            // If true, then we have to remove the deleted file from the list.
+            if (self.status !== exports.NEW) {
+                self._load().then(function() {
+                    var position = exports._binarySearch(self._files, path);
+                    // In some circumstances, the deleted file might not be
+                    // in the file list.
+                    if (position !== null) {
+                        self._files.splice(position, 1);
+                    }
+                    pr.resolve();
+                }, function(error) {
+                    pr.reject(error);
+                });
+            } else {
+                pr.resolve();
+            }
+        }, function(error) {
+            pr.reject(error);
+        });
+        return pr;
+    },
+
+    /*
+     * Lists the contents of the directory at the path provided.
+     * Returns a promise that will be given a list of file
+     * and directory names for the contents of the directory.
+     * Directories are distinguished by a trailing slash.
+     */
+    listDirectory: function(path) {
+        path = pathUtil.trimLeadingSlash(path);
+        var pr = new Promise();
+        this._load().then(function() {
+            var files = this._files;
+            var index = exports._prefixSearch(files, path);
+            if (index === null) {
+                pr.reject(new Error('Path ' + path + ' not found.'));
+                return;
+            }
+            var result = [];
+            var numfiles = files.length;
+            var pathlength = path.length;
+            var lastSegment = null;
+            for (var i = index; i < numfiles; i++) {
+                var file = files[i];
+                if (file.substring(0, pathlength) != path) {
+                    break;
+                }
+                var segmentEnd = file.indexOf('/', pathlength) + 1;
+                if (segmentEnd == 0) {
+                    segmentEnd = file.length;
+                }
+                var segment = file.substring(pathlength, segmentEnd);
+                if (segment == '') {
+                    continue;
+                }
+
+                if (segment != lastSegment) {
+                    lastSegment = segment;
+                    result.push(segment);
+                }
+            }
+            pr.resolve(result);
+        }.bind(this));
+        return pr;
+    },
+
+    /**
+     * Creates a directory at the path provided. Nothing is
+     * passed into the promise callback.
+     */
+    makeDirectory: function(path) {
+        path = pathUtil.trimLeadingSlash(path);
+        if (!pathUtil.isDir(path)) {
+            path += '/';
+        }
+
+        var self = this;
+        var pr = new Promise();
+        this._load().then(function() {
+            var source = self.source;
+            source.makeDirectory(path).then(function() {
+                self._files.push(path);
+                // O(n log n), eh? but all in C so it's possible
+                // that this may be quicker than binary search + splice
+                self._files.sort();
+                pr.resolve();
+            });
+        });
+        return pr;
+    }
+};
+
+exports.File = function(fs, path) {
+    this.fs = fs;
+    this.path = path;
+};
+
+exports.File.prototype = {
+    parentdir: function() {
+        return pathUtil.parentdir(this.path);
+    },
+
+    loadContents: function() {
+        return this.fs.loadContents(this.path);
+    },
+
+    saveContents: function(contents) {
+        return this.fs.saveContents(this.path, contents);
+    },
+
+    exists: function() {
+        return this.fs.exists(this.path);
+    },
+
+    remove: function() {
+        return this.fs.remove(this.path);
+    },
+
+    extension: function() {
+        return pathUtil.fileType(this.path);
+    }
+};
+
+});
+
+bespin.tiki.module("filesystem:tests/testPathUtils",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -25473,44 +34787,638 @@ bespin.tiki.module("events:index",function(require,exports,module) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-exports.Event = function() {
-    var handlers = [];
-    var evt = function() {
-        var args = arguments;
-        handlers.forEach(function(handler) { handler.func.apply(null, args); });
-    };
+var path = require('path');
+var t = require('plugindev');
 
-    /**
-     * Adds a new handler via
-     *  a) evt.add(handlerFunc)
-     *  b) evt.add(reference, handlerFunc)
-     */
-    evt.add = function() {
-        if (arguments.length == 1) {
-            handlers.push({
-                ref: arguments[0],
-                func: arguments[0]
-            });
-        } else {
-            handlers.push({
-                ref: arguments[0],
-                func: arguments[1]
-            });
-        }
-    };
-
-    evt.remove = function(ref) {
-        var notEqual = function(other) { return ref !== other.ref; };
-        handlers = handlers.filter(notEqual);
-    };
-
-    evt.removeAll = function() {
-        handlers = [];
-    };
-
-    return evt;
+exports.testBasename = function() {
+    var basename = path.basename;
+    t.equal(basename(''), '', 'Empty string yields empty response');
+    t.equal(basename('foo/bar.js'), 'bar.js', '\'foo/bar.js\' yields ' +
+        '\'bar.js\'');
+    t.equal(basename('/'), '', 'Root alone yields empty response');
+    t.equal(basename('/foo/'), '', 'Directory references yields empty response');
+    t.equal(basename('/foo'), 'foo');
+    t.equal(basename('/foo/bar.js'), 'bar.js');
 };
 
+exports.testDirectory = function() {
+    var dir = path.directory;
+    t.equal(dir(''), '', 'the directory part of \'\' and \'\'');
+    t.equal(dir('foo.txt'), '', 'the directory part of \'foo.txt\' and \'\'');
+    t.equal(dir('foo/bar/baz.txt'), 'foo/bar/', 'the directory part of ' +
+        '\'foo/bar/baz.txt\' and \'foo/bar/\'');
+    t.equal(dir('/foo.txt'), '/', 'the directory part of \'/foo.txt\' and ' +
+        '\'/\'');
+    t.equal(dir('/foo/bar/baz.txt'), '/foo/bar/', 'the directory part of ' +
+        '\'/foo/bar/baz.txt\' and \'/foo/bar/\'');
+};
+
+exports.testSplitext = function() {
+    var splitext = path.splitext;
+    t.deepEqual(splitext(''), ['', '']);
+    t.deepEqual(splitext('/'), ['/', '']);
+    t.deepEqual(splitext('/foo/bar'), ['/foo/bar', '']);
+    t.deepEqual(splitext('/foo/bar.js'), ['/foo/bar', 'js']);
+};
+
+exports.testParentdir = function() {
+    var parentdir = path.parentdir;
+    t.equal(parentdir(''), '', 'Empty string is empty');
+    t.equal(parentdir('/'), '', 'Root directory is empty (no parent)');
+    t.equal(parentdir('/foo/'), '/', 'Directory under root has root as parent');
+    t.equal(parentdir('/foo.txt'), '/', 'File under root has root as parent');
+    t.equal(parentdir('/foo/bar/'), '/foo/', 'directory gets proper parent');
+    t.equal(parentdir('/foo/bar/baz.txt'), '/foo/bar/', 'file gets proper parent');
+};
+
+});
+
+bespin.tiki.module("filesystem:tests/fixture",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1
+ *
+ * The contents of this file are subject to the Mozilla Public License
+ * Version 1.1 (the "License"); you may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS"
+ * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied.
+ * See the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var Promise = require('bespin:promise').Promise;
+var t = require('plugindev');
+var util = require('bespin:util/util');
+var pathUtil = require('path');
+
+/**
+ * @param files {file[]} Should be a list, each item an object with path
+ * (ending in / for directories) and contents for files.
+ * @param requests the list of requests made
+ */
+exports.DummyFileSource = function(files, requests) {
+    this.files = files;
+    this.requests = requests;
+
+    // keep a shallow copy of the files list
+    var originalFiles = [];
+    this.files.forEach(function(f) {
+        originalFiles.push({name: f.name, contents: f.contents});
+    });
+    this._originalFiles = originalFiles;
+    this.reset();
+};
+
+exports.DummyFileSource.prototype = {
+    reset: function() {
+        this.requests = [];
+
+        // restore the files list
+        var files = [];
+        this._originalFiles.forEach(function(f) {
+            files.push({name: f.name, contents: f.contents});
+        });
+        this.files = files;
+    },
+
+    // Loads the complete file list
+    loadAll: function() {
+        this.requests.push(['loadAll']);
+        console.log('loadAll called');
+
+        var pr = new Promise();
+        var result = [];
+        this.get('files').forEach(function(f) {
+            result.push(f.name);
+        });
+        pr.resolve(result);
+        console.log('returning from loadAll');
+        return pr;
+    },
+
+    loadContents: function(path) {
+        this.requests.push(['loadContents', arguments]);
+        var pr = new Promise();
+        var matches = this._findMatching(path);
+        pr.resolve(matches.contents);
+        return pr;
+    },
+
+    saveContents: function(path, contents) {
+        this.requests.push(['saveContents', arguments]);
+        var pr = new Promise();
+        var entry = this._findOrCreateFile(path);
+        entry.contents = contents;
+        pr.resolve();
+        return pr;
+    },
+
+    remove: function(path) {
+        this.requests.push(['remove', arguments]);
+        var pr = new Promise();
+        pr.resolve();
+        return pr;
+    },
+
+    makeDirectory: function(path) {
+        this.requests.push(['makeDirectory', arguments]);
+        var pr = new Promise();
+        this.files.push({name: path});
+        pr.resolve(path);
+        return pr;
+    },
+
+    _findMatching: function(path, deep) {
+        path = pathUtil.trimLeadingSlash(path);
+        if (path == '' || pathUtil.isDir(path)) {
+            return this._findInDirectory(path, deep);
+        } else {
+            return this._findFile(path);
+        }
+    },
+
+    _findFile: function(path) {
+        var f = this.files.findProperty('name', path);
+        return f;
+    },
+
+    _findOrCreateFile: function(path) {
+        path = pathUtil.trimLeadingSlash(path);
+
+        var f = this._findFile(path);
+        if (util.none(f)) {
+            f = {name: path, contents: ''};
+            this.files.push(f);
+        }
+
+        return f;
+    },
+
+    _findInDirectory: function(path, deep) {
+        path = path.slice(0, path.length - 1);
+        var segments = path.split('/');
+        if (path == '') {
+            segments = [];
+        }
+        var matches = [];
+        this.files.forEach(function(f) {
+            var fSegments = f.name.split('/');
+            for (var i = 0; i < segments.length; i++) {
+                if (segments[i] != fSegments[i]) {
+                    return;
+                }
+            }
+
+            // If the search we're doing is for the directory
+            // itself and the directory is listed in the
+            // file list, we don't want to return the
+            // directory itself (which would actually come back as
+            // undefined).
+            if (!fSegments[i]) {
+                return;
+            }
+
+            var name;
+            if (deep) {
+                name = fSegments.slice(i).join('/');
+            } else if (fSegments.length > segments.length + 1) {
+                // it's a directory
+                name = fSegments[i] + '/';
+            } else {
+                name = fSegments[i];
+            }
+
+            matches.push({ name: name });
+        });
+        return matches;
+    }
+};
+
+});
+
+bespin.tiki.module("filesystem:tests/testFileManagement",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1
+ *
+ * The contents of this file are subject to the Mozilla Public License
+ * Version 1.1 (the "License"); you may not use this file except in
+ * compliance with the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS"
+ * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied.
+ * See the License for the specific language governing rights and
+ * limitations under the License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var t = require('plugindev');
+var fs = require('filesystem');
+var DummyFileSource = require('filesystem:tests/fixture').DummyFileSource;
+var console = require('bespin:console').console;
+var Promise = require('bespin:promise').Promise;
+
+var source = new DummyFileSource([
+    { name: 'atTheTop.js', contents: 'the top file' },
+    { name: 'anotherAtTheTop.js', contents: 'another file' },
+    { name: 'foo/' },
+    { name: 'deeply/nested/directory/andAFile.txt', contents: 'text file' }
+]);
+
+var getNewRoot = function() {
+    return fs.Filesystem.create({
+        source: 'filesystem:tests/testFileManagement#source'
+    });
+};
+
+var genericFailureHandler = function(error) {
+    console.log(error);
+    t.ok(false, 'Async failed: ' + error.message);
+    t.start();
+};
+
+exports.testPrefixSearch = function() {
+    var i;
+    var ps = fs._prefixSearch;
+    var arr = [];
+    t.equal(ps(arr, 'hello'), null, 'Expected null for empty array');
+    arr = ['hello'];
+    t.equal(ps(arr, 'hello'), 0, 'Simple case: one matching element');
+    arr = ['hello/there'];
+    t.equal(ps(arr, 'hello'), 0, 'Prefix case: one element');
+    arr = [];
+    for (i = 0; i < 10; i++) {
+        arr.push('hello/' + i);
+    }
+    t.equal(ps(arr, 'hello'), 0, 'all match');
+
+    arr = [];
+    for (i = 0; i < 9; i++) {
+        arr.push('abracadabra/' + i);
+    }
+    arr.push('hello/10');
+    t.equal(ps(arr, 'hello'), 9, 'last match');
+
+    arr = [];
+    for (i = 0; i < 99; i++) {
+        arr.push('abracadabra/' + i);
+    }
+    arr.splice(49, 0, 'hello/49');
+    t.equal(ps(arr, 'hello'), 49, 'middle match');
+
+    arr.splice(45, 4, 'hello/45', 'hello/46', 'hello/47', 'hello/48');
+    t.equal(ps(arr, 'hello'), 45, 'middle match with more');
+};
+
+exports.testDirectoryListing = function() {
+    source.reset();
+    var root = getNewRoot();
+    var testpr = new Promise();
+
+    root.listDirectory('/').then(function(results) {
+        t.equal(results.length, 4, 'Expected 4 items');
+        t.deepEqual(results, ['anotherAtTheTop.js', 'atTheTop.js', 'deeply/',
+                             'foo/']);
+        testpr.resolve();
+    });
+
+    t.deepEqual(source.requests[0], ['loadAll']);
+
+    return testpr;
+};
+
+exports.testFileContents = function() {
+    source.reset();
+    var root = getNewRoot();
+    var testpr = new Promise();
+
+    root.loadContents('atTheTop.js').then(function(contents) {
+        t.equal(contents, 'the top file');
+        testpr.resolve();
+    });
+    return testpr;
+};
+
+exports.testDirectoryCreation = function() {
+    source.reset();
+    var root = getNewRoot();
+    var testpr = new Promise();
+    root.makeDirectory('acme/insurance').then(function() {
+        t.equal(root._files[0], 'acme/insurance/');
+        testpr.resolve();
+    });
+    return testpr;
+};
+
+exports.testPathRemoval = function() {
+    source.reset();
+    var root = getNewRoot();
+    var testpr = new Promise();
+    root.remove('atTheTop.js').then(function() {
+        t.equal(root._files.length, 3, 'file should be removed from filesystem');
+        t.equal(root._files[1], 'deeply/nested/directory/andAFile.txt');
+        t.equal(source.requests[0][0], 'remove');
+        testpr.resolve();
+    });
+    return testpr;
+};
+
+exports.testFileAbstraction = function() {
+    source.reset();
+    var root = getNewRoot();
+    var testpr = new Promise();
+    var file = root.getFile('deeply/nested/directory/andAFile.txt');
+    t.equal(file.extension(), 'txt');
+    t.equal(file.parentdir(), 'deeply/nested/directory/', 'parentdir is the root for this file');
+    file.loadContents().then(function(contents) {
+        t.equal(contents, 'text file');
+
+        file.saveContents('New data').then(function() {
+            // there will be a loadAll at the end, so we do -2
+            var request = source.requests[source.requests.length-2];
+            t.equal(request[0], 'saveContents');
+            t.equal(request[1][0], 'deeply/nested/directory/andAFile.txt');
+            t.equal(request[1][1], 'New data');
+            file.exists().then(function(exists) {
+                t.ok(exists, 'File should exist');
+                var badfile = root.getFile('no/such/file.txt');
+                badfile.exists().then(function(exists) {
+                    t.ok(!exists, 'badfile should not exist');
+                    testpr.resolve();
+                });
+            });
+        });
+    });
+    return testpr;
+};
+
+});
+
+bespin.tiki.module("filesystem:types",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+/**
+ * One of a known set of options
+ */
+exports.existingFile = {
+    isValid: function(value, typeExt) {
+        return true;
+    },
+
+    toString: function(value, typeExt) {
+        return value;
+    },
+
+    fromString: function(value, typeExt) {
+        // TODO: should we validate and return null if invalid?
+        return value;
+    }
+};
+
+});
+
+bespin.tiki.module("filesystem:path",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var util = require('bespin:util/util');
+
+/**
+ * Take the given arguments and combine them with one path separator:
+ * <pre>
+ * combine('foo', 'bar') -&gt; foo/bar
+ * combine(' foo/', '/bar  ') -&gt; foo/bar
+ * </pre>
+ */
+exports.combine = function() {
+    // clone to a true array
+    var args = Array.prototype.slice.call(arguments);
+
+    var path = args.join('/');
+    path = path.replace(/\/\/+/g, '/');
+    path = path.replace(/^\s+|\s+$/g, '');
+    return path;
+};
+
+/**
+ * Given a <code>path</code> return the directory
+ * <li>directory('/path/to/directory/file.txt') -&gt; /path/to/directory/
+ * <li>directory('/path/to/directory/') -&gt; /path/to/directory/
+ * <li>directory('foo.txt') -&gt; ''
+ */
+exports.directory = function(path) {
+    var match = /^(.*?\/)[^\/]*$/.exec(path);
+    return match === null ? '' : match[1];
+};
+
+/**
+ * Given a <code>path</code> make sure that it returns as a directory
+ * (As in, ends with a '/')
+ * <pre>
+ * makeDirectory('/path/to/directory') -&gt; /path/to/directory/
+ * makeDirectory('/path/to/directory/') -&gt; /path/to/directory/
+ * </pre>
+ */
+exports.makeDirectory = function(path) {
+    if (!((/\/$/).test(path))) {
+        path += '/';
+    }
+    return path;
+};
+
+/**
+ * Take the given arguments and combine them with one path separator and
+ * then make sure that you end up with a directory
+ * <pre>
+ * combine('foo', 'bar') -&gt; foo/bar/
+ * combine(' foo/', '/bar  ') -&gt; foo/bar/
+ * </pre>
+ */
+exports.combineAsDirectory = function() {
+    return this.makeDirectory(this.combine.apply(this, arguments));
+};
+
+/**
+ * This function doubles down and calls <code>combine</code> and then
+ * escapes the output
+ */
+exports.escape = function() {
+    return escape(this.combine.apply(this, arguments));
+};
+
+/**
+ *
+ */
+exports.trimLeadingSlash = function(path) {
+    if (path.indexOf('/') == 0) {
+        path = path.substring(1, path.length);
+    }
+    return path;
+};
+
+exports.hasLeadingSlash = function(path) {
+    return path.indexOf('/') == 0;
+};
+
+/**
+ * This function returns a file type based on the extension
+ * (foo.html -&gt; html)
+ */
+exports.fileType = function(path) {
+    if (path.indexOf('.') >= 0) {
+        var split = path.split('.');
+        if (split.length > 1) {
+            return split[split.length - 1];
+        }
+    }
+    return null;
+};
+
+/*
+* Returns true if the path points to a directory (ends with a /).
+*/
+exports.isDir = function(path) {
+    return util.endsWith(path, '/');
+};
+
+/*
+ * compute the basename of a path:
+ * /foo/bar/ -> ''
+ * /foo/bar/baz.js -> 'baz.js'
+ */
+exports.basename = function(path) {
+    var lastSlash = path.lastIndexOf('/');
+    if (lastSlash == -1) {
+        return path;
+    }
+    var afterSlash = path.substring(lastSlash+1);
+    return afterSlash;
+};
+
+/*
+ * splits the path from the extension, returning a 2 element array
+ * '/foo/bar/' -> ['/foo/bar', '']
+ * '/foo/bar/baz.js' -> ['/foo/bar/baz', 'js']
+ */
+exports.splitext = function(path) {
+    var lastDot = path.lastIndexOf('.');
+    if (lastDot == -1) {
+        return [path, ''];
+    }
+    var before = path.substring(0, lastDot);
+    var after = path.substring(lastDot+1);
+    return [before, after];
+};
+
+/*
+ * figures out the parent directory
+ * '' -&gt; ''
+ * '/' -&gt; ''
+ * '/foo/bar/' -&gt; '/foo/'
+ * '/foo/bar/baz.txt' -&gt; '/foo/bar/'
+ */
+exports.parentdir = function(path) {
+    if (path == '' || path == '/') {
+        return '';
+    }
+
+    if (exports.isDir(path)) {
+        path = path.substring(0, path.length-1);
+    }
+    slash = path.lastIndexOf('/');
+    path = path.substring(0, slash+1);
+    return path;
+};
 
 });
 ;bespin.tiki.register("::screen_theme", {
@@ -25524,7 +35432,7 @@ bespin.tiki.module("screen_theme:index",function(require,exports,module) {
 (function() {
 var $ = bespin.tiki.require("jquery").$;
 $(document).ready(function() {
-    bespin.tiki.require("bespin:plugins").catalog.registerMetadata({"text_editor": {"resourceURL": "resources/text_editor/", "description": "Canvas-based text editor component and many common editing commands", "dependencies": {"completion": "0.0.0", "undomanager": "0.0.0", "settings": "0.0.0", "canon": "0.0.0", "rangeutils": "0.0.0", "traits": "0.0.0", "theme_manager": "0.0.0", "keyboard": "0.0.0", "edit_session": "0.0.0", "syntax_manager": "0.0.0"}, "testmodules": ["tests/controllers/testLayoutmanager", "tests/models/testTextstorage", "tests/testScratchcanvas", "tests/utils/testRect"], "provides": [{"action": "new", "pointer": "views/editor#EditorView", "ep": "factory", "name": "text_editor"}, {"pointer": "views/editor#EditorView", "ep": "appcomponent", "name": "editor_view"}, {"predicates": {"isTextView": true}, "pointer": "commands/editing#backspace", "ep": "command", "key": "backspace", "name": "backspace"}, {"predicates": {"isTextView": true}, "pointer": "commands/editing#deleteCommand", "ep": "command", "key": "delete", "name": "delete"}, {"description": "Delete all lines currently selected", "key": "ctrl_d", "predicates": {"isTextView": true}, "pointer": "commands/editing#deleteLines", "ep": "command", "name": "deletelines"}, {"description": "Create a new, empty line below the current one", "key": "ctrl_return", "predicates": {"isTextView": true}, "pointer": "commands/editing#openLine", "ep": "command", "name": "openline"}, {"description": "Join the current line with the following", "key": "ctrl_shift_j", "predicates": {"isTextView": true}, "pointer": "commands/editing#joinLines", "ep": "command", "name": "joinline"}, {"params": [{"defaultValue": "", "type": "text", "name": "text", "description": "The text to insert"}], "pointer": "commands/editing#insertText", "ep": "command", "name": "insertText"}, {"predicates": {"completing": false, "isTextView": true}, "pointer": "commands/editing#newline", "ep": "command", "key": "return", "name": "newline"}, {"predicates": {"completing": false, "isTextView": true}, "pointer": "commands/editing#tab", "ep": "command", "key": "tab", "name": "tab"}, {"predicates": {"isTextView": true}, "pointer": "commands/editing#untab", "ep": "command", "key": "shift_tab", "name": "untab"}, {"predicates": {"isTextView": true}, "ep": "command", "name": "move"}, {"description": "Repeat the last search (forward)", "pointer": "commands/editor#findNextCommand", "ep": "command", "key": "ctrl_g", "name": "findnext"}, {"description": "Repeat the last search (backward)", "pointer": "commands/editor#findPrevCommand", "ep": "command", "key": "ctrl_shift_g", "name": "findprev"}, {"predicates": {"completing": false, "isTextView": true}, "pointer": "commands/movement#moveDown", "ep": "command", "key": "down", "name": "move down"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveLeft", "ep": "command", "key": "left", "name": "move left"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveRight", "ep": "command", "key": "right", "name": "move right"}, {"predicates": {"completing": false, "isTextView": true}, "pointer": "commands/movement#moveUp", "ep": "command", "key": "up", "name": "move up"}, {"predicates": {"isTextView": true}, "ep": "command", "name": "select"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectDown", "ep": "command", "key": "shift_down", "name": "select down"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectLeft", "ep": "command", "key": "shift_left", "name": "select left"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectRight", "ep": "command", "key": "shift_right", "name": "select right"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectUp", "ep": "command", "key": "shift_up", "name": "select up"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveLineEnd", "ep": "command", "key": ["end", "ctrl_right"], "name": "move lineend"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectLineEnd", "ep": "command", "key": ["shift_end", "ctrl_shift_right"], "name": "select lineend"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveDocEnd", "ep": "command", "key": "ctrl_down", "name": "move docend"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectDocEnd", "ep": "command", "key": "ctrl_shift_down", "name": "select docend"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveLineStart", "ep": "command", "key": ["home", "ctrl_left"], "name": "move linestart"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectLineStart", "ep": "command", "key": ["shift_home", "ctrl_shift_left"], "name": "select linestart"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveDocStart", "ep": "command", "key": "ctrl_up", "name": "move docstart"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectDocStart", "ep": "command", "key": "ctrl_shift_up", "name": "select docstart"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveNextWord", "ep": "command", "key": ["alt_right"], "name": "move nextword"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectNextWord", "ep": "command", "key": ["alt_shift_right"], "name": "select nextword"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#movePreviousWord", "ep": "command", "key": ["alt_left"], "name": "move prevword"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectPreviousWord", "ep": "command", "key": ["alt_shift_left"], "name": "select prevword"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectAll", "ep": "command", "key": ["ctrl_a", "meta_a"], "name": "select all"}, {"predicates": {"isTextView": true}, "ep": "command", "name": "scroll"}, {"predicates": {"isTextView": true}, "pointer": "commands/scrolling#scrollDocStart", "ep": "command", "key": "ctrl_home", "name": "scroll start"}, {"predicates": {"isTextView": true}, "pointer": "commands/scrolling#scrollDocEnd", "ep": "command", "key": "ctrl_end", "name": "scroll end"}, {"predicates": {"isTextView": true}, "pointer": "commands/scrolling#scrollPageDown", "ep": "command", "key": "pagedown", "name": "scroll down"}, {"predicates": {"isTextView": true}, "pointer": "commands/scrolling#scrollPageUp", "ep": "command", "key": "pageup", "name": "scroll up"}, {"pointer": "commands/editor#lcCommand", "description": "Change all selected text to lowercase", "withKey": "CMD SHIFT L", "ep": "command", "name": "lc"}, {"pointer": "commands/editor#detabCommand", "description": "Convert tabs to spaces.", "params": [{"defaultValue": null, "type": "text", "name": "tabsize", "description": "Optionally, specify a tab size. (Defaults to setting.)"}], "ep": "command", "name": "detab"}, {"pointer": "commands/editor#entabCommand", "description": "Convert spaces to tabs.", "params": [{"defaultValue": null, "type": "text", "name": "tabsize", "description": "Optionally, specify a tab size. (Defaults to setting.)"}], "ep": "command", "name": "entab"}, {"pointer": "commands/editor#trimCommand", "description": "trim trailing or leading whitespace from each line in selection", "params": [{"defaultValue": "both", "type": {"data": [{"name": "left"}, {"name": "right"}, {"name": "both"}], "name": "selection"}, "name": "side", "description": "Do we trim from the left, right or both"}], "ep": "command", "name": "trim"}, {"pointer": "commands/editor#ucCommand", "description": "Change all selected text to uppercase", "withKey": "CMD SHIFT U", "ep": "command", "name": "uc"}, {"predicates": {"isTextView": true}, "pointer": "controllers/undo#undoManagerCommand", "ep": "command", "key": ["ctrl_shift_z"], "name": "redo"}, {"predicates": {"isTextView": true}, "pointer": "controllers/undo#undoManagerCommand", "ep": "command", "key": ["ctrl_z"], "name": "undo"}, {"description": "The distance in characters between each tab", "defaultValue": 8, "type": "number", "ep": "setting", "name": "tabstop"}, {"description": "Customize the keymapping", "defaultValue": "{}", "type": "text", "ep": "setting", "name": "customKeymapping"}, {"description": "The keymapping to use", "defaultValue": "standard", "type": "text", "ep": "setting", "name": "keymapping"}, {"description": "The editor font size in pixels", "defaultValue": 14, "type": "number", "ep": "setting", "name": "fontsize"}, {"description": "The editor font face", "defaultValue": "Monaco, Lucida Console, monospace", "type": "text", "ep": "setting", "name": "fontface"}, {"defaultValue": {"color": "#e5c138", "paddingLeft": 5, "backgroundColor": "#4c4a41", "paddingRight": 10}, "ep": "themevariable", "name": "gutter"}, {"defaultValue": {"color": "#e6e6e6", "selectedTextBackgroundColor": "#526da5", "backgroundColor": "#2a211c", "cursorColor": "#879aff", "unfocusedCursorBackgroundColor": "#73171e", "unfocusedCursorColor": "#ff0033"}, "ep": "themevariable", "name": "editor"}, {"defaultValue": {"comment": "#666666", "directive": "#999999", "keyword": "#42A8ED", "plain": "#e6e6e6", "error": "#ff0000", "operator": "#88BBFF", "identifier": "#D841FF", "string": "#039A0A"}, "ep": "themevariable", "name": "highlighter"}, {"defaultValue": {"nibStrokeStyle": "rgb(150, 150, 150)", "fullAlpha": 1.0, "barFillStyle": "rgb(0, 0, 0)", "particalAlpha": 0.29999999999999999, "barFillGradientBottomStop": "rgb(44, 44, 44)", "backgroundStyle": "#2A211C", "thickness": 17, "padding": 5, "trackStrokeStyle": "rgb(150, 150, 150)", "nibArrowStyle": "rgb(255, 255, 255)", "barFillGradientBottomStart": "rgb(22, 22, 22)", "barFillGradientTopStop": "rgb(40, 40, 40)", "barFillGradientTopStart": "rgb(90, 90, 90)", "nibStyle": "rgb(100, 100, 100)", "trackFillStyle": "rgba(50, 50, 50, 0.8)"}, "ep": "themevariable", "name": "scroller"}, {"description": "Event: Notify when something within the editor changed.", "params": [{"required": true, "name": "pointer", "description": "Function that is called whenever a change happened."}], "ep": "extensionpoint", "name": "editorChange"}], "type": "plugins/supported", "name": "text_editor"}, "less": {"resourceURL": "resources/less/", "description": "Leaner CSS", "contributors": [], "author": "Alexis Sellier <self@cloudhead.net>", "url": "http://lesscss.org", "version": "1.0.11", "dependencies": {}, "testmodules": [], "provides": [], "keywords": ["css", "parser", "lesscss", "browser"], "type": "plugins/thirdparty", "name": "less"}, "theme_manager_base": {"resourceURL": "resources/theme_manager_base/", "name": "theme_manager_base", "share": true, "environments": {"main": true}, "dependencies": {}, "testmodules": [], "provides": [{"description": "(Less)files holding the CSS style information for the UI.", "params": [{"required": true, "name": "url", "description": "Name of the ThemeStylesFile - can also be an array of files."}], "ep": "extensionpoint", "name": "themestyles"}, {"description": "Event: Notify when the theme(styles) changed.", "params": [{"required": true, "name": "pointer", "description": "Function that is called whenever the theme is changed."}], "ep": "extensionpoint", "name": "themeChange"}, {"indexOn": "name", "description": "A theme is a way change the look of the application.", "params": [{"required": false, "name": "url", "description": "Name of a ThemeStylesFile that holds theme specific CSS rules - can also be an array of files."}, {"required": true, "name": "pointer", "description": "Function that returns the ThemeData"}], "ep": "extensionpoint", "name": "theme"}], "type": "plugins/supported", "description": "Defines extension points required for theming"}, "canon": {"resourceURL": "resources/canon/", "name": "canon", "environments": {"main": true, "worker": false}, "dependencies": {"environment": "0.0.0", "events": "0.0.0", "settings": "0.0.0"}, "testmodules": [], "provides": [{"indexOn": "name", "description": "A command is a bit of functionality with optional typed arguments which can do something small like moving the cursor around the screen, or large like cloning a project from VCS.", "ep": "extensionpoint", "name": "command"}, {"description": "An extension point to be called whenever a new command begins output.", "ep": "extensionpoint", "name": "addedRequestOutput"}, {"description": "A dimensionsChanged is a way to be notified of changes to the dimension of Bespin", "ep": "extensionpoint", "name": "dimensionsChanged"}, {"description": "How many typed commands do we recall for reference?", "defaultValue": 50, "type": "number", "ep": "setting", "name": "historyLength"}, {"action": "create", "pointer": "history#InMemoryHistory", "ep": "factory", "name": "history"}], "type": "plugins/supported", "description": "Manages commands"}, "traits": {"resourceURL": "resources/traits/", "description": "Traits library, traitsjs.org", "dependencies": {}, "testmodules": [], "provides": [], "type": "plugins/thirdparty", "name": "traits"}, "keyboard": {"resourceURL": "resources/keyboard/", "description": "Keyboard shortcuts", "dependencies": {"canon": "0.0", "settings": "0.0"}, "testmodules": ["tests/testKeyboard"], "provides": [{"description": "A keymapping defines how keystrokes are interpreted.", "params": [{"required": true, "name": "states", "description": "Holds the states and all the informations about the keymapping. See docs: pluginguide/keymapping"}], "ep": "extensionpoint", "name": "keymapping"}], "type": "plugins/supported", "name": "keyboard"}, "worker_manager": {"resourceURL": "resources/worker_manager/", "description": "Manages a web worker on the browser side", "dependencies": {"canon": "0.0.0", "events": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "provides": [{"description": "Low-level web worker control (for plugin development)", "ep": "command", "name": "worker"}, {"description": "Restarts all web workers (for plugin development)", "pointer": "#workerRestartCommand", "ep": "command", "name": "worker restart"}], "type": "plugins/supported", "name": "worker_manager"}, "diff": {"testmodules": [], "type": "plugins/thirdparty", "resourceURL": "resources/diff/", "description": "Diff/Match/Patch module (support code, no UI)", "name": "diff"}, "edit_session": {"resourceURL": "resources/edit_session/", "description": "Ties together the files being edited with the views on screen", "dependencies": {"events": "0.0.0"}, "testmodules": ["tests/testSession"], "provides": [{"action": "call", "pointer": "#createSession", "ep": "factory", "name": "session"}], "type": "plugins/supported", "name": "edit_session"}, "syntax_manager": {"resourceURL": "resources/syntax_manager/", "name": "syntax_manager", "environments": {"main": true, "worker": false}, "dependencies": {"worker_manager": "0.0.0", "events": "0.0.0", "underscore": "0.0.0", "syntax_directory": "0.0.0"}, "testmodules": [], "provides": [], "type": "plugins/supported", "description": "Provides syntax highlighting services for the editor"}, "completion": {"resourceURL": "resources/completion/", "description": "Code completion support", "dependencies": {"jquery": "0.0.0", "ctags": "0.0.0", "rangeutils": "0.0.0", "canon": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "provides": [{"indexOn": "name", "description": "Code completion support for specific languages", "ep": "extensionpoint", "name": "completion"}, {"description": "Accept the chosen completion", "key": ["return", "tab"], "predicates": {"completing": true}, "pointer": "controller#completeCommand", "ep": "command", "name": "complete"}, {"description": "Abandon the completion", "key": "escape", "predicates": {"completing": true}, "pointer": "controller#completeCancelCommand", "ep": "command", "name": "complete cancel"}, {"description": "Choose the completion below", "key": "down", "predicates": {"completing": true}, "pointer": "controller#completeDownCommand", "ep": "command", "name": "complete down"}, {"description": "Choose the completion above", "key": "up", "predicates": {"completing": true}, "pointer": "controller#completeUpCommand", "ep": "command", "name": "complete up"}], "type": "plugins/supported", "name": "completion"}, "environment": {"testmodules": [], "dependencies": {"settings": "0.0.0"}, "resourceURL": "resources/environment/", "name": "environment", "type": "plugins/supported"}, "undomanager": {"resourceURL": "resources/undomanager/", "description": "Manages undoable events", "testmodules": ["tests/testUndomanager"], "provides": [{"pointer": "#undoManagerCommand", "ep": "command", "key": ["ctrl_shift_z"], "name": "redo"}, {"pointer": "#undoManagerCommand", "ep": "command", "key": ["ctrl_z"], "name": "undo"}], "type": "plugins/supported", "name": "undomanager"}, "command_line": {"resourceURL": "resources/command_line/", "description": "Provides the command line user interface", "dependencies": {"templater": "0.0.0", "settings": "0.0.0", "matcher": "0.0.0", "theme_manager_base": "0.0.0", "canon": "0.0.0", "keyboard": "0.0.0", "diff": "0.0.0", "types": "0.0.0"}, "testmodules": ["tests/testInput"], "provides": [{"url": ["article.less", "cli.less", "menu.less", "requestOutput.less", "global.less"], "ep": "themestyles"}, {"defaultValue": "@global_container_background", "ep": "themevariable", "name": "bg"}, {"defaultValue": "@global_container_background + #090807", "ep": "themevariable", "name": "input_bg_light"}, {"defaultValue": "@global_container_background - #030303", "ep": "themevariable", "name": "input_bg"}, {"defaultValue": "@global_container_background - #050506", "ep": "themevariable", "name": "input_bg2"}, {"defaultValue": "@global_menu_inset_color_top_left", "ep": "themevariable", "name": "border_fg"}, {"defaultValue": "@global_menu_inset_color_right", "ep": "themevariable", "name": "border_fg2"}, {"defaultValue": "@global_menu_background", "ep": "themevariable", "name": "menu_bg"}, {"defaultValue": "@global_menu_border_color", "ep": "themevariable", "name": "border_bg"}, {"defaultValue": "@global_color", "ep": "themevariable", "name": "text"}, {"defaultValue": "@global_header_color", "ep": "themevariable", "name": "hi_text"}, {"defaultValue": "@global_hint_color", "ep": "themevariable", "name": "lo_text"}, {"defaultValue": "@global_hint_color", "ep": "themevariable", "name": "lo_text2"}, {"defaultValue": "@global_link_color", "ep": "themevariable", "name": "link_text"}, {"defaultValue": "@global_error_color", "ep": "themevariable", "name": "error_text"}, {"defaultValue": "@global_selectable_hover_background", "ep": "themevariable", "name": "theme_text"}, {"comment": "#FFCE00", "defaultValue": "rgb(255,206,0)", "ep": "themevariable", "name": "theme_text_light"}, {"defaultValue": "@global_selectable_hover_background - #222000", "ep": "themevariable", "name": "theme_text_dark"}, {"defaultValue": "@global_accelerator_color", "ep": "themevariable", "name": "theme_text_dark2"}, {"comment": "#0E0906", "defaultValue": "rgb(14,9,6)", "ep": "themevariable", "name": "input_submenu"}, {"defaultValue": "@global_font", "ep": "themevariable", "name": "fonts"}, {"defaultValue": "@global_selectable_hover_color", "ep": "themevariable", "name": "li_hover_color"}, {"defaultValue": "@global_hint_hover_color", "ep": "themevariable", "name": "li_hint_hover_color"}, {"defaultValue": "@global_accelerator_hover_color", "ep": "themevariable", "name": "li_accelerator_hover_color"}, {"action": "new", "pointer": "views/cli#CliInputView", "ep": "factory", "name": "commandLine"}, {"pointer": "views/cli#CliInputView", "ep": "appcomponent", "name": "command_line"}, {"description": "Display number|date|none next to each historical instruction", "defaultValue": "none", "type": {"data": ["number", "date", "none"], "name": "selection"}, "ep": "setting", "name": "historyTimeMode"}, {"description": "The maximum size (in pixels) for the command line output area", "defaultValue": 0, "type": "number", "ep": "setting", "name": "minConsoleHeight"}, {"description": "The minimum size (in pixels) for the command line output area", "defaultValue": 300, "type": "number", "ep": "setting", "name": "maxConsoleHeight"}, {"predicates": {"isKeyUp": false, "isCommandLine": true}, "pointer": "commands/simple#completeCommand", "ep": "command", "key": "tab", "name": "complete"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_1", "name": "menu1"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_2", "name": "menu2"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_1", "name": "menu1"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_3", "name": "menu3"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_4", "name": "menu4"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_5", "name": "menu5"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_6", "name": "menu6"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_7", "name": "menu7"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_8", "name": "menu8"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_9", "name": "menu9"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_0", "name": "menu0"}, {"pointer": "commands/simple#helpCommand", "description": "Get help on the available commands.", "params": [{"defaultValue": null, "type": "text", "name": "search", "description": "Search string to narrow the output."}], "ep": "command", "name": "help"}, {"pointer": "commands/simple#aliasCommand", "description": "define and show aliases for commands", "params": [{"defaultValue": null, "type": "text", "name": "alias", "description": "optionally, your alias name"}, {"defaultValue": null, "type": "text", "name": "command", "description": "optionally, the command name"}], "ep": "command", "name": "alias"}, {"description": "evals given js code and show the result", "params": [{"type": "text", "name": "javascript", "description": "The JavaScript to evaluate"}], "hidden": true, "pointer": "commands/basic#evalCommand", "ep": "command", "name": "eval"}, {"description": "show the Bespin version", "hidden": true, "pointer": "commands/basic#versionCommand", "ep": "command", "name": "version"}, {"description": "has", "hidden": true, "pointer": "commands/basic#bespinCommand", "ep": "command", "name": "bespin"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "commands/history#historyPreviousCommand", "ep": "command", "key": "up", "name": "historyPrevious"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "commands/history#historyNextCommand", "ep": "command", "key": "down", "name": "historyNext"}, {"params": [], "description": "Show history of the commands", "pointer": "commands/history#historyCommand", "ep": "command", "name": "history"}, {"pointer": "commands/history#addedRequestOutput", "ep": "addedRequestOutput"}, {"indexOn": "name", "description": "A function to allow the command line to show a hint to the user on how they should finish what they're typing", "ep": "extensionpoint", "name": "typehint"}, {"description": "A UI for string that is constrained to be one of a number of pre-defined values", "pointer": "views/basic#selection", "ep": "typehint", "name": "selection"}, {"description": "A UI for a boolean", "pointer": "views/basic#bool", "ep": "typehint", "name": "boolean"}], "type": "plugins/supported", "name": "command_line"}, "rangeutils": {"testmodules": ["tests/test"], "type": "plugins/supported", "resourceURL": "resources/rangeutils/", "description": "Utility functions for dealing with ranges of text", "name": "rangeutils"}, "stylesheet": {"resourceURL": "resources/stylesheet/", "name": "stylesheet", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#CSSSyntax", "ep": "syntax", "fileexts": ["css", "less"], "name": "css"}], "type": "plugins/supported", "description": "CSS syntax highlighter"}, "html": {"resourceURL": "resources/html/", "name": "html", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#HTMLSyntax", "ep": "syntax", "fileexts": ["htm", "html"], "name": "html"}], "type": "plugins/supported", "description": "HTML syntax highlighter"}, "js_syntax": {"resourceURL": "resources/js_syntax/", "name": "js_syntax", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#JSSyntax", "ep": "syntax", "fileexts": ["js", "json"], "name": "js"}], "type": "plugins/supported", "description": "JavaScript syntax highlighter"}, "ctags": {"resourceURL": "resources/ctags/", "description": "Reads and writes tag files", "dependencies": {"traits": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "ctags"}, "events": {"resourceURL": "resources/events/", "description": "Dead simple event implementation", "dependencies": {"traits": "0.0"}, "testmodules": ["tests/test"], "provides": [], "type": "plugins/supported", "name": "events"}, "templater": {"testmodules": [], "resourceURL": "resources/templater/", "name": "templater", "type": "plugins/supported"}, "matcher": {"resourceURL": "resources/matcher/", "description": "Provides various routines to match items in a list", "dependencies": {}, "testmodules": ["tests/testIndex", "tests/testPrefix", "tests/testQuick"], "type": "plugins/supported", "name": "matcher"}, "theme_manager": {"resourceURL": "resources/theme_manager/", "name": "theme_manager", "share": true, "environments": {"main": true, "worker": false}, "dependencies": {"theme_manager_base": "0.0.0", "settings": "0.0.0", "events": "0.0.0", "less": "0.0.0"}, "testmodules": [], "provides": [{"unregister": "themestyles#unregisterThemeStyles", "register": "themestyles#registerThemeStyles", "ep": "extensionhandler", "name": "themestyles"}, {"unregister": "index#unregisterTheme", "register": "index#registerTheme", "ep": "extensionhandler", "name": "theme"}, {"defaultValue": "standard", "description": "The theme plugin's name to use. If set to 'standard' no theme will be used", "type": "text", "ep": "setting", "name": "theme"}, {"pointer": "#appLaunched", "ep": "appLaunched"}], "type": "plugins/supported", "description": "Handles colors in Bespin"}, "whitetheme": {"resourceURL": "resources/whitetheme/", "description": "Provides a white theme for Bespin", "dependencies": {"theme_manager": "0.0.0"}, "testmodules": [], "provides": [{"url": ["theme.less"], "description": "A basic white theme", "pointer": "index#whiteTheme", "ep": "theme", "name": "white"}], "type": "plugins/supported", "name": "whitetheme"}, "standard_syntax": {"resourceURL": "resources/standard_syntax/", "description": "Easy-to-use basis for syntax engines", "environments": {"worker": true}, "dependencies": {"syntax_worker": "0.0.0", "syntax_directory": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "standard_syntax"}, "types": {"resourceURL": "resources/types/", "description": "Defines parameter types for commands", "testmodules": ["tests/testBasic", "tests/testTypes"], "provides": [{"indexOn": "name", "description": "Commands can accept various arguments that the user enters or that are automatically supplied by the environment. Those arguments have types that define how they are supplied or completed. The pointer points to an object with methods convert(str value) and getDefault(). Both functions have `this` set to the command's `takes` parameter. If getDefault is not defined, the default on the command's `takes` is used, if there is one. The object can have a noInput property that is set to true to reflect that this type is provided directly by the system. getDefault must be defined in that case.", "ep": "extensionpoint", "name": "type"}, {"description": "Text that the user needs to enter.", "pointer": "basic#text", "ep": "type", "name": "text"}, {"description": "A JavaScript number", "pointer": "basic#number", "ep": "type", "name": "number"}, {"description": "A true/false value", "pointer": "basic#bool", "ep": "type", "name": "boolean"}, {"description": "An object that converts via JavaScript", "pointer": "basic#object", "ep": "type", "name": "object"}, {"description": "A string that is constrained to be one of a number of pre-defined values", "pointer": "basic#selection", "ep": "type", "name": "selection"}, {"description": "A type which we don't understand from the outset, but which we hope context can help us with", "ep": "type", "name": "deferred"}], "type": "plugins/supported", "name": "types"}, "jquery": {"testmodules": [], "resourceURL": "resources/jquery/", "name": "jquery", "type": "plugins/thirdparty"}, "embedded": {"testmodules": [], "dependencies": {"theme_manager": "0.0.0", "text_editor": "0.0.0", "appconfig": "0.0.0", "edit_session": "0.0.0", "screen_theme": "0.0.0"}, "resourceURL": "resources/embedded/", "name": "embedded", "type": "plugins/supported"}, "settings": {"resourceURL": "resources/settings/", "description": "Infrastructure and commands for managing user preferences", "share": true, "dependencies": {"types": "0.0"}, "testmodules": [], "provides": [{"description": "Storage for the customizable Bespin settings", "pointer": "index#settings", "ep": "appcomponent", "name": "settings"}, {"indexOn": "name", "description": "A setting is something that the application offers as a way to customize how it works", "register": "index#addSetting", "ep": "extensionpoint", "name": "setting"}, {"description": "A settingChange is a way to be notified of changes to a setting", "ep": "extensionpoint", "name": "settingChange"}, {"pointer": "commands#setCommand", "description": "define and show settings", "params": [{"defaultValue": null, "type": {"pointer": "settings:index#getSettings", "name": "selection"}, "name": "setting", "description": "The name of the setting to display or alter"}, {"defaultValue": null, "type": {"pointer": "settings:index#getTypeSpecFromAssignment", "name": "deferred"}, "name": "value", "description": "The new value for the chosen setting"}], "ep": "command", "name": "set"}, {"pointer": "commands#unsetCommand", "description": "unset a setting entirely", "params": [{"type": {"pointer": "settings:index#getSettings", "name": "selection"}, "name": "setting", "description": "The name of the setting to return to defaults"}], "ep": "command", "name": "unset"}], "type": "plugins/supported", "name": "settings"}, "appconfig": {"resourceURL": "resources/appconfig/", "description": "Instantiates components and displays the GUI based on configuration.", "dependencies": {"jquery": "0.0.0", "canon": "0.0.0", "settings": "0.0.0"}, "testmodules": [], "provides": [{"description": "Event: Fired when the app is completely launched.", "ep": "extensionpoint", "name": "appLaunched"}], "type": "plugins/supported", "name": "appconfig"}, "syntax_worker": {"resourceURL": "resources/syntax_worker/", "description": "Coordinates multiple syntax engines", "environments": {"worker": true}, "dependencies": {"syntax_directory": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "syntax_worker"}, "js_completion": {"resourceURL": "resources/js_completion/", "description": "JavaScript code completion", "dependencies": {"completion": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#JSCompletion", "ep": "completion", "name": "js"}], "type": "plugins/supported", "name": "js_completion"}, "screen_theme": {"resourceURL": "resources/screen_theme/", "description": "Bespins standard theme basePlugin", "dependencies": {"theme_manager": "0.0.0"}, "testmodules": [], "provides": [{"url": ["theme.less"], "ep": "themestyles"}, {"defaultValue": "@global_font", "ep": "themevariable", "name": "container_font"}, {"defaultValue": "@global_font_size", "ep": "themevariable", "name": "container_font_size"}, {"defaultValue": "@global_container_background", "ep": "themevariable", "name": "container_bg"}, {"defaultValue": "@global_color", "ep": "themevariable", "name": "container_color"}, {"defaultValue": "@global_line_height", "ep": "themevariable", "name": "container_line_height"}, {"defaultValue": "@global_pane_background", "ep": "themevariable", "name": "pane_bg"}, {"defaultValue": "@global_pane_border_radius", "ep": "themevariable", "name": "pane_border_radius"}, {"defaultValue": "@global_form_font", "ep": "themevariable", "name": "form_font"}, {"defaultValue": "@global_form_font_size", "ep": "themevariable", "name": "form_font_size"}, {"defaultValue": "@global_form_line_height", "ep": "themevariable", "name": "form_line_height"}, {"defaultValue": "@global_form_color", "ep": "themevariable", "name": "form_color"}, {"defaultValue": "@global_form_text_shadow", "ep": "themevariable", "name": "form_text_shadow"}, {"defaultValue": "@global_pane_link_color", "ep": "themevariable", "name": "pane_a_color"}, {"defaultValue": "@global_font", "ep": "themevariable", "name": "pane_font"}, {"defaultValue": "@global_font_size", "ep": "themevariable", "name": "pane_font_size"}, {"defaultValue": "@global_pane_text_shadow", "ep": "themevariable", "name": "pane_text_shadow"}, {"defaultValue": "@global_pane_h1_font", "ep": "themevariable", "name": "pane_h1_font"}, {"defaultValue": "@global_pane_h1_font_size", "ep": "themevariable", "name": "pane_h1_font_size"}, {"defaultValue": "@global_pane_h1_color", "ep": "themevariable", "name": "pane_h1_color"}, {"defaultValue": "@global_font_size * 1.8", "ep": "themevariable", "name": "pane_line_height"}, {"defaultValue": "@global_pane_color", "ep": "themevariable", "name": "pane_color"}, {"defaultValue": "@global_text_shadow", "ep": "themevariable", "name": "pane_text_shadow"}, {"defaultValue": "@global_font", "ep": "themevariable", "name": "button_font"}, {"defaultValue": "@global_font_size", "ep": "themevariable", "name": "button_font_size"}, {"defaultValue": "@global_button_color", "ep": "themevariable", "name": "button_color"}, {"defaultValue": "@global_button_background", "ep": "themevariable", "name": "button_bg"}, {"defaultValue": "@button_bg - #063A27", "ep": "themevariable", "name": "button_bg2"}, {"defaultValue": "@button_bg - #194A5E", "ep": "themevariable", "name": "button_border"}, {"defaultValue": "@global_control_background", "ep": "themevariable", "name": "control_bg"}, {"defaultValue": "@global_control_color", "ep": "themevariable", "name": "control_color"}, {"defaultValue": "@global_control_border", "ep": "themevariable", "name": "control_border"}, {"defaultValue": "@global_control_border_radius", "ep": "themevariable", "name": "control_border_radius"}, {"defaultValue": "@global_control_active_background", "ep": "themevariable", "name": "control_active_bg"}, {"defaultValue": "@global_control_active_border", "ep": "themevariable", "name": "control_active_border"}, {"defaultValue": "@global_control_active_color", "ep": "themevariable", "name": "control_active_color"}, {"defaultValue": "@global_control_active_inset_color", "ep": "themevariable", "name": "control_active_inset_color"}], "type": "plugins/supported", "name": "screen_theme"}});;
+    bespin.tiki.require("bespin:plugins").catalog.registerMetadata({"text_editor": {"resourceURL": "resources/text_editor/", "description": "Canvas-based text editor component and many common editing commands", "dependencies": {"completion": "0.0.0", "undomanager": "0.0.0", "settings": "0.0.0", "canon": "0.0.0", "rangeutils": "0.0.0", "traits": "0.0.0", "theme_manager": "0.0.0", "keyboard": "0.0.0", "edit_session": "0.0.0", "syntax_manager": "0.0.0"}, "testmodules": ["tests/testScratchcanvas", "tests/controllers/testLayoutmanager", "tests/models/testTextstorage", "tests/utils/testRect"], "provides": [{"action": "new", "pointer": "views/editor#EditorView", "ep": "factory", "name": "text_editor"}, {"predicates": {"isTextView": true}, "pointer": "commands/editing#backspace", "ep": "command", "key": "backspace", "name": "backspace"}, {"predicates": {"isTextView": true}, "pointer": "commands/editing#deleteCommand", "ep": "command", "key": "delete", "name": "delete"}, {"description": "Delete all lines currently selected", "key": "ctrl_d", "predicates": {"isTextView": true}, "pointer": "commands/editing#deleteLines", "ep": "command", "name": "deletelines"}, {"description": "Create a new, empty line below the current one", "key": "ctrl_return", "predicates": {"isTextView": true}, "pointer": "commands/editing#openLine", "ep": "command", "name": "openline"}, {"description": "Join the current line with the following", "key": "ctrl_shift_j", "predicates": {"isTextView": true}, "pointer": "commands/editing#joinLines", "ep": "command", "name": "joinline"}, {"params": [{"defaultValue": "", "type": "text", "name": "text", "description": "The text to insert"}], "pointer": "commands/editing#insertText", "ep": "command", "name": "insertText"}, {"predicates": {"completing": false, "isTextView": true}, "pointer": "commands/editing#newline", "ep": "command", "key": "return", "name": "newline"}, {"predicates": {"completing": false, "isTextView": true}, "pointer": "commands/editing#tab", "ep": "command", "key": "tab", "name": "tab"}, {"predicates": {"isTextView": true}, "pointer": "commands/editing#untab", "ep": "command", "key": "shift_tab", "name": "untab"}, {"predicates": {"isTextView": true}, "ep": "command", "name": "move"}, {"description": "Repeat the last search (forward)", "pointer": "commands/editor#findNextCommand", "ep": "command", "key": "ctrl_g", "name": "findnext"}, {"description": "Repeat the last search (backward)", "pointer": "commands/editor#findPrevCommand", "ep": "command", "key": "ctrl_shift_g", "name": "findprev"}, {"predicates": {"completing": false, "isTextView": true}, "pointer": "commands/movement#moveDown", "ep": "command", "key": "down", "name": "move down"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveLeft", "ep": "command", "key": "left", "name": "move left"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveRight", "ep": "command", "key": "right", "name": "move right"}, {"predicates": {"completing": false, "isTextView": true}, "pointer": "commands/movement#moveUp", "ep": "command", "key": "up", "name": "move up"}, {"predicates": {"isTextView": true}, "ep": "command", "name": "select"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectDown", "ep": "command", "key": "shift_down", "name": "select down"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectLeft", "ep": "command", "key": "shift_left", "name": "select left"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectRight", "ep": "command", "key": "shift_right", "name": "select right"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectUp", "ep": "command", "key": "shift_up", "name": "select up"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveLineEnd", "ep": "command", "key": ["end", "ctrl_right"], "name": "move lineend"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectLineEnd", "ep": "command", "key": ["shift_end", "ctrl_shift_right"], "name": "select lineend"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveDocEnd", "ep": "command", "key": "ctrl_down", "name": "move docend"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectDocEnd", "ep": "command", "key": "ctrl_shift_down", "name": "select docend"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveLineStart", "ep": "command", "key": ["home", "ctrl_left"], "name": "move linestart"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectLineStart", "ep": "command", "key": ["shift_home", "ctrl_shift_left"], "name": "select linestart"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveDocStart", "ep": "command", "key": "ctrl_up", "name": "move docstart"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectDocStart", "ep": "command", "key": "ctrl_shift_up", "name": "select docstart"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveNextWord", "ep": "command", "key": ["alt_right"], "name": "move nextword"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectNextWord", "ep": "command", "key": ["alt_shift_right"], "name": "select nextword"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#movePreviousWord", "ep": "command", "key": ["alt_left"], "name": "move prevword"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectPreviousWord", "ep": "command", "key": ["alt_shift_left"], "name": "select prevword"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectAll", "ep": "command", "key": ["ctrl_a", "meta_a"], "name": "select all"}, {"predicates": {"isTextView": true}, "ep": "command", "name": "scroll"}, {"predicates": {"isTextView": true}, "pointer": "commands/scrolling#scrollDocStart", "ep": "command", "key": "ctrl_home", "name": "scroll start"}, {"predicates": {"isTextView": true}, "pointer": "commands/scrolling#scrollDocEnd", "ep": "command", "key": "ctrl_end", "name": "scroll end"}, {"predicates": {"isTextView": true}, "pointer": "commands/scrolling#scrollPageDown", "ep": "command", "key": "pagedown", "name": "scroll down"}, {"predicates": {"isTextView": true}, "pointer": "commands/scrolling#scrollPageUp", "ep": "command", "key": "pageup", "name": "scroll up"}, {"pointer": "commands/editor#lcCommand", "description": "Change all selected text to lowercase", "withKey": "CMD SHIFT L", "ep": "command", "name": "lc"}, {"pointer": "commands/editor#detabCommand", "description": "Convert tabs to spaces.", "params": [{"defaultValue": null, "type": "text", "name": "tabsize", "description": "Optionally, specify a tab size. (Defaults to setting.)"}], "ep": "command", "name": "detab"}, {"pointer": "commands/editor#entabCommand", "description": "Convert spaces to tabs.", "params": [{"defaultValue": null, "type": "text", "name": "tabsize", "description": "Optionally, specify a tab size. (Defaults to setting.)"}], "ep": "command", "name": "entab"}, {"pointer": "commands/editor#trimCommand", "description": "trim trailing or leading whitespace from each line in selection", "params": [{"defaultValue": "both", "type": {"data": [{"name": "left"}, {"name": "right"}, {"name": "both"}], "name": "selection"}, "name": "side", "description": "Do we trim from the left, right or both"}], "ep": "command", "name": "trim"}, {"pointer": "commands/editor#ucCommand", "description": "Change all selected text to uppercase", "withKey": "CMD SHIFT U", "ep": "command", "name": "uc"}, {"predicates": {"isTextView": true}, "pointer": "controllers/undo#undoManagerCommand", "ep": "command", "key": ["ctrl_shift_z"], "name": "redo"}, {"predicates": {"isTextView": true}, "pointer": "controllers/undo#undoManagerCommand", "ep": "command", "key": ["ctrl_z"], "name": "undo"}, {"description": "The distance in characters between each tab", "defaultValue": 8, "type": "number", "ep": "setting", "name": "tabstop"}, {"description": "Customize the keymapping", "defaultValue": "{}", "type": "text", "ep": "setting", "name": "customKeymapping"}, {"description": "The keymapping to use", "defaultValue": "standard", "type": "text", "ep": "setting", "name": "keymapping"}, {"description": "The editor font size in pixels", "defaultValue": 14, "type": "number", "ep": "setting", "name": "fontsize"}, {"description": "The editor font face", "defaultValue": "Monaco, Lucida Console, monospace", "type": "text", "ep": "setting", "name": "fontface"}, {"defaultValue": {"color": "#e5c138", "paddingLeft": 5, "backgroundColor": "#4c4a41", "paddingRight": 10}, "ep": "themevariable", "name": "gutter"}, {"defaultValue": {"color": "#e6e6e6", "selectedTextBackgroundColor": "#526da5", "backgroundColor": "#2a211c", "cursorColor": "#879aff", "unfocusedCursorBackgroundColor": "#73171e", "unfocusedCursorColor": "#ff0033"}, "ep": "themevariable", "name": "editor"}, {"defaultValue": {"comment": "#666666", "directive": "#999999", "keyword": "#42A8ED", "addition": "#FFFFFF", "plain": "#e6e6e6", "deletion": "#FFFFFF", "error": "#ff0000", "operator": "#88BBFF", "identifier": "#D841FF", "string": "#039A0A"}, "ep": "themevariable", "name": "highlighterFG"}, {"defaultValue": {"addition": "#008000", "deletion": "#800000"}, "ep": "themevariable", "name": "highlighterBG"}, {"defaultValue": {"nibStrokeStyle": "rgb(150, 150, 150)", "fullAlpha": 1.0, "barFillStyle": "rgb(0, 0, 0)", "particalAlpha": 0.29999999999999999, "barFillGradientBottomStop": "rgb(44, 44, 44)", "backgroundStyle": "#2A211C", "thickness": 17, "padding": 5, "trackStrokeStyle": "rgb(150, 150, 150)", "nibArrowStyle": "rgb(255, 255, 255)", "barFillGradientBottomStart": "rgb(22, 22, 22)", "barFillGradientTopStop": "rgb(40, 40, 40)", "barFillGradientTopStart": "rgb(90, 90, 90)", "nibStyle": "rgb(100, 100, 100)", "trackFillStyle": "rgba(50, 50, 50, 0.8)"}, "ep": "themevariable", "name": "scroller"}, {"description": "Event: Notify when something within the editor changed.", "params": [{"required": true, "name": "pointer", "description": "Function that is called whenever a change happened."}], "ep": "extensionpoint", "name": "editorChange"}, {"description": "Decoration for the gutter", "ep": "extensionpoint", "name": "gutterDecoration"}, {"description": "Line number decoration for the gutter", "pointer": "views/gutter#lineNumbers", "ep": "gutterDecoration", "name": "lineNumbers"}], "type": "plugins/supported", "name": "text_editor"}, "jslint_command": {"resourceURL": "resources/jslint_command/", "name": "jslint_command", "objects": [], "dependencies": {"jslint": "0.0.0", "file_commands": "0.0.0"}, "testmodules": [], "provides": [{"description": "Run JSLint to check the current file", "params": [], "predicates": {"context": "js"}, "pointer": "#jslintCommand", "ep": "command", "name": "jslint"}, {"description": "Runs JSLint when a JavaScript file is saved", "pointer": "#jslintSaveHook", "ep": "savehook", "name": "jslint"}], "type": "plugins/supported", "description": "Provides the JSLint command to check code for errors."}, "file_commands": {"resourceURL": "resources/file_commands/", "description": "File management commands", "dependencies": {"text_editor": "0.0.0", "matcher": "0.0", "command_line": "0.0", "filesystem": "0.0"}, "testmodules": ["tests/testCommands"], "provides": [{"description": "Hooks to be executed on save", "ep": "extensionpoint", "name": "savehook"}, {"description": "show files", "name": "ls", "params": [{"type": "text", "name": "path", "description": "list files relative to current file, or start with /projectname"}], "pointer": "#filesCommand", "ep": "command", "aliases": ["dir", "list", "files"]}, {"description": "save the current contents", "params": [{"defaultValue": null, "type": "text", "name": "filename", "description": "add the filename to save as, or use the current file"}], "key": "ctrl_s", "pointer": "#saveCommand", "ep": "command", "name": "save"}, {"description": "save the current contents under a new name", "params": [{"defaultValue": "", "type": "text", "name": "path", "description": "the filename to save to"}], "key": "ctrl_shift_s", "pointer": "#saveAsCommand", "ep": "command", "name": "saveas"}, {"description": "load up the contents of the file", "name": "open", "params": [{"type": "existingFile", "name": "path", "description": "the filename to open"}, {"defaultValue": null, "type": "number", "name": "line", "description": "optional line to jump to"}], "key": "ctrl_o", "pointer": "#openCommand", "ep": "command", "aliases": ["load"]}, {"description": "remove the file", "name": "rm", "params": [{"type": "text", "name": "path", "description": "add the filename to remove, give a full path starting with '/' to delete from a different project. To delete a directory end the path in a '/'"}], "pointer": "#rmCommand", "ep": "command", "aliases": ["remove", "del"]}, {"description": "A method of selecting an existing file", "pointer": "views/types#existingFileHint", "ep": "typehint", "name": "existingFile"}, {"description": "Creates an empty buffer for editing a new file.", "pointer": "#newfileCommand", "ep": "command", "name": "newfile"}, {"pointer": "#mkdirCommand", "description": "create a new directory, use a leading / to create a directory in a different project", "params": [{"type": "text", "name": "path", "description": "Directory to create"}], "ep": "command", "name": "mkdir"}, {"pointer": "#cdCommand", "description": "change working directory", "params": [{"type": "text", "name": "workingDir", "description": "Directory as working directory"}], "ep": "command", "name": "cd"}, {"description": "show the current working directory", "pointer": "#pwdCommand", "ep": "command", "name": "pwd"}, {"description": "revert the current buffer to the last saved version", "pointer": "#revertCommand", "ep": "command", "name": "revert"}], "type": "plugins/supported", "name": "file_commands"}, "less": {"resourceURL": "resources/less/", "description": "Leaner CSS", "contributors": [], "author": "Alexis Sellier <self@cloudhead.net>", "url": "http://lesscss.org", "version": "1.0.11", "dependencies": {}, "testmodules": [], "provides": [], "keywords": ["css", "parser", "lesscss", "browser"], "type": "plugins/thirdparty", "name": "less"}, "theme_manager_base": {"resourceURL": "resources/theme_manager_base/", "name": "theme_manager_base", "share": true, "environments": {"main": true}, "dependencies": {}, "testmodules": [], "provides": [{"description": "(Less)files holding the CSS style information for the UI.", "params": [{"required": true, "name": "url", "description": "Name of the ThemeStylesFile - can also be an array of files."}], "ep": "extensionpoint", "name": "themestyles"}, {"description": "Event: Notify when the theme(styles) changed.", "params": [{"required": true, "name": "pointer", "description": "Function that is called whenever the theme is changed."}], "ep": "extensionpoint", "name": "themeChange"}, {"indexOn": "name", "description": "A theme is a way change the look of the application.", "params": [{"required": false, "name": "url", "description": "Name of a ThemeStylesFile that holds theme specific CSS rules - can also be an array of files."}, {"required": true, "name": "pointer", "description": "Function that returns the ThemeData"}], "ep": "extensionpoint", "name": "theme"}], "type": "plugins/supported", "description": "Defines extension points required for theming"}, "canon": {"resourceURL": "resources/canon/", "name": "canon", "environments": {"main": true, "worker": false}, "dependencies": {"environment": "0.0.0", "events": "0.0.0", "settings": "0.0.0"}, "testmodules": [], "provides": [{"indexOn": "name", "description": "A command is a bit of functionality with optional typed arguments which can do something small like moving the cursor around the screen, or large like cloning a project from VCS.", "ep": "extensionpoint", "name": "command"}, {"description": "An extension point to be called whenever a new command begins output.", "ep": "extensionpoint", "name": "addedRequestOutput"}, {"description": "A dimensionsChanged is a way to be notified of changes to the dimension of Bespin", "ep": "extensionpoint", "name": "dimensionsChanged"}, {"description": "How many typed commands do we recall for reference?", "defaultValue": 50, "type": "number", "ep": "setting", "name": "historyLength"}, {"action": "create", "pointer": "history#InMemoryHistory", "ep": "factory", "name": "history"}], "type": "plugins/supported", "description": "Manages commands"}, "traits": {"resourceURL": "resources/traits/", "description": "Traits library, traitsjs.org", "dependencies": {}, "testmodules": [], "provides": [], "type": "plugins/thirdparty", "name": "traits"}, "keyboard": {"resourceURL": "resources/keyboard/", "description": "Keyboard shortcuts", "dependencies": {"canon": "0.0", "settings": "0.0"}, "testmodules": ["tests/testKeyboard"], "provides": [{"description": "A keymapping defines how keystrokes are interpreted.", "params": [{"required": true, "name": "states", "description": "Holds the states and all the informations about the keymapping. See docs: pluginguide/keymapping"}], "ep": "extensionpoint", "name": "keymapping"}], "type": "plugins/supported", "name": "keyboard"}, "worker_manager": {"resourceURL": "resources/worker_manager/", "description": "Manages a web worker on the browser side", "dependencies": {"canon": "0.0.0", "events": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "provides": [{"description": "Low-level web worker control (for plugin development)", "ep": "command", "name": "worker"}, {"description": "Restarts all web workers (for plugin development)", "pointer": "#workerRestartCommand", "ep": "command", "name": "worker restart"}], "type": "plugins/supported", "name": "worker_manager"}, "diff": {"testmodules": [], "type": "plugins/thirdparty", "resourceURL": "resources/diff/", "description": "Diff/Match/Patch module (support code, no UI)", "name": "diff"}, "edit_session": {"resourceURL": "resources/edit_session/", "description": "Ties together the files being edited with the views on screen", "dependencies": {"events": "0.0.0"}, "testmodules": ["tests/testSession"], "provides": [{"action": "call", "pointer": "#createSession", "ep": "factory", "name": "session"}], "type": "plugins/supported", "name": "edit_session"}, "syntax_manager": {"resourceURL": "resources/syntax_manager/", "name": "syntax_manager", "environments": {"main": true, "worker": false}, "dependencies": {"worker_manager": "0.0.0", "events": "0.0.0", "underscore": "0.0.0", "syntax_directory": "0.0.0"}, "testmodules": [], "provides": [], "type": "plugins/supported", "description": "Provides syntax highlighting services for the editor"}, "completion": {"resourceURL": "resources/completion/", "description": "Code completion support", "dependencies": {"jquery": "0.0.0", "ctags": "0.0.0", "rangeutils": "0.0.0", "canon": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "provides": [{"indexOn": "name", "description": "Code completion support for specific languages", "ep": "extensionpoint", "name": "completion"}, {"description": "Accept the chosen completion", "key": ["return", "tab"], "predicates": {"completing": true}, "pointer": "controller#completeCommand", "ep": "command", "name": "complete"}, {"description": "Abandon the completion", "key": "escape", "predicates": {"completing": true}, "pointer": "controller#completeCancelCommand", "ep": "command", "name": "complete cancel"}, {"description": "Choose the completion below", "key": "down", "predicates": {"completing": true}, "pointer": "controller#completeDownCommand", "ep": "command", "name": "complete down"}, {"description": "Choose the completion above", "key": "up", "predicates": {"completing": true}, "pointer": "controller#completeUpCommand", "ep": "command", "name": "complete up"}], "type": "plugins/supported", "name": "completion"}, "environment": {"testmodules": [], "dependencies": {"settings": "0.0.0"}, "resourceURL": "resources/environment/", "name": "environment", "type": "plugins/supported"}, "undomanager": {"resourceURL": "resources/undomanager/", "description": "Manages undoable events", "testmodules": ["tests/testUndomanager"], "provides": [{"pointer": "#undoManagerCommand", "ep": "command", "key": ["ctrl_shift_z"], "name": "redo"}, {"pointer": "#undoManagerCommand", "ep": "command", "key": ["ctrl_z"], "name": "undo"}], "type": "plugins/supported", "name": "undomanager"}, "command_line": {"resourceURL": "resources/command_line/", "description": "Provides the command line user interface", "dependencies": {"templater": "0.0.0", "settings": "0.0.0", "matcher": "0.0.0", "theme_manager_base": "0.0.0", "canon": "0.0.0", "keyboard": "0.0.0", "diff": "0.0.0", "types": "0.0.0"}, "testmodules": ["tests/testInput"], "provides": [{"url": ["article.less", "cli.less", "menu.less", "requestOutput.less", "global.less"], "ep": "themestyles"}, {"defaultValue": "@global_container_background", "ep": "themevariable", "name": "bg"}, {"defaultValue": "@global_container_background + #090807", "ep": "themevariable", "name": "input_bg_light"}, {"defaultValue": "@global_container_background - #030303", "ep": "themevariable", "name": "input_bg"}, {"defaultValue": "@global_container_background - #050506", "ep": "themevariable", "name": "input_bg2"}, {"defaultValue": "@global_menu_inset_color_top_left", "ep": "themevariable", "name": "border_fg"}, {"defaultValue": "@global_menu_inset_color_right", "ep": "themevariable", "name": "border_fg2"}, {"defaultValue": "@global_menu_background", "ep": "themevariable", "name": "menu_bg"}, {"defaultValue": "@global_menu_border_color", "ep": "themevariable", "name": "border_bg"}, {"defaultValue": "@global_color", "ep": "themevariable", "name": "text"}, {"defaultValue": "@global_header_color", "ep": "themevariable", "name": "hi_text"}, {"defaultValue": "@global_hint_color", "ep": "themevariable", "name": "lo_text"}, {"defaultValue": "@global_hint_color", "ep": "themevariable", "name": "lo_text2"}, {"defaultValue": "@global_link_color", "ep": "themevariable", "name": "link_text"}, {"defaultValue": "@global_error_color", "ep": "themevariable", "name": "error_text"}, {"defaultValue": "@global_selectable_hover_background", "ep": "themevariable", "name": "theme_text"}, {"comment": "#FFCE00", "defaultValue": "rgb(255,206,0)", "ep": "themevariable", "name": "theme_text_light"}, {"defaultValue": "@global_selectable_hover_background - #222000", "ep": "themevariable", "name": "theme_text_dark"}, {"defaultValue": "@global_accelerator_color", "ep": "themevariable", "name": "theme_text_dark2"}, {"comment": "#0E0906", "defaultValue": "rgb(14,9,6)", "ep": "themevariable", "name": "input_submenu"}, {"defaultValue": "@global_font", "ep": "themevariable", "name": "fonts"}, {"defaultValue": "@global_selectable_hover_color", "ep": "themevariable", "name": "li_hover_color"}, {"defaultValue": "@global_hint_hover_color", "ep": "themevariable", "name": "li_hint_hover_color"}, {"defaultValue": "@global_accelerator_hover_color", "ep": "themevariable", "name": "li_accelerator_hover_color"}, {"action": "new", "pointer": "views/cli#CliInputView", "ep": "factory", "name": "commandLine"}, {"description": "Display number|date|none next to each historical instruction", "defaultValue": "none", "type": {"data": ["number", "date", "none"], "name": "selection"}, "ep": "setting", "name": "historyTimeMode"}, {"description": "The maximum size (in pixels) for the command line output area", "defaultValue": 0, "type": "number", "ep": "setting", "name": "minConsoleHeight"}, {"description": "The minimum size (in pixels) for the command line output area", "defaultValue": 300, "type": "number", "ep": "setting", "name": "maxConsoleHeight"}, {"predicates": {"isKeyUp": false, "isCommandLine": true}, "pointer": "commands/simple#completeCommand", "ep": "command", "key": "tab", "name": "complete"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_1", "name": "menu1"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_2", "name": "menu2"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_1", "name": "menu1"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_3", "name": "menu3"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_4", "name": "menu4"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_5", "name": "menu5"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_6", "name": "menu6"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_7", "name": "menu7"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_8", "name": "menu8"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_9", "name": "menu9"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_0", "name": "menu0"}, {"pointer": "commands/simple#helpCommand", "description": "Get help on the available commands.", "params": [{"defaultValue": null, "type": "text", "name": "search", "description": "Search string to narrow the output."}], "ep": "command", "name": "help"}, {"pointer": "commands/simple#aliasCommand", "description": "define and show aliases for commands", "params": [{"defaultValue": null, "type": "text", "name": "alias", "description": "optionally, your alias name"}, {"defaultValue": null, "type": "text", "name": "command", "description": "optionally, the command name"}], "ep": "command", "name": "alias"}, {"description": "evals given js code and show the result", "params": [{"type": "text", "name": "javascript", "description": "The JavaScript to evaluate"}], "hidden": true, "pointer": "commands/basic#evalCommand", "ep": "command", "name": "eval"}, {"description": "show the Bespin version", "hidden": true, "pointer": "commands/basic#versionCommand", "ep": "command", "name": "version"}, {"description": "has", "hidden": true, "pointer": "commands/basic#bespinCommand", "ep": "command", "name": "bespin"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "commands/history#historyPreviousCommand", "ep": "command", "key": "up", "name": "historyPrevious"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "commands/history#historyNextCommand", "ep": "command", "key": "down", "name": "historyNext"}, {"params": [], "description": "Show history of the commands", "pointer": "commands/history#historyCommand", "ep": "command", "name": "history"}, {"pointer": "commands/history#addedRequestOutput", "ep": "addedRequestOutput"}, {"indexOn": "name", "description": "A function to allow the command line to show a hint to the user on how they should finish what they're typing", "ep": "extensionpoint", "name": "typehint"}, {"description": "A UI for string that is constrained to be one of a number of pre-defined values", "pointer": "views/basic#selection", "ep": "typehint", "name": "selection"}, {"description": "A UI for a boolean", "pointer": "views/basic#bool", "ep": "typehint", "name": "boolean"}], "type": "plugins/supported", "name": "command_line"}, "editing_commands": {"resourceURL": "resources/editing_commands/", "description": "Provides higher level commands for working with the text.", "objects": ["commandLine"], "testmodules": [], "provides": [{"description": "Search for text within this buffer", "params": [{"type": "text", "name": "value", "description": "string to search for"}], "key": "ctrl_f", "pointer": "#findCommand", "ep": "command", "name": "find"}, {"description": "move it! make the editor head to a line number.", "params": [{"type": "text", "name": "line", "description": "add the line number to move to in the file"}], "key": "ctrl_l", "pointer": "#gotoCommand", "ep": "command", "name": "goto"}], "type": "plugins/supported", "name": "editing_commands"}, "rangeutils": {"testmodules": ["tests/test"], "type": "plugins/supported", "resourceURL": "resources/rangeutils/", "description": "Utility functions for dealing with ranges of text", "name": "rangeutils"}, "html": {"resourceURL": "resources/html/", "name": "html", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#HTMLSyntax", "ep": "syntax", "fileexts": ["htm", "html"], "name": "html"}], "type": "plugins/supported", "description": "HTML syntax highlighter"}, "js_syntax": {"resourceURL": "resources/js_syntax/", "name": "js_syntax", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#JSSyntax", "ep": "syntax", "fileexts": ["js", "json"], "name": "js"}], "type": "plugins/supported", "description": "JavaScript syntax highlighter"}, "ctags": {"resourceURL": "resources/ctags/", "description": "Reads and writes tag files", "dependencies": {"traits": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "ctags"}, "events": {"resourceURL": "resources/events/", "description": "Dead simple event implementation", "dependencies": {"traits": "0.0"}, "testmodules": ["tests/test"], "provides": [], "type": "plugins/supported", "name": "events"}, "templater": {"testmodules": [], "resourceURL": "resources/templater/", "name": "templater", "type": "plugins/supported"}, "matcher": {"resourceURL": "resources/matcher/", "description": "Provides various routines to match items in a list", "dependencies": {}, "testmodules": ["tests/testIndex", "tests/testPrefix", "tests/testQuick"], "type": "plugins/supported", "name": "matcher"}, "jslint": {"testmodules": [], "type": "plugins/thirdparty", "resourceURL": "resources/jslint/", "description": "JSLint support code", "name": "jslint"}, "theme_manager": {"resourceURL": "resources/theme_manager/", "name": "theme_manager", "share": true, "environments": {"main": true, "worker": false}, "dependencies": {"theme_manager_base": "0.0.0", "settings": "0.0.0", "events": "0.0.0", "less": "0.0.0"}, "testmodules": [], "provides": [{"unregister": "themestyles#unregisterThemeStyles", "register": "themestyles#registerThemeStyles", "ep": "extensionhandler", "name": "themestyles"}, {"unregister": "index#unregisterTheme", "register": "index#registerTheme", "ep": "extensionhandler", "name": "theme"}, {"defaultValue": "standard", "description": "The theme plugin's name to use. If set to 'standard' no theme will be used", "type": "text", "ep": "setting", "name": "theme"}, {"pointer": "#appLaunched", "ep": "appLaunched"}], "type": "plugins/supported", "description": "Handles colors in Bespin"}, "whitetheme": {"resourceURL": "resources/whitetheme/", "description": "Provides a white theme for Bespin", "dependencies": {"theme_manager": "0.0.0"}, "testmodules": [], "provides": [{"url": ["theme.less"], "description": "A basic white theme", "pointer": "index#whiteTheme", "ep": "theme", "name": "white"}], "type": "plugins/supported", "name": "whitetheme"}, "standard_syntax": {"resourceURL": "resources/standard_syntax/", "description": "Easy-to-use basis for syntax engines", "environments": {"worker": true}, "dependencies": {"syntax_worker": "0.0.0", "syntax_directory": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "standard_syntax"}, "types": {"resourceURL": "resources/types/", "description": "Defines parameter types for commands", "testmodules": ["tests/testBasic", "tests/testTypes"], "provides": [{"indexOn": "name", "description": "Commands can accept various arguments that the user enters or that are automatically supplied by the environment. Those arguments have types that define how they are supplied or completed. The pointer points to an object with methods convert(str value) and getDefault(). Both functions have `this` set to the command's `takes` parameter. If getDefault is not defined, the default on the command's `takes` is used, if there is one. The object can have a noInput property that is set to true to reflect that this type is provided directly by the system. getDefault must be defined in that case.", "ep": "extensionpoint", "name": "type"}, {"description": "Text that the user needs to enter.", "pointer": "basic#text", "ep": "type", "name": "text"}, {"description": "A JavaScript number", "pointer": "basic#number", "ep": "type", "name": "number"}, {"description": "A true/false value", "pointer": "basic#bool", "ep": "type", "name": "boolean"}, {"description": "An object that converts via JavaScript", "pointer": "basic#object", "ep": "type", "name": "object"}, {"description": "A string that is constrained to be one of a number of pre-defined values", "pointer": "basic#selection", "ep": "type", "name": "selection"}, {"description": "A type which we don't understand from the outset, but which we hope context can help us with", "ep": "type", "name": "deferred"}], "type": "plugins/supported", "name": "types"}, "jquery": {"testmodules": [], "resourceURL": "resources/jquery/", "name": "jquery", "type": "plugins/thirdparty"}, "embedded": {"testmodules": [], "dependencies": {"theme_manager": "0.0.0", "text_editor": "0.0.0", "appconfig": "0.0.0", "edit_session": "0.0.0", "screen_theme": "0.0.0"}, "resourceURL": "resources/embedded/", "name": "embedded", "type": "plugins/supported"}, "settings": {"resourceURL": "resources/settings/", "description": "Infrastructure and commands for managing user preferences", "share": true, "dependencies": {"types": "0.0"}, "testmodules": [], "provides": [{"indexOn": "name", "description": "A setting is something that the application offers as a way to customize how it works", "register": "index#addSetting", "ep": "extensionpoint", "name": "setting"}, {"description": "A settingChange is a way to be notified of changes to a setting", "ep": "extensionpoint", "name": "settingChange"}, {"pointer": "commands#setCommand", "description": "define and show settings", "params": [{"defaultValue": null, "type": {"pointer": "settings:index#getSettings", "name": "selection"}, "name": "setting", "description": "The name of the setting to display or alter"}, {"defaultValue": null, "type": {"pointer": "settings:index#getTypeSpecFromAssignment", "name": "deferred"}, "name": "value", "description": "The new value for the chosen setting"}], "ep": "command", "name": "set"}, {"pointer": "commands#unsetCommand", "description": "unset a setting entirely", "params": [{"type": {"pointer": "settings:index#getSettings", "name": "selection"}, "name": "setting", "description": "The name of the setting to return to defaults"}], "ep": "command", "name": "unset"}], "type": "plugins/supported", "name": "settings"}, "appconfig": {"resourceURL": "resources/appconfig/", "description": "Instantiates components and displays the GUI based on configuration.", "dependencies": {"jquery": "0.0.0", "canon": "0.0.0", "settings": "0.0.0"}, "testmodules": [], "provides": [{"description": "Event: Fired when the app is completely launched.", "ep": "extensionpoint", "name": "appLaunched"}], "type": "plugins/supported", "name": "appconfig"}, "syntax_worker": {"resourceURL": "resources/syntax_worker/", "description": "Coordinates multiple syntax engines", "environments": {"worker": true}, "dependencies": {"syntax_directory": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "syntax_worker"}, "js_completion": {"resourceURL": "resources/js_completion/", "description": "JavaScript code completion", "dependencies": {"completion": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#JSCompletion", "ep": "completion", "name": "js"}], "type": "plugins/supported", "name": "js_completion"}, "filesystem": {"resourceURL": "resources/filesystem/", "description": "Provides the file and directory model used within Bespin", "dependencies": {"types": "0.0"}, "testmodules": ["tests/testPathUtils", "tests/testFileManagement"], "provides": [{"action": "new", "pointer": "#Filesystem", "ep": "factory", "name": "files"}, {"description": "A pointer to a file which we believe to already exist", "pointer": "types#existingFile", "ep": "type", "name": "existingFile"}], "type": "plugins/supported", "name": "filesystem"}, "screen_theme": {"resourceURL": "resources/screen_theme/", "description": "Bespins standard theme basePlugin", "dependencies": {"theme_manager": "0.0.0"}, "testmodules": [], "provides": [{"url": ["theme.less"], "ep": "themestyles"}, {"defaultValue": "@global_font", "ep": "themevariable", "name": "container_font"}, {"defaultValue": "@global_font_size", "ep": "themevariable", "name": "container_font_size"}, {"defaultValue": "@global_container_background", "ep": "themevariable", "name": "container_bg"}, {"defaultValue": "@global_color", "ep": "themevariable", "name": "container_color"}, {"defaultValue": "@global_line_height", "ep": "themevariable", "name": "container_line_height"}, {"defaultValue": "@global_pane_background", "ep": "themevariable", "name": "pane_bg"}, {"defaultValue": "@global_pane_border_radius", "ep": "themevariable", "name": "pane_border_radius"}, {"defaultValue": "@global_form_font", "ep": "themevariable", "name": "form_font"}, {"defaultValue": "@global_form_font_size", "ep": "themevariable", "name": "form_font_size"}, {"defaultValue": "@global_form_line_height", "ep": "themevariable", "name": "form_line_height"}, {"defaultValue": "@global_form_color", "ep": "themevariable", "name": "form_color"}, {"defaultValue": "@global_form_text_shadow", "ep": "themevariable", "name": "form_text_shadow"}, {"defaultValue": "@global_pane_link_color", "ep": "themevariable", "name": "pane_a_color"}, {"defaultValue": "@global_font", "ep": "themevariable", "name": "pane_font"}, {"defaultValue": "@global_font_size", "ep": "themevariable", "name": "pane_font_size"}, {"defaultValue": "@global_pane_text_shadow", "ep": "themevariable", "name": "pane_text_shadow"}, {"defaultValue": "@global_pane_h1_font", "ep": "themevariable", "name": "pane_h1_font"}, {"defaultValue": "@global_pane_h1_font_size", "ep": "themevariable", "name": "pane_h1_font_size"}, {"defaultValue": "@global_pane_h1_color", "ep": "themevariable", "name": "pane_h1_color"}, {"defaultValue": "@global_font_size * 1.8", "ep": "themevariable", "name": "pane_line_height"}, {"defaultValue": "@global_pane_color", "ep": "themevariable", "name": "pane_color"}, {"defaultValue": "@global_text_shadow", "ep": "themevariable", "name": "pane_text_shadow"}, {"defaultValue": "@global_font", "ep": "themevariable", "name": "button_font"}, {"defaultValue": "@global_font_size", "ep": "themevariable", "name": "button_font_size"}, {"defaultValue": "@global_button_color", "ep": "themevariable", "name": "button_color"}, {"defaultValue": "@global_button_background", "ep": "themevariable", "name": "button_bg"}, {"defaultValue": "@button_bg - #063A27", "ep": "themevariable", "name": "button_bg2"}, {"defaultValue": "@button_bg - #194A5E", "ep": "themevariable", "name": "button_border"}, {"defaultValue": "@global_control_background", "ep": "themevariable", "name": "control_bg"}, {"defaultValue": "@global_control_color", "ep": "themevariable", "name": "control_color"}, {"defaultValue": "@global_control_border", "ep": "themevariable", "name": "control_border"}, {"defaultValue": "@global_control_border_radius", "ep": "themevariable", "name": "control_border_radius"}, {"defaultValue": "@global_control_active_background", "ep": "themevariable", "name": "control_active_bg"}, {"defaultValue": "@global_control_active_border", "ep": "themevariable", "name": "control_active_border"}, {"defaultValue": "@global_control_active_color", "ep": "themevariable", "name": "control_active_color"}, {"defaultValue": "@global_control_active_inset_color", "ep": "themevariable", "name": "control_active_inset_color"}], "type": "plugins/supported", "name": "screen_theme"}});;
 });
 })();
 /* ***** BEGIN LICENSE BLOCK *****
@@ -25571,7 +35479,13 @@ $(document).ready(function() {
 
 (function() {
 
+var Promise = bespin.tiki.require('bespin:promise').Promise;
+var group = bespin.tiki.require("bespin:promise").group;
 var $ = bespin.tiki.require("jquery").$;
+
+bespin.loaded = new Promise();
+bespin.initialized = new Promise();
+
 /**
  * Returns the CSS property of element.
  *   1) If the CSS property is on the style object of the element, use it, OR
@@ -25618,7 +35532,7 @@ var getCSSProperty = function(element, container, property) {
 bespin.useBespin = function(element, options) {
     var util = bespin.tiki.require('bespin:util/util');
 
-    var baseConfig = {"settings": {"theme": "white"}};
+    var baseConfig = {};
     var baseSettings = baseConfig.settings;
     options = options || {};
     for (var key in options) {
@@ -25635,7 +35549,6 @@ bespin.useBespin = function(element, options) {
         }
     }
 
-    var Promise = bespin.tiki.require('bespin:promise').Promise;
     var prEnv = null;
     var pr = new Promise();
 
@@ -25764,6 +35677,9 @@ bespin.useBespin = function(element, options) {
 };
 
 $(document).ready(function() {
+    // Bespin is now ready to use.
+    bespin.loaded.resolve();
+
     // Holds the lauch promises of all launched Bespins.
     var launchBespinPromises = [];
 
@@ -25780,19 +35696,17 @@ $(document).ready(function() {
         launchBespinPromises.push(pr);
     }
 
-    // If users want a custom startup
-    if (window.onBespinLoad) {
-        // group-promise function.
-        var group = bespin.tiki.require("bespin:promise").group;
-
-        // Call the window.onBespinLoad() function after all launched Bespins
-        // are ready or throw an error otherwise.
-        group(launchBespinPromises).then(function() {
-            window.onBespinLoad();
-        }, function() {
-            throw new Error('At least one Bespin failed to launch!');
-        });
-    }
+    // Call the window.onBespinLoad() function after all launched Bespins
+    // are ready or throw an error otherwise.
+    group(launchBespinPromises).then(function() {
+        bespin.initialized.resolve();
+        // If users want a custom startup.
+        if (window.onBespinLoad) {
+          window.onBespinLoad();
+        }
+    }, function(err) {
+        bespin.initialized.reject('At least one Bespin failed to launch!' + err);
+    });
 });
 
 })();

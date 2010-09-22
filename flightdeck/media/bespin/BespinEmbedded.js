@@ -3304,7 +3304,7 @@ bespin.tiki = tiki;
     name: "bespin",
     dependencies: {  }
 });bespin.bootLoaded = true;
-bespin.tiki.module("bespin:builtins",function(require,exports,module) {
+bespin.tiki.module("bespin:index",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -3342,96 +3342,100 @@ bespin.tiki.module("bespin:builtins",function(require,exports,module) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-exports.metadata =
-{
-    "bespin":
-    {
-        "provides":
-        [
-            {
-                "ep": "extensionpoint",
-                "name": "extensionpoint",
-                "indexOx": "name",
-                "register": "plugins#registerExtensionPoint",
-                "unregister": "plugins#unregisterExtensionPoint",
-                "description": "Defines a new extension point",
-                "params": [
-                    {
-                        "name": "name",
-                        "type": "string",
-                        "description": "the extension point's name",
-                        "required": true
-                    },
-                    {
-                        "name": "description",
-                        "type": "string",
-                        "description": "description of what the extension point is for"
-                    },
-                    {
-                        "name": "params",
-                        "type": "array of objects",
-                        "description": "parameters that provide the metadata for a given extension. Each object should have name and description, minimally. It can also have a 'type' (eg string, pointer, or array) and required to denote whether or not this parameter must be present on the extension."
-                    },
-                    {
-                        "name": "indexOn",
-                        "type": "string",
-                        "description": "You can provide an 'indexOn' property to name a property of extensions through which you'd like to be able to easily look up the extension."
-                    },
-                    {
-                        "name": "register",
-                        "type": "pointer",
-                        "description": "function that is called when a new extension is discovered. Note that this should be used sparingly, because it will cause your plugin to be loaded whenever a matching plugin appears."
-                    },
-                    {
-                        "name": "unregister",
-                        "type": "pointer",
-                        "description": "function that is called when an extension is removed. Note that this should be used sparingly, because it will cause your plugin to be loaded whenever a matching plugin appears."
-                    }
-                ]
-            },
-            {
-                "ep": "extensionpoint",
-                "name": "extensionhandler",
-                "register": "plugins#registerExtensionHandler",
-                "unregister": "plugins#unregisterExtensionHandler",
-                "description": "Used to attach listeners ",
-                "params": [
-                    {
-                        "name": "name",
-                        "type": "string",
-                        "description": "name of the extension point to listen to",
-                        "required": true
-                    },
-                    {
-                        "name": "register",
-                        "type": "pointer",
-                        "description": "function that is called when a new extension is discovered. Note that this should be used sparingly, because it will cause your plugin to be loaded whenever a matching plugin appears."
-                    },
-                    {
-                        "name": "unregister",
-                        "type": "pointer",
-                        "description": "function that is called when an extension is removed. Note that this should be used sparingly, because it will cause your plugin to be loaded whenever a matching plugin appears."
-                    }
-                ]
-            },
-            {
-                "ep": "extensionpoint",
-                "name": "factory",
-                "description": "Provides a factory for singleton components. Each extension needs to provide a name, a pointer and an action. The action can be 'call' (if the pointer refers to a function), 'new' (if the pointer refers to a traditional JS object) or 'value' (if the pointer refers to the object itself that is the component).",
-                "indexOn": "name"
-            },
-            {
-                "ep": "factory",
-                "name": "hub",
-                "action": "create",
-                "pointer": "util/hub#Hub"
-            },
-            {
-                "ep": "extensionpoint",
-                "name": "command",
-                "description": "Editor commands/actions. TODO: list parameters here."
+// BEGIN VERSION BLOCK
+/** The core version of the Bespin system */
+exports.versionNumber = 'tip';
+
+/** The version number to display to users */
+exports.versionCodename = 'DEVELOPMENT MODE';
+
+/** The version number of the API (to ensure that the client and server are talking the same language) */
+exports.apiVersion = 'dev';
+
+// END VERSION BLOCK
+
+
+});
+
+bespin.tiki.module("bespin:proxy",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var util = require("util/util");
+var Promise = require("promise").Promise;
+
+exports.xhr = function(method, url, async, beforeSendCallback) {
+    var pr = new Promise();
+
+    if (!bespin.proxy || !bespin.proxy.xhr) {
+        var req = new XMLHttpRequest();
+        req.onreadystatechange = function() {
+            if (req.readyState !== 4) {
+                return;
             }
-        ]
+
+            var status = req.status;
+            if (status !== 0 && status !== 200) {
+                var error = new Error(req.responseText + ' (Status ' + req.status + ")");
+                error.xhr = req;
+                pr.reject(error);
+                return;
+            }
+
+            pr.resolve(req.responseText);
+        }.bind(this);
+
+        req.open("GET", url, async);
+        if (beforeSendCallback) {
+            beforeSendCallback(req);
+        }
+        req.send();
+    } else {
+        bespin.proxy.xhr.call(this, method, url, async, beforeSendCallback, pr);
+    }
+
+    return pr;
+};
+
+exports.Worker = function(url) {
+    if (!bespin.proxy || !bespin.proxy.worker) {
+        return new Worker(url);
+    } else {
+        return new bespin.proxy.worker(url);
     }
 };
 
@@ -3522,13 +3526,1230 @@ if (typeof(window) === 'undefined') {
     // For each of the console functions, copy them if they exist, stub if not
     NAMES.forEach(function(name) {
         if (window.console && window.console[name]) {
-            exports.console[name] = window.console[name];
+            exports.console[name] = window.console[name].bind(window.console);
         } else {
             exports.console[name] = noop;
         }
     });
 }
 
+
+});
+
+bespin.tiki.module("bespin:util/scratchcanvas",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var util = require('bespin:util/util');
+
+/**
+ * A invisible singleton canvas on the page, useful whenever a canvas context
+ * is needed (e.g. for computing text sizes), but an actual canvas isn't handy
+ * at the moment.
+ * @constructor
+ */
+var ScratchCanvas = function() {
+    this._canvas = document.getElementById('bespin-scratch-canvas');
+
+    // It's possible that another ScratchCanvas instance in another sandbox
+    // exists on the page. If so, we assume they're compatible, and use
+    // that one.
+    if (util.none(this._canvas)) {
+        this._canvas = document.createElement('canvas');
+        this._canvas.id = 'bespin-scratch-canvas';
+        this._canvas.width = 400;
+        this._canvas.height = 300;
+        this._canvas.style.position = 'absolute';
+        this._canvas.style.top = "-10000px";
+        this._canvas.style.left = "-10000px";
+        document.body.appendChild(this._canvas);
+    }
+};
+
+ScratchCanvas.prototype.getContext = function() {
+    return this._canvas.getContext('2d');
+};
+
+/**
+ * Returns the width in pixels of the given string ("M", by default) in the
+ * given font.
+ */
+ScratchCanvas.prototype.measureStringWidth = function(font, str) {
+    if (util.none(str)) {
+        str = "M";
+    }
+
+    var context = this.getContext();
+    context.save();
+    context.font = font;
+    var width = context.measureText(str).width;
+    context.restore();
+    return width;
+};
+
+var singleton = null;
+
+/**
+ * Returns the instance of the scratch canvas on the page, creating it if
+ * necessary.
+ */
+exports.get = function() {
+    if (singleton === null) {
+        singleton = new ScratchCanvas();
+    }
+    return singleton;
+};
+
+});
+
+bespin.tiki.module("bespin:util/stacktrace",function(require,exports,module) {
+// Changed to suit the specific needs of running within Bespin
+
+// Domain Public by Eric Wendelin http://eriwen.com/ (2008)
+//                  Luke Smith http://lucassmith.name/ (2008)
+//                  Loic Dachary <loic@dachary.org> (2008)
+//                  Johan Euphrosine <proppy@aminche.com> (2008)
+//                  Øyvind Sean Kinsey http://kinsey.no/blog
+//
+// Information and discussions
+// http://jspoker.pokersource.info/skin/test-printstacktrace.html
+// http://eriwen.com/javascript/js-stack-trace/
+// http://eriwen.com/javascript/stacktrace-update/
+// http://pastie.org/253058
+// http://browsershots.org/http://jspoker.pokersource.info/skin/test-printstacktrace.html
+//
+
+//
+// guessFunctionNameFromLines comes from firebug
+//
+// Software License Agreement (BSD License)
+//
+// Copyright (c) 2007, Parakey Inc.
+// All rights reserved.
+//
+// Redistribution and use of this software in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+// * Redistributions of source code must retain the above
+//   copyright notice, this list of conditions and the
+//   following disclaimer.
+//
+// * Redistributions in binary form must reproduce the above
+//   copyright notice, this list of conditions and the
+//   following disclaimer in the documentation and/or other
+//   materials provided with the distribution.
+//
+// * Neither the name of Parakey Inc. nor the names of its
+//   contributors may be used to endorse or promote products
+//   derived from this software without specific prior
+//   written permission of Parakey Inc.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+// IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+// FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+// IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+// OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+var util = require('bespin:util/util');
+var console = require("bespin:console").console;
+
+/**
+ * Different browsers create stack traces in different ways.
+ * <strike>Feature</strike> Browser detection baby ;).
+ */
+var mode = (function() {
+
+    // We use SC's browser detection here to avoid the "break on error"
+    // functionality provided by Firebug. Firebug tries to do the right
+    // thing here and break, but it happens every time you load the page.
+    // bug 554105
+    if (util.isMozilla) {
+        return 'firefox';
+    } else if (util.isOpera) {
+        return 'opera';
+    } else if (util.isSafari) {
+        return 'other';
+    }
+
+    // SC doesn't do any detection of Chrome at this time.
+
+    // this is the original feature detection code that is used as a
+    // fallback.
+    try {
+        (0)();
+    } catch (e) {
+        if (e.arguments) {
+            return 'chrome';
+        }
+        if (e.stack) {
+            return 'firefox';
+        }
+        if (window.opera && !('stacktrace' in e)) { //Opera 9-
+            return 'opera';
+        }
+    }
+    return 'other';
+})();
+
+/**
+ *
+ */
+function stringifyArguments(args) {
+    for (var i = 0; i < args.length; ++i) {
+        var argument = args[i];
+        if (typeof argument == 'object') {
+            args[i] = '#object';
+        } else if (typeof argument == 'function') {
+            args[i] = '#function';
+        } else if (typeof argument == 'string') {
+            args[i] = '"' + argument + '"';
+        }
+    }
+    return args.join(',');
+}
+
+/**
+ * Extract a stack trace from the format emitted by each browser.
+ */
+var decoders = {
+    chrome: function(e) {
+        var stack = e.stack;
+        if (!stack) {
+            console.log(e);
+            return [];
+        }
+        return stack.replace(/^.*?\n/, '').
+                replace(/^.*?\n/, '').
+                replace(/^.*?\n/, '').
+                replace(/^[^\(]+?[\n$]/gm, '').
+                replace(/^\s+at\s+/gm, '').
+                replace(/^Object.<anonymous>\s*\(/gm, '{anonymous}()@').
+                split('\n');
+    },
+
+    firefox: function(e) {
+        var stack = e.stack;
+        if (!stack) {
+            console.log(e);
+            return [];
+        }
+        // stack = stack.replace(/^.*?\n/, '');
+        stack = stack.replace(/(?:\n@:0)?\s+$/m, '');
+        stack = stack.replace(/^\(/gm, '{anonymous}(');
+        return stack.split('\n');
+    },
+
+    // Opera 7.x and 8.x only!
+    opera: function(e) {
+        var lines = e.message.split('\n'), ANON = '{anonymous}',
+            lineRE = /Line\s+(\d+).*?script\s+(http\S+)(?:.*?in\s+function\s+(\S+))?/i, i, j, len;
+
+        for (i = 4, j = 0, len = lines.length; i < len; i += 2) {
+            if (lineRE.test(lines[i])) {
+                lines[j++] = (RegExp.$3 ? RegExp.$3 + '()@' + RegExp.$2 + RegExp.$1 : ANON + '()@' + RegExp.$2 + ':' + RegExp.$1) +
+                ' -- ' +
+                lines[i + 1].replace(/^\s+/, '');
+            }
+        }
+
+        lines.splice(j, lines.length - j);
+        return lines;
+    },
+
+    // Safari, Opera 9+, IE, and others
+    other: function(curr) {
+        var ANON = '{anonymous}', fnRE = /function\s*([\w\-$]+)?\s*\(/i, stack = [], j = 0, fn, args;
+
+        var maxStackSize = 10;
+        while (curr && stack.length < maxStackSize) {
+            fn = fnRE.test(curr.toString()) ? RegExp.$1 || ANON : ANON;
+            args = Array.prototype.slice.call(curr['arguments']);
+            stack[j++] = fn + '(' + stringifyArguments(args) + ')';
+
+            //Opera bug: if curr.caller does not exist, Opera returns curr (WTF)
+            if (curr === curr.caller && window.opera) {
+                //TODO: check for same arguments if possible
+                break;
+            }
+            curr = curr.caller;
+        }
+        return stack;
+    }
+};
+
+/**
+ *
+ */
+function NameGuesser() {
+}
+
+NameGuesser.prototype = {
+
+    sourceCache: {},
+
+    ajax: function(url) {
+        var req = this.createXMLHTTPObject();
+        if (!req) {
+            return;
+        }
+        req.open('GET', url, false);
+        req.setRequestHeader('User-Agent', 'XMLHTTP/1.0');
+        req.send('');
+        return req.responseText;
+    },
+
+    createXMLHTTPObject: function() {
+	    // Try XHR methods in order and store XHR factory
+        var xmlhttp, XMLHttpFactories = [
+            function() {
+                return new XMLHttpRequest();
+            }, function() {
+                return new ActiveXObject('Msxml2.XMLHTTP');
+            }, function() {
+                return new ActiveXObject('Msxml3.XMLHTTP');
+            }, function() {
+                return new ActiveXObject('Microsoft.XMLHTTP');
+            }
+        ];
+        for (var i = 0; i < XMLHttpFactories.length; i++) {
+            try {
+                xmlhttp = XMLHttpFactories[i]();
+                // Use memoization to cache the factory
+                this.createXMLHTTPObject = XMLHttpFactories[i];
+                return xmlhttp;
+            } catch (e) {}
+        }
+    },
+
+    getSource: function(url) {
+        if (!(url in this.sourceCache)) {
+            this.sourceCache[url] = this.ajax(url).split('\n');
+        }
+        return this.sourceCache[url];
+    },
+
+    guessFunctions: function(stack) {
+        for (var i = 0; i < stack.length; ++i) {
+            var reStack = /{anonymous}\(.*\)@(\w+:\/\/([-\w\.]+)+(:\d+)?[^:]+):(\d+):?(\d+)?/;
+            var frame = stack[i], m = reStack.exec(frame);
+            if (m) {
+                var file = m[1], lineno = m[4]; //m[7] is character position in Chrome
+                if (file && lineno) {
+                    var functionName = this.guessFunctionName(file, lineno);
+                    stack[i] = frame.replace('{anonymous}', functionName);
+                }
+            }
+        }
+        return stack;
+    },
+
+    guessFunctionName: function(url, lineNo) {
+        try {
+            return this.guessFunctionNameFromLines(lineNo, this.getSource(url));
+        } catch (e) {
+            return 'getSource failed with url: ' + url + ', exception: ' + e.toString();
+        }
+    },
+
+    guessFunctionNameFromLines: function(lineNo, source) {
+        var reFunctionArgNames = /function ([^(]*)\(([^)]*)\)/;
+        var reGuessFunction = /['"]?([0-9A-Za-z_]+)['"]?\s*[:=]\s*(function|eval|new Function)/;
+        // Walk backwards from the first line in the function until we find the line which
+        // matches the pattern above, which is the function definition
+        var line = '', maxLines = 10;
+        for (var i = 0; i < maxLines; ++i) {
+            line = source[lineNo - i] + line;
+            if (line !== undefined) {
+                var m = reGuessFunction.exec(line);
+                if (m) {
+                    return m[1];
+                }
+                else {
+                    m = reFunctionArgNames.exec(line);
+                }
+                if (m && m[1]) {
+                    return m[1];
+                }
+            }
+        }
+        return '(?)';
+    }
+};
+
+var guesser = new NameGuesser();
+
+var frameIgnorePatterns = [
+    /http:\/\/localhost:4020\/sproutcore.js:/
+];
+
+exports.ignoreFramesMatching = function(regex) {
+    frameIgnorePatterns.push(regex);
+};
+
+/**
+ * Create a stack trace from an exception
+ * @param ex {Error} The error to create a stacktrace from (optional)
+ * @param guess {Boolean} If we should try to resolve the names of anonymous functions
+ */
+exports.Trace = function Trace(ex, guess) {
+    this._ex = ex;
+    this._stack = decoders[mode](ex);
+
+    if (guess) {
+        this._stack = guesser.guessFunctions(this._stack);
+    }
+};
+
+/**
+ * Log to the console a number of lines (default all of them)
+ * @param lines {number} Maximum number of lines to wrote to console
+ */
+exports.Trace.prototype.log = function(lines) {
+    if (lines <= 0) {
+        // You aren't going to have more lines in your stack trace than this
+        // and it still fits in a 32bit integer
+        lines = 999999999;
+    }
+
+    var printed = 0;
+    for (var i = 0; i < this._stack.length && printed < lines; i++) {
+        var frame = this._stack[i];
+        var display = true;
+        frameIgnorePatterns.forEach(function(regex) {
+            if (regex.test(frame)) {
+                display = false;
+            }
+        });
+        if (display) {
+            console.debug(frame);
+            printed++;
+        }
+    }
+};
+
+});
+
+bespin.tiki.module("bespin:util/util",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+/**
+ * Create an object representing a de-serialized query section of a URL.
+ * Query keys with multiple values are returned in an array.
+ * <p>Example: The input "foo=bar&foo=baz&thinger=%20spaces%20=blah&zonk=blarg&"
+ * Produces the output object:
+ * <pre>{
+ *   foo: [ "bar", "baz" ],
+ *   thinger: " spaces =blah",
+ *   zonk: "blarg"
+ * }
+ * </pre>
+ * <p>Note that spaces and other urlencoded entities are correctly handled
+ * @see dojo.queryToObject()
+ * While dojo.queryToObject() is mainly for URL query strings, this version
+ * allows to specify a separator character
+ */
+exports.queryToObject = function(str, seperator) {
+    var ret = {};
+    var qp = str.split(seperator || "&");
+    var dec = decodeURIComponent;
+    qp.forEach(function(item) {
+        if (item.length) {
+            var parts = item.split("=");
+            var name = dec(parts.shift());
+            var val = dec(parts.join("="));
+            if (exports.isString(ret[name])){
+                ret[name] = [ret[name]];
+            }
+            if (Array.isArray(ret[name])){
+                ret[name].push(val);
+            } else {
+                ret[name] = val;
+            }
+        }
+    });
+    return ret;
+};
+
+/**
+ * Takes a name/value mapping object and returns a string representing a
+ * URL-encoded version of that object for use in a GET request
+ * <p>For example, given the input:
+ * <code>{ blah: "blah", multi: [ "thud", "thonk" ] }</code>
+ * The following string would be returned:
+ * <code>"blah=blah&multi=thud&multi=thonk"</code>
+ * @param map {Object} The object to convert
+ * @return {string} A URL-encoded version of the input
+ */
+exports.objectToQuery = function(map) {
+    // FIXME: need to implement encodeAscii!!
+    var enc = encodeURIComponent;
+    var pairs = [];
+    var backstop = {};
+    for (var name in map) {
+        var value = map[name];
+        if (value != backstop[name]) {
+            var assign = enc(name) + "=";
+            if (value.isArray) {
+                for (var i = 0; i < value.length; i++) {
+                    pairs.push(assign + enc(value[i]));
+                }
+            } else {
+                pairs.push(assign + enc(value));
+            }
+        }
+    }
+    return pairs.join("&");
+};
+
+/**
+ * Holds the count to keep a unique value for setTimeout
+ * @private See rateLimit()
+ */
+var nextRateLimitId = 0;
+
+/**
+ * Holds the timeouts so they can be cleared later
+ * @private See rateLimit()
+ */
+var rateLimitTimeouts = {};
+
+/**
+ * Delay calling some function to check that it's not called again inside a
+ * maxRate. The real function is called after maxRate ms unless the return
+ * value of this function is called before, in which case the clock is restarted
+ */
+exports.rateLimit = function(maxRate, scope, func) {
+    if (maxRate) {
+        var rateLimitId = nextRateLimitId++;
+
+        return function() {
+            if (rateLimitTimeouts[rateLimitId]) {
+                clearTimeout(rateLimitTimeouts[rateLimitId]);
+            }
+
+            rateLimitTimeouts[rateLimitId] = setTimeout(function() {
+                func.apply(scope, arguments);
+                delete rateLimitTimeouts[rateLimitId];
+            }, maxRate);
+        };
+    }
+};
+
+/**
+ * Return true if it is a String
+ */
+exports.isString = function(it) {
+    return (typeof it == "string" || it instanceof String);
+};
+
+/**
+ * Returns true if it is a Boolean.
+ */
+exports.isBoolean = function(it) {
+    return (typeof it == 'boolean');
+};
+
+/**
+ * Returns true if it is a Number.
+ */
+exports.isNumber = function(it) {
+    return (typeof it == 'number' && isFinite(it));
+};
+
+/**
+ * Hack copied from dojo.
+ */
+exports.isObject = function(it) {
+    return it !== undefined &&
+        (it === null || typeof it == "object" ||
+        Array.isArray(it) || exports.isFunction(it));
+};
+
+/**
+ * Is the passed object a function?
+ * From dojo.isFunction()
+ */
+exports.isFunction = (function() {
+    var _isFunction = function(it) {
+        var t = typeof it; // must evaluate separately due to bizarre Opera bug. See #8937
+        //Firefox thinks object HTML element is a function, so test for nodeType.
+        return it && (t == "function" || it instanceof Function) && !it.nodeType; // Boolean
+    };
+
+    return exports.isSafari ?
+        // only slow this down w/ gratuitious casting in Safari (not WebKit)
+        function(/*anything*/ it) {
+            if (typeof it == "function" && it == "[object NodeList]") {
+                return false;
+            }
+            return _isFunction(it); // Boolean
+        } : _isFunction;
+})();
+
+/**
+ * A la Prototype endsWith(). Takes a regex excluding the '$' end marker
+ */
+exports.endsWith = function(str, end) {
+    if (!str) {
+        return false;
+    }
+    return str.match(new RegExp(end + "$"));
+};
+
+/**
+ * A la Prototype include().
+ */
+exports.include = function(array, item) {
+    return array.indexOf(item) > -1;
+};
+
+/**
+ * Like include, but useful when you're checking for a specific
+ * property on each object in the list...
+ *
+ * Returns null if the item is not in the list, otherwise
+ * returns the index of the item.
+ */
+exports.indexOfProperty = function(array, propertyName, item) {
+    for (var i = 0; i < array.length; i++) {
+        if (array[i][propertyName] == item) {
+            return i;
+        }
+    }
+    return null;
+};
+
+/**
+ * A la Prototype last().
+ */
+exports.last = function(array) {
+    if (Array.isArray(array)) {
+        return array[array.length - 1];
+    }
+};
+
+/**
+ * Knock off any undefined items from the end of an array
+ */
+exports.shrinkArray = function(array) {
+    var newArray = [];
+
+    var stillAtBeginning = true;
+    array.reverse().forEach(function(item) {
+        if (stillAtBeginning && item === undefined) {
+            return;
+        }
+
+        stillAtBeginning = false;
+
+        newArray.push(item);
+    });
+
+    return newArray.reverse();
+};
+
+/**
+ * Create an array
+ * @param number The size of the new array to create
+ * @param character The item to put in the array, defaults to ' '
+ */
+exports.makeArray = function(number, character) {
+    if (number < 1) {
+        return []; // give us a normal number please!
+    }
+    if (!character){character = ' ';}
+
+    var newArray = [];
+    for (var i = 0; i < number; i++) {
+        newArray.push(character);
+    }
+    return newArray;
+};
+
+/**
+ * Repeat a string a given number of times.
+ * @param string String to repeat
+ * @param repeat Number of times to repeat
+ */
+exports.repeatString = function(string, repeat) {
+    var newstring = '';
+
+    for (var i = 0; i < repeat; i++) {
+        newstring += string;
+    }
+
+    return newstring;
+};
+
+/**
+ * Given a row, find the number of leading spaces.
+ * E.g. an array with the string "  aposjd" would return 2
+ * @param row The row to hunt through
+ */
+exports.leadingSpaces = function(row) {
+    var numspaces = 0;
+    for (var i = 0; i < row.length; i++) {
+        if (row[i] == ' ' || row[i] == '' || row[i] === undefined) {
+            numspaces++;
+        } else {
+            return numspaces;
+        }
+    }
+    return numspaces;
+};
+
+/**
+ * Given a row, find the number of leading tabs.
+ * E.g. an array with the string "\t\taposjd" would return 2
+ * @param row The row to hunt through
+ */
+exports.leadingTabs = function(row) {
+    var numtabs = 0;
+    for (var i = 0; i < row.length; i++) {
+        if (row[i] == '\t' || row[i] == '' || row[i] === undefined) {
+            numtabs++;
+        } else {
+            return numtabs;
+        }
+    }
+    return numtabs;
+};
+
+/**
+ * Given a row, extract a copy of the leading spaces or tabs.
+ * E.g. an array with the string "\t    \taposjd" would return an array with the
+ * string "\t    \t".
+ * @param row The row to hunt through
+ */
+exports.leadingWhitespace = function(row) {
+    var leading = [];
+    for (var i = 0; i < row.length; i++) {
+        if (row[i] == ' ' || row[i] == '\t' || row[i] == '' || row[i] === undefined) {
+            leading.push(row[i]);
+        } else {
+            return leading;
+        }
+    }
+    return leading;
+};
+
+/**
+ * Given a camelCaseWord convert to "Camel Case Word"
+ */
+exports.englishFromCamel = function(camel) {
+    camel.replace(/([A-Z])/g, function(str) {
+        return " " + str.toLowerCase();
+    }).trim();
+};
+
+/**
+ * I hate doing this, but we need some way to determine if the user is on a Mac
+ * The reason is that users have different expectations of their key combinations.
+ *
+ * Take copy as an example, Mac people expect to use CMD or APPLE + C
+ * Windows folks expect to use CTRL + C
+ */
+exports.OS = {
+    LINUX: 'LINUX',
+    MAC: 'MAC',
+    WINDOWS: 'WINDOWS'
+};
+
+var ua = navigator.userAgent;
+var av = navigator.appVersion;
+
+/** Is the user using a browser that identifies itself as Linux */
+exports.isLinux = av.indexOf("Linux") >= 0;
+
+/** Is the user using a browser that identifies itself as Windows */
+exports.isWindows = av.indexOf("Win") >= 0;
+
+/** Is the user using a browser that identifies itself as WebKit */
+exports.isWebKit = parseFloat(ua.split("WebKit/")[1]) || undefined;
+
+/** Is the user using a browser that identifies itself as Chrome */
+exports.isChrome = parseFloat(ua.split("Chrome/")[1]) || undefined;
+
+/** Is the user using a browser that identifies itself as Mac OS */
+exports.isMac = av.indexOf("Macintosh") >= 0;
+
+/* Is this Firefox or related? */
+exports.isMozilla = av.indexOf('Gecko/') >= 0;
+
+if (ua.indexOf("AdobeAIR") >= 0) {
+    exports.isAIR = 1;
+}
+
+/**
+ * Is the user using a browser that identifies itself as Safari
+ * See also:
+ * - http://developer.apple.com/internet/safari/faq.html#anchor2
+ * - http://developer.apple.com/internet/safari/uamatrix.html
+ */
+var index = Math.max(av.indexOf("WebKit"), av.indexOf("Safari"), 0);
+if (index && !exports.isChrome) {
+    // try to grab the explicit Safari version first. If we don't get
+    // one, look for less than 419.3 as the indication that we're on something
+    // "Safari 2-ish".
+    exports.isSafari = parseFloat(av.split("Version/")[1]);
+    if (!exports.isSafari || parseFloat(av.substr(index + 7)) <= 419.3) {
+        exports.isSafari = 2;
+    }
+}
+
+if (ua.indexOf("Gecko") >= 0 && !exports.isWebKit) {
+    exports.isMozilla = parseFloat(av);
+}
+
+/**
+ * Return a exports.OS constant
+ */
+exports.getOS = function() {
+    if (exports.isMac) {
+        return exports.OS['MAC'];
+    } else if (exports.isLinux) {
+        return exports.OS['LINUX'];
+    } else {
+        return exports.OS['WINDOWS'];
+    }
+};
+
+/** Returns true if the DOM element "b" is inside the element "a". */
+if (typeof(document) !== 'undefined' && document.compareDocumentPosition) {
+    exports.contains = function(a, b) {
+        return a.compareDocumentPosition(b) & 16;
+    };
+} else {
+    exports.contains = function(a, b) {
+        return a !== b && (a.contains ? a.contains(b) : true);
+    };
+}
+
+/**
+ * Prevents propagation and clobbers the default action of the passed event
+ */
+exports.stopEvent = function(ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+};
+
+/**
+ * Create a random password of the given length (default 16 chars)
+ */
+exports.randomPassword = function(length) {
+    length = length || 16;
+    var chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+    var pass = "";
+    for (var x = 0; x < length; x++) {
+        var charIndex = Math.floor(Math.random() * chars.length);
+        pass += chars.charAt(charIndex);
+    }
+    return pass;
+};
+
+/**
+ * Is the passed object free of members, i.e. are there any enumerable
+ * properties which the objects claims as it's own using hasOwnProperty()
+ */
+exports.isEmpty = function(object) {
+    for (var x in object) {
+        if (object.hasOwnProperty(x)) {
+            return false;
+        }
+    }
+    return true;
+};
+
+/**
+ * Does the name of a project indicate that it is owned by someone else
+ * TODO: This is a major hack. We really should have a File object that include
+ * separate owner information.
+ */
+exports.isMyProject = function(project) {
+    return project.indexOf("+") == -1;
+};
+
+/**
+ * Format a date as dd MMM yyyy
+ */
+exports.formatDate = function (date) {
+    if (!date) {
+        return "Unknown";
+    }
+    return date.getDate() + " " +
+        exports.formatDate.shortMonths[date.getMonth()] + " " +
+        date.getFullYear();
+};
+
+/**
+ * Month data for exports.formatDate
+ */
+exports.formatDate.shortMonths = [ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ];
+
+/**
+ * Add a CSS class to the list of classes on the given node
+ */
+exports.addClass = function(node, className) {
+    var parts = className.split(/\s+/);
+    var cls = " " + node.className + " ";
+    for (var i = 0, len = parts.length, c; i < len; ++i) {
+        c = parts[i];
+        if (c && cls.indexOf(" " + c + " ") < 0) {
+            cls += c + " ";
+        }
+    }
+    node.className = cls.trim();
+};
+
+/**
+ * Remove a CSS class from the list of classes on the given node
+ */
+exports.removeClass = function(node, className) {
+    var cls;
+    if (className !== undefined) {
+        var parts = className.split(/\s+/);
+        cls = " " + node.className + " ";
+        for (var i = 0, len = parts.length; i < len; ++i) {
+            cls = cls.replace(" " + parts[i] + " ", " ");
+        }
+        cls = cls.trim();
+    } else {
+        cls = "";
+    }
+    if (node.className != cls) {
+        node.className = cls;
+    }
+};
+
+/**
+ * Add or remove a CSS class from the list of classes on the given node
+ * depending on the value of <tt>include</tt>
+ */
+exports.setClass = function(node, className, include) {
+    if (include) {
+        exports.addClass(node, className);
+    } else {
+        exports.removeClass(node, className);
+    }
+};
+
+/**
+ * Is the passed object either null or undefined (using ===)
+ */
+exports.none = function(obj) {
+    return obj === null || obj === undefined;
+};
+
+/**
+ * Creates a clone of the passed object.  This function can take just about
+ * any type of object and create a clone of it, including primitive values
+ * (which are not actually cloned because they are immutable).
+ * If the passed object implements the clone() method, then this function
+ * will simply call that method and return the result.
+ *
+ * @param object {Object} the object to clone
+ * @param deep {Boolean} do a deep clone?
+ * @returns {Object} the cloned object
+ */
+exports.clone = function(object, deep) {
+    if (Array.isArray(object) && !deep) {
+        return object.slice();
+    }
+
+    if (typeof object === 'object' || Array.isArray(object)) {
+        if (object === null) {
+            return null;
+        }
+
+        var reply = (Array.isArray(object) ? [] : {});
+        for (var key in object) {
+            if (deep && (typeof object[key] === 'object'
+                            || Array.isArray(object[key]))) {
+                reply[key] = exports.clone(object[key], true);
+            } else {
+                 reply[key] = object[key];
+            }
+        }
+        return reply;
+    }
+
+    if (object && typeof(object.clone) === 'function') {
+        return object.clone();
+    }
+
+    // That leaves numbers, booleans, undefined. Doesn't it?
+    return object;
+};
+
+
+/**
+ * Helper method for extending one object with another
+ * Copies all properties from source to target. Returns the extended target
+ * object.
+ * Taken from John Resig, http://ejohn.org/blog/javascript-getters-and-setters/.
+ */
+exports.mixin = function(a, b) {
+    for (var i in b) {
+        var g = b.__lookupGetter__(i);
+        var s = b.__lookupSetter__(i);
+
+        if (g || s) {
+            if (g) {
+                a.__defineGetter__(i, g);
+            }
+            if (s) {
+                a.__defineSetter__(i, s);
+            }
+        } else {
+            a[i] = b[i];
+        }
+    }
+
+    return a;
+};
+
+/**
+ * Basically taken from Sproutcore.
+ * Replaces the count items from idx with objects.
+ */
+exports.replace = function(arr, idx, amt, objects) {
+    return arr.slice(0, idx).concat(objects).concat(arr.slice(idx + amt));
+};
+
+/**
+ * Return true if the two frames match.  You can also pass only points or sizes.
+ * @param r1 {Rect} the first rect
+ * @param r2 {Rect} the second rect
+ * @param delta {Float} an optional delta that allows for rects that do not match exactly. Defaults to 0.1
+ * @returns {Boolean} true if rects match
+ */
+exports.rectsEqual = function(r1, r2, delta) {
+    if (!r1 || !r2) {
+        return r1 == r2;
+    }
+
+    if (!delta && delta !== 0) {
+        delta = 0.1;
+    }
+
+    if ((r1.y != r2.y) && (Math.abs(r1.y - r2.y) > delta)) {
+        return false;
+    }
+
+    if ((r1.x != r2.x) && (Math.abs(r1.x - r2.x) > delta)) {
+        return false;
+    }
+
+    if ((r1.width != r2.width) && (Math.abs(r1.width - r2.width) > delta)) {
+        return false;
+    }
+
+    if ((r1.height != r2.height) && (Math.abs(r1.height - r2.height) > delta)) {
+        return false;
+    }
+
+    return true;
+};
+
+});
+
+bespin.tiki.module("bespin:util/cookie",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+/**
+ * Adds escape sequences for special characters in regular expressions
+ * @param {String} str a String with special characters to be left unescaped
+ */
+var escapeString = function(str, except){
+    return str.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, function(ch){
+        if(except && except.indexOf(ch) != -1){
+            return ch;
+        }
+        return "\\" + ch;
+    });
+};
+
+/**
+ * Get a cookie value by name
+ * @param {String} name The cookie value to retrieve
+ * @return The value, or undefined if the cookie was not found
+ */
+exports.get = function(name) {
+    var matcher = new RegExp("(?:^|; )" + escapeString(name) + "=([^;]*)");
+    var matches = document.cookie.match(matcher);
+    return matches ? decodeURIComponent(matches[1]) : undefined;
+};
+
+/**
+ * Set a cookie value
+ * @param {String} name The cookie value to alter
+ * @param {String} value The new value for the cookie
+ * @param {Object} props (Optional) cookie properties. One of:<ul>
+ * <li>expires: Date|String|Number|null If a number, the number of days from
+ * today at which the cookie will expire. If a date, the date past which the
+ * cookie will expire. If expires is in the past, the cookie will be deleted.
+ * If expires is omitted or is 0, the cookie will expire either directly (ff3)
+ * or when the browser closes
+ * <li>path: String|null The path to use for the cookie.
+ * <li>domain: String|null The domain to use for the cookie.
+ * <li>secure: Boolean|null Whether to only send the cookie on secure connections
+ * </ul>
+ */
+exports.set = function(name, value, props) {
+    props = props || {};
+
+    if (typeof props.expires == "number") {
+        var date = new Date();
+        date.setTime(date.getTime() + props.expires * 24 * 60 * 60 * 1000);
+        props.expires = date;
+    }
+    if (props.expires && props.expires.toUTCString) {
+        props.expires = props.expires.toUTCString();
+    }
+
+    value = encodeURIComponent(value);
+    var updatedCookie = name + "=" + value, propName;
+    for (propName in props) {
+        updatedCookie += "; " + propName;
+        var propValue = props[propName];
+        if (propValue !== true) {
+            updatedCookie += "=" + propValue;
+        }
+    }
+
+    document.cookie = updatedCookie;
+};
+
+/**
+ * Remove a cookie by name. Depending on the browser, the cookie will either
+ * be deleted directly or at browser close.
+ * @param {String} name The cookie value to retrieve
+ */
+exports.remove = function(name) {
+    exports.set(name, "", { expires: -1 });
+};
+
+/**
+ * Use to determine if the current browser supports cookies or not.
+ * @return Returns true if user allows cookies, false otherwise
+ */
+exports.isSupported = function() {
+    if (!("cookieEnabled" in navigator)) {
+        exports.set("__djCookieTest__", "CookiesAllowed");
+        navigator.cookieEnabled = exports.get("__djCookieTest__") == "CookiesAllowed";
+        if (navigator.cookieEnabled) {
+            exports.remove("__djCookieTest__");
+        }
+    }
+    return navigator.cookieEnabled;
+};
 
 });
 
@@ -3683,7 +4904,7 @@ installGlobals();
 
 });
 
-bespin.tiki.module("bespin:index",function(require,exports,module) {
+bespin.tiki.module("bespin:sandbox",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -3721,18 +4942,202 @@ bespin.tiki.module("bespin:index",function(require,exports,module) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-// BEGIN VERSION BLOCK
-/** The core version of the Bespin system */
-exports.versionNumber = 'tip';
+var tiki = require('tiki');
+var util = require('bespin:util/util');
+var catalog = require('bespin:plugins').catalog;
 
-/** The version number to display to users */
-exports.versionCodename = 'DEVELOPMENT MODE';
+/**
+ * A sandbox can only be used from inside of the `master` catalog.
+ */
+if (catalog.parent) {
+    throw new Error('The sandbox module can\'t be used inside of a slave catalog!');
+}
 
-/** The version number of the API (to ensure that the client and server are talking the same language) */
-exports.apiVersion = 'dev';
+/**
+ * A special Bespin subclass of the tiki sandbox class. When the sandbox is
+ * created, the catalog for the new sandbox is setup based on the catalog
+ * data that is already in the so called `master` catalog.
+ */
+var Sandbox = function() {
+    // Call the default constructor. This creates a new tiki sandbox.
+    tiki.Sandbox.call(this, bespin.tiki.require.loader, {}, []);
 
-// END VERSION BLOCK
+    // Register the plugins from the main catalog in the sandbox catalog.
+    var sandboxCatalog = this.require('bespin:plugins').catalog;
 
+    // Set the parent catalog for the sandbox catalog. This makes the sandbox
+    // be a slave catalog of the master catalog.
+    sandboxCatalog.parent = catalog;
+    catalog.children.push(sandboxCatalog);
+
+    // Copy over a few things from the master catalog.
+    sandboxCatalog.deactivatePlugin = util.clone(catalog.deactivatePlugin);
+    sandboxCatalog._extensionsOrdering = util.clone(catalog._extensionsOrdering);
+
+    // Register the metadata from the master catalog.
+    sandboxCatalog._registerMetadata(util.clone(catalog.metadata, true));
+};
+
+Sandbox.prototype = new tiki.Sandbox();
+
+/**
+ * Overrides the standard tiki.Sandbox.require function. If the requested
+ * module/plugin is shared between the sandboxes, then the require function
+ * on the `master` sandbox is called. Otherwise it calls the overridden require
+ * function.
+ */
+Sandbox.prototype.require = function(moduleId, curModuleId, workingPackage) {
+    // assume canonical() will normalize params
+    var canonicalId = this.loader.canonical(moduleId, curModuleId, workingPackage);
+    // Get the plugin name.
+    var pluginName = canonicalId.substring(2).split(':')[0];
+
+    // Check if this module should be shared.
+    if (catalog.plugins[pluginName].share) {
+        // The module is shared, so require it from the main sandbox.
+        return bespin.tiki.sandbox.require(moduleId, curModuleId, workingPackage);
+    } else {
+        // This module is not shared, so use the normal require function.
+        return tiki.Sandbox.prototype.require.call(this, moduleId,
+                                                    curModuleId, workingPackage);
+    }
+}
+
+// Expose the sandbox.
+exports.Sandbox = Sandbox;
+
+});
+
+bespin.tiki.module("bespin:builtins",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+exports.metadata =
+{
+    "bespin":
+    {
+        "provides":
+        [
+            {
+                "ep": "extensionpoint",
+                "name": "extensionpoint",
+                "indexOx": "name",
+                "register": "plugins#registerExtensionPoint",
+                "unregister": "plugins#unregisterExtensionPoint",
+                "description": "Defines a new extension point",
+                "params": [
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "description": "the extension point's name",
+                        "required": true
+                    },
+                    {
+                        "name": "description",
+                        "type": "string",
+                        "description": "description of what the extension point is for"
+                    },
+                    {
+                        "name": "params",
+                        "type": "array of objects",
+                        "description": "parameters that provide the metadata for a given extension. Each object should have name and description, minimally. It can also have a 'type' (eg string, pointer, or array) and required to denote whether or not this parameter must be present on the extension."
+                    },
+                    {
+                        "name": "indexOn",
+                        "type": "string",
+                        "description": "You can provide an 'indexOn' property to name a property of extensions through which you'd like to be able to easily look up the extension."
+                    },
+                    {
+                        "name": "register",
+                        "type": "pointer",
+                        "description": "function that is called when a new extension is discovered. Note that this should be used sparingly, because it will cause your plugin to be loaded whenever a matching plugin appears."
+                    },
+                    {
+                        "name": "unregister",
+                        "type": "pointer",
+                        "description": "function that is called when an extension is removed. Note that this should be used sparingly, because it will cause your plugin to be loaded whenever a matching plugin appears."
+                    }
+                ]
+            },
+            {
+                "ep": "extensionpoint",
+                "name": "extensionhandler",
+                "register": "plugins#registerExtensionHandler",
+                "unregister": "plugins#unregisterExtensionHandler",
+                "description": "Used to attach listeners ",
+                "params": [
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "description": "name of the extension point to listen to",
+                        "required": true
+                    },
+                    {
+                        "name": "register",
+                        "type": "pointer",
+                        "description": "function that is called when a new extension is discovered. Note that this should be used sparingly, because it will cause your plugin to be loaded whenever a matching plugin appears."
+                    },
+                    {
+                        "name": "unregister",
+                        "type": "pointer",
+                        "description": "function that is called when an extension is removed. Note that this should be used sparingly, because it will cause your plugin to be loaded whenever a matching plugin appears."
+                    }
+                ]
+            },
+            {
+                "ep": "extensionpoint",
+                "name": "factory",
+                "description": "Provides a factory for singleton components. Each extension needs to provide a name, a pointer and an action. The action can be 'call' (if the pointer refers to a function), 'new' (if the pointer refers to a traditional JS object) or 'value' (if the pointer refers to the object itself that is the component).",
+                "indexOn": "name"
+            },
+            {
+                "ep": "factory",
+                "name": "hub",
+                "action": "create",
+                "pointer": "util/hub#Hub"
+            },
+            {
+                "ep": "extensionpoint",
+                "name": "command",
+                "description": "Editor commands/actions. TODO: list parameters here."
+            }
+        ]
+    }
+};
 
 });
 
@@ -5517,7 +6922,6 @@ exports.Promise.prototype._complete = function(list, status, data, name) {
     return this;
 };
 
-
 /**
  * Takes an array of promises and returns a promise that that is fulfilled once
  * all the promises in the array are fulfilled
@@ -5560,1407 +6964,24 @@ exports.group = function(promiseList) {
     return groupPromise;
 };
 
-});
-
-bespin.tiki.module("bespin:proxy",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var util = require("util/util");
-var Promise = require("promise").Promise;
-
-exports.xhr = function(method, url, async, beforeSendCallback) {
-    var pr = new Promise();
-
-    if (!bespin.proxy || !bespin.proxy.xhr) {
-        var req = new XMLHttpRequest();
-        req.onreadystatechange = function() {
-            if (req.readyState !== 4) {
-                return;
-            }
-
-            var status = req.status;
-            if (status !== 0 && status !== 200) {
-                var error = new Error(req.responseText + ' (Status ' + req.status + ")");
-                error.xhr = req;
-                pr.reject(error);
-                return;
-            }
-
-            pr.resolve(req.responseText);
-        }.bind(this);
-
-        req.open("GET", url, async);
-        if (beforeSendCallback) {
-            beforeSendCallback(req);
+/**
+ * Take an asynchronous function (i.e. one that returns a promise) and
+ * return a synchronous version of the same function.
+ * Clearly this is impossible without blocking or busy waiting (both evil).
+ * In this case we make the assumption that the called function is only
+ * theoretically asynchronous (which is actually common with Bespin, because the
+ * most common cause of asynchronaity is the lazy loading module system which
+ * can sometimes be proved to be synchronous in use, even though in theory
+ * there is the potential for asynch behaviour)
+ */
+exports.synchronizer = function(func, scope) {
+    return function() {
+        var promise = func.apply(scope, arguments);
+        if (!promise.isComplete()) {
+            throw new Error('asynchronous function can\'t be synchronized');
         }
-        req.send();
-    } else {
-        bespin.proxy.xhr.call(this, method, url, async, beforeSendCallback, pr);
-    }
-
-    return pr;
-};
-
-exports.Worker = function(url) {
-    if (!bespin.proxy || !bespin.proxy.worker) {
-        return new Worker(url);
-    } else {
-        return new bespin.proxy.worker(url);
-    }
-};
-
-});
-
-bespin.tiki.module("bespin:sandbox",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var tiki = require('tiki');
-var util = require('bespin:util/util');
-var catalog = require('bespin:plugins').catalog;
-
-/**
- * A sandbox can only be used from inside of the `master` catalog.
- */
-if (catalog.parent) {
-    throw new Error('The sandbox module can\'t be used inside of a slave catalog!');
-}
-
-/**
- * A special Bespin subclass of the tiki sandbox class. When the sandbox is
- * created, the catalog for the new sandbox is setup based on the catalog
- * data that is already in the so called `master` catalog.
- */
-var Sandbox = function() {
-    // Call the default constructor. This creates a new tiki sandbox.
-    tiki.Sandbox.call(this, bespin.tiki.require.loader, {}, []);
-
-    // Register the plugins from the main catalog in the sandbox catalog.
-    var sandboxCatalog = this.require('bespin:plugins').catalog;
-
-    // Set the parent catalog for the sandbox catalog. This makes the sandbox
-    // be a slave catalog of the master catalog.
-    sandboxCatalog.parent = catalog;
-    catalog.children.push(sandboxCatalog);
-
-    // Copy over a few things from the master catalog.
-    sandboxCatalog.deactivatePlugin = util.clone(catalog.deactivatePlugin);
-    sandboxCatalog._extensionsOrdering = util.clone(catalog._extensionsOrdering);
-
-    // Register the metadata from the master catalog.
-    sandboxCatalog._registerMetadata(util.clone(catalog.metadata, true));
-};
-
-Sandbox.prototype = new tiki.Sandbox();
-
-/**
- * Overrides the standard tiki.Sandbox.require function. If the requested
- * module/plugin is shared between the sandboxes, then the require function
- * on the `master` sandbox is called. Otherwise it calls the overridden require
- * function.
- */
-Sandbox.prototype.require = function(moduleId, curModuleId, workingPackage) {
-    // assume canonical() will normalize params
-    var canonicalId = this.loader.canonical(moduleId, curModuleId, workingPackage);
-    // Get the plugin name.
-    var pluginName = canonicalId.substring(2).split(':')[0];
-
-    // Check if this module should be shared.
-    if (catalog.plugins[pluginName].share) {
-        // The module is shared, so require it from the main sandbox.
-        return bespin.tiki.sandbox.require(moduleId, curModuleId, workingPackage);
-    } else {
-        // This module is not shared, so use the normal require function.
-        return tiki.Sandbox.prototype.require.call(this, moduleId,
-                                                    curModuleId, workingPackage);
-    }
-}
-
-// Expose the sandbox.
-exports.Sandbox = Sandbox;
-
-});
-
-bespin.tiki.module("bespin:util/cookie",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-/**
- * Adds escape sequences for special characters in regular expressions
- * @param {String} str a String with special characters to be left unescaped
- */
-var escapeString = function(str, except){
-    return str.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, function(ch){
-        if(except && except.indexOf(ch) != -1){
-            return ch;
-        }
-        return "\\" + ch;
-    });
-};
-
-/**
- * Get a cookie value by name
- * @param {String} name The cookie value to retrieve
- * @return The value, or undefined if the cookie was not found
- */
-exports.get = function(name) {
-    var matcher = new RegExp("(?:^|; )" + escapeString(name) + "=([^;]*)");
-    var matches = document.cookie.match(matcher);
-    return matches ? decodeURIComponent(matches[1]) : undefined;
-};
-
-/**
- * Set a cookie value
- * @param {String} name The cookie value to alter
- * @param {String} value The new value for the cookie
- * @param {Object} props (Optional) cookie properties. One of:<ul>
- * <li>expires: Date|String|Number|null If a number, the number of days from
- * today at which the cookie will expire. If a date, the date past which the
- * cookie will expire. If expires is in the past, the cookie will be deleted.
- * If expires is omitted or is 0, the cookie will expire either directly (ff3)
- * or when the browser closes
- * <li>path: String|null The path to use for the cookie.
- * <li>domain: String|null The domain to use for the cookie.
- * <li>secure: Boolean|null Whether to only send the cookie on secure connections
- * </ul>
- */
-exports.set = function(name, value, props) {
-    props = props || {};
-
-    if (typeof props.expires == "number") {
-        var date = new Date();
-        date.setTime(date.getTime() + props.expires * 24 * 60 * 60 * 1000);
-        props.expires = date;
-    }
-    if (props.expires && props.expires.toUTCString) {
-        props.expires = props.expires.toUTCString();
-    }
-
-    value = encodeURIComponent(value);
-    var updatedCookie = name + "=" + value, propName;
-    for (propName in props) {
-        updatedCookie += "; " + propName;
-        var propValue = props[propName];
-        if (propValue !== true) {
-            updatedCookie += "=" + propValue;
-        }
-    }
-
-    document.cookie = updatedCookie;
-};
-
-/**
- * Remove a cookie by name. Depending on the browser, the cookie will either
- * be deleted directly or at browser close.
- * @param {String} name The cookie value to retrieve
- */
-exports.remove = function(name) {
-    exports.set(name, "", { expires: -1 });
-};
-
-/**
- * Use to determine if the current browser supports cookies or not.
- * @return Returns true if user allows cookies, false otherwise
- */
-exports.isSupported = function() {
-    if (!("cookieEnabled" in navigator)) {
-        exports.set("__djCookieTest__", "CookiesAllowed");
-        navigator.cookieEnabled = exports.get("__djCookieTest__") == "CookiesAllowed";
-        if (navigator.cookieEnabled) {
-            exports.remove("__djCookieTest__");
-        }
-    }
-    return navigator.cookieEnabled;
-};
-
-});
-
-bespin.tiki.module("bespin:util/scratchcanvas",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var util = require('bespin:util/util');
-
-/**
- * A invisible singleton canvas on the page, useful whenever a canvas context
- * is needed (e.g. for computing text sizes), but an actual canvas isn't handy
- * at the moment.
- * @constructor
- */
-var ScratchCanvas = function() {
-    this._canvas = document.getElementById('bespin-scratch-canvas');
-
-    // It's possible that another ScratchCanvas instance in another sandbox
-    // exists on the page. If so, we assume they're compatible, and use
-    // that one.
-    if (util.none(this._canvas)) {
-        this._canvas = document.createElement('canvas');
-        this._canvas.id = 'bespin-scratch-canvas';
-        this._canvas.width = 400;
-        this._canvas.height = 300;
-        this._canvas.style.position = 'absolute';
-        this._canvas.style.top = "-10000px";
-        this._canvas.style.left = "-10000px";
-        document.body.appendChild(this._canvas);
-    }
-};
-
-ScratchCanvas.prototype.getContext = function() {
-    return this._canvas.getContext('2d');
-};
-
-/**
- * Returns the width in pixels of the given string ("M", by default) in the
- * given font.
- */
-ScratchCanvas.prototype.measureStringWidth = function(font, str) {
-    if (util.none(str)) {
-        str = "M";
-    }
-
-    var context = this.getContext();
-    context.save();
-    context.font = font;
-    var width = context.measureText(str).width;
-    context.restore();
-    return width;
-};
-
-var singleton = null;
-
-/**
- * Returns the instance of the scratch canvas on the page, creating it if
- * necessary.
- */
-exports.get = function() {
-    if (singleton === null) {
-        singleton = new ScratchCanvas();
-    }
-    return singleton;
-};
-
-});
-
-bespin.tiki.module("bespin:util/stacktrace",function(require,exports,module) {
-// Changed to suit the specific needs of running within Bespin
-
-// Domain Public by Eric Wendelin http://eriwen.com/ (2008)
-//                  Luke Smith http://lucassmith.name/ (2008)
-//                  Loic Dachary <loic@dachary.org> (2008)
-//                  Johan Euphrosine <proppy@aminche.com> (2008)
-//                  Øyvind Sean Kinsey http://kinsey.no/blog
-//
-// Information and discussions
-// http://jspoker.pokersource.info/skin/test-printstacktrace.html
-// http://eriwen.com/javascript/js-stack-trace/
-// http://eriwen.com/javascript/stacktrace-update/
-// http://pastie.org/253058
-// http://browsershots.org/http://jspoker.pokersource.info/skin/test-printstacktrace.html
-//
-
-//
-// guessFunctionNameFromLines comes from firebug
-//
-// Software License Agreement (BSD License)
-//
-// Copyright (c) 2007, Parakey Inc.
-// All rights reserved.
-//
-// Redistribution and use of this software in source and binary forms, with or without modification,
-// are permitted provided that the following conditions are met:
-//
-// * Redistributions of source code must retain the above
-//   copyright notice, this list of conditions and the
-//   following disclaimer.
-//
-// * Redistributions in binary form must reproduce the above
-//   copyright notice, this list of conditions and the
-//   following disclaimer in the documentation and/or other
-//   materials provided with the distribution.
-//
-// * Neither the name of Parakey Inc. nor the names of its
-//   contributors may be used to endorse or promote products
-//   derived from this software without specific prior
-//   written permission of Parakey Inc.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
-// IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
-// FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
-// IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
-// OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-var util = require('bespin:util/util');
-var console = require("bespin:console").console;
-
-/**
- * Different browsers create stack traces in different ways.
- * <strike>Feature</strike> Browser detection baby ;).
- */
-var mode = (function() {
-
-    // We use SC's browser detection here to avoid the "break on error"
-    // functionality provided by Firebug. Firebug tries to do the right
-    // thing here and break, but it happens every time you load the page.
-    // bug 554105
-    if (util.isMozilla) {
-        return 'firefox';
-    } else if (util.isOpera) {
-        return 'opera';
-    } else if (util.isSafari) {
-        return 'other';
-    }
-
-    // SC doesn't do any detection of Chrome at this time.
-
-    // this is the original feature detection code that is used as a
-    // fallback.
-    try {
-        (0)();
-    } catch (e) {
-        if (e.arguments) {
-            return 'chrome';
-        }
-        if (e.stack) {
-            return 'firefox';
-        }
-        if (window.opera && !('stacktrace' in e)) { //Opera 9-
-            return 'opera';
-        }
-    }
-    return 'other';
-})();
-
-/**
- *
- */
-function stringifyArguments(args) {
-    for (var i = 0; i < args.length; ++i) {
-        var argument = args[i];
-        if (typeof argument == 'object') {
-            args[i] = '#object';
-        } else if (typeof argument == 'function') {
-            args[i] = '#function';
-        } else if (typeof argument == 'string') {
-            args[i] = '"' + argument + '"';
-        }
-    }
-    return args.join(',');
-}
-
-/**
- * Extract a stack trace from the format emitted by each browser.
- */
-var decoders = {
-    chrome: function(e) {
-        var stack = e.stack;
-        if (!stack) {
-            console.log(e);
-            return [];
-        }
-        return stack.replace(/^.*?\n/, '').
-                replace(/^.*?\n/, '').
-                replace(/^.*?\n/, '').
-                replace(/^[^\(]+?[\n$]/gm, '').
-                replace(/^\s+at\s+/gm, '').
-                replace(/^Object.<anonymous>\s*\(/gm, '{anonymous}()@').
-                split('\n');
-    },
-
-    firefox: function(e) {
-        var stack = e.stack;
-        if (!stack) {
-            console.log(e);
-            return [];
-        }
-        // stack = stack.replace(/^.*?\n/, '');
-        stack = stack.replace(/(?:\n@:0)?\s+$/m, '');
-        stack = stack.replace(/^\(/gm, '{anonymous}(');
-        return stack.split('\n');
-    },
-
-    // Opera 7.x and 8.x only!
-    opera: function(e) {
-        var lines = e.message.split('\n'), ANON = '{anonymous}',
-            lineRE = /Line\s+(\d+).*?script\s+(http\S+)(?:.*?in\s+function\s+(\S+))?/i, i, j, len;
-
-        for (i = 4, j = 0, len = lines.length; i < len; i += 2) {
-            if (lineRE.test(lines[i])) {
-                lines[j++] = (RegExp.$3 ? RegExp.$3 + '()@' + RegExp.$2 + RegExp.$1 : ANON + '()@' + RegExp.$2 + ':' + RegExp.$1) +
-                ' -- ' +
-                lines[i + 1].replace(/^\s+/, '');
-            }
-        }
-
-        lines.splice(j, lines.length - j);
-        return lines;
-    },
-
-    // Safari, Opera 9+, IE, and others
-    other: function(curr) {
-        var ANON = '{anonymous}', fnRE = /function\s*([\w\-$]+)?\s*\(/i, stack = [], j = 0, fn, args;
-
-        var maxStackSize = 10;
-        while (curr && stack.length < maxStackSize) {
-            fn = fnRE.test(curr.toString()) ? RegExp.$1 || ANON : ANON;
-            args = Array.prototype.slice.call(curr['arguments']);
-            stack[j++] = fn + '(' + stringifyArguments(args) + ')';
-
-            //Opera bug: if curr.caller does not exist, Opera returns curr (WTF)
-            if (curr === curr.caller && window.opera) {
-                //TODO: check for same arguments if possible
-                break;
-            }
-            curr = curr.caller;
-        }
-        return stack;
-    }
-};
-
-/**
- *
- */
-function NameGuesser() {
-}
-
-NameGuesser.prototype = {
-
-    sourceCache: {},
-
-    ajax: function(url) {
-        var req = this.createXMLHTTPObject();
-        if (!req) {
-            return;
-        }
-        req.open('GET', url, false);
-        req.setRequestHeader('User-Agent', 'XMLHTTP/1.0');
-        req.send('');
-        return req.responseText;
-    },
-
-    createXMLHTTPObject: function() {
-	    // Try XHR methods in order and store XHR factory
-        var xmlhttp, XMLHttpFactories = [
-            function() {
-                return new XMLHttpRequest();
-            }, function() {
-                return new ActiveXObject('Msxml2.XMLHTTP');
-            }, function() {
-                return new ActiveXObject('Msxml3.XMLHTTP');
-            }, function() {
-                return new ActiveXObject('Microsoft.XMLHTTP');
-            }
-        ];
-        for (var i = 0; i < XMLHttpFactories.length; i++) {
-            try {
-                xmlhttp = XMLHttpFactories[i]();
-                // Use memoization to cache the factory
-                this.createXMLHTTPObject = XMLHttpFactories[i];
-                return xmlhttp;
-            } catch (e) {}
-        }
-    },
-
-    getSource: function(url) {
-        if (!(url in this.sourceCache)) {
-            this.sourceCache[url] = this.ajax(url).split('\n');
-        }
-        return this.sourceCache[url];
-    },
-
-    guessFunctions: function(stack) {
-        for (var i = 0; i < stack.length; ++i) {
-            var reStack = /{anonymous}\(.*\)@(\w+:\/\/([-\w\.]+)+(:\d+)?[^:]+):(\d+):?(\d+)?/;
-            var frame = stack[i], m = reStack.exec(frame);
-            if (m) {
-                var file = m[1], lineno = m[4]; //m[7] is character position in Chrome
-                if (file && lineno) {
-                    var functionName = this.guessFunctionName(file, lineno);
-                    stack[i] = frame.replace('{anonymous}', functionName);
-                }
-            }
-        }
-        return stack;
-    },
-
-    guessFunctionName: function(url, lineNo) {
-        try {
-            return this.guessFunctionNameFromLines(lineNo, this.getSource(url));
-        } catch (e) {
-            return 'getSource failed with url: ' + url + ', exception: ' + e.toString();
-        }
-    },
-
-    guessFunctionNameFromLines: function(lineNo, source) {
-        var reFunctionArgNames = /function ([^(]*)\(([^)]*)\)/;
-        var reGuessFunction = /['"]?([0-9A-Za-z_]+)['"]?\s*[:=]\s*(function|eval|new Function)/;
-        // Walk backwards from the first line in the function until we find the line which
-        // matches the pattern above, which is the function definition
-        var line = '', maxLines = 10;
-        for (var i = 0; i < maxLines; ++i) {
-            line = source[lineNo - i] + line;
-            if (line !== undefined) {
-                var m = reGuessFunction.exec(line);
-                if (m) {
-                    return m[1];
-                }
-                else {
-                    m = reFunctionArgNames.exec(line);
-                }
-                if (m && m[1]) {
-                    return m[1];
-                }
-            }
-        }
-        return '(?)';
-    }
-};
-
-var guesser = new NameGuesser();
-
-var frameIgnorePatterns = [
-    /http:\/\/localhost:4020\/sproutcore.js:/
-];
-
-exports.ignoreFramesMatching = function(regex) {
-    frameIgnorePatterns.push(regex);
-};
-
-/**
- * Create a stack trace from an exception
- * @param ex {Error} The error to create a stacktrace from (optional)
- * @param guess {Boolean} If we should try to resolve the names of anonymous functions
- */
-exports.Trace = function Trace(ex, guess) {
-    this._ex = ex;
-    this._stack = decoders[mode](ex);
-
-    if (guess) {
-        this._stack = guesser.guessFunctions(this._stack);
-    }
-};
-
-/**
- * Log to the console a number of lines (default all of them)
- * @param lines {number} Maximum number of lines to wrote to console
- */
-exports.Trace.prototype.log = function(lines) {
-    if (lines <= 0) {
-        // You aren't going to have more lines in your stack trace than this
-        // and it still fits in a 32bit integer
-        lines = 999999999;
-    }
-
-    var printed = 0;
-    for (var i = 0; i < this._stack.length && printed < lines; i++) {
-        var frame = this._stack[i];
-        var display = true;
-        frameIgnorePatterns.forEach(function(regex) {
-            if (regex.test(frame)) {
-                display = false;
-            }
-        });
-        if (display) {
-            console.debug(frame);
-            printed++;
-        }
-    }
-};
-
-});
-
-bespin.tiki.module("bespin:util/util",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-/**
- * Create an object representing a de-serialized query section of a URL.
- * Query keys with multiple values are returned in an array.
- * <p>Example: The input "foo=bar&foo=baz&thinger=%20spaces%20=blah&zonk=blarg&"
- * Produces the output object:
- * <pre>{
- *   foo: [ "bar", "baz" ],
- *   thinger: " spaces =blah",
- *   zonk: "blarg"
- * }
- * </pre>
- * <p>Note that spaces and other urlencoded entities are correctly handled
- * @see dojo.queryToObject()
- * While dojo.queryToObject() is mainly for URL query strings, this version
- * allows to specify a separator character
- */
-exports.queryToObject = function(str, seperator) {
-    var ret = {};
-    var qp = str.split(seperator || "&");
-    var dec = decodeURIComponent;
-    qp.forEach(function(item) {
-        if (item.length) {
-            var parts = item.split("=");
-            var name = dec(parts.shift());
-            var val = dec(parts.join("="));
-            if (exports.isString(ret[name])){
-                ret[name] = [ret[name]];
-            }
-            if (Array.isArray(ret[name])){
-                ret[name].push(val);
-            } else {
-                ret[name] = val;
-            }
-        }
-    });
-    return ret;
-};
-
-/**
- * Takes a name/value mapping object and returns a string representing a
- * URL-encoded version of that object for use in a GET request
- * <p>For example, given the input:
- * <code>{ blah: "blah", multi: [ "thud", "thonk" ] }</code>
- * The following string would be returned:
- * <code>"blah=blah&multi=thud&multi=thonk"</code>
- * @param map {Object} The object to convert
- * @return {string} A URL-encoded version of the input
- */
-exports.objectToQuery = function(map) {
-    // FIXME: need to implement encodeAscii!!
-    var enc = encodeURIComponent;
-    var pairs = [];
-    var backstop = {};
-    for (var name in map) {
-        var value = map[name];
-        if (value != backstop[name]) {
-            var assign = enc(name) + "=";
-            if (value.isArray) {
-                for (var i = 0; i < value.length; i++) {
-                    pairs.push(assign + enc(value[i]));
-                }
-            } else {
-                pairs.push(assign + enc(value));
-            }
-        }
-    }
-    return pairs.join("&");
-};
-
-/**
- * Holds the count to keep a unique value for setTimeout
- * @private See rateLimit()
- */
-var nextRateLimitId = 0;
-
-/**
- * Holds the timeouts so they can be cleared later
- * @private See rateLimit()
- */
-var rateLimitTimeouts = {};
-
-/**
- * Delay calling some function to check that it's not called again inside a
- * maxRate. The real function is called after maxRate ms unless the return
- * value of this function is called before, in which case the clock is restarted
- */
-exports.rateLimit = function(maxRate, scope, func) {
-    if (maxRate) {
-        var rateLimitId = nextRateLimitId++;
-
-        return function() {
-            if (rateLimitTimeouts[rateLimitId]) {
-                clearTimeout(rateLimitTimeouts[rateLimitId]);
-            }
-
-            rateLimitTimeouts[rateLimitId] = setTimeout(function() {
-                func.apply(scope, arguments);
-                delete rateLimitTimeouts[rateLimitId];
-            }, maxRate);
-        };
-    }
-};
-
-/**
- * Return true if it is a String
- */
-exports.isString = function(it) {
-    return (typeof it == "string" || it instanceof String);
-};
-
-/**
- * Returns true if it is a Boolean.
- */
-exports.isBoolean = function(it) {
-    return (typeof it == 'boolean');
-};
-
-/**
- * Returns true if it is a Number.
- */
-exports.isNumber = function(it) {
-    return (typeof it == 'number' && isFinite(it));
-};
-
-/**
- * Hack copied from dojo.
- */
-exports.isObject = function(it) {
-    return it !== undefined &&
-        (it === null || typeof it == "object" ||
-        Array.isArray(it) || exports.isFunction(it));
-};
-
-/**
- * Is the passed object a function?
- * From dojo.isFunction()
- */
-exports.isFunction = (function() {
-    var _isFunction = function(it) {
-        var t = typeof it; // must evaluate separately due to bizarre Opera bug. See #8937
-        //Firefox thinks object HTML element is a function, so test for nodeType.
-        return it && (t == "function" || it instanceof Function) && !it.nodeType; // Boolean
+        return promise._value;
     };
-
-    return exports.isSafari ?
-        // only slow this down w/ gratuitious casting in Safari (not WebKit)
-        function(/*anything*/ it) {
-            if (typeof it == "function" && it == "[object NodeList]") {
-                return false;
-            }
-            return _isFunction(it); // Boolean
-        } : _isFunction;
-})();
-
-/**
- * A la Prototype endsWith(). Takes a regex excluding the '$' end marker
- */
-exports.endsWith = function(str, end) {
-    if (!str) {
-        return false;
-    }
-    return str.match(new RegExp(end + "$"));
-};
-
-/**
- * A la Prototype include().
- */
-exports.include = function(array, item) {
-    return array.indexOf(item) > -1;
-};
-
-/**
- * Like include, but useful when you're checking for a specific
- * property on each object in the list...
- *
- * Returns null if the item is not in the list, otherwise
- * returns the index of the item.
- */
-exports.indexOfProperty = function(array, propertyName, item) {
-    for (var i = 0; i < array.length; i++) {
-        if (array[i][propertyName] == item) {
-            return i;
-        }
-    }
-    return null;
-};
-
-/**
- * A la Prototype last().
- */
-exports.last = function(array) {
-    if (Array.isArray(array)) {
-        return array[array.length - 1];
-    }
-};
-
-/**
- * Knock off any undefined items from the end of an array
- */
-exports.shrinkArray = function(array) {
-    var newArray = [];
-
-    var stillAtBeginning = true;
-    array.reverse().forEach(function(item) {
-        if (stillAtBeginning && item === undefined) {
-            return;
-        }
-
-        stillAtBeginning = false;
-
-        newArray.push(item);
-    });
-
-    return newArray.reverse();
-};
-
-/**
- * Create an array
- * @param number The size of the new array to create
- * @param character The item to put in the array, defaults to ' '
- */
-exports.makeArray = function(number, character) {
-    if (number < 1) {
-        return []; // give us a normal number please!
-    }
-    if (!character){character = ' ';}
-
-    var newArray = [];
-    for (var i = 0; i < number; i++) {
-        newArray.push(character);
-    }
-    return newArray;
-};
-
-/**
- * Repeat a string a given number of times.
- * @param string String to repeat
- * @param repeat Number of times to repeat
- */
-exports.repeatString = function(string, repeat) {
-    var newstring = '';
-
-    for (var i = 0; i < repeat; i++) {
-        newstring += string;
-    }
-
-    return newstring;
-};
-
-/**
- * Given a row, find the number of leading spaces.
- * E.g. an array with the string "  aposjd" would return 2
- * @param row The row to hunt through
- */
-exports.leadingSpaces = function(row) {
-    var numspaces = 0;
-    for (var i = 0; i < row.length; i++) {
-        if (row[i] == ' ' || row[i] == '' || row[i] === undefined) {
-            numspaces++;
-        } else {
-            return numspaces;
-        }
-    }
-    return numspaces;
-};
-
-/**
- * Given a row, find the number of leading tabs.
- * E.g. an array with the string "\t\taposjd" would return 2
- * @param row The row to hunt through
- */
-exports.leadingTabs = function(row) {
-    var numtabs = 0;
-    for (var i = 0; i < row.length; i++) {
-        if (row[i] == '\t' || row[i] == '' || row[i] === undefined) {
-            numtabs++;
-        } else {
-            return numtabs;
-        }
-    }
-    return numtabs;
-};
-
-/**
- * Given a row, extract a copy of the leading spaces or tabs.
- * E.g. an array with the string "\t    \taposjd" would return an array with the
- * string "\t    \t".
- * @param row The row to hunt through
- */
-exports.leadingWhitespace = function(row) {
-    var leading = [];
-    for (var i = 0; i < row.length; i++) {
-        if (row[i] == ' ' || row[i] == '\t' || row[i] == '' || row[i] === undefined) {
-            leading.push(row[i]);
-        } else {
-            return leading;
-        }
-    }
-    return leading;
-};
-
-/**
- * Given a camelCaseWord convert to "Camel Case Word"
- */
-exports.englishFromCamel = function(camel) {
-    camel.replace(/([A-Z])/g, function(str) {
-        return " " + str.toLowerCase();
-    }).trim();
-};
-
-/**
- * I hate doing this, but we need some way to determine if the user is on a Mac
- * The reason is that users have different expectations of their key combinations.
- *
- * Take copy as an example, Mac people expect to use CMD or APPLE + C
- * Windows folks expect to use CTRL + C
- */
-exports.OS = {
-    LINUX: 'LINUX',
-    MAC: 'MAC',
-    WINDOWS: 'WINDOWS'
-};
-
-var ua = navigator.userAgent;
-var av = navigator.appVersion;
-
-/** Is the user using a browser that identifies itself as Linux */
-exports.isLinux = av.indexOf("Linux") >= 0;
-
-/** Is the user using a browser that identifies itself as Windows */
-exports.isWindows = av.indexOf("Win") >= 0;
-
-/** Is the user using a browser that identifies itself as WebKit */
-exports.isWebKit = parseFloat(ua.split("WebKit/")[1]) || undefined;
-
-/** Is the user using a browser that identifies itself as Chrome */
-exports.isChrome = parseFloat(ua.split("Chrome/")[1]) || undefined;
-
-/** Is the user using a browser that identifies itself as Mac OS */
-exports.isMac = av.indexOf("Macintosh") >= 0;
-
-/* Is this Firefox or related? */
-exports.isMozilla = av.indexOf('Gecko/') >= 0;
-
-if (ua.indexOf("AdobeAIR") >= 0) {
-    exports.isAIR = 1;
-}
-
-/**
- * Is the user using a browser that identifies itself as Safari
- * See also:
- * - http://developer.apple.com/internet/safari/faq.html#anchor2
- * - http://developer.apple.com/internet/safari/uamatrix.html
- */
-var index = Math.max(av.indexOf("WebKit"), av.indexOf("Safari"), 0);
-if (index && !exports.isChrome) {
-    // try to grab the explicit Safari version first. If we don't get
-    // one, look for less than 419.3 as the indication that we're on something
-    // "Safari 2-ish".
-    exports.isSafari = parseFloat(av.split("Version/")[1]);
-    if (!exports.isSafari || parseFloat(av.substr(index + 7)) <= 419.3) {
-        exports.isSafari = 2;
-    }
-}
-
-if (ua.indexOf("Gecko") >= 0 && !exports.isWebKit) {
-    exports.isMozilla = parseFloat(av);
-}
-
-/**
- * Return a exports.OS constant
- */
-exports.getOS = function() {
-    if (exports.isMac) {
-        return exports.OS['MAC'];
-    } else if (exports.isLinux) {
-        return exports.OS['LINUX'];
-    } else {
-        return exports.OS['WINDOWS'];
-    }
-};
-
-/** Returns true if the DOM element "b" is inside the element "a". */
-if (typeof(document) !== 'undefined' && document.compareDocumentPosition) {
-    exports.contains = function(a, b) {
-        return a.compareDocumentPosition(b) & 16;
-    };
-} else {
-    exports.contains = function(a, b) {
-        return a !== b && (a.contains ? a.contains(b) : true);
-    };
-}
-
-/**
- * Prevents propagation and clobbers the default action of the passed event
- */
-exports.stopEvent = function(ev) {
-    ev.preventDefault();
-    ev.stopPropagation();
-};
-
-/**
- * Create a random password of the given length (default 16 chars)
- */
-exports.randomPassword = function(length) {
-    length = length || 16;
-    var chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
-    var pass = "";
-    for (var x = 0; x < length; x++) {
-        var charIndex = Math.floor(Math.random() * chars.length);
-        pass += chars.charAt(charIndex);
-    }
-    return pass;
-};
-
-/**
- * Is the passed object free of members, i.e. are there any enumerable
- * properties which the objects claims as it's own using hasOwnProperty()
- */
-exports.isEmpty = function(object) {
-    for (var x in object) {
-        if (object.hasOwnProperty(x)) {
-            return false;
-        }
-    }
-    return true;
-};
-
-/**
- * Does the name of a project indicate that it is owned by someone else
- * TODO: This is a major hack. We really should have a File object that include
- * separate owner information.
- */
-exports.isMyProject = function(project) {
-    return project.indexOf("+") == -1;
-};
-
-/**
- * Format a date as dd MMM yyyy
- */
-exports.formatDate = function (date) {
-    if (!date) {
-        return "Unknown";
-    }
-    return date.getDate() + " " +
-        exports.formatDate.shortMonths[date.getMonth()] + " " +
-        date.getFullYear();
-};
-
-/**
- * Month data for exports.formatDate
- */
-exports.formatDate.shortMonths = [ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ];
-
-/**
- * Add a CSS class to the list of classes on the given node
- */
-exports.addClass = function(node, className) {
-    var parts = className.split(/\s+/);
-    var cls = " " + node.className + " ";
-    for (var i = 0, len = parts.length, c; i < len; ++i) {
-        c = parts[i];
-        if (c && cls.indexOf(" " + c + " ") < 0) {
-            cls += c + " ";
-        }
-    }
-    node.className = cls.trim();
-};
-
-/**
- * Remove a CSS class from the list of classes on the given node
- */
-exports.removeClass = function(node, className) {
-    var cls;
-    if (className !== undefined) {
-        var parts = className.split(/\s+/);
-        cls = " " + node.className + " ";
-        for (var i = 0, len = parts.length; i < len; ++i) {
-            cls = cls.replace(" " + parts[i] + " ", " ");
-        }
-        cls = cls.trim();
-    } else {
-        cls = "";
-    }
-    if (node.className != cls) {
-        node.className = cls;
-    }
-};
-
-/**
- * Add or remove a CSS class from the list of classes on the given node
- * depending on the value of <tt>include</tt>
- */
-exports.setClass = function(node, className, include) {
-    if (include) {
-        exports.addClass(node, className);
-    } else {
-        exports.removeClass(node, className);
-    }
-};
-
-/**
- * Is the passed object either null or undefined (using ===)
- */
-exports.none = function(obj) {
-    return obj === null || obj === undefined;
-};
-
-/**
- * Creates a clone of the passed object.  This function can take just about
- * any type of object and create a clone of it, including primitive values
- * (which are not actually cloned because they are immutable).
- * If the passed object implements the clone() method, then this function
- * will simply call that method and return the result.
- * @param object {Object} the object to clone
- * @returns {Object} the cloned object
- */
-exports.clone = function(object, deep) {
-    if (Array.isArray(object) && !deep) {
-        return object.slice();
-    }
-
-    if (typeof object === 'object' || Array.isArray(object)) {
-        if (object === null) {
-            return null;
-        }
-
-        var reply = (Array.isArray(object) ? [] : {});
-        for (var key in object) {
-            if (deep && (typeof object[key] === 'object'
-                            || Array.isArray(object[key]))) {
-                reply[key] = exports.clone(object[key], true);
-            } else {
-                 reply[key] = object[key];
-            }
-        }
-        return reply;
-    }
-
-    if (object.clone && typeof(object.clone) === 'function') {
-        return object.clone();
-    }
-
-    // That leaves numbers, booleans, undefined. Doesn't it?
-    return object;
-};
-
-
-/**
- * Helper method for extending one object with another
- * Copies all properties from source to target. Returns the extended target
- * object.
- * Taken from John Resig, http://ejohn.org/blog/javascript-getters-and-setters/.
- */
-exports.mixin = function(a, b) {
-    for (var i in b) {
-        var g = b.__lookupGetter__(i);
-        var s = b.__lookupSetter__(i);
-
-        if (g || s) {
-            if (g) {
-                a.__defineGetter__(i, g);
-            }
-            if (s) {
-                a.__defineSetter__(i, s);
-            }
-        } else {
-            a[i] = b[i];
-        }
-    }
-
-    return a;
-};
-
-/**
- * Basically taken from Sproutcore.
- * Replaces the count items from idx with objects.
- */
-exports.replace = function(arr, idx, amt, objects) {
-    return arr.slice(0, idx).concat(objects).concat(arr.slice(idx + amt));
-};
-
-/**
- * Return true if the two frames match.  You can also pass only points or sizes.
- * @param r1 {Rect} the first rect
- * @param r2 {Rect} the second rect
- * @param delta {Float} an optional delta that allows for rects that do not match exactly. Defaults to 0.1
- * @returns {Boolean} true if rects match
- */
-exports.rectsEqual = function(r1, r2, delta) {
-    if (!r1 || !r2) {
-        return r1 == r2;
-    }
-
-    if (!delta && delta !== 0) {
-        delta = 0.1;
-    }
-
-    if ((r1.y != r2.y) && (Math.abs(r1.y - r2.y) > delta)) {
-        return false;
-    }
-
-    if ((r1.x != r2.x) && (Math.abs(r1.x - r2.x) > delta)) {
-        return false;
-    }
-
-    if ((r1.width != r2.width) && (Math.abs(r1.width - r2.width) > delta)) {
-        return false;
-    }
-
-    if ((r1.height != r2.height) && (Math.abs(r1.height - r2.height) > delta)) {
-        return false;
-    }
-
-    return true;
 };
 
 });
