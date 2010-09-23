@@ -21,7 +21,7 @@ from django.contrib import messages
 from base.shortcuts import get_object_or_create, get_object_with_related_or_404, get_random_string
 from utils.os_utils import whereis
 
-from jetpack.models import Package, PackageRevision, Module, Attachment
+from jetpack.models import Package, PackageRevision, Module, Attachment, SDK
 from jetpack import settings
 from jetpack.package_helpers import get_package_revision
 from jetpack.xpi_utils import xpi_remove 
@@ -39,7 +39,7 @@ def package_browser(r, page_number=1, type=None, username=None):
 	"""
 	# calculate which template to use
 	template_suffix = ''
-	packages = Package.objects
+	packages = Package.objects.active()
 
 	if username:
 		author = User.objects.get(username=username)
@@ -126,10 +126,12 @@ def package_edit(r, id, type, revision_number=None, version_name=None, latest=Fa
 		
 	libraries = revision.dependencies.all()
 	library_counter = len(libraries)
+	edit_mode = True
 	if revision.package.is_addon():
 		corelibrary = Package.objects.get(id_number=settings.MINIMUM_PACKAGE_ID)
 		corelibrary = corelibrary.latest
 		library_counter += 1
+		sdk_list = SDK.objects.all()
 
 	return render_to_response("%s_edit.html" % revision.package.get_type_name(), locals(),
 				context_instance=RequestContext(r))
@@ -231,6 +233,25 @@ def package_remove_module(r, id, type, revision_number):
 				{'revision': revision, 'module': module},
 				context_instance=RequestContext(r),
 				mimetype='application/json')
+
+
+@require_POST
+@login_required
+def package_switch_sdk(r, id, revision_number):
+	revision = get_package_revision(id, 'a', revision_number)
+	if r.user.pk != revision.author.pk:
+		return HttpResponseForbidden('You are not the author of this Add-on')
+	
+	sdk_id = r.POST.get('id', None)
+	sdk = SDK.objects.get(id=sdk_id)
+	revision.sdk = sdk
+	revision.save()
+
+	return render_to_response("json/sdk_switched.json", 
+				{'revision': revision, 'sdk': sdk},
+				context_instance=RequestContext(r),
+				mimetype='application/json')
+
 
 
 @require_POST
@@ -587,7 +608,8 @@ def package_test_xpi(r, id, revision_number=None, version_name=None):
 										revision.package.get_unique_package_name(), 
 										revision.package.name
 										]), 
- 					'rm_xpi_url': reverse('jp_rm_xpi', args=[revision.get_sdk_name()])
+ 					'rm_xpi_url': reverse('jp_rm_xpi', args=[revision.get_sdk_name()]),
+					'addon_name': '"%s (%s)"' % (revision.package.full_name, revision.get_version_name())
  				},
 				context_instance=RequestContext(r))
 			#	mimetype='application/json')

@@ -3,6 +3,7 @@
 	"download_xpi_url": "{{ download_xpi_url }}", 
 	"rm_xpi_url": "{{ rm_xpi_url }}",
 	"stdout": "{{ stdout|escapejs }}", 
-	"stderr": "{{ stderr|escapejs }}"
+	"stderr": "{{ stderr|escapejs }}",
+	"name": "{{ addon_name }}"
 }
 

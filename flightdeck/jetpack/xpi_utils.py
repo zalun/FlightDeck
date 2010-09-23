@@ -10,12 +10,12 @@ import stat
 from jetpack import settings
 
 
-def sdk_copy(sdk_dir):
+def sdk_copy(sdk_source, sdk_dir=None):
 	""" 
-	copy the sdk to the sdk_dir
+	copy the sdk_source to the sdk_dir
 	create cfx.sh which will set environment and call 'real' cfx
 	"""
-	shutil.copytree('%s/src/jetpack-sdk' % settings.VIRTUAL_ENV, sdk_dir)
+	shutil.copytree(sdk_source, sdk_dir)
 	# create cfx.sh
 	handle = open('%s/bin/cfx.sh' % sdk_dir, 'w')
 	handle.write("""#!/bin/bash

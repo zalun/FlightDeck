@@ -99,3 +99,13 @@
       .UI_File_Listing li.UI_File_Normal a {
          
       }
+
+	  /* Core Library */
+	  .UI_File_Listing li.Core_library a {
+	     width: 160px;
+		 display: inline;
+	  }
+	  .UI_File_Listing li.Core_library #jetpack_core_sdk_version {
+
+	  } 
+	  
