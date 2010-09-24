@@ -120,10 +120,20 @@ INSTALLED_APPS.extend([
 	'django.contrib.sessions',
 	'django.contrib.sites',
 	'django.contrib.markup',
-	'django.contrib.messages',
-	# extensions
-	'django_extensions',
-	'debug_toolbar',
+	'django.contrib.messages'
+	])
+
+try:
+	import django_extensions
+	INSTALLED_APPS.append('django_extensions')
+except:
+	""
+try:
+	import debug_toolbar
+	INSTALLED_APPS.append('debug_toolbar')
+except:
+	""
+INSTALLED_APPS.extend([
 	# database migrations
 	# 'south',
 	# FlightDeck apps
