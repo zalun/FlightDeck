@@ -35532,7 +35532,7 @@ var getCSSProperty = function(element, container, property) {
 bespin.useBespin = function(element, options) {
     var util = bespin.tiki.require('bespin:util/util');
 
-    var baseConfig = {};
+    var baseConfig = {"settings": {"theme": "white"}};
     var baseSettings = baseConfig.settings;
     options = options || {};
     for (var key in options) {
