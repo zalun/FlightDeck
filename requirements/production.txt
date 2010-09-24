@@ -3,7 +3,8 @@
 # Django
 Django>=1.1.1
 
-# Database migrations
+# Database 
+mysql-python
 South
 
 # AMO scraping 

@@ -1,9 +1,6 @@
 import MySQLdb
 import hashlib
 
-from mechanize import Browser
-from BeautifulSoup import BeautifulSoup
-
 from django.contrib.auth.models import User
 from django.utils.encoding import smart_str
 

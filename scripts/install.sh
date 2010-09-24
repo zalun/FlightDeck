@@ -12,6 +12,12 @@ else
 	REQUIREMENTS='production'
 fi
 
+if [ ! -e $V_ENV ]
+then
+	echo "creating virtual environment: $V_ENV"
+	virtualenv --no-site-packages $V_ENV
+fi
+
 pip install -E $V_ENV/ -r $PROJECT_DIR/requirements/$REQUIREMENTS.txt
 
 
@@ -104,19 +110,19 @@ then
 	else
 		hg clone -r 0.6 http://hg.mozilla.org/labs/jetpack-sdk/
 	fi
-	# link libs unable to install via pip
-	CUDDLEFISH=$PROJECT_DIR/sdk_versions/jetpack-sdk/python-lib/cuddlefish
-	if [ -e $SITE_PACKAGES/cuddlefish ]
-	then
-		rm $SITE_PACKAGES/cuddlefish
-	fi
-	ln -fs $CUDDLEFISH $SITE_PACKAGES/cuddlefish
+fi
 
+
+# link libs unable to install via pip
+if [ ! -e $SITE_PACKAGES/cuddlefish ]
+then
+	CUDDLEFISH=$PROJECT_DIR/sdk_versions/jetpack-sdk/python-lib/cuddlefish
+	ln -fs $CUDDLEFISH $SITE_PACKAGES/cuddlefish
+fi
+
+if [ ! -e $SITE_PACKAGES/ecdsa ]
+then
 	ECDSA=$PROJECT_DIR/sdk_versions/jetpack-sdk/python-lib/ecdsa
-	if [ -e $SITE_PACKAGES/ecdsa ]
-	then
-		rm $SITE_PACKAGES/ecdsa
-	fi
 	ln -fs $ECDSA $SITE_PACKAGES/ecdsa
 fi
 
