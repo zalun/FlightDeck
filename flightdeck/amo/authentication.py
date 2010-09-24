@@ -92,7 +92,7 @@ class AMOAuthentication:
 	
 	def auth_db_authenticate(self, username, password):
 		" authenticate email/password pair in MAO database "
-		columns = ('email','username','display_name','password','nickname','homepage','location','user_id')
+		columns = ('id', 'email','username','display_name','password','homepage')
 
 		auth_conn = MySQLdb.connect(
 			host=settings.AUTH_DATABASE['HOST'],
@@ -119,7 +119,7 @@ class AMOAuthentication:
 		if not valid:
 			return None
 
-		username = user_data['user_id']
+		username = user_data['id']
 		self.user_data = user_data
 		return username
 
@@ -133,16 +133,10 @@ def update_profile(user, profile, data):
 				user.lastname = names[-1]
 			user.save()
 	
-	if 'nickname' in data:
-		profile.nickname = data['nickname']
-	if 'location' in data:
-		profile.location = data['location']
-	if 'occupation' in data:
-		profile.occupation = data['occupation']
+	if 'username' in data:
+		profile.nickname = data['username']
 	if 'homepage' in data:
 		profile.homepage = data['homepage']
-	if 'photo' in data:
-		profile.photo = data['photo']
 
 	profile.save()
 
