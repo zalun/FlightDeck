@@ -176,14 +176,3 @@ def create_jetpack_core(sdk_dir_name='jetpack-sdk'):
 
 
 
-def install_jetpack_core(sender, created_models, **kwargs):
-	# check if that's the syncdb to create jetpack models
-	if not (jetpack_models.Package in created_models and \
-			jetpack_models.PackageRevision in created_models):
-		return
-	
-	create_jetpack_core()
-	print "Jetpack Core Library created successfully"
-
-signals.post_syncdb.connect(install_jetpack_core, sender=jetpack_models)
-

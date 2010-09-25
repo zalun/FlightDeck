@@ -1,0 +1,21 @@
+# requirements for production environment
+
+# Django
+Django>=1.1.1
+
+# Database 
+mysql-python
+South
+
+# AMO scraping 
+# wsgiref
+# mechanize
+# BeautifulSoup
+# ElementTree
+
+# parse packages for documentation
+simplejson
+Markdown
+
+# search functionality
+-e git+git://github.com/toastdriven/django-haystack#egg=django_haystack

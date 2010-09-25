@@ -1,0 +1,24 @@
+# requirements for development
+
+# load everything from production
+-r production.txt
+
+# virtualenv
+yolk
+
+# runserver additions
+django-debug-toolbar
+django-extensions
+
+# documentation
+docutils
+Sphinx
+
+# tests
+-e git://github.com/jbalogh/test-utils.git#egg=test-utils
+-e git://github.com/jbalogh/django-nose.git#egg=django_nose
+nose
+# coverage==3.2b4
+# selenium==1.0.1
+mock
+# translate-toolkit==1.6.0

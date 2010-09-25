@@ -28,11 +28,6 @@ from jetpack import settings
 from jetpack.package_helpers import get_package_revision
 from jetpack.xpi_utils import xpi_remove 
 
-def homepage(r):
-	"""
-	Get mixed packages for homepage
-	"""
-	return HttpResponse("Homepage here")
 
 def package_browser(r, page_number=1, type=None, username=None):
 	"""
