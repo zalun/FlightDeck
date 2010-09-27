@@ -7,22 +7,30 @@ from jetpack import settings
 from jetpack.models import Package
 from jetpack.errors import 	SelfDependencyException, FilenameExistException, \
 							UpdateDeniedException, AddingModuleDenied, AddingAttachmentDenied, \
-							SDKCopyException
+							SingletonCopyException
 
-class CoreLibTestCase(TestCase):
 
+class PackageTest(TestCase):
 	fixtures = ['mozilla_user', 'users', 'core_sdk']
 
-	def test_findCoreLibrary(self):
-		sdk = Package.objects.get(id_number=settings.MINIMUM_PACKAGE_ID)
-		self.failUnless(sdk)
-		self.failUnless(sdk.is_library())
+	def test_addon_creation(self):
+		author = User.objects.get(username='john')
+		package = Package(
+			author=author,
+			type='a'
+		)
+		package.save()
+		# all packages have assigned an incremental id_number 
+		self.failUnless(package.id_number)
+		self.assertEqual(int(package.id_number), settings.MINIMUM_PACKAGE_ID + 1)
+		# all add-ons have PackageRevision created
+		self.failUnless(package.version and package.latest)
+		self.assertEqual(package.version.id, package.latest.id)
+		# name is created automtically if no given
+		self.failUnless(package.full_name)
+		self.failUnless(package.name)
 
-	def test_preventFromCopying(self):
-		sdk = Package.objects.get(id_number=settings.MINIMUM_PACKAGE_ID)
-		author = Mock()
-		self.assertRaises(SDKCopyException, sdk.copy, author)
-		
+
 
 """
 # Commenting out all tests
@@ -44,67 +52,9 @@ from jetpack.errors import 	SelfDependencyException, FilenameExistException, \
 							UpdateDeniedException, AddingModuleDenied, AddingAttachmentDenied
 from jetpack.xpi_utils import sdk_copy, xpi_build, xpi_remove
 
-class PackageTestCase(TestCase):
-
-	def setUp(self):
-		self.to_delete = []
-		self.user = create_test_user(username=TEST_USERNAME)
-		self.addon = Package(
-			full_name=TEST_ADDON_FULLNAME, 
-			author=self.user, 
-			type='a'
-		)
-		self.addon.save()
-		self.to_delete.append(self.addon)
-		self.library = Package(
-			full_name=TEST_LIBRARY_FULLNAME, 
-			author=self.user, 
-			type='l'
-		)
-		self.library.save()
-		self.to_delete.append(self.library)
-
-	def tearDown(self):
-		self.user.delete()
-		for o in self.to_delete:
-			try:
-				o.delete()
-			except:
-				print 'Object %s can\'t be deleted' % str(o)
-
-		test_dirs = ['%s/test' % settings.UPLOAD_DIR, SDKDIR]
-		for test_dir in test_dirs:
-			if os.path.isdir(test_dir):
-				shutil.rmtree(test_dir)
-
-	def mkUploadDir(self):
-		os.mkdir('%s/test' % settings.UPLOAD_DIR)
-	
-	def createFile(self):
-		self.mkUploadDir()
-		handle = open('%s/%s' % (settings.UPLOAD_DIR, TEST_UPLOAD_PATH), 'w')
-		handle.write('test uploaded file')
-		handle.close()
-
-
 
 class PackageTest(PackageTestCase):
 	# self user, addon, library are created
-
-	def test_addon_creation(self):
-		addon = Package.objects.get(full_name=TEST_ADDON_FULLNAME)
-		self.failUnless(addon)
-		self.assertEqual(addon.id_number, str(settings.MINIMUM_PACKAGE_ID))
-		self.failUnless(addon.version)
-		self.failUnless(addon.latest)
-
-
-	def test_library_creation(self):
-		library = Package.objects.get(full_name=TEST_LIBRARY_FULLNAME)
-		self.failUnless(library)
-		self.assertEqual(library.id_number, str(settings.MINIMUM_PACKAGE_ID + 1))
-		self.failUnless(library.version)
-		self.failUnless(library.latest)
 
 
 	def test_name_creation(self):

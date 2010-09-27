@@ -16,7 +16,7 @@ from jetpack import settings
 from jetpack.managers import PackageManager
 from jetpack.errors import 	SelfDependencyException, FilenameExistException, \
 							UpdateDeniedException, AddingModuleDenied, AddingAttachmentDenied, \
-							SDKCopyException
+							SingletonCopyException
 from jetpack.xpi_utils import sdk_copy, xpi_build, xpi_remove 
 
 
@@ -63,7 +63,7 @@ class Package(models.Model):
 	# url for the Manifest
 	url = models.URLField(verify_exists=False, blank=True, default='')
 
-	# license on which this package is rekeased to the public
+	# license on which this package is released to the public
 	license = models.CharField(max_length=255, blank=True, default='')
 
 	# where to export modules
@@ -73,9 +73,12 @@ class Package(models.Model):
 	version_name = models.CharField(max_length=250, blank=True, null=True, 
 									default=settings.INITIAL_VERSION_NAME)
 
+	# Revision which is setting the version name
 	version = models.ForeignKey('PackageRevision', blank=True, null=True, related_name='package_deprecated')
+	# latest saved PackageRevision
 	latest = models.ForeignKey('PackageRevision', blank=True, null=True, related_name='package_deprecated2')
 
+	# signing an add-on
 	private_key = models.TextField(blank=True, null=True)
 	public_key = models.TextField(blank=True, null=True)
 	jid = models.CharField(max_length=255, blank=True, null=True)
@@ -92,37 +95,69 @@ class Package(models.Model):
 
 	objects = PackageManager()
 
+
 	##################
 	# Methods
 
 	def __unicode__(self):
 		return '%s v. %s by %s' % (self.full_name, self.version_name, self.author)
 
+
 	def get_absolute_url(self):
+		" returns the URL View Source "
 		return reverse('jp_%s_details' % self.get_type_name(),
 						args=[self.id_number])
 
+
 	def get_latest_url(self):
+		" returns the URL to view the latest saved Revision "
 		return reverse('jp_%s_latest' % self.get_type_name(),
 						args=[self.id_number])
 
+
 	def get_edit_latest_url(self):
+		" returns the URL to edit the latest saved Revision "
 		return reverse('jp_%s_edit_latest' % self.get_type_name(),
 						args=[self.id_number])
 
+
 	def get_disable_url(self):
+		" returns URL to the disable package functionality "
 		return reverse('jp_package_disable',
 						args=[self.id_number])
 
+
 	def get_activate_url(self):
+		" returns URL to activate disabled package "
 		return reverse('jp_package_activate',
 						args=[self.id_number])
 
+
 	def is_addon(self):
+		" returns Boolean: True if this package an Add-on "
 		return self.type == 'a'
 
+
 	def is_library(self):
+		" returns Boolean: True if this package a Library "
 		return self.type == 'l'
+
+
+	def is_core(self):
+		"""
+		returns Boolean: True if this is a SDK Core Library 
+		Used to block copying the package
+		"""
+		return self.id_number != settings.MINIMUM_PACKAGE_ID
+	
+
+	def is_singleton(self):
+		"""
+		Blocks copying the package
+		"""
+		# Core lib is a singleton
+		return self.is_core()
+
 
 	def get_type_name(self):
 		return settings.PACKAGE_SINGULAR_NAMES[self.type]
@@ -135,6 +170,28 @@ class Package(models.Model):
 
 	def get_unique_package_name(self):
 		return "%s-%s" % (self.name, self.id_number)
+
+
+	def set_full_name(self):
+		if self.full_name: return
+
+		def _get_full_name(full_name, username, type, i=0): 
+
+			new_full_name = full_name
+
+			if i > 0:
+				new_full_name = "%s (%d)" % (full_name, i)
+
+			packages = Package.objects.filter(author__username=username, full_name=new_full_name, type=type)
+
+			if len(packages.all()) == 0:
+				return new_full_name
+
+			i = i + 1
+			return _get_full_name(full_name, username, type, i)
+	
+		full_name = 'My Add-on' if self.type == 'a' else 'My Library'
+		self.full_name = _get_full_name(full_name, self.author.username, self.type)
 
 	def set_name(self):
 		self.name = self.make_name()
@@ -183,15 +240,12 @@ class Package(models.Model):
 			full_name = "Copy of %s" % full_name
 		return full_name
 		
-	def is_sdk(self):
-		return self.id_number != settings.MINIMUM_PACKAGE_ID
-	
 	def copy(self, author):
 		"""
 		create copy of the package
 		"""
-		if self.is_sdk():
-			raise SDKCopyException()
+		if self.is_singleton():
+			raise SingletonCopyException()
 
 		new_p = Package(
 			full_name=self.get_copied_full_name(),
@@ -860,11 +914,16 @@ def set_package_id_number(instance, **kwargs):
 	instance.id_number = instance.create_id_number()
 pre_save.connect(set_package_id_number, sender=Package)
 
+def make_full_name(instance, **kwargs):
+	if kwargs.get("raw", False): return
+	if instance.full_name: return
+	instance.set_full_name()
+pre_save.connect(make_full_name, sender=Package)
 
 def make_name(instance, **kwargs):
 	if kwargs.get('raw',False): return
-	if not instance.name:
-		instance.set_name()
+	if instance.name: return
+	instance.set_name()
 pre_save.connect(make_name, sender=Package)
 
 def make_keypair_on_create(instance, **kwargs):
