@@ -29,3 +29,9 @@ class AddingModuleDenied(Exception):
 		self.value = value
 	def __str__(self):
 		return repr(self.value)
+
+class SDKCopyException(Exception):
+	def __init__(self):
+		""
+	def __str__(self):
+		return repr("SDK can't be copied")

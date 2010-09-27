@@ -1,20 +1,28 @@
 import os
+from test_utils import TestCase
+from mock import Mock
 
-TEST_USERNAME = 'test_user'
-TEST_ADDON_FULLNAME = 'test Addon'
-TEST_ADDON_NAME = 'test-addon'
-TEST_LIBRARY_FULLNAME = 'test Library'
-TEST_LIBRARY_NAME = 'test-library'
-TEST_ADDON2_FULLNAME = 'test Addon 2'
-TEST_FILENAME = 'file-name'
-TEST_FILENAME_EXTENSION = 'css'
-TEST_UPLOAD_PATH = 'test/abc'
-SDKDIR = '/tmp/test-SDK'
+from django.contrib.auth.models import User
+from jetpack import settings
+from jetpack.models import Package
+from jetpack.errors import 	SelfDependencyException, FilenameExistException, \
+							UpdateDeniedException, AddingModuleDenied, AddingAttachmentDenied, \
+							SDKCopyException
 
+class CoreLibTestCase(TestCase):
 
-class PackageTestCase(TestCase):
-	def testSomething(self):
-		return True
+	fixtures = ['mozilla_user', 'users', 'core_sdk']
+
+	def test_findCoreLibrary(self):
+		sdk = Package.objects.get(id_number=settings.MINIMUM_PACKAGE_ID)
+		self.failUnless(sdk)
+		self.failUnless(sdk.is_library())
+
+	def test_preventFromCopying(self):
+		sdk = Package.objects.get(id_number=settings.MINIMUM_PACKAGE_ID)
+		author = Mock()
+		self.assertRaises(SDKCopyException, sdk.copy, author)
+		
 
 """
 # Commenting out all tests

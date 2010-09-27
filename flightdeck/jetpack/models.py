@@ -15,7 +15,8 @@ from django.template.defaultfilters import slugify
 from jetpack import settings
 from jetpack.managers import PackageManager
 from jetpack.errors import 	SelfDependencyException, FilenameExistException, \
-							UpdateDeniedException, AddingModuleDenied, AddingAttachmentDenied
+							UpdateDeniedException, AddingModuleDenied, AddingAttachmentDenied, \
+							SDKCopyException
 from jetpack.xpi_utils import sdk_copy, xpi_build, xpi_remove 
 
 
@@ -182,11 +183,16 @@ class Package(models.Model):
 			full_name = "Copy of %s" % full_name
 		return full_name
 		
+	def is_sdk(self):
+		return self.id_number != settings.MINIMUM_PACKAGE_ID
 	
 	def copy(self, author):
 		"""
 		create copy of the package
 		"""
+		if self.is_sdk():
+			raise SDKCopyException()
+
 		new_p = Package(
 			full_name=self.get_copied_full_name(),
 			description=self.description,

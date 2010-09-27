@@ -106,14 +106,20 @@ DEVSERVER_MODULES = (
     'devserver.modules.cache.CacheSummaryModule',
 )
 
+# TESTS
+#TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 
-try:
-	import grappelli
-	INSTALLED_APPS = ['grappelli']
-except:
-	INSTALLED_APPS = []
+# Tests
+TEST_RUNNER = 'test_utils.runner.RadicalTestSuiteRunner'
 
-INSTALLED_APPS.extend([
+# If you want to run Selenium tests, you'll need to have a server running.
+# Then give this a dictionary of settings. Something like:
+# 	'HOST': 'localhost',
+# 	'PORT': 4444,
+# 	'BROWSER': '*firefox', # Alternative: *safari
+SELENIUM_CONFIG = {}
+
+INSTALLED_APPS = [
 	'django.contrib.admin',
 	'django.contrib.auth',
 	'django.contrib.contenttypes',
@@ -121,7 +127,7 @@ INSTALLED_APPS.extend([
 	'django.contrib.sites',
 	'django.contrib.markup',
 	'django.contrib.messages'
-	])
+	]
 
 try:
 	import django_extensions
@@ -133,9 +139,14 @@ try:
 	INSTALLED_APPS.append('debug_toolbar')
 except:
 	""
+
 INSTALLED_APPS.extend([
 	# database migrations
 	# 'south',
+
+	# TESTING
+	'django_nose',
+
 	# FlightDeck apps
 	'base',				# basic flightdeck things (utils, urls)
 	'person',			# user related stuff (profile etc.)
