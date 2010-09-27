@@ -15,6 +15,10 @@ PACKAGE_SINGULAR_NAMES = {
 	'l': 'library',
 	'a': 'addon'
 }
+DEFAULT_PACKAGE_FULLNAME = {
+	'l': 'My Library',
+	'a': 'My Add-on'
+}
 HOMEPAGE_PACKAGES_NUMBER = getattr(settings, 'HOMEPAGE_PACKAGES_NUMBER', 3)
 SDKDIR_PREFIX = '/tmp/SDK'
 LIBRARY_AUTOCOMPLETE_LIMIT = getattr(settings, 

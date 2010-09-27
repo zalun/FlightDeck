@@ -190,8 +190,7 @@ class Package(models.Model):
 			i = i + 1
 			return _get_full_name(full_name, username, type, i)
 	
-		full_name = 'My Add-on' if self.type == 'a' else 'My Library'
-		self.full_name = _get_full_name(full_name, self.author.username, self.type)
+		self.full_name = _get_full_name(settings.DEFAULT_PACKAGE_FULLNAME[self.type], self.author.username, self.type)
 
 	def set_name(self):
 		self.name = self.make_name()

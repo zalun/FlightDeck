@@ -15,6 +15,7 @@ class PackageManager(models.Manager):
 		return self.active().filter(type="l")
 
 
+#TODO: Add Library and Addon managers and use them inside Package and views
 
 class PackageRevisionManager(models.Manager):
 
