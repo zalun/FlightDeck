@@ -64,13 +64,13 @@ class PackageTest(TestCase):
 		Package(author=self.author, type='a').save()
 		Package(author=self.author, type='l').save()
 
-		self.assertEqual(len(list((Package.objects.addons()))), 2)
-		self.assertEqual(len(list((Package.objects.libraries()))), 2)
+		self.assertEqual(Package.objects.addons().count(), 2)
+		self.assertEqual(Package.objects.libraries().count(), 2)
 
 
 	def test_related_name(self):
 		Package(author=self.author, type='a').save()
-		self.assertEqual(len(list(self.author.packages_originated.all())), 1)
+		self.assertEqual(self.author.packages_originated.count(), 1)
 
 
 	def test_unique_package_name(self):

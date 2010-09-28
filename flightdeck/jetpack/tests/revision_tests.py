@@ -1,8 +1,13 @@
 import os
+import shutil
 from test_utils import TestCase
 from mock import Mock
+from exceptions import TypeError
 
 from django.contrib.auth.models import User
+from django.core.urlresolvers import reverse
+
+from person.models import Profile
 from jetpack import settings
 from jetpack.models import Package, PackageRevision
 from jetpack.errors import 	SelfDependencyException, FilenameExistException, \
@@ -15,13 +20,15 @@ class PackageRevisionTest(TestCase):
 
 	def setUp(self):
 		self.author = User.objects.get(username='john')
+		self.addon = self.author.packages_originated.addons()[0:1].get()
+		self.library = self.author.packages_originated.libraries()[0:1].get()
 
 
 	def test_first_revision_creation(self):
 		addon = Package(author=self.author, type='a')
 		addon.save()
 		revisions = PackageRevision.objects.filter(package__pk=addon.pk)
-		self.assertEqual(1, len(list(revisions)))
+		self.assertEqual(1, revisions.count())
 		revision = revisions[0]
 		self.assertEqual(revision.author.username, addon.author.username)
 		self.assertEqual(revision.revision_number, 0)
@@ -37,7 +44,7 @@ class PackageRevisionTest(TestCase):
 		first = revisions[0]
 		first.save()
 		revisions = PackageRevision.objects.filter(package__name=addon.name)
-		self.assertEqual(2, len(list(revisions)))
+		self.assertEqual(2, revisions.count())
 
 		# first is not the same package anymore and it does not have the version_name parameter
 		self.assertEqual(None, first.version_name)
@@ -53,6 +60,124 @@ class PackageRevisionTest(TestCase):
 		self.assertNotEqual(addon.version.revision_number, addon.latest.revision_number)
 
 
+	def test_set_version(self):
+		addon = Package(author=self.author, type='a')
+		addon.save()
+		Profile(user=self.author).save()
+		first = addon.latest
+		old_id = first.id
+		first.set_version('test')
+
+		# setting version does not make new revision
+		self.assertEqual(first.id, old_id)
+
+		# setting version sets it for revision, package and assigns revision to package
+		self.assertEqual(first.version_name,'test')
+		self.assertEqual(first.package.version_name,'test')
+		self.assertEqual(first.package.version.pk, first.pk)
+
+
+	def test_adding_and_removing_dependency(self):
+		revisions = PackageRevision.objects.filter(package__pk=self.addon.pk)
+		count = revisions.count()
+		first = revisions[0]
+		lib = PackageRevision.objects.filter(package__pk=self.library.pk)[0]
+
+		# first depends on lib
+		first.dependency_add(lib)
+		revisions = PackageRevision.objects.filter(package__pk=self.addon.pk)
+
+		# revisions number increased
+		self.assertEqual(count + 1, revisions.count())
+
+		first = revisions[1]
+		second = revisions[0]
+
+		# only the second revision has the dependencies
+		self.assertEqual(0, first.dependencies.count())
+		self.assertEqual(1, second.dependencies.count())
+
+		# remove the dependency
+		second.dependency_remove(lib)
+
+		revisions = PackageRevision.objects.filter(package__pk=self.addon.pk)
+		first = revisions[2]
+		second = revisions[1]
+		third = revisions[0]
+
+		# only the second revision has the dependencies
+		self.assertEqual(0, first.dependencies.count())
+		self.assertEqual(1, second.dependencies.count())
+		self.assertEqual(0, third.dependencies.count())
+		
+
+
+	def test_save_with_dependency(self):
+		# system should copy on save with all dependencies
+		revisions = PackageRevision.objects.filter(package__pk=self.addon.pk)
+		count = revisions.count()
+		first = revisions[0]
+		lib = PackageRevision.objects.filter(package__pk=self.library.pk)[0]
+
+		# make first depends on lib
+		# this is setting dependency in django standard way, to keep revision structure
+		# one should use dependency_add method
+		first.dependencies.add(lib)
+
+		# save creates a new revision
+		first.save()
+		revisions = PackageRevision.objects.filter(package__pk=self.addon.pk)
+		first = revisions[1]
+		second = revisions[0]
+		# both revisions have the same dependencies 
+		self.assertEqual(first.dependencies.count(), second.dependencies.count())
+		self.assertEqual(first.dependencies.all()[0].pk, lib.pk)
+		self.assertEqual(second.dependencies.all()[0].pk, lib.pk)
+
+
+
+	def test_adding_addon_as_dependency(self):
+		" Add-on can't be a dependency "
+		lib = PackageRevision.objects.filter(package__pk=self.library.pk)[0]
+		addon = PackageRevision.objects.filter(package__pk=self.addon.pk)[0]
+		self.assertRaises(TypeError, lib.dependency_add, addon)
+		self.assertEqual(0, lib.dependencies.all().count())
+
+
+
+	def test_adding_library_to_itself_as_dependency(self):
+		" Check recurrent dependency (one level only) "
+		lib = PackageRevision.objects.filter(package__name=self.library.name)[0]
+		self.assertRaises(SelfDependencyException, lib.dependency_add, lib)
+
+
+
+class RevisionIOTest(PackageRevisionTest):
+	" testing saving to disk "
+
+	def setUp(self):
+		super(RevisionIOTest, self).setUp()
+		os.mkdir('/tmp/testupload')
+
+	def tearDown(self):
+		shutil.rmtree('/tmp/testupload')
+
+
+	def test_adding_attachment(self):
+		first = PackageRevision.objects.filter(package__pk=self.addon.pk)[0]
+		first.attachment_create(
+			filename='test',
+			ext='txt',
+			path='/tmp/testupload',
+			author=self.author
+		)
+
+		revisions = PackageRevision.objects.filter(package__pk=self.addon.pk)
+		first = revisions[1]
+		second = revisions[0]
+		
+		self.assertEqual(0, first.attachments.count())
+		self.assertEqual(1, second.attachments.count())
 
 
 """
@@ -78,126 +203,6 @@ from jetpack.xpi_utils import sdk_copy, xpi_build, xpi_remove
 
 class PackageRevisionTest(PackageTestCase):
 	
-	def test_save(self):
-		# system should create new revision on save
-		revisions = PackageRevision.objects.filter(package__name=self.addon.name)
-		first = revisions[0]
-		first.save()
-		revisions = PackageRevision.objects.filter(package__name=self.addon.name)
-		self.assertEqual(2, len(list(revisions)))
-		self.assertEqual(None, first.version_name)
-		addon = Package.objects.get(pk=self.addon.pk)
-		self.assertEqual(addon.latest.revision_number, first.revision_number)
-		self.assertNotEqual(addon.version.revision_number, addon.latest.revision_number)
-
-
-	def test_set_version(self):
-		revisions = PackageRevision.objects.filter(package__name=self.addon.name)
-		first = revisions[0]
-		old_id = first.id
-		first.set_version('test')
-		# setting version does not make new revision
-		self.assertEqual(first.id, old_id)
-		# setting version sets it for revision, package and assigns revision to package
-		self.assertEqual(first.version_name,'test')
-		self.assertEqual(first.package.version_name,'test')
-		self.assertEqual(first.package.version.pk, first.pk)
-		
-	def test_absolute_urls(self):
-		revisions = PackageRevision.objects.filter(package__name=self.addon.name)
-		p_rev = revisions[0]
-		self.assertEqual(
-			reverse('jp_addon_details', args=[self.addon.id_number]),
-			p_rev.get_absolute_url())
-
-		p_rev.set_version('test')
-		self.assertEqual(
-			reverse('jp_addon_details', args=[self.addon.id_number]),
-			p_rev.get_absolute_url())
-
-		p_rev.save()
-		# p_rev needs to be reloaded as package.version points to an instance
-		revisions = PackageRevision.objects.filter(package__name=self.addon.name)
-		p_rev = revisions[0]
-		self.assertEqual(
-			reverse('jp_addon_revision_details', 
-					args=[self.addon.id_number, p_rev.revision_number]),
-			p_rev.get_absolute_url())
-
-		p_rev.set_version('test2', False)
-		self.assertEqual(
-			reverse('jp_addon_version_details', args=[self.addon.id_number, 'test2']),
-			p_rev.get_absolute_url())
-		
-	
-	def test_save_with_dependency(self):
-		# system should copy on save with all dependencies
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[0]
-		lib = PackageRevision.objects.filter(package__name=self.library.name)[0]
-		first.dependencies.add(lib)
-		first.save()
-
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[1]
-		second = PackageRevision.objects.filter(package__name=self.addon.name)[0]
-		self.assertEqual(second.dependencies.all()[0].package.name, lib.package.name)
-		self.assertEqual(
-			first.dependencies.all()[0].package.name, 
-			second.dependencies.all()[0].package.name
-		)
-
-
-	def test_adding_addon_as_dependency(self):
-		lib = PackageRevision.objects.filter(package__name=self.library.name)[0]
-		addon = PackageRevision.objects.filter(package__name=self.addon.name)[0]
-		self.assertRaises(TypeError, lib.dependency_add, addon)
-		self.assertEqual(0, len(lib.dependencies.all()))
-
-
-	def test_adding_library_to_itself_as_dependency(self):
-		lib = PackageRevision.objects.filter(package__name=self.library.name)[0]
-		self.assertRaises(SelfDependencyException, lib.dependency_add, lib)
-
-
-	def test_adding_and_removing_dependency(self):
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[0]
-		lib = PackageRevision.objects.filter(package__name=self.library.name)[0]
-
-		first.dependency_add(lib)
-		revisions = PackageRevision.objects.filter(package__name=self.addon.name)
-		self.assertEqual(2, len(list(revisions)))
-
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[1]
-		second = PackageRevision.objects.filter(package__name=self.addon.name)[0]
-
-		self.assertEqual(0, len(first.dependencies.all()))
-		self.assertEqual(1, len(second.dependencies.all()))
-
-		second.dependency_remove(lib)
-
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[2]
-		second = PackageRevision.objects.filter(package__name=self.addon.name)[1]
-		third = PackageRevision.objects.filter(package__name=self.addon.name)[0]
-
-		self.assertEqual(0, len(first.dependencies.all()))
-		self.assertEqual(1, len(second.dependencies.all()))
-		self.assertEqual(0, len(third.dependencies.all()))
-		
-
-	def test_adding_attachment(self):
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[0]
-		first.attachment_create(
-			filename=TEST_FILENAME,
-			ext=TEST_FILENAME_EXTENSION,
-			path=TEST_UPLOAD_PATH,
-			author=self.user
-		)
-
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[1]
-		second = PackageRevision.objects.filter(package__name=self.addon.name)[0]
-		
-		self.assertEqual(0, len(first.attachments.all()))
-		self.assertEqual(1, len(second.attachments.all()))
-
 
 	def test_adding_module(self):
 		first = PackageRevision.objects.filter(package__name=self.addon.name)[0]
