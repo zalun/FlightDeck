@@ -9,7 +9,7 @@ from django.core.urlresolvers import reverse
 
 from person.models import Profile
 from jetpack import settings
-from jetpack.models import Package, PackageRevision
+from jetpack.models import Package, PackageRevision, Module, Attachment
 from jetpack.errors import 	SelfDependencyException, FilenameExistException, \
 							UpdateDeniedException, AddingModuleDenied, AddingAttachmentDenied, \
 							SingletonCopyException
@@ -22,7 +22,6 @@ class PackageRevisionTest(TestCase):
 		self.author = User.objects.get(username='john')
 		self.addon = self.author.packages_originated.addons()[0:1].get()
 		self.library = self.author.packages_originated.libraries()[0:1].get()
-
 
 	def test_first_revision_creation(self):
 		addon = Package(author=self.author, type='a')
@@ -151,20 +150,32 @@ class PackageRevisionTest(TestCase):
 		self.assertRaises(SelfDependencyException, lib.dependency_add, lib)
 
 
+	def test_adding_module(self):
+		" Test if module is added properly "
+		addon = Package(author=self.author, type='a')
+		addon.save()
+		first = addon.latest
+		# add module
+		first.module_create(
+			filename='test',
+			author=self.author
+		)
 
-class RevisionIOTest(PackageRevisionTest):
-	" testing saving to disk "
-
-	def setUp(self):
-		super(RevisionIOTest, self).setUp()
-		os.mkdir('/tmp/testupload')
-
-	def tearDown(self):
-		shutil.rmtree('/tmp/testupload')
+		" module should be added to the latter only "
+		revisions = addon.revisions.all()
+		first = revisions[1]
+		second = revisions[0]
+		
+		# all add-ons have a default modules created
+		self.assertEqual(1, first.modules.count())
+		self.assertEqual(2, second.modules.count())
 
 
 	def test_adding_attachment(self):
-		first = PackageRevision.objects.filter(package__pk=self.addon.pk)[0]
+		" Test if attachment is added properly "
+		addon = Package(author=self.author, type='a')
+		addon.save()
+		first = addon.latest
 		first.attachment_create(
 			filename='test',
 			ext='txt',
@@ -172,7 +183,8 @@ class RevisionIOTest(PackageRevisionTest):
 			author=self.author
 		)
 
-		revisions = PackageRevision.objects.filter(package__pk=self.addon.pk)
+		" module should be added to the latter revision only "
+		revisions = addon.revisions.all()
 		first = revisions[1]
 		second = revisions[0]
 		
@@ -180,418 +192,107 @@ class RevisionIOTest(PackageRevisionTest):
 		self.assertEqual(1, second.attachments.count())
 
 
-"""
-# Commenting out all tests
-
-import shutil
-import subprocess
-from copy import deepcopy
-from exceptions import TypeError
-
-from django.test import TestCase
-from django.utils import simplejson
-from django.contrib.auth.models import User
-from django.core.urlresolvers import reverse
-
-from test_utils import create_test_user
-from jetpack.models import Package, PackageRevision, Module, Attachment
-from jetpack import settings
-from jetpack.errors import 	SelfDependencyException, FilenameExistException, \
-							UpdateDeniedException, AddingModuleDenied, AddingAttachmentDenied
-from jetpack.xpi_utils import sdk_copy, xpi_build, xpi_remove
-
-
-class PackageRevisionTest(PackageTestCase):
-	
-
-	def test_adding_module(self):
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[0]
-		first.module_create(
-			filename=TEST_FILENAME,
-			author=self.user
-		)
-
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[1]
-		second = PackageRevision.objects.filter(package__name=self.addon.name)[0]
-		
-		self.assertEqual(1, len(first.modules.all()))
-		self.assertEqual(2, len(second.modules.all()))
-
-
 	def test_updating_module(self):
-		
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[0]
+		" Updating module has some additional action "
+		addon = Package(author=self.author, type='a')
+		addon.save()
+		first = addon.latest
 		mod = first.module_create(
-			filename=TEST_FILENAME,
-			author=self.user
+			filename='test_filename',
+			author=self.author
 		)
 		mod.code = 'test'
 		first.module_update(mod)
 
-		self.assertEqual(3, len(PackageRevision.objects.filter(package__name=self.addon.name)))
-		self.assertEqual(2, len(Module.objects.filter(filename=TEST_FILENAME)))
+		# create new revision on module update
+		self.assertEqual(3, addon.revisions.count())
+		self.assertEqual(2, Module.objects.filter(filename='test_filename').count())
 
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[1]
-		last = PackageRevision.objects.filter(package__name=self.addon.name)[0]
+		first = addon.revisions.all()[1]
+		last = addon.revisions.all()[0]
 
-		self.assertEqual(2,len(last.modules.all()))
+		self.assertEqual(2, last.modules.count())
 		
-		
-
-
-	def test_adding_module_which_was_added_to_other_package_before(self):
-		" assigning module to more than one packages should be prevented! "
-		addon = Package.objects.create(
-			full_name="Other Package", 
-			author=self.user, 
-			type='a'
-		)
-		rev = PackageRevision.objects.filter(package__name='other-package')[0]
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[0]
-		mod = Module.objects.create(
-			filename=TEST_FILENAME,
-			author=self.user
-		)
-		first.module_add(mod)
-		self.assertRaises(AddingModuleDenied, rev.module_add, mod)
-		
-
 	def test_adding_module_with_existing_filename(self):
-		
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[0]
+		" filename is unique in package "
+		first = PackageRevision.objects.filter(package__pk=self.addon.pk)[0]
 		first.module_create(
-			filename=TEST_FILENAME,
-			author=self.user
+			filename='test_filename',
+			author=self.author
 		)
+		# Exception on creating the module from PackageRevision
 		self.assertRaises(FilenameExistException, first.module_create,
-			**{'filename':TEST_FILENAME,'author':self.user}
+			**{'filename':'test_filename','author':self.author}
 		)
+		# Exception on adding a different module with the same filename
 		mod = Module.objects.create(
-			filename=TEST_FILENAME,
-			author=self.user
+			filename='test_filename',
+			author=self.author
 		)
 		self.assertRaises(FilenameExistException, first.module_add, mod)
 		
-	def test_adding_attachment_which_was_added_to_other_package_before(self):
-		" assigning attachment to more than one packages should be prevented! "
-		addon = Package.objects.create(
-			full_name="Other Package", 
-			author=self.user, 
-			type='a'
-		)
-		rev = PackageRevision.objects.filter(package__name='other-package')[0]
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[0]
-		att = Attachment.objects.create(
-			filename=TEST_FILENAME,
-			ext=TEST_FILENAME_EXTENSION,
-			path=TEST_UPLOAD_PATH,
-			author=self.user
-		)
-		first.attachment_add(att)
-		self.assertRaises(AddingAttachmentDenied, rev.attachment_add, att)
-		
 
 	def test_adding_attachment_with_existing_filename(self):
-		
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[0]
+		" filname is unique per packagerevision "
+		first = PackageRevision.objects.filter(package__pk=self.addon.pk)[0]
 		first.attachment_create(
-			filename=TEST_FILENAME,
-			ext=TEST_FILENAME_EXTENSION,
-			path=TEST_UPLOAD_PATH,
-			author=self.user
+			filename='test_filename',
+			ext='.txt',
+			path='/tmp/upload_path',
+			author=self.author
 		)
 		self.assertRaises(FilenameExistException, first.attachment_create,
-			**{	'filename': TEST_FILENAME,
-				'ext': TEST_FILENAME_EXTENSION,
-				'author': self.user,
-				'path': TEST_UPLOAD_PATH,
+			**{	'filename': 'test_filename',
+				'ext': '.txt',
+				'author': self.author,
+				'path': '/tmp/upload_path'
 				}
 		)
 
 		att = Attachment.objects.create(
-			filename=TEST_FILENAME,
-			ext=TEST_FILENAME_EXTENSION,
-			path=TEST_UPLOAD_PATH,
-			author=self.user
+			filename='test_filename',
+			ext='.txt',
+			path='/tmp/upload_path',
+			author=self.author
 		)
 		self.assertRaises(FilenameExistException, first.attachment_add, att)
 
+		
+	"""
+	Althought not supported on view and front-en, there is no harm in these two
 
-
-class ModuleTest(PackageTestCase):
-
-	def test_update_module_using_save(self):
-		" updating module is not allowed "
+	def test_adding_module_which_was_added_to_other_package_before(self):
+		" system should prevent from adding a module to more than one packages "
+		addon = Package.objects.create(
+			full_name="Other Package", 
+			author=self.author, 
+			type='a'
+		)
+		rev = addon.latest
+		first = PackageRevision.objects.filter(package__pk=self.addon.pk)[0]
 		mod = Module.objects.create(
-			filename=TEST_FILENAME,
-			author=self.user
+			filename='test_filename',
+			author=self.author
 		)
-		self.assertRaises(UpdateDeniedException,mod.save)
+		first.module_add(mod)
+		self.assertRaises(AddingModuleDenied, rev.module_add, mod)
 
-
-class AttachmentTest(PackageTestCase):
-
-	def setUp(self):
-		super(AttachmentTest, self).setUp()
-		self.attachment = Attachment.objects.create(
-			filename=TEST_FILENAME,
-			ext=TEST_FILENAME_EXTENSION,
-			path=TEST_UPLOAD_PATH,
-			author=self.user
+	def test_adding_attachment_which_was_added_to_other_package_before(self):
+		" assigning attachment to more than one packages should be prevented! "
+		addon = Package.objects.create(
+			full_name="Other Package", 
+			author=self.author, 
+			type='a'
 		)
-		
-
-	def test_update_attachment_using_save(self):
-		" updating attachment is not allowed "
-		self.assertRaises(UpdateDeniedException,self.attachment.save)
-
-	def test_export_file(self):
-		self.createFile()
-		self.attachment.export_file('/tmp')
-		self.failUnless(os.path.isfile('/tmp/%s.%s' % (TEST_FILENAME, TEST_FILENAME_EXTENSION)))
-
-		
-class ManifestsTest(PackageTestCase):
-	" tests strictly about manifest creation "
-
-	manifest = {
-		'fullName': TEST_ADDON_FULLNAME,
-		'name': TEST_ADDON_NAME,
-		'description': '',
-		'author': TEST_USERNAME,
-		'version': settings.INITIAL_VERSION_NAME,
-		'dependencies': ['jetpack-core'],
-		'license': '',
-		'url': '',
-		'main': 'main',
-		'contributors': [],
-		'lib': 'lib'
-	}
-	
-	def test_minimal_manifest(self):
-		" test if self.manifest is created for the clean addon "
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[0]
-
-		manifest = deepcopy(self.manifest)
-		first_manifest = first.get_manifest()
-		del first_manifest['id']
-		self.assertEqual(manifest, first_manifest)
-
-
-	def test_manifest_from_not_current_revision(self):
-		" test if the version in the manifest changes after 'updating' PackageRevision "
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[0]
-		first.save()
-
-		manifest = deepcopy(self.manifest)
-		manifest['version'] = "%s rev. 1" % settings.INITIAL_VERSION_NAME
-
-		first_manifest = first.get_manifest()
-		del first_manifest['id']
-		self.assertEqual(manifest, first_manifest)
-
-
-	def test_manifest_with_dependency(self):
-		" test if Manifest has the right dependency list "
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[0]
-		lib = PackageRevision.objects.filter(package__name=self.library.name)[0]
-		first.dependency_add(lib)
-
-		manifest = deepcopy(self.manifest)
-		manifest['dependencies'].append('%s-%d' % (TEST_LIBRARY_NAME, settings.MINIMUM_PACKAGE_ID + 1))
-		manifest['version'] = "%s rev. 1" % settings.INITIAL_VERSION_NAME
-
-		first_manifest = first.get_manifest()
-		del first_manifest['id']
-		self.assertEqual(manifest, first_manifest)
-
-	def test_contributors_list(self):
-		" test if the contributors list is exported properly "
-		first = PackageRevision.objects.filter(package__name=self.addon.name)[0]
-		first.contributors = "one, 12345, two words,no space"
-		first.save()
-
-		manifest = deepcopy(self.manifest)
-		manifest['version'] = "%s rev. 1" % settings.INITIAL_VERSION_NAME
-		manifest['contributors'] = ['one', '12345', 'two words', 'no space']
-
-		first_manifest = first.get_manifest()
-		del first_manifest['id']
-		self.assertEqual(manifest, first_manifest)
-		
-
-class XPIBuildTest(PackageTest):
-
-	def makeSDKDir(self):
-		os.mkdir (SDKDIR) 
-		os.mkdir('%s/packages' % SDKDIR)
-
-	def setUp(self):
-		super (XPIBuildTest, self).setUp()
-		self.addonrev = PackageRevision.objects.filter(package__name=self.addon.name)[0]
-		self.librev = PackageRevision.objects.filter(package__name=self.library.name)[0]
-		self.librev.module_create(
-			filename=TEST_FILENAME,
-			author=self.user)
-
-
-	def test_package_dir_generation(self):
-		" test if all package dirs are created properly "
-		self.makeSDKDir()
-		package_dir = self.library.make_dir('%s/packages' % SDKDIR)
-		self.failUnless(os.path.isdir(package_dir))
-		self.failUnless(os.path.isdir('%s/%s' % (package_dir, self.library.get_lib_dir())))
-		
-
-	def test_save_modules(self):
-		" test if module is saved "
-		self.makeSDKDir()
-		package_dir = self.library.make_dir('%s/packages' % SDKDIR)
-		self.librev.export_modules('%s/%s' % (package_dir, self.library.get_lib_dir()))
-
-		self.failUnless(os.path.isfile('%s/packages/%s/%s/%s.js' % (
-							SDKDIR, 
-							self.library.get_unique_package_name(), 
-							self.library.get_lib_dir(),
-							TEST_FILENAME)))
-		
-	def test_manifest_file_creation(self):
-		" test if manifest is created properly "
-		self.makeSDKDir()
-		package_dir = self.library.make_dir('%s/packages' % SDKDIR)
-		self.librev.export_manifest(package_dir)
-		self.failUnless(os.path.isfile('%s/package.json' % package_dir))
-		handle = open('%s/package.json' % package_dir)
-		manifest_json = handle.read()
-		manifest = simplejson.loads(manifest_json)
-		self.assertEqual(manifest, self.librev.get_manifest())
-
-		
-	def test_minimal_lib_export(self):
-		" test if all the files are in place "
-		self.makeSDKDir()
-		self.librev.export_files_with_dependencies('%s/packages' % SDKDIR)
-		package_dir = '%s/packages/%s' % (SDKDIR, self.library.get_unique_package_name())
-		self.failUnless(os.path.isdir(package_dir))
-		self.failUnless(os.path.isdir('%s/%s' % (package_dir, self.library.get_lib_dir())))
-		self.failUnless(os.path.isfile('%s/package.json' % package_dir))
-		self.failUnless(os.path.isfile('%s/%s/%s.js' % (
-							package_dir, 
-							self.library.get_lib_dir(),
-							TEST_FILENAME)))
-
-
-	def test_addon_export_with_dependency(self):
-		" test if lib and main.js are properly exported "
-		self.makeSDKDir()
-		addon_dir = '%s/packages/%s' % (SDKDIR, self.addon.get_unique_package_name())
-		lib_dir = '%s/packages/%s' % (SDKDIR, self.library.get_unique_package_name())
-
-		self.addonrev.dependency_add(self.librev)
-		self.addonrev.export_files_with_dependencies('%s/packages' % SDKDIR)
-		self.failUnless(os.path.isdir('%s/%s' % (addon_dir, self.addon.get_lib_dir())))
-		self.failUnless(os.path.isdir('%s/%s' % (lib_dir, self.library.get_lib_dir())))
-		self.failUnless(os.path.isfile('%s/%s/%s.js' % (
-							addon_dir, 
-							self.addon.get_lib_dir(),
-							self.addonrev.module_main)))
-		
-
-	def test_addon_export_with_attachment(self):
-		" test if attachment file is coped "
-		self.makeSDKDir()
-		self.createFile()
-		addon_dir = '%s/packages/%s' % (SDKDIR, self.addon.get_unique_package_name())
-		self.addonrev.attachment_create(
-			filename=TEST_FILENAME,
-			ext=TEST_FILENAME_EXTENSION,
-			path=TEST_UPLOAD_PATH,
-			author=self.user
+		rev = addon.latest
+		first = PackageRevision.objects.filter(package__pk=self.addon.pk)[0]
+		att = Attachment.objects.create(
+			filename='test_filename',
+			ext='.txt',
+			path='/tmp/upload_path',
+			author=self.author
 		)
-		self.addonrev.export_files_with_dependencies('%s/packages' % SDKDIR)
-		self.failUnless(os.path.isfile('%s/%s/%s.%s' % (
-							addon_dir,
-							self.addon.get_data_dir(),
-							TEST_FILENAME, TEST_FILENAME_EXTENSION)))
-
-
-	def test_copying_sdk(self):
-		sdk_copy(SDKDIR)
-		self.failUnless(os.path.isdir(SDKDIR))
-
-
-	def test_minimal_xpi_creation(self):
-		" xpi build from an addon straight after creation "
-		sdk_copy(SDKDIR)
-		self.addonrev.export_files_with_dependencies('%s/packages' % SDKDIR)
-		out = xpi_build(SDKDIR, 
-					'%s/packages/%s' % (SDKDIR, self.addon.get_unique_package_name()))
-		# assert no error output
-		self.assertEqual('', out[1])
-		# assert xpi was created
-		self.failUnless(os.path.isfile('%s/packages/%s/%s.xpi' % (
-			SDKDIR, self.addon.get_unique_package_name(), self.addon.name)))
-
-	def test_addon_with_other_modules(self):
-		" addon has now more modules "
-		self.addonrev.module_create(
-			filename=TEST_FILENAME,
-			author=self.user
-		)
-		sdk_copy(SDKDIR)
-		self.addonrev.export_files_with_dependencies('%s/packages' % SDKDIR)
-		out = xpi_build(SDKDIR, 
-					'%s/packages/%s' % (SDKDIR, self.addon.get_unique_package_name()))
-		# assert no error output
-		self.assertEqual('', out[1])
-		self.failUnless(out[0])
-		# assert xpi was created
-		self.failUnless(os.path.isfile('%s/packages/%s/%s.xpi' % (
-			SDKDIR, self.addon.get_unique_package_name(), self.addon.name)))
-
-
-	def test_xpi_with_empty_dependency(self):
-		" empty lib is created "
-		lib = Package.objects.create(
-			full_name=TEST_LIBRARY_FULLNAME, 
-			author=self.user, 
-			type='l'
-		)
-		librev = PackageRevision.objects.filter(package__id_number=lib.id_number)[0]
-		self.addonrev.dependency_add(librev)
-		sdk_copy(SDKDIR)
-		self.addonrev.export_files_with_dependencies('%s/packages' % SDKDIR)
-		out = xpi_build(SDKDIR, 
-					'%s/packages/%s' % (SDKDIR, self.addon.get_unique_package_name()))
-		# assert no error output
-		self.assertEqual('', out[1])
-		# assert xpi was created
-		self.failUnless(os.path.isfile('%s/packages/%s/%s.xpi' % (
-			SDKDIR, self.addon.get_unique_package_name(), self.addon.name)))
-
-
-	def test_xpi_with_dependency(self):
-		" addon has one dependency with a file "
-		self.addonrev.dependency_add(self.librev)
-		sdk_copy(SDKDIR)
-		self.addonrev.export_files_with_dependencies('%s/packages' % SDKDIR)
-		out = xpi_build(SDKDIR, 
-					'%s/packages/%s' % (SDKDIR, self.addon.get_unique_package_name()))
-		# assert no error output
-		self.assertEqual('', out[1])
-		# assert xpi was created
-		self.failUnless(os.path.isfile('%s/packages/%s/%s.xpi' % (
-			SDKDIR, self.addon.get_unique_package_name(), self.addon.name)))
-		
-
-class ManyUsersTests(TestCase):
-	
-	fixtures = ['test_users.json', 'test_basic_usecase.json']
-
-	def test_fixtures_loaded(self):
-		self.failUnless(User.objects.get(username='1234567'))
-		self.failUnless(Package.objects.all()[0])
-
-"""
-
+		first.attachment_add(att)
+		self.assertRaises(AddingAttachmentDenied, rev.attachment_add, att)	
+	"""
 

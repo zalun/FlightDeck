@@ -582,9 +582,9 @@ class PackageRevision(models.Model):
 		self.save()
 		return self.modules.remove(mod)
 		
-	def module_update(self, mod):
+	def module_update(self, mod, save=True):
 		" to update a module, new package revision has to be created "
-		self.save()
+		if save: self.save()
 		self.modules.remove(mod)
 		mod.id = None
 		mod.save()
@@ -595,10 +595,7 @@ class PackageRevision(models.Model):
 		" update more than one module "
 		self.save()
 		for mod in modules:
-			self.modules.remove(mod)
-			mod.id = None
-			mod.save()
-			self.modules.add(mod)
+			self.module_update(mod, False)
 
 
 	def attachment_create(self, **kwargs):
