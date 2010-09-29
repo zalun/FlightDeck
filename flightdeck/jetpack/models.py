@@ -421,11 +421,8 @@ class PackageRevision(models.Model):
         return "<p>%s</p>" % self.get_full_description().replace("\n","<br/>")
 
     def get_manifest(self, test_in_browser=False):
-        if self.version_name:
-            version = self.version_name
-        else:
-            version = "%s rev. %d" % (self.package.version_name, self.revision_number)
 
+        version = self.get_version_name()
         if test_in_browser:
             version = "%s - test" % version
 
@@ -801,6 +798,8 @@ class PackageRevision(models.Model):
 
     def get_version_name(self):
         return self.version_name if self.version_name else "%s.rev%s" % (self.package.version_name, self.revision_number)
+
+
 
 class Module(models.Model):
     " the only way to 'change' the module is to assign it to different PackageRequest "
