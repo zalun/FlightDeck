@@ -18,6 +18,9 @@ then
 	virtualenv --no-site-packages $V_ENV
 fi
 
+source $V_ENV/bin/activate
+easy_install pip
+
 pip install -E $V_ENV/ -r $PROJECT_DIR/requirements/$REQUIREMENTS.txt
 
 

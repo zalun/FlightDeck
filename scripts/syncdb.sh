@@ -4,5 +4,5 @@ source scripts/environment.sh
 
 # run server
 cd $PROJECT_DIR/$PROJECT_NAME/
-$PYTHON_COMMAND ./manage.py syncdb
+FORCE_DB=True $PYTHON_COMMAND ./manage.py syncdb
 
