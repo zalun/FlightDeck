@@ -1,5 +1,3 @@
-import os
-
 # Set the project version
 PROJECT_VERSION = "1.0a5"
 
@@ -77,7 +75,7 @@ MIDDLEWARE_CLASSES = (
 	'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
 	'debug_toolbar.middleware.DebugToolbarMiddleware',
-) 
+)
 
 TEMPLATE_CONTEXT_PROCESSORS = (
 	'django.core.context_processors.auth',
@@ -96,16 +94,6 @@ TEMPLATE_DIRS = (
 	# Always use forward slashes, even on Windows.
 	# Don't forget to use absolute paths, not relative paths.
 )
-
-DEVSERVER_MODULES = (
-    'devserver.modules.sql.SQLRealTimeModule',
-    'devserver.modules.sql.SQLSummaryModule',
-    'devserver.modules.profile.ProfileSummaryModule',
-
-    # Modules not enabled by default
-    'devserver.modules.cache.CacheSummaryModule',
-)
-
 
 try:
 	import grappelli
@@ -133,6 +121,7 @@ try:
 	INSTALLED_APPS.append('debug_toolbar')
 except:
 	""
+
 INSTALLED_APPS.extend([
 	# database migrations
 	# 'south',
@@ -145,17 +134,9 @@ INSTALLED_APPS.extend([
 	'tutorial',			# Load tutorial templates
 ])
 
-# devserver is optional
-try:
-	import devserver
-	# dev server does not play well with the debug_toolbar - switched off
-	#INSTALLED_APPS.append('devserver')
-except:
-	pass
-
 AUTH_PROFILE_MODULE = 'person.Profile'
 
-AUTHENTICATION_BACKENDS = ( 
+AUTHENTICATION_BACKENDS = (
    'amo.authentication.AMOAuthentication',
 )
 
