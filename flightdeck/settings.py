@@ -1,5 +1,3 @@
-import os
-
 # Set the project version
 PROJECT_VERSION = "1.0a5"
 
@@ -15,12 +13,12 @@ HOMEPAGE_ITEMS_LIMIT = 5
 
 MANAGERS = ADMINS
 
-DATABASE_ENGINE = ''		   # 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-DATABASE_NAME = ''			 # Or path to database file if using sqlite3.
-DATABASE_USER = ''			 # Not used with sqlite3.
-DATABASE_PASSWORD = ''		 # Not used with sqlite3.
-DATABASE_HOST = ''			 # Set to empty string for localhost. Not used with sqlite3.
-DATABASE_PORT = ''			 # Set to empty string for default. Not used with sqlite3.
+DATABASE_ENGINE = ''           # 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+DATABASE_NAME = ''             # Or path to database file if using sqlite3.
+DATABASE_USER = ''             # Not used with sqlite3.
+DATABASE_PASSWORD = ''         # Not used with sqlite3.
+DATABASE_HOST = ''             # Set to empty string for localhost. Not used with sqlite3.
+DATABASE_PORT = ''             # Set to empty string for default. Not used with sqlite3.
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -65,26 +63,26 @@ SECRET_KEY = 'somesecretkey'
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
-	'django.template.loaders.filesystem.load_template_source',
-	'django.template.loaders.app_directories.load_template_source',
-	'django.template.loaders.eggs.load_template_source', # this was commented out
+    'django.template.loaders.filesystem.load_template_source',
+    'django.template.loaders.app_directories.load_template_source',
+    'django.template.loaders.eggs.load_template_source', # this was commented out
 )
 
 MIDDLEWARE_CLASSES = (
-	'django.middleware.common.CommonMiddleware',
-	'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-	'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-	'debug_toolbar.middleware.DebugToolbarMiddleware',
-) 
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+)
 
 TEMPLATE_CONTEXT_PROCESSORS = (
-	'django.core.context_processors.auth',
-	'django.core.context_processors.request',
-	'base.context_processors.settings',
-	'django.contrib.messages.context_processors.messages',
-	'person.context_processors.profile',
+    'django.core.context_processors.auth',
+    'django.core.context_processors.request',
+    'base.context_processors.settings',
+    'django.contrib.messages.context_processors.messages',
+    'person.context_processors.profile',
 )
 
 ROOT_URLCONF = 'flightdeck.urls'
@@ -92,92 +90,74 @@ ROOT_URLCONF = 'flightdeck.urls'
 ADDONS_HELPER_URL = 'https://addons.mozilla.org/firefox/downloads/latest/182410?src=external-builder'
 
 TEMPLATE_DIRS = (
-	# Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
-	# Always use forward slashes, even on Windows.
-	# Don't forget to use absolute paths, not relative paths.
+    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
+    # Always use forward slashes, even on Windows.
+    # Don't forget to use absolute paths, not relative paths.
 )
-
-DEVSERVER_MODULES = (
-    'devserver.modules.sql.SQLRealTimeModule',
-    'devserver.modules.sql.SQLSummaryModule',
-    'devserver.modules.profile.ProfileSummaryModule',
-
-    # Modules not enabled by default
-    'devserver.modules.cache.CacheSummaryModule',
-)
-
-# TESTS
-#TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 
 # Tests
 TEST_RUNNER = 'test_utils.runner.RadicalTestSuiteRunner'
 
+
 # If you want to run Selenium tests, you'll need to have a server running.
 # Then give this a dictionary of settings. Something like:
-# 	'HOST': 'localhost',
-# 	'PORT': 4444,
-# 	'BROWSER': '*firefox', # Alternative: *safari
+#     'HOST': 'localhost',
+#     'PORT': 4444,
+#     'BROWSER': '*firefox', # Alternative: *safari
 SELENIUM_CONFIG = {}
 
 INSTALLED_APPS = [
-	'django.contrib.admin',
-	'django.contrib.auth',
-	'django.contrib.contenttypes',
-	'django.contrib.sessions',
-	'django.contrib.sites',
-	'django.contrib.markup',
-	'django.contrib.messages'
-	]
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.sites',
+    'django.contrib.markup',
+    'django.contrib.messages',
 
-try:
-	import django_extensions
-	INSTALLED_APPS.append('django_extensions')
-except:
-	""
-try:
-	import debug_toolbar
-	INSTALLED_APPS.append('debug_toolbar')
-except:
-	""
+    # database migrations
+    # not implemented yet
+    # 'south',
 
-# TESTING
-try:
-	import django_nose
-	INSTALLED_APPS.append('django_nose')
-except:
-	""
-INSTALLED_APPS.extend([
-	# database migrations
-	# 'south',
+# DEV_APPS
+    'django_extensions',
+    'debug_toolbar',
+    #XXX: Django fails on it
+    #'django_nose',
 
-	# FlightDeck apps
-	'base',				# basic flightdeck things (utils, urls)
-	'person',			# user related stuff (profile etc.)
-	'amo',				# addons.mozilla.org integration (authentication state updates)
-	'jetpack',			# Jetpack functionality
-	'api',				# API browser
-	'tutorial',			# Load tutorial templates
-])
+# FLIGHTDECK APPS
 
-# devserver is optional
-try:
-	import devserver
-	# dev server does not play well with the debug_toolbar - switched off
-	#INSTALLED_APPS.append('devserver')
-except:
-	pass
+    # FlightDeck apps
+    'base',              # basic flightdeck things (utils, urls)
+    'person',            # user related stuff (profile etc.)
+    'amo',               # addons.mozilla.org integration (authentication state updates)
+    'jetpack',           # Jetpack functionality
+    'api',               # API browser
+    'tutorial'           # Load tutorial templates
+]
+
+DEV_APPS = [
+    'django_extensions',
+    'debug_toolbar',
+    'django_nose',
+]
 
 AUTH_PROFILE_MODULE = 'person.Profile'
 
-AUTHENTICATION_BACKENDS = ( 
+AUTHENTICATION_BACKENDS = (
    'amo.authentication.AMOAuthentication',
 )
 
 # overwrite default settings with the ones from settings_local.py
 try:
-	from settings_local import *
+    from settings_local import *
 except:
-	pass
+    pass
+
+if not DEBUG:
+    print "removing devs"
+    for app in DEV_APPS:
+        if app in INSTALLED_APPS:
+            INSTALLED_APPS.remove(app)
 
 execfile(ACTIVATE_THIS, dict(__file__=ACTIVATE_THIS))
-
