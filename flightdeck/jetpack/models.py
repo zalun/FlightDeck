@@ -855,7 +855,7 @@ class Attachment(models.Model):
     # extension name
     ext = models.CharField(max_length=10)
 
-    # upload path
+    # access to the file within upload/ directory
     path = models.CharField(max_length=255)
 
     # user who has uploaded the file

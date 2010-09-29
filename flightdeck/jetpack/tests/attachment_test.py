@@ -15,14 +15,19 @@ class AttachmentTest(TestCase):
 
     def setUp(self):
         self.author = User.objects.get(username='john')
+        " Simulating upload "
+        handle = open(os.path.join(settings.UPLOAD_DIR, 'test_filename.txt'),'w')
+        handle.write('unit test file')
+        handle.close()
         self.attachment = Attachment.objects.create(
             filename='test_filename',
             ext='txt',
-            path='pack_rev_path',
+            path='test_filename.txt',
             author=self.author
         )
-        os.mkdir(os.path.join(settings.UPLOAD_DIR,'pack_rev_path/'))
-        os.mkdir(os.path.join(settings.UPLOAD_DIR,'pack_rev_path/test_filename/'))
+
+    def tearDown(self):
+        os.remove(os.path.join(settings.UPLOAD_DIR, 'test_filename.txt'))
 
     def test_update_attachment_using_save(self):
         " updating attachment is not allowed "
