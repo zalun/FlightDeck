@@ -140,12 +140,15 @@ try:
 except:
 	""
 
+# TESTING
+try:
+	import django_nose
+	INSTALLED_APPS.append('django_nose')
+except:
+	""
 INSTALLED_APPS.extend([
 	# database migrations
 	# 'south',
-
-	# TESTING
-	'django_nose',
 
 	# FlightDeck apps
 	'base',				# basic flightdeck things (utils, urls)

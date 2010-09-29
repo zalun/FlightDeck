@@ -22,3 +22,6 @@ nose
 # selenium==1.0.1
 mock
 # translate-toolkit==1.6.0
+
+#editing
+pylint
