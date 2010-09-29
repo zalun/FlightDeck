@@ -1,10 +1,9 @@
 # requirements for production environment
 
 # Django
-Django==1.2.1
+Django==1.2.3
 
 # Database 
-pysql
 mysql-python
 South
 
