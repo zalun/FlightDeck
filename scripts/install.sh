@@ -14,7 +14,7 @@ fi
 
 if [ ! -e $V_ENV ]
 then
-	echo "creating virtual environment: $V_ENV"
+	echo "FD: creating virtual environment: $V_ENV"
 	virtualenv --no-site-packages $V_ENV
 fi
 

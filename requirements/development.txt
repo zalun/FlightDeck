@@ -16,9 +16,12 @@ Sphinx
 
 # tests
 -e git://github.com/jbalogh/test-utils.git#egg=test-utils
--e git://github.com/jbalogh/django-nose.git#egg=django_nose
+django-nose
 nose
 # coverage==3.2b4
 # selenium==1.0.1
 mock
 # translate-toolkit==1.6.0
+#
+#editing
+pylint
