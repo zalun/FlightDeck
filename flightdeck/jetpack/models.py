@@ -12,7 +12,7 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
 
-from jetpack import settings
+from jetpack import conf
 from jetpack.managers import PackageManager
 from jetpack.errors import  SelfDependencyException, FilenameExistException, \
                             UpdateDeniedException, SingletonCopyException
@@ -70,7 +70,7 @@ class Package(models.Model):
 
     # this is set in the PackageRevision.set_version
     version_name = models.CharField(max_length=250, blank=True, null=True,
-                                    default=settings.INITIAL_VERSION_NAME)
+                                    default=conf.INITIAL_VERSION_NAME)
 
     # Revision which is setting the version name
     version = models.ForeignKey('PackageRevision', blank=True, null=True,
@@ -150,7 +150,7 @@ class Package(models.Model):
         returns Boolean: True if this is a SDK Core Library
         Used to block copying the package
         """
-        return self.id_number != settings.MINIMUM_PACKAGE_ID
+        return self.id_number != conf.MINIMUM_PACKAGE_ID
 
 
     def is_singleton(self):
@@ -162,13 +162,13 @@ class Package(models.Model):
 
 
     def get_type_name(self):
-        return settings.PACKAGE_SINGULAR_NAMES[self.type]
+        return conf.PACKAGE_SINGULAR_NAMES[self.type]
 
     def get_lib_dir(self):
-        return self.lib_dir or settings.DEFAULT_LIB_DIR
+        return self.lib_dir or conf.DEFAULT_LIB_DIR
 
     def get_data_dir(self):
-        return settings.DEFAULT_DATA_DIR
+        return conf.DEFAULT_DATA_DIR
 
     def get_unique_package_name(self):
         return "%s-%s" % (self.name, self.id_number)
@@ -194,7 +194,7 @@ class Package(models.Model):
             i = i + 1
             return _get_full_name(full_name, username, type, i)
 
-        self.full_name = _get_full_name(settings.DEFAULT_PACKAGE_FULLNAME[self.type],
+        self.full_name = _get_full_name(conf.DEFAULT_PACKAGE_FULLNAME[self.type],
                                         self.author.username, self.type)
 
     def set_name(self):
@@ -209,7 +209,7 @@ class Package(models.Model):
         """
         all_packages = Package.objects.all().order_by('-id_number')
         return str(int(all_packages[0].id_number) + 1) \
-                if all_packages else str(settings.MINIMUM_PACKAGE_ID)
+                if all_packages else str(conf.MINIMUM_PACKAGE_ID)
 
     def generate_key(self):
         """
@@ -276,7 +276,7 @@ class PackageRevision(models.Model):
     # public version name
     # this is a tag used to mark important revisions
     version_name = models.CharField(max_length=250, blank=True, null=True,
-                                    default=settings.INITIAL_VERSION_NAME)
+                                    default=conf.INITIAL_VERSION_NAME)
     # this makes the revision unique across the same package/user
     revision_number = models.IntegerField(blank=True, default=0)
     # commit message
@@ -311,7 +311,7 @@ class PackageRevision(models.Model):
     def __unicode__(self):
         version = 'v. %s ' % self.version_name if self.version_name else ''
         return '%s - %s %sr. %d by %s' % (
-                            settings.PACKAGE_SINGULAR_NAMES[self.package.type],
+                            conf.PACKAGE_SINGULAR_NAMES[self.package.type],
                             self.package.full_name, version,
                             self.revision_number, self.author.get_profile()
                             )
@@ -321,10 +321,10 @@ class PackageRevision(models.Model):
             if self.package.version.revision_number == self.revision_number:
                 return self.package.get_absolute_url()
             return reverse(
-                'jp_%s_version_details' % settings.PACKAGE_SINGULAR_NAMES[self.package.type],
+                'jp_%s_version_details' % conf.PACKAGE_SINGULAR_NAMES[self.package.type],
                 args=[self.package.id_number, self.version_name])
         return reverse(
-            'jp_%s_revision_details' % settings.PACKAGE_SINGULAR_NAMES[self.package.type],
+            'jp_%s_revision_details' % conf.PACKAGE_SINGULAR_NAMES[self.package.type],
             args=[self.package.id_number, self.revision_number])
 
 
@@ -696,7 +696,7 @@ class PackageRevision(models.Model):
 
 
     def get_sdk_dir(self):
-        return '%s-%s' % (settings.SDKDIR_PREFIX, self.get_sdk_name())
+        return '%s-%s' % (conf.SDKDIR_PREFIX, self.get_sdk_name())
 
 
     def build_xpi(self):
@@ -756,7 +756,7 @@ class PackageRevision(models.Model):
 
     def export_keys(self, sdk_dir):
         " export private and public keys "
-        keydir = '%s/%s' % (sdk_dir, settings.KEYDIR)
+        keydir = '%s/%s' % (sdk_dir, conf.KEYDIR)
         if not os.path.isdir(keydir):
             os.mkdir(keydir)
         handle = open('%s/%s' % (keydir, self.package.jid), 'w')
@@ -877,7 +877,7 @@ class Attachment(models.Model):
         return super(Attachment, self).save(**kwargs)
 
     def export_file(self, static_dir):
-        shutil.copy('%s/%s' % (settings.UPLOAD_DIR, self.path),
+        shutil.copy('%s/%s' % (conf.UPLOAD_DIR, self.path),
                     '%s/%s.%s' % (static_dir, self.filename, self.ext))
 
     def get_display_url(self):
@@ -903,7 +903,7 @@ class SDK(models.Model):
         return self.version
 
     def get_source_dir(self):
-        return os.path.join(settings.SDK_SOURCE_DIR, self.dir)
+        return os.path.join(conf.SDK_SOURCE_DIR, self.dir)
 
 
 
