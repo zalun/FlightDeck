@@ -1,7 +1,7 @@
 from copy import deepcopy
 from test_utils import TestCase
 from jetpack.models import Package
-from jetpack import settings
+from jetpack import conf
 
 class ManifestsTest(TestCase):
     " tests strictly about manifest creation "
@@ -14,7 +14,7 @@ class ManifestsTest(TestCase):
         'name': 'test-addon',
         'description': '',
         'author': 'john',
-        'version': settings.INITIAL_VERSION_NAME,
+        'version': conf.INITIAL_VERSION_NAME,
         'dependencies': ['jetpack-core'],
         'license': '',
         'url': '',
@@ -45,7 +45,7 @@ class ManifestsTest(TestCase):
         first.save()
 
         manifest = deepcopy(self.manifest)
-        manifest['version'] = "%s.rev1" % settings.INITIAL_VERSION_NAME
+        manifest['version'] = "%s.rev1" % conf.INITIAL_VERSION_NAME
 
         first_manifest = first.get_manifest()
         del first_manifest['id']
@@ -59,8 +59,8 @@ class ManifestsTest(TestCase):
         first.dependency_add(lib)
 
         manifest = deepcopy(self.manifest)
-        manifest['dependencies'].append('%s-%d' % ('test-library', settings.MINIMUM_PACKAGE_ID + 2))
-        manifest['version'] = "%s.rev1" % settings.INITIAL_VERSION_NAME
+        manifest['dependencies'].append('%s-%d' % ('test-library', conf.MINIMUM_PACKAGE_ID + 2))
+        manifest['version'] = "%s.rev1" % conf.INITIAL_VERSION_NAME
 
         first_manifest = first.get_manifest()
         del first_manifest['id']
@@ -74,7 +74,7 @@ class ManifestsTest(TestCase):
         first.save()
 
         manifest = deepcopy(self.manifest)
-        manifest['version'] = "%s.rev1" % settings.INITIAL_VERSION_NAME
+        manifest['version'] = "%s.rev1" % conf.INITIAL_VERSION_NAME
         manifest['contributors'] = ['one', '12345', 'two words', 'no space']
 
         first_manifest = first.get_manifest()

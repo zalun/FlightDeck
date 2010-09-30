@@ -5,7 +5,7 @@ from test_utils import TestCase
 
 from django.contrib.auth.models import User
 
-from jetpack import settings
+from jetpack import conf
 from jetpack.models import Package, PackageRevision, Module
 from jetpack.xpi_utils import sdk_copy, xpi_build
 
@@ -103,7 +103,7 @@ class XPIBuildTest(TestCase):
         " test if attachment file is coped "
         self.makeSDKDir()
         # create attachment in upload dir
-        handle = open(os.path.join(settings.UPLOAD_DIR, 'test_filename.txt'),'w')
+        handle = open(os.path.join(conf.UPLOAD_DIR, 'test_filename.txt'),'w')
         handle.write('unit test file')
         handle.close()
         addon_dir = '%s/packages/%s' % (self.SDKDIR, self.addon.get_unique_package_name())
