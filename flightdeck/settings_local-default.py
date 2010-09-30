@@ -1,5 +1,4 @@
 import os.path
-import re
 
 FRAMEWORK_PATH = os.path.dirname(os.path.dirname(__file__)) +'/'
 
