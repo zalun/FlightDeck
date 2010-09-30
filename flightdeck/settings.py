@@ -122,8 +122,7 @@ INSTALLED_APPS = [
 # DEV_APPS
     'django_extensions',
     'debug_toolbar',
-    #XXX: Django fails on it
-    #'django_nose',
+    'django_nose',
 
 # FLIGHTDECK APPS
 

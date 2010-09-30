@@ -1,7 +1,7 @@
 # requirements for production environment
 
 # Django
-Django>=1.1.1
+Django==1.2.3
 
 # Database 
 mysql-python

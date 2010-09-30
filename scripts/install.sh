@@ -16,6 +16,7 @@ if [ ! -e $V_ENV ]
 then
 	echo "FD: creating virtual environment: $V_ENV"
 	virtualenv --no-site-packages $V_ENV
+	#virtualenv $V_ENV
 fi
 
 source $V_ENV/bin/activate
