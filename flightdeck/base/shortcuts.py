@@ -5,15 +5,15 @@ from django.shortcuts import _get_queryset
 from django.http import Http404
 
 def get_object_or_create(klass, *args, **kwargs):
-	if isinstance(klass, Manager):
-		manager = klass
-		klass = manager.model
-	else:
-		manager = klass._default_manager
-	try:
-		return manager.get(*args, **kwargs)
-	except klass.DoesNotExist:
-		return manager.create(*args, **kwargs)
+    if isinstance(klass, Manager):
+        manager = klass
+        klass = manager.model
+    else:
+        manager = klass._default_manager
+    try:
+        return manager.get(*args, **kwargs)
+    except klass.DoesNotExist:
+        return manager.create(*args, **kwargs)
 
 
 def get_object_with_related_or_404(klass, *args, **kwargs):
@@ -34,8 +34,8 @@ def get_object_with_related_or_404(klass, *args, **kwargs):
         raise Http404('No %s matches the given query.' % queryset.model._meta.object_name)
 
 def get_random_string(number=10, prefix=''):
-	allowed_chars='abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-	if prefix:
-		prefix = '%s-' % prefix
-	return '%s%s' % (prefix, ''.join([choice(allowed_chars) for i in range(number)]))
-	
+    allowed_chars='abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    if prefix:
+        prefix = '%s-' % prefix
+    return '%s%s' % (prefix, ''.join([choice(allowed_chars) for i in range(number)]))
+
