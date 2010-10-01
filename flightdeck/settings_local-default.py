@@ -40,9 +40,10 @@ ADMIN_MEDIA_ROOT = os.path.join(FRAMEWORK_PATH,
 # dot command path (for the graphviz app)
 #GRAPHVIZ_DOT_CMD = '/usr/bin/dot'
 
-ACTIVATE_THIS = '/path/to/flightdeckenv/bin/activate_this.py'
-VIRTUAL_ENV = '/path/to/flightdeckenv'
-VIRTUAL_SITE_PACKAGES = '/path/to/flightdeckenv/lib/python-2.6/site-packages'
+VIRTUAL_ENV = os.path.join(FRAMEWORK_PATH, 'flightdeckenv')
+ACTIVATE_THIS = os.path.join(FRAMEWORK_PATH, 'bin/activate_this.py')
+VIRTUAL_SITE_PACKAGES = os.path.join(FRAMEWORK_PATH,
+                                     'lib/python-2.6/site-packages')
 
 SDK_SOURCE_DIR = os.path.join(FRAMEWORK_PATH, 'sdk_versions/')
 
