@@ -154,7 +154,6 @@ except:
     pass
 
 if not DEBUG:
-    print "removing devs"
     for app in DEV_APPS:
         if app in INSTALLED_APPS:
             INSTALLED_APPS.remove(app)

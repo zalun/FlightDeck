@@ -404,7 +404,7 @@ def package_save(r, id, type, revision_number=None, version_name=None):
         save_package = False
         try:
             revision.set_version(version_name)
-        except Exception as err:
+        except Exception, err:
             return HttpResponseForbidden(err.__str__())
 
     if save_package:
@@ -487,7 +487,7 @@ def package_assign_library(r, id, type, revision_number=None, version_name=None)
 
     try:
         revision.dependency_add(lib_revision)
-    except Exception as err:
+    except Exception, err:
         return HttpResponseForbidden(err.__str__())
 
 
@@ -515,7 +515,7 @@ def package_remove_library(r, id, type, revision_number):
 
     try:
         revision.dependency_remove_by_id_number(id_number)
-    except Exception as err:
+    except Exception, err:
         return HttpResponseForbidden(err.__unicode__())
 
     return render_to_response('json/dependency_removed.json',
