@@ -33,9 +33,3 @@ def get_object_with_related_or_404(klass, *args, **kwargs):
     except queryset.model.DoesNotExist:
         raise Http404('No %s matches the given query.' % queryset.model._meta.object_name)
 
-def get_random_string(number=10, prefix=''):
-    allowed_chars='abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-    if prefix:
-        prefix = '%s-' % prefix
-    return '%s%s' % (prefix, ''.join([choice(allowed_chars) for i in range(number)]))
-
