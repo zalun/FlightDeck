@@ -15,7 +15,7 @@
 		<ul class="UI_Pagination">
 			{% if pager.has_previous %}
 				<li class="UI_Pagin_Action prev">
-					<span></span> 
+					<span></span>
 					<a title="" href="{% url jp_browser_libraries_page pager.previous_page_number %}">
 						Previous
 					</a>
@@ -25,7 +25,7 @@
 			{% if pager.has_next %}
 				<li class="UI_Pagin_Action next">
 					<a title="" href="{% url jp_browser_libraries_page pager.next_page_number %}">Next</a>
-					<span></span> 
+					<span></span>
 				</li>
 			{% endif %}
 		</ul>

@@ -5,7 +5,7 @@
 			<a href="{% url person_public_profile revision.package.author.username %}">
 				{{ revision.package.author.get_profile }}
 			</a>
-		</p> 
+		</p>
 		{% if revision.revision_number == revision.package.version.revision_number %}
 			<p><strong>Version</strong> {{ revision.version_name }}</p>
 		{% else %}

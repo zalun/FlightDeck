@@ -12,14 +12,14 @@ fd.item = new Package.Edit({
 			// url: '',
 			license: '{{ revision.package.license }}',
 			package_version_name: '{{ revision.package.version_name }}',
-			version_url: '{{ revision.package.version.get_absolute_url }}', 
-			latest_utl: '{{ revision.package.latest.get_absolute_url }}', 
+			version_url: '{{ revision.package.version.get_absolute_url }}',
+			latest_utl: '{{ revision.package.latest.get_absolute_url }}',
 		// revision specific data
 			revision_verion_name: '{{ revision.version_name }}',
 			revision_number: '{{ revision.revision_number }}',
 			// message: '', // commit message
-			dependencies: {{ revision.get_dependencies_list_json|safe }}, 
-			origin_url: '{{ revision.origin.get_absolute_url }}', 
+			dependencies: {{ revision.get_dependencies_list_json|safe }},
+			origin_url: '{{ revision.origin.get_absolute_url }}',
 			revision_author: '{{ revision.author }}',
 			switch_sdk_url: '{{ revision.get_switch_sdk_url }}',
 			modules: {{ revision.get_modules_list_json|safe }},
@@ -32,5 +32,3 @@ fd.item = new Package.Edit({
 		assign_library_url: '{{ revision.get_assign_library_url }}',
 		remove_library_url: '{{ revision.get_remove_library_url }}'
 });
-
-
