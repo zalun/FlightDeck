@@ -1,6 +1,6 @@
 import os.path
 
-FRAMEWORK_PATH = os.path.dirname(os.path.dirname(__file__)) +'/'
+FRAMEWORK_PATH = os.path.dirname(os.path.dirname(__file__)) + '/'
 
 ADMINS = (
    # ('Your Name', 'your_email@domain.com'),
@@ -8,12 +8,14 @@ ADMINS = (
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3', # Change 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': os.path.join(FRAMEWORK_PATH,'dev.db'),                      # Or path to database file if using sqlite3.
-        'USER': '',                      # Not used with sqlite3.
-        'PASSWORD': '',                  # Not used with sqlite3.
-        'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
-        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+        'ENGINE': 'django.db.backends.sqlite3',
+        # Change 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3'
+        'NAME': os.path.join(FRAMEWORK_PATH, 'dev.db'),
+        # Or path to database file if using sqlite3.
+        'USER': '',
+        'PASSWORD': '',
+        'HOST': '',
+        'PORT': '',
     }
 }
 
@@ -28,8 +30,9 @@ DEBUG = False
 
 INTERNAL_IPS = ('127.0.0.1',)
 
-MEDIA_ROOT =  os.path.join(FRAMEWORK_PATH, 'flightdeck/media/')
-ADMIN_MEDIA_ROOT = os.path.join(FRAMEWORK_PATH, 'flightdeck/adminmedia/')
+MEDIA_ROOT = os.path.join(FRAMEWORK_PATH, 'flightdeck/media/')
+ADMIN_MEDIA_ROOT = os.path.join(FRAMEWORK_PATH,
+                                'flightdeck/adminmedia/')
 #MEDIA_URL = '/sitemedia/'
 #MEDIA_SERVER = ''
 #ADMIN_MEDIA_PREFIX = ''.join([MEDIA_SERVER,'/adminmedia/'])
@@ -44,13 +47,13 @@ VIRTUAL_SITE_PACKAGES = '/path/to/flightdeckenv/lib/python-2.6/site-packages'
 SDK_SOURCE_DIR = os.path.join(FRAMEWORK_PATH, 'sdk_versions/')
 
 """
-# uncomment if FlightDeck should authenticate against database and not scrape AMO
+# uncomment if FlightDeck should authenticate against database
 AUTH_DATABASE = {
-	'NAME': '',
-	'TABLE': 'users',
-	'USER': '',
-	'PASSWORD': '',
-	'HOST': '',
-	'PORT': '' 							 # Set to empty string for default.
+    'NAME': '',
+    'TABLE': 'users',
+    'USER': '',
+    'PASSWORD': '',
+    'HOST': '',
+    'PORT': ''
 } # it's always MySQL!
 """
