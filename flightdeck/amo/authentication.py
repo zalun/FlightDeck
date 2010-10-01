@@ -9,13 +9,13 @@ from amo import conf
 
 DEFAULT_AMO_PASSWORD = 'saved in AMO'
 
+
 class AMOAuthentication:
 
     def authenticate(self, username, password):
         """
             Authenticate user by contacting with AMO
         """
-
 
         # TODO: Validate alphanum + .-_@
 
@@ -37,7 +37,6 @@ class AMOAuthentication:
         except User.DoesNotExist:
             # username does not exist in FD database
             user = None
-
 
         # if access to the FD is limited
         if conf.AMO_LIMITED_ACCESS:
@@ -79,17 +78,16 @@ class AMOAuthentication:
         # update profile and return User instance
         return update_profile(user, profile, self.user_data)
 
-
     def get_user(self, user_id):
         try:
             return User.objects.get(pk=user_id)
         except:
             return None
 
-
     def auth_db_authenticate(self, username, password):
         " authenticate email/password pair in MAO database "
-        columns = ('id', 'email','username','display_name','password','homepage')
+        columns = ('id', 'email', 'username', 'display_name', 'password',
+                   'homepage')
 
         auth_conn = MySQLdb.connect(
             host=conf.AUTH_DATABASE['HOST'],
@@ -98,7 +96,8 @@ class AMOAuthentication:
             db=conf.AUTH_DATABASE['NAME']
         )
         auth_cursor = auth_conn.cursor()
-        SQL = 'SELECT %s FROM %s WHERE email="%s"' % (','.join(columns), conf.AUTH_DATABASE['TABLE'], username)
+        SQL = ('SELECT %s FROM %s WHERE email="%s"'
+              ) % (','.join(columns), conf.AUTH_DATABASE['TABLE'], username)
         auth_cursor.execute(SQL)
         data = auth_cursor.fetchone()
         user_data = {}
@@ -108,7 +107,8 @@ class AMOAuthentication:
             return None
 
         if '$' not in user_data['password']:
-            valid = (get_hexdigest('md5', '', password) == user_data['password'])
+            valid = (get_hexdigest('md5', '',
+                                   password) == user_data['password'])
         else:
             algo, salt, hsh = user_data['password'].split('$')
             valid = (hsh == get_hexdigest(algo, salt, password))

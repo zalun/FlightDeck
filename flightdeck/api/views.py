@@ -5,13 +5,14 @@ from cuddlefish import apiparser
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 
-
 from api import conf
 
+
 def _get_module_filenames(package_name):
-    files = os.listdir(os.path.join(conf.SDKPACKAGESDIR,package_name,'docs'))
+    files = os.listdir(os.path.join(conf.SDKPACKAGESDIR, package_name, 'docs'))
     files.sort()
     return files
+
 
 def _get_module_names(package_name):
     DOC_FILES = _get_module_filenames(package_name)
@@ -24,12 +25,16 @@ def homepage(r, package_name='jetpack-core'):
     page = 'apibrowser'
 
     sdk_version = conf.SDKVERSION
-    package = {'name': package_name, 'modules': _get_module_names(package_name)}
+    package = {'name': package_name,
+               'modules': _get_module_names(package_name)}
 
     return render_to_response(
         'api_homepage.html',
-        locals(),
-        context_instance=RequestContext(r))
+        {'page': page,
+         'sdk_version': sdk_version,
+         'package': package,
+         'package_name': package_name
+        }, context_instance=RequestContext(r))
 
 
 def package(r, package_name='jetpack-core'):
@@ -44,7 +49,8 @@ def package(r, package_name='jetpack-core'):
 
     package = {'name': package_name, 'modules': []}
     for d in DOC_FILES:
-        text = open(os.path.join(conf.SDKPACKAGESDIR,package_name,'docs',d)).read()
+        text = open(
+            os.path.join(conf.SDKPACKAGESDIR, package_name, 'docs', d)).read()
         (doc_name, extension) = os.path.splitext(d)
         # changing the tuples to dictionaries
         hunks = list(apiparser.parse_hunks(text))
@@ -58,17 +64,25 @@ def package(r, package_name='jetpack-core'):
             'hunks': hunks
         })
 
+    print locals()
     return render_to_response(
         'package_doc.html',
-        locals(),
+        {'page': page,
+         'sdk_version': sdk_version,
+         'package': package,
+         'package_name': package_name,
+        },
         context_instance=RequestContext(r))
+
 
 def module(r, package_name, module_name):
     page = 'apibrowser'
 
     sdk_version = conf.SDKVERSION
-    doc_file = '.'.join((module_name,'md'))
-    text = open(os.path.join(conf.SDKPACKAGESDIR,package_name,'docs',doc_file)).read()
+    doc_file = '.'.join((module_name, 'md'))
+    text = open(
+        os.path.join(conf.SDKPACKAGESDIR,
+                     package_name, 'docs', doc_file)).read()
     # changing the tuples to dictionaries
     hunks = list(apiparser.parse_hunks(text))
     data = []
@@ -85,9 +99,15 @@ def module(r, package_name, module_name):
         'data': data,
         'hunks': hunks
     }
-    package = {'name': package_name, 'modules': _get_module_names(package_name)}
+    package = {'name': package_name,
+               'modules': _get_module_names(package_name)}
 
     return render_to_response(
         'module_doc.html',
-        locals(),
+        {'page': page,
+         'sdk_version': sdk_version,
+         'package': package,
+         'package_name': package_name,
+         'module': module
+        },
         context_instance=RequestContext(r))

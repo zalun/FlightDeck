@@ -9,6 +9,7 @@ from django.contrib.auth.models import User
 from jetpack.models import Module
 from jetpack.errors import UpdateDeniedException
 
+
 class ModuleTest(TestCase):
     " Testing module methods "
 
@@ -22,4 +23,3 @@ class ModuleTest(TestCase):
             author=author
         )
         self.assertRaises(UpdateDeniedException, mod.save)
-

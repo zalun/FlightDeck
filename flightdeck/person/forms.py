@@ -1,7 +1,9 @@
 from django import forms
 from django.contrib.auth import authenticate
-from django.contrib.auth.forms import AuthenticationForm as ContribAuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm \
+        as ContribAuthenticationForm
 from django.utils.translation import ugettext_lazy as _
+
 
 class AuthenticationForm(ContribAuthenticationForm):
     username = forms.CharField(label=_("Email address"), max_length=255)
@@ -12,12 +14,17 @@ class AuthenticationForm(ContribAuthenticationForm):
 
         if username and password:
             try:
-                self.user_cache = authenticate(username=username, password=password)
+                self.user_cache = authenticate(username=username,
+                                               password=password)
             except Exception as err:
-                raise forms.ValidationError(_("Authentication process is broken please <a href=\"https://bugzilla.mozilla.org/show_bug.cgi?id=570360\">let us know</a><br>%s" % err.__str__()))
+                raise forms.ValidationError(_(
+                   ("Authentication process is broken please "
+                    "<a href=\"https://bugzilla.mozilla.org/show_bug.cgi"
+                    "?id=570360\">let us know</a><br>%s") % err.__str__()))
 
             if self.user_cache is None:
-                raise forms.ValidationError(_("""Your email and addons.mozilla.org password didn't match.
+                raise forms.ValidationError(_(
+                    """Your email and addons.mozilla.org password didn't match.
 Please try again.
 Note that both fields are case-sensitive."""))
 
@@ -27,6 +34,8 @@ Note that both fields are case-sensitive."""))
         # TODO: determine whether this should move to its own method.
         if self.request:
             if not self.request.session.test_cookie_worked():
-                raise forms.ValidationError(_("Your Web browser doesn't appear to have cookies enabled. Cookies are required for logging in."))
+                raise forms.ValidationError(_(
+                    ("Your Web browser doesn't appear to have cookies enabled."
+                     " Cookies are required for logging in.")))
 
         return self.cleaned_data

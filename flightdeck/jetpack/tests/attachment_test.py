@@ -7,16 +7,16 @@ from jetpack import conf
 from jetpack.models import Attachment
 from jetpack.errors import UpdateDeniedException
 
+
 class AttachmentTest(TestCase):
     " Testing attachment methods "
 
     fixtures = ['nozilla', 'core_sdk', 'users', 'packages']
 
-
     def setUp(self):
         self.author = User.objects.get(username='john')
         " Simulating upload "
-        handle = open(os.path.join(conf.UPLOAD_DIR, 'test_filename.txt'),'w')
+        handle = open(os.path.join(conf.UPLOAD_DIR, 'test_filename.txt'), 'w')
         handle.write('unit test file')
         handle.close()
         self.attachment = Attachment.objects.create(
@@ -33,8 +33,6 @@ class AttachmentTest(TestCase):
         " updating attachment is not allowed "
         self.assertRaises(UpdateDeniedException, self.attachment.save)
 
-
     def test_export_file(self):
         self.attachment.export_file('/tmp')
         self.failUnless(os.path.isfile('/tmp/test_filename.txt'))
-

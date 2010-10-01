@@ -10,12 +10,10 @@ from jetpack.errors import SelfDependencyException, FilenameExistException
 class PackageRevisionTest(TestCase):
     fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']
 
-
     def setUp(self):
         self.author = User.objects.get(username='john')
         self.addon = self.author.packages_originated.addons()[0:1].get()
         self.library = self.author.packages_originated.libraries()[0:1].get()
-
 
     def test_first_revision_creation(self):
         addon = Package(author=self.author, type='a')
@@ -28,7 +26,6 @@ class PackageRevisionTest(TestCase):
         self.assertEqual(revision.pk, addon.latest.pk)
         self.assertEqual(revision.pk, addon.version.pk)
 
-
     def test_save(self):
         # system should create new revision on save
         addon = Package(author=self.author, type='a')
@@ -39,19 +36,22 @@ class PackageRevisionTest(TestCase):
         revisions = PackageRevision.objects.filter(package__name=addon.name)
         self.assertEqual(2, revisions.count())
 
-        # first is not the same package anymore and it does not have the version_name parameter
+        # first is not the same package anymore and it does not have
+        # the version_name parameter
         self.assertEqual(None, first.version_name)
 
         # "old" addon doesn't know about the changes
-        self.assertNotEqual(addon.latest.revision_number, first.revision_number)
+        self.assertNotEqual(addon.latest.revision_number,
+                            first.revision_number)
 
         # reloading addon to update changes
         addon = first.package
 
         # first is the latest
-        self.assertEqual(addon.latest.revision_number, first.revision_number)
-        self.assertNotEqual(addon.version.revision_number, addon.latest.revision_number)
-
+        self.assertEqual(addon.latest.revision_number,
+                         first.revision_number)
+        self.assertNotEqual(addon.version.revision_number,
+                            addon.latest.revision_number)
 
     def test_set_version(self):
         addon = Package(author=self.author, type='a')
@@ -64,11 +64,11 @@ class PackageRevisionTest(TestCase):
         # setting version does not make new revision
         self.assertEqual(first.id, old_id)
 
-        # setting version sets it for revision, package and assigns revision to package
-        self.assertEqual(first.version_name,'test')
-        self.assertEqual(first.package.version_name,'test')
+        # setting version sets it for revision, package
+        # and assigns revision to package
+        self.assertEqual(first.version_name, 'test')
+        self.assertEqual(first.package.version_name, 'test')
         self.assertEqual(first.package.version.pk, first.pk)
-
 
     def test_adding_and_removing_dependency(self):
         revisions = PackageRevision.objects.filter(package__pk=self.addon.pk)
@@ -103,18 +103,15 @@ class PackageRevisionTest(TestCase):
         self.assertEqual(1, second.dependencies.count())
         self.assertEqual(0, third.dependencies.count())
 
-
-
     def test_save_with_dependency(self):
         # system should copy on save with all dependencies
         revisions = PackageRevision.objects.filter(package__pk=self.addon.pk)
-        count = revisions.count()
         first = revisions[0]
         lib = PackageRevision.objects.filter(package__pk=self.library.pk)[0]
 
         # make first depends on lib
-        # this is setting dependency in django standard way, to keep revision structure
-        # one should use dependency_add method
+        # it's setting dependency in django standard way, to keep
+        # revision structure
         first.dependencies.add(lib)
 
         # save creates a new revision
@@ -123,11 +120,10 @@ class PackageRevisionTest(TestCase):
         first = revisions[1]
         second = revisions[0]
         # both revisions have the same dependencies
-        self.assertEqual(first.dependencies.count(), second.dependencies.count())
+        self.assertEqual(first.dependencies.count(),
+                         second.dependencies.count())
         self.assertEqual(first.dependencies.all()[0].pk, lib.pk)
         self.assertEqual(second.dependencies.all()[0].pk, lib.pk)
-
-
 
     def test_adding_addon_as_dependency(self):
         " Add-on can't be a dependency "
@@ -136,13 +132,11 @@ class PackageRevisionTest(TestCase):
         self.assertRaises(TypeError, lib.dependency_add, addon)
         self.assertEqual(0, lib.dependencies.all().count())
 
-
-
     def test_adding_library_to_itself_as_dependency(self):
         " Check recurrent dependency (one level only) "
-        lib = PackageRevision.objects.filter(package__name=self.library.name)[0]
+        lib = PackageRevision.objects.filter(
+            package__name=self.library.name)[0]
         self.assertRaises(SelfDependencyException, lib.dependency_add, lib)
-
 
     def test_adding_module(self):
         " Test if module is added properly "
@@ -164,7 +158,6 @@ class PackageRevisionTest(TestCase):
         self.assertEqual(1, first.modules.count())
         self.assertEqual(2, second.modules.count())
 
-
     def test_adding_attachment(self):
         " Test if attachment is added properly "
         addon = Package(author=self.author, type='a')
@@ -185,7 +178,6 @@ class PackageRevisionTest(TestCase):
         self.assertEqual(0, first.attachments.count())
         self.assertEqual(1, second.attachments.count())
 
-
     def test_updating_module(self):
         " Updating module has some additional action "
         addon = Package(author=self.author, type='a')
@@ -200,7 +192,8 @@ class PackageRevisionTest(TestCase):
 
         # create new revision on module update
         self.assertEqual(3, addon.revisions.count())
-        self.assertEqual(2, Module.objects.filter(filename='test_filename').count())
+        self.assertEqual(2, Module.objects.filter(
+            filename='test_filename').count())
 
         first = addon.revisions.all()[1]
         last = addon.revisions.all()[0]
@@ -216,7 +209,7 @@ class PackageRevisionTest(TestCase):
         )
         # Exception on creating the module from PackageRevision
         self.assertRaises(FilenameExistException, first.module_create,
-            **{'filename':'test_filename','author':self.author}
+            **{'filename': 'test_filename', 'author': self.author}
         )
         # Exception on adding a different module with the same filename
         mod = Module.objects.create(
@@ -224,7 +217,6 @@ class PackageRevisionTest(TestCase):
             author=self.author
         )
         self.assertRaises(FilenameExistException, first.module_add, mod)
-
 
     def test_adding_attachment_with_existing_filename(self):
         " filname is unique per packagerevision "
@@ -236,11 +228,10 @@ class PackageRevisionTest(TestCase):
             author=self.author
         )
         self.assertRaises(FilenameExistException, first.attachment_create,
-            **{    'filename': 'test_filename',
-                'ext': '.txt',
-                'author': self.author,
-                'path': '/tmp/upload_path'
-                }
+            **{'filename': 'test_filename',
+               'ext': '.txt',
+               'author': self.author,
+               'path': '/tmp/upload_path'}
         )
 
         att = Attachment.objects.create(
@@ -251,12 +242,13 @@ class PackageRevisionTest(TestCase):
         )
         self.assertRaises(FilenameExistException, first.attachment_add, att)
 
-
     """
     Althought not supported on view and front-en, there is no harm in these two
 
     def test_adding_module_which_was_added_to_other_package_before(self):
-        " system should prevent from adding a module to more than one packages "
+        " ""
+        system should prevent from adding a module to more than one packages
+        " ""
         addon = Package.objects.create(
             full_name="Other Package",
             author=self.author,
@@ -289,4 +281,3 @@ class PackageRevisionTest(TestCase):
         first.attachment_add(att)
         self.assertRaises(AddingAttachmentDenied, rev.attachment_add, att)
     """
-
