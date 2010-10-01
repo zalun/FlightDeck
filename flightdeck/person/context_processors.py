@@ -3,4 +3,3 @@ def profile(request):
         return {'profile': request.user.get_profile()}
     except:
         return {}
-

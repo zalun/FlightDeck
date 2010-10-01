@@ -10,7 +10,7 @@ admin.autodiscover()
 
 urls = [
     # home
-    url(r'^$',base_views.homepage, name='home'),
+    url(r'^$', base_views.homepage, name='home'),
     ]
 
 if settings.DEBUG:
@@ -24,8 +24,8 @@ if settings.DEBUG:
 urls.extend([
     # static files
     # this should be used only in development server
-    # please refer to http://docs.djangoproject.com/en/dev/howto/deployment/modwsgi/#serving-media-files
-    url(r'^media/(?P<path>.*)$', static.serve, {'document_root': settings.MEDIA_ROOT}, name='media'),
+    url(r'^media/(?P<path>.*)$', static.serve,
+        {'document_root': settings.MEDIA_ROOT}, name='media'),
 
     # API Browser
     (r'^api/', include('api.urls')),

@@ -5,6 +5,7 @@ from jetpack import conf
 from jetpack.models import Package
 from jetpack.errors import SingletonCopyException
 
+
 class CoreLibTestCase(TestCase):
 
     fixtures = ['mozilla_user', 'core_sdk']
@@ -18,5 +19,3 @@ class CoreLibTestCase(TestCase):
         sdk = Package.objects.get(id_number=conf.MINIMUM_PACKAGE_ID)
         author = Mock()
         self.assertRaises(SingletonCopyException, sdk.copy, author)
-
-

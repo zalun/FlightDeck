@@ -4,12 +4,12 @@ from django.contrib.auth.models import User
 from jetpack import conf
 from jetpack.models import Package
 
+
 class PackageTest(TestCase):
     fixtures = ['mozilla_user', 'users', 'core_sdk']
 
     def setUp(self):
         self.author = User.objects.get(username='john')
-
 
     def test_addon_creation(self):
         package = Package(
@@ -28,7 +28,6 @@ class PackageTest(TestCase):
         self.failUnless(package.name)
         self.assertEqual(package.full_name, 'My Add-on')
 
-
     def test_automatic_numbering(self):
         Package(
             author=self.author,
@@ -42,7 +41,6 @@ class PackageTest(TestCase):
         package.save()
         self.assertEqual(package.full_name, 'My Add-on (1)')
 
-
     def test_ordering(self):
         " Newest is first "
         addon1 = Package(author=self.author, type='a')
@@ -52,7 +50,6 @@ class PackageTest(TestCase):
         # My Addon should be second
         self.assertEqual(Package.objects.all()[0].full_name, 'My Add-on (1)')
 
-
     def test_manager_filtering(self):
         Package(author=self.author, type='a').save()
         Package(author=self.author, type='a').save()
@@ -61,19 +58,14 @@ class PackageTest(TestCase):
         self.assertEqual(Package.objects.addons().count(), 2)
         self.assertEqual(Package.objects.libraries().count(), 2)
 
-
     def test_related_name(self):
         Package(author=self.author, type='a').save()
         self.assertEqual(self.author.packages_originated.count(), 1)
-
 
     def test_unique_package_name(self):
         addon = Package(full_name='Addon', author=self.author, type='a')
         addon.save()
         self.assertEqual(addon.get_unique_package_name(), 'addon-1000001')
 
-
     def test_disable_activate(self):
         raise NotImplementedError
-
-

@@ -27,8 +27,7 @@ source $SDK_DIR/bin/activate
 cd $ADDON_DIR
 cfx $*""" % sdk_dir)
     handle.close()
-    os.chmod('%s/bin/cfx.sh' % sdk_dir, stat.S_IXUSR|stat.S_IRUSR)
-
+    os.chmod('%s/bin/cfx.sh' % sdk_dir, stat.S_IXUSR | stat.S_IRUSR)
 
 
 def xpi_build(sdk_dir, package_dir):
@@ -63,6 +62,7 @@ def xpi_build(sdk_dir, package_dir):
 
     # return cfx result
     return out
+
 
 def xpi_remove(sdk_dir):
     " clear directory "

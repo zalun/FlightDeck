@@ -1,5 +1,5 @@
-from django.conf.urls.defaults import *
+from django.conf.urls.defaults import url, patterns
 
 urlpatterns = patterns('tutorial.views',
-	url(r'^$', 'tutorial', name='tutorial'),
+    url(r'^$', 'tutorial', name='tutorial'),
 )

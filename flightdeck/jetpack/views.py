@@ -5,8 +5,9 @@ from django.core.urlresolvers import reverse
 from django.views.static import serve
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponseRedirect, HttpResponse, \
-                        HttpResponseForbidden, HttpResponseServerError, HttpResponseNotAllowed
-from django.template import RequestContext#,Template
+                        HttpResponseForbidden, HttpResponseServerError, \
+                        HttpResponseNotAllowed
+from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
@@ -32,6 +33,7 @@ def package_browser(r, page_number=1, type=None, username=None):
     template_suffix = ''
     packages = Package.objects.active()
 
+    author = None
     if username:
         author = User.objects.get(username=username)
         packages = packages.filter(author__username=username)
@@ -40,49 +42,57 @@ def package_browser(r, page_number=1, type=None, username=None):
         other_type = 'l' if type == 'a' else 'a'
         other_packages_number = len(packages.filter(type=other_type))
         packages = packages.filter(type=type)
-        template_suffix = '%s_%s' % (template_suffix, conf.PACKAGE_PLURAL_NAMES[type])
+        template_suffix = '%s_%s' % (template_suffix,
+                                     conf.PACKAGE_PLURAL_NAMES[type])
 
     limit = r.GET.get('limit', conf.PACKAGES_PER_PAGE)
 
     pager = Paginator(
         packages,
-        per_page = limit,
-        orphans = 1
+        per_page=limit,
+        orphans=1
     ).page(page_number)
 
-
     return render_to_response(
-        'package_browser%s.html' % template_suffix, locals(),
+        'package_browser%s.html' % template_suffix, {
+            'pager': pager,
+            'author': author,
+            'other_packages_number': other_packages_number
+        },
         context_instance=RequestContext(r))
 
 
-
-def package_details(r, id, type, revision_number=None, version_name=None, latest=False):
+def package_details(r, id, type,
+                    revision_number=None, version_name=None, latest=False):
     """
     Show package - read only
     """
-    revision = get_package_revision(id, type, revision_number, version_name, latest)
+    revision = get_package_revision(id, type,
+                                    revision_number, version_name, latest)
     libraries = revision.dependencies.all()
     library_counter = len(libraries)
+    core_library = None
     if revision.package.is_addon():
         corelibrary = Package.objects.get(id_number=conf.MINIMUM_PACKAGE_ID)
         corelibrary = corelibrary.latest
         library_counter += 1
-    readonly = True
-    return render_to_response("%s_view.html" % revision.package.get_type_name(), locals(),
-                context_instance=RequestContext(r))
+
+    return render_to_response(
+        "%s_view.html" % revision.package.get_type_name(), {
+            'revision': revision,
+            'libraries': libraries,
+            'core_library': core_library,
+            'library_counter': library_counter,
+            'readonly': True
+        }, context_instance=RequestContext(r))
 
 
 @login_required
 def package_copy(r, id, type, revision_number=None, version_name=None):
     """
-    Copy package - create a duplicate of the Package, set author as current user
+    Copy package - create a duplicate of the Package, set user as author
     """
     revision = get_package_revision(id, type, revision_number, version_name)
-    """ it may be useful to copy your own package ...
-    if r.user.pk == revision.author.pk:
-        return HttpResponseForbidden('You are the author of this %s' % revision.package.get_type_name())
-    """
 
     try:
         package = Package.objects.get(
@@ -90,42 +100,58 @@ def package_copy(r, id, type, revision_number=None, version_name=None):
             author__username=r.user.username
             )
         return HttpResponseForbidden(
-            'You already have a %s with that name' % revision.package.get_type_name()
+            'You already have a %s with that name' \
+                % revision.package.get_type_name()
             )
     except:
         package = revision.package.copy(r.user)
         revision.save_new_revision(package)
 
-        return render_to_response("json/%s_copied.json" % package.get_type_name(),
-                {'revision': revision},
-                context_instance=RequestContext(r),
-                mimetype='application/json')
+        return render_to_response(
+            "json/%s_copied.json" % package.get_type_name(),
+            {'revision': revision},
+            context_instance=RequestContext(r),
+            mimetype='application/json')
 
 
 @login_required
-def package_edit(r, id, type, revision_number=None, version_name=None, latest=False):
+def package_edit(r, id, type,
+                 revision_number=None, version_name=None, latest=False):
     """
     Edit package - only for the author
     """
-    revision = get_package_revision(id, type, revision_number, version_name, latest)
+    revision = get_package_revision(id, type,
+                                    revision_number, version_name, latest)
     if r.user.pk != revision.author.pk:
+        # redirecting to view mode without displaying an error
+        #XXX: Display a notification for the user
         return HttpResponseRedirect(
-                    reverse("jp_%s_revision_details" % revision.package.get_type_name(),
-                        args=[id, revision.revision_number])
-                    )
+            reverse(
+                "jp_%s_revision_details" % revision.package.get_type_name(),
+                args=[id, revision.revision_number])
+        )
         #return HttpResponseForbidden('You are not the author of this Package')
 
     libraries = revision.dependencies.all()
     library_counter = len(libraries)
-    edit_mode = True
+    core_library = None
+    sdk_list = None
     if revision.package.is_addon():
-        corelibrary = Package.objects.get(id_number=conf.MINIMUM_PACKAGE_ID)
-        corelibrary = corelibrary.latest
+        core_library = Package.objects.get(id_number=conf.MINIMUM_PACKAGE_ID)
+        core_library = core_library.latest
         library_counter += 1
         sdk_list = SDK.objects.all()
 
-    return render_to_response("%s_edit.html" % revision.package.get_type_name(), locals(),
-                context_instance=RequestContext(r))
+    return render_to_response(
+        "%s_edit.html" % revision.package.get_type_name(), {
+            'revision': revision,
+            'libraries': libraries,
+            'core_library': core_library,
+            'library_counter': library_counter,
+            'readonly': False,
+            'edit_mode': True,
+            'sdk_list': sdk_list
+        }, context_instance=RequestContext(r))
 
 
 @login_required
@@ -135,7 +161,8 @@ def package_disable(r, id_number):
     """
     package = get_object_or_404(Package, id_number=id_number)
     if r.user.pk != package.author.pk:
-        return HttpResponseForbidden('You are not the author of this %s' % package.get_type_name())
+        return HttpResponseForbidden(
+            'You are not the author of this %s' % package.get_type_name())
 
     package.active = False
     package.save()
@@ -153,7 +180,8 @@ def package_activate(r, id_number):
     """
     package = get_object_or_404(Package, id_number=id_number)
     if r.user.pk != package.author.pk:
-        return HttpResponseForbidden('You are not the author of this %s' % package.get_type_name())
+        return HttpResponseForbidden(
+            'You are not the author of this %s' % package.get_type_name())
 
     package.active = True
     package.save()
@@ -172,7 +200,9 @@ def package_add_module(r, id, type, revision_number=None, version_name=None):
     """
     revision = get_package_revision(id, type, revision_number, version_name)
     if r.user.pk != revision.author.pk:
-        return HttpResponseForbidden('You are not the author of this %s' % revision.package.get_type_name())
+        return HttpResponseForbidden(
+            'You are not the author of this %s' \
+                % revision.package.get_type_name())
 
     filename = slugify(r.POST.get('filename'))
 
@@ -193,6 +223,7 @@ def package_add_module(r, id, type, revision_number=None, version_name=None):
                 {'revision': revision, 'module': mod},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
+
 
 @require_POST
 @login_required
@@ -216,7 +247,8 @@ def package_remove_module(r, id, type, revision_number):
             module_found = True
 
     if not module_found:
-        return HttpResponseForbidden('There is no such module in %s' % revision.package.full_name)
+        return HttpResponseForbidden(
+            'There is no such module in %s' % revision.package.full_name)
 
     revision.module_remove(module)
 
@@ -244,16 +276,18 @@ def package_switch_sdk(r, id, revision_number):
                 mimetype='application/json')
 
 
-
 @require_POST
 @login_required
-def package_add_attachment(r, id, type, revision_number=None, version_name=None):
+def package_add_attachment(r, id, type,
+                           revision_number=None, version_name=None):
     """
     Add new attachment to the PackageRevision
     """
     revision = get_package_revision(id, type, revision_number, version_name)
     if r.user.pk != revision.author.pk:
-        return HttpResponseForbidden('You are not the author of this %s' % revision.package.get_type_name())
+        return HttpResponseForbidden(
+            'You are not the author of this %s' \
+                % revision.package.get_type_name())
 
     content = r.raw_post_data
     path = r.META.get('HTTP_X_FILE_NAME', False)
@@ -264,7 +298,9 @@ def package_add_attachment(r, id, type, revision_number=None, version_name=None)
     filename, ext = os.path.splitext(path)
     ext = ext.split('.')[1].lower() if ext else ''
 
-    upload_path = "%s_%s_%s.%s" % (revision.package.id_number, time.strftime("%m-%d-%H-%M-%S"), filename, ext)
+    upload_path = "%s_%s_%s.%s" % (revision.package.id_number,
+                                   time.strftime("%m-%d-%H-%M-%S"),
+                                   filename, ext)
 
     handle = open(os.path.join(conf.UPLOAD_DIR, upload_path), 'w')
     handle.write(content)
@@ -282,6 +318,7 @@ def package_add_attachment(r, id, type, revision_number=None, version_name=None)
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
+
 @require_POST
 @login_required
 def package_remove_attachment(r, id, type, revision_number):
@@ -292,7 +329,7 @@ def package_remove_attachment(r, id, type, revision_number):
     if r.user.pk != revision.author.pk:
         return HttpResponseForbidden('You are not the author of this Package')
 
-    filename = r.POST.get('filename','').strip()
+    filename = r.POST.get('filename', '').strip()
 
     attachments = revision.attachments.all()
 
@@ -304,7 +341,8 @@ def package_remove_attachment(r, id, type, revision_number):
             attachment_found = True
 
     if not attachment_found:
-        return HttpResponseForbidden('There is no such attachment in %s' % revision.package.full_name)
+        return HttpResponseForbidden(
+            'There is no such attachment in %s' % revision.package.full_name)
 
     revision.attachment_remove(attachment)
 
@@ -318,8 +356,7 @@ def download_attachment(r, path):
     """
     Display attachment from PackageRevision
     """
-
-    attachment = get_object_or_404(Attachment, path=path)
+    get_object_or_404(Attachment, path=path)
     response = serve(r, path, conf.UPLOAD_DIR, show_indexes=False)
     #response['Content-Type'] = 'application/octet-stream';
     return response
@@ -348,23 +385,29 @@ def package_save(r, id, type, revision_number=None, version_name=None):
     version_name = r.POST.get('version_name', False)
 
     # validate package_full_name and version_name
-    if package_full_name and not validator.is_valid('alphanum_plus_space', package_full_name):
-        return HttpResponseNotAllowed(validator.get_validation_message('alphanum_plus_space'))
+    if package_full_name and not validator.is_valid(
+        'alphanum_plus_space', package_full_name):
+        return HttpResponseNotAllowed(
+            validator.get_validation_message('alphanum_plus_space'))
 
-    if version_name and not validator.is_valid('alphanum_plus', version_name):
-        return HttpResponseNotAllowed(validator.get_validation_message('alphanum_plus'))
+    if version_name and not validator.is_valid(
+        'alphanum_plus', version_name):
+        return HttpResponseNotAllowed(
+            validator.get_validation_message('alphanum_plus'))
 
     if package_full_name and package_full_name != revision.package.full_name:
         try:
-            # XXX: it was erroring as pk=package.pk - I changed it to pk=revision.package.pk
-            #      I think this check is redundant as it is in model as well
+            # XXX:  it was erroring as pk=package.pk
+            #       I changed it to pk=revision.package.pk
+            #       I think this check is redundant as it is in model as well
             package = Package.objects.exclude(pk=revision.package.pk).get(
                 full_name=package_full_name,
                 type=revision.package.type,
                 author__username=r.user.username,
                 )
             return HttpResponseForbidden(
-                'You already have a %s with that name' % revision.package.get_type_name()
+                'You already have a %s with that name' \
+                    % revision.package.get_type_name()
                 )
         except:
             save_package = True
@@ -400,7 +443,8 @@ def package_save(r, id, type, revision_number=None, version_name=None):
         super(PackageRevision, revision).save()
         response_data['revision_message'] = revision_message
 
-    if version_name and version_name != start_version_name and version_name != revision.package.version_name:
+    if version_name and version_name != start_version_name \
+        and version_name != revision.package.version_name:
         save_package = False
         try:
             revision.set_version(version_name)
@@ -410,7 +454,8 @@ def package_save(r, id, type, revision_number=None, version_name=None):
     if save_package:
         revision.package.save()
 
-    response_data['version_name'] = revision.version_name if revision.version_name else ""
+    response_data['version_name'] = revision.version_name \
+            if revision.version_name else ""
 
     if reload:
         response_data['reload'] = "yes"
@@ -418,8 +463,6 @@ def package_save(r, id, type, revision_number=None, version_name=None):
     return render_to_response("package_saved.json", locals(),
                 context_instance=RequestContext(r),
                 mimetype='application/json')
-
-
 
 
 @login_required
@@ -433,9 +476,13 @@ def package_create(r, type):
     description = r.POST.get("description", "")
 
     if full_name:
-        packages = Package.objects.filter(author__username=r.user.username, full_name=full_name, type=type)
+        packages = Package.objects.filter(
+            author__username=r.user.username, full_name=full_name,
+            type=type)
         if len(packages.all()) > 0:
-            return HttpResponseForbidden("You already have a %s with that name" % conf.PACKAGE_SINGULAR_NAMES[type])
+            return HttpResponseForbidden(
+                "You already have a %s with that name" \
+                % conf.PACKAGE_SINGULAR_NAMES[type])
     else:
         description = ""
 
@@ -447,7 +494,8 @@ def package_create(r, type):
         )
     item.save()
 
-    return HttpResponseRedirect(reverse('jp_%s_edit_latest' % item.get_type_name(), args=[item.id_number]))
+    return HttpResponseRedirect(reverse(
+        'jp_%s_edit_latest' % item.get_type_name(), args=[item.id_number]))
 
 
 @login_required
@@ -458,10 +506,10 @@ def library_autocomplete(r):
     try:
         query = r.GET.get('q')
         limit = r.GET.get('limit', conf.LIBRARY_AUTOCOMPLETE_LIMIT)
-        found = Package.objects.libraries().exclude(name='jetpack-core').filter(
-                        Q(name__icontains=query) | \
-                        Q(full_name__icontains=query)
-                    )[:limit]
+        found = Package.objects.libraries().exclude(
+            name='jetpack-core').filter(
+                Q(name__icontains=query) | Q(full_name__icontains=query)
+            )[:limit]
     except:
         found = []
 
@@ -473,13 +521,15 @@ def library_autocomplete(r):
 
 @require_POST
 @login_required
-def package_assign_library(r, id, type, revision_number=None, version_name=None):
+def package_assign_library(r, id, type,
+                           revision_number=None, version_name=None):
     " assign library to the package "
     revision = get_package_revision(id, type, revision_number, version_name)
     if r.user.pk != revision.author.pk:
         return HttpResponseForbidden('You are not the author of this Package')
 
-    library = get_object_or_404(Package, type='l', id_number=r.POST['id_number'])
+    library = get_object_or_404(
+        Package, type='l', id_number=r.POST['id_number'])
     if r.POST.get('use_latest_version', False):
         lib_revision = library.version
     else:
@@ -490,16 +540,16 @@ def package_assign_library(r, id, type, revision_number=None, version_name=None)
     except Exception, err:
         return HttpResponseForbidden(err.__str__())
 
-
     lib_revision_url = lib_revision.get_edit_url() \
         if r.user.pk == lib_revision.pk \
         else lib_revision.get_absolute_url()
 
-
-    return render_to_response('json/library_assigned.json',
-                locals(),
-                context_instance=RequestContext(r),
-                mimetype='application/json')
+    return render_to_response('json/library_assigned.json', {
+        'revision': revision,
+        'library': library,
+        'lib_revision': lib_revision,
+        'lib_revision_url': lib_revision_url,
+    }, context_instance=RequestContext(r), mimetype='application/json')
 
 
 @require_POST
@@ -508,7 +558,9 @@ def package_remove_library(r, id, type, revision_number):
     " remove dependency from the library provided via POST "
     revision = get_package_revision(id, type, revision_number)
     if r.user.pk != revision.author.pk:
-        return HttpResponseForbidden('You are not the author of this %s' % revision.package.get_type_name())
+        return HttpResponseForbidden(
+            'You are not the author of this %s' \
+            % revision.package.get_type_name())
 
     id_number = r.POST.get('id_number')
     library = get_object_or_404(Package, id_number=id_number)
@@ -524,21 +576,20 @@ def package_remove_library(r, id, type, revision_number):
                 mimetype='application/json')
 
 
-
-
-
 def get_revisions_list(id_number):
     " provide a list of the Package's revsisions "
     return PackageRevision.objects.filter(package__id_number=id_number)
+
 
 def get_revisions_list_html(r, id_number):
     package = get_object_with_related_or_404(Package, id_number=id_number)
     revisions = get_revisions_list(id_number)
     return render_to_response(
-        '_package_revisions_list.html', locals(),
+        '_package_revisions_list.html', {
+            'package': package,
+            'revisions': revisions
+        },
         context_instance=RequestContext(r))
-
-
 
 
 # ---------------------------- XPI ---------------------------------
@@ -551,7 +602,6 @@ def package_test_xpi(r, id, revision_number=None, version_name=None):
     revision = get_object_with_related_or_404(PackageRevision,
                         package__id_number=id, package__type='a',
                         revision_number=revision_number)
-
 
     # support temporary data
     if r.POST.get('live_data_testing', False):
@@ -573,25 +623,23 @@ def package_test_xpi(r, id, revision_number=None, version_name=None):
 
     # return XPI url and cfx command stdout and stderr
     return render_to_response('json/test_xpi_created.json', {
-                     'stdout': stdout,
-                    'stderr': stderr,
-                     'test_xpi_url': reverse('jp_test_xpi',
-                                    args=[
-                                        revision.get_sdk_name(),
-                                        revision.package.get_unique_package_name(),
-                                        revision.package.name
-                                        ]),
-                     'download_xpi_url': reverse('jp_download_xpi',
-                                    args=[
-                                        revision.get_sdk_name(),
-                                        revision.package.get_unique_package_name(),
-                                        revision.package.name
-                                        ]),
-                     'rm_xpi_url': reverse('jp_rm_xpi', args=[revision.get_sdk_name()]),
-                    'addon_name': '"%s (%s)"' % (revision.package.full_name, revision.get_version_name())
-                 },
-                context_instance=RequestContext(r))
-            #    mimetype='application/json')
+        'stdout': stdout,
+        'stderr': stderr,
+        'test_xpi_url': reverse('jp_test_xpi', args=[
+            revision.get_sdk_name(),
+            revision.package.get_unique_package_name(),
+            revision.package.name
+        ]),
+        'download_xpi_url': reverse('jp_download_xpi', args=[
+            revision.get_sdk_name(),
+            revision.package.get_unique_package_name(),
+            revision.package.name
+        ]),
+        'rm_xpi_url': reverse('jp_rm_xpi', args=[revision.get_sdk_name()]),
+        'addon_name': '"%s (%s)"' % (
+            revision.package.full_name, revision.get_version_name())
+    }, context_instance=RequestContext(r))
+    #    mimetype='application/json')
 
 
 def package_download_xpi(r, id, revision_number=None, version_name=None):
@@ -621,10 +669,10 @@ def test_xpi(r, sdk_name, pkg_name, filename):
     """
     path = '%s-%s/packages/%s' % (conf.SDKDIR_PREFIX, sdk_name, pkg_name)
     file = '%s.xpi' % filename
-    mimetype='text/plain; charset=x-user-defined'
+    mimetype = 'text/plain; charset=x-user-defined'
 
-    return HttpResponse(open(os.path.join(path, file), 'rb').read(), mimetype=mimetype)
-
+    return HttpResponse(open(os.path.join(path, file), 'rb').read(),
+                        mimetype=mimetype)
 
 
 def download_xpi(r, sdk_name, pkg_name, filename):
@@ -634,10 +682,10 @@ def download_xpi(r, sdk_name, pkg_name, filename):
     path = '%s-%s/packages/%s' % (conf.SDKDIR_PREFIX, sdk_name, pkg_name)
     file = '%s.xpi' % filename
     response = serve(r, file, path, show_indexes=False)
-    response['Content-Type'] = 'application/octet-stream';
-    response['Content-Disposition'] = 'attachment; filename="%s.xpi"' % filename
+    response['Content-Type'] = 'application/octet-stream'
+    response['Content-Disposition'] = 'attachment; filename="%s.xpi"' \
+            % filename
     return response
-
 
 
 def remove_xpi(r, sdk_name):
@@ -646,5 +694,3 @@ def remove_xpi(r, sdk_name):
         return HttpResponseForbidden("{'error': 'Wrong name'}")
     xpi_remove('%s-%s' % (conf.SDKDIR_PREFIX, sdk_name))
     return HttpResponse('{}', mimetype='application/json')
-
-

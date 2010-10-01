@@ -11,8 +11,10 @@ from person.models import Profile
 
 
 class BaseException(Exception):
+
     def __init__(self, value):
         self.parameter = value
+
     def __str__(self):
         return repr(self.parameter)
 
@@ -20,25 +22,27 @@ class BaseException(Exception):
 class SDKVersionNotUniqueException(BaseException):
     pass
 
+
 class SDKDirNotUniqueException(BaseException):
     pass
+
 
 class SDKDirDoesNotExist(BaseException):
     pass
 
 
-
 def create_or_update_jetpack_core(sdk_dir_name):
     try:
-        x = SDK.objects.all()[0]
+        SDK.objects.all()[0]
         return update_jetpack_core(sdk_dir_name)
-    except Exception, e:
+    except Exception:
         return create_jetpack_core(sdk_dir_name)
 
 
 def get_jetpack_core_manifest(sdk_source):
     if not os.path.isdir(sdk_source):
-        raise SDKDirDoesNotExist("Jetpack SDK dir does not exist \"%s\"" % sdk_source)
+        raise SDKDirDoesNotExist(
+            "Jetpack SDK dir does not exist \"%s\"" % sdk_source)
 
     handle = open('%s/packages/jetpack-core/package.json' % sdk_source)
     manifest = simplejson.loads(handle.read())
@@ -76,7 +80,8 @@ def add_core_modules(sdk_source, core_revision, core_author):
             )
             core_revision.modules.add(mod)
         except Exception, (e):
-            print "Warning: There was a problem with importing module from file %s" % module_file
+            print ("Warning: There was a problem with importing module ",
+                   "from file %s\n%s") % (module_file, str(e))
 
 
 def check_SDK_dir(sdk_dir_name):
@@ -85,15 +90,18 @@ def check_SDK_dir(sdk_dir_name):
     " check if the SDK was added already "
     try:
         SDK.objects.get(dir=sdk_dir_name)
-        raise SDKDirNotUniqueException("There might be only one SDK created from %s" % sdk_dir_name)
+        raise SDKDirNotUniqueException(
+            "There might be only one SDK created from %s" % sdk_dir_name)
     except ObjectDoesNotExist:
         pass
+
 
 def check_SDK_manifest(manifest):
     " check if SDK manifest is valid "
     try:
         SDK.objects.get(version=manifest['version'])
-        raise SDKVersionNotUniqueException("There might be only one SDK versioned %s" % manifest['version'])
+        raise SDKVersionNotUniqueException(
+            "There might be only one SDK versioned %s" % manifest['version'])
     except ObjectDoesNotExist:
         pass
 
@@ -127,12 +135,11 @@ def update_jetpack_core(sdk_dir_name):
     add_core_modules(sdk_source, core_revision, core_author)
 
     # create SDK
-    sdk = SDK.objects.create(
+    SDK.objects.create(
         version=core_manifest['version'],
         core_lib=core_revision,
         dir=sdk_dir_name
     )
-
 
 
 def create_jetpack_core(sdk_dir_name='jetpack-sdk'):
@@ -150,7 +157,7 @@ def create_jetpack_core(sdk_dir_name='jetpack-sdk'):
     core_contributors = [core_manifest['author']]
     core_contributors.extend(core_manifest['contributors'])
     core = Package(
-        author=core_author, # sorry Atul
+        author=core_author,
         full_name='Jetpack Core',
         name='jetpack-core',
         type='l',
@@ -165,11 +172,8 @@ def create_jetpack_core(sdk_dir_name='jetpack-sdk'):
     add_core_modules(sdk_source, core_revision, core_author)
 
     # create SDK
-    sdk = SDK.objects.create(
+    SDK.objects.create(
         version=core_manifest['version'],
         core_lib=core_revision,
         dir=sdk_dir_name
     )
-
-
-

@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 
 from person.models import Profile
 
+
 class ProfileTest(TestCase):
 
     def setUp(self):

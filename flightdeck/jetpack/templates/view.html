@@ -49,7 +49,7 @@
 	<section id="attachments">
 			<h3 class="UI_Sidebar_Toggler attachments opened">
 				<a title="Attachments" href="#">
-					Attachments <strong id="attachments-counter">({{ attachments|length }})</strong> 
+					Attachments <strong id="attachments-counter">({{ attachments|length }})</strong>
 					<span class="UI_OC"></span>
 					<span class="UI_Sidebar_Toggler_Icon"></span>
 				</a>
@@ -70,7 +70,7 @@
 	{% if libraries or revision.package.is_addon %}
 		<section id="libraries">
 			<h3 class="UI_Sidebar_Toggler libraries opened"><a title="Libraries" href="#">
-				Libraries <strong id="libraries-counter">({{ library_counter }})</strong> 
+				Libraries <strong id="libraries-counter">({{ library_counter }})</strong>
 				<span class="UI_OC"></span>
 				<span class="UI_Sidebar_Toggler_Icon"></span>
 			</a></h3>
@@ -85,7 +85,7 @@
 		</section>
 	{% endif %}
 {% endblock %}
-	
+
 
 {% block app_content %}
 	<div id="editor-menu-wrapper">
@@ -93,7 +93,7 @@
 			{% block app_content_menu_items %}{% endblock %}
 			{% if revision.package.public_permission != 2 %}
 				<li class="UI_Editor_Menu_Button Icon_copy">
-					<a id="package-copy" title="" href="#">Copy 
+					<a id="package-copy" title="" href="#">Copy
 						<span class="UI_Editor_Icon"></span>
 					</a>
 				</li>

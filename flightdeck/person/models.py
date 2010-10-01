@@ -19,15 +19,14 @@ class Profile(models.Model):
             return self.user.username
         return self.get_fullname()
 
-
     def get_fullname(self):
         name = self.user.first_name if self.user.first_name else None
         if self.user.last_name:
-            name = '%s %s' % (name, self.user.last_name) if name else self.user.last_name
+            name = '%s %s' % (name, self.user.last_name) \
+                    if name else self.user.last_name
         if not name and self.nickname:
             return self.nickname
         return name
-
 
     def __unicode__(self):
         return self.get_name()
