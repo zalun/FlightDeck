@@ -2,6 +2,7 @@
 PROJECT_VERSION = "1.0a5"
 
 # Django settings for flightdeck project.
+PRODUCTION = True
 DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
@@ -140,7 +141,7 @@ try:
 except:
     pass
 
-if not DEBUG:
+if PRODUCTION:
     for app in DEV_APPS:
         if app in INSTALLED_APPS:
             INSTALLED_APPS.remove(app)
