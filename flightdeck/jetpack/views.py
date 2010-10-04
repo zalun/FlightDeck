@@ -1,6 +1,7 @@
 import os
 import time
 
+from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.views.static import serve
 from django.shortcuts import render_to_response, get_object_or_404
@@ -124,7 +125,10 @@ def package_edit(r, id, type,
                                     revision_number, version_name, latest)
     if r.user.pk != revision.author.pk:
         # redirecting to view mode without displaying an error
-        #XXX: Display a notification for the user
+        messages.info(r,
+                      "Not sufficient priviliges to edit the source. "
+                      "You've been redirected to view mode.")
+
         return HttpResponseRedirect(
             reverse(
                 "jp_%s_revision_details" % revision.package.get_type_name(),
