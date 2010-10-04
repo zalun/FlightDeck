@@ -1,7 +1,7 @@
 from exceptions import Exception
 
 
-class SelfDependencyException(Exception):
+class SimpleException(Exception):
 
     def __init__(self, value):
         self.value = value
@@ -10,46 +10,29 @@ class SelfDependencyException(Exception):
         return repr(self.value)
 
 
-class FilenameExistException(Exception):
-
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
+class SelfDependencyException(SimpleException):
+    ""
 
 
-class UpdateDeniedException(Exception):
-
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
+class DependencyException(SimpleException):
+    ""
 
 
-class AddingAttachmentDenied(Exception):
-
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
+class FilenameExistException(SimpleException):
+    ""
 
 
-class AddingModuleDenied(Exception):
-
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
+class UpdateDeniedException(SimpleException):
+    ""
 
 
-class SingletonCopyException(Exception):
+class AddingAttachmentDenied(SimpleException):
+    ""
 
-    def __init__(self):
-        ""
 
-    def __str__(self):
-        return repr("SDK can't be copied")
+class AddingModuleDenied(SimpleException):
+    ""
+
+
+class SingletonCopyException(SimpleException):
+    ""
