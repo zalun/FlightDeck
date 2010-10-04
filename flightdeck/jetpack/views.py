@@ -1,6 +1,7 @@
 """
 Views for the Jetpack application
 """
+# XXX: Error 500 is not fired properly
 import os
 import time
 
@@ -26,12 +27,13 @@ from jetpack.models import Package, PackageRevision, Module, Attachment, SDK
 from jetpack import conf
 from jetpack.package_helpers import get_package_revision
 from jetpack.xpi_utils import xpi_remove
+from jetpack.errors import FilenameExistException
 
 
-def package_browser(r, page_number=1, type=None, username=None):
+def package_browser(r, page_number=1, type_id=None, username=None):
     """
     Display a list of addons or libraries with pages
-    Filter based on the request (type, username).
+    Filter based on the request (type_id, username).
     """
     # calculate which template to use
     template_suffix = ''
@@ -42,12 +44,12 @@ def package_browser(r, page_number=1, type=None, username=None):
         author = User.objects.get(username=username)
         packages = packages.filter(author__username=username)
         template_suffix = '%s_user' % template_suffix
-    if type:
-        other_type = 'l' if type == 'a' else 'a'
+    if type_id:
+        other_type = 'l' if type_id == 'a' else 'a'
         other_packages_number = len(packages.filter(type=other_type))
-        packages = packages.filter(type=type)
+        packages = packages.filter(type=type_id)
         template_suffix = '%s_%s' % (template_suffix,
-                                     conf.PACKAGE_PLURAL_NAMES[type])
+                                     conf.PACKAGE_PLURAL_NAMES[type_id])
 
     limit = r.GET.get('limit', conf.PACKAGES_PER_PAGE)
 
@@ -66,12 +68,12 @@ def package_browser(r, page_number=1, type=None, username=None):
         context_instance=RequestContext(r))
 
 
-def package_details(r, id, type,
+def package_details(r, id_number, type_id,
                     revision_number=None, version_name=None, latest=False):
     """
     Show package - read only
     """
-    revision = get_package_revision(id, type,
+    revision = get_package_revision(id_number, type_id,
                                     revision_number, version_name, latest)
     libraries = revision.dependencies.all()
     library_counter = len(libraries)
@@ -92,39 +94,40 @@ def package_details(r, id, type,
 
 
 @login_required
-def package_copy(r, id, type, revision_number=None, version_name=None):
+def package_copy(r, id_number, type_id, revision_number=None, version_name=None):
     """
     Copy package - create a duplicate of the Package, set user as author
     """
-    revision = get_package_revision(id, type, revision_number, version_name)
+    source = get_package_revision(id_number, type_id, revision_number, version_name)
 
     try:
         package = Package.objects.get(
-            full_name=revision.package.get_copied_full_name(),
+            full_name=source.package.get_copied_full_name(),
             author__username=r.user.username
             )
-        return HttpResponseForbidden(
-            'You already have a %s with that name' \
-                % revision.package.get_type_name()
-            )
-    except:
-        package = revision.package.copy(r.user)
-        revision.save_new_revision(package)
+    except Exception:
+        import pdb; pdb.set_trace()
+        package = source.package.copy(r.user)
+        source.save_new_revision(package)
 
         return render_to_response(
             "json/%s_copied.json" % package.get_type_name(),
-            {'revision': revision},
+            {'revision': source},
             context_instance=RequestContext(r),
             mimetype='application/json')
 
+    return HttpResponseForbidden(
+        'You already have a %s with that name' \
+            % source.package.get_type_name()
+        )
 
 @login_required
-def package_edit(r, id, type,
+def package_edit(r, id_number, type_id,
                  revision_number=None, version_name=None, latest=False):
     """
     Edit package - only for the author
     """
-    revision = get_package_revision(id, type,
+    revision = get_package_revision(id_number, type_id,
                                     revision_number, version_name, latest)
     if r.user.pk != revision.author.pk:
         # redirecting to view mode without displaying an error
@@ -135,7 +138,7 @@ def package_edit(r, id, type,
         return HttpResponseRedirect(
             reverse(
                 "jp_%s_revision_details" % revision.package.get_type_name(),
-                args=[id, revision.revision_number])
+                args=[id_number, revision.revision_number])
         )
         #return HttpResponseForbidden('You are not the author of this Package')
 
@@ -201,11 +204,11 @@ def package_activate(r, id_number):
 
 @require_POST
 @login_required
-def package_add_module(r, id, type, revision_number=None, version_name=None):
+def package_add_module(r, id_number, type_id, revision_number=None, version_name=None):
     """
     Add new module to the PackageRevision
     """
-    revision = get_package_revision(id, type, revision_number, version_name)
+    revision = get_package_revision(id_number, type_id, revision_number, version_name)
     if r.user.pk != revision.author.pk:
         return HttpResponseForbidden(
             'You are not the author of this %s' \
@@ -222,9 +225,9 @@ def package_add_module(r, id, type, revision_number=None, version_name=None):
     try:
         mod.save()
         revision.module_add(mod)
-    except Exception, err:
+    except FilenameExistException, err:
         mod.delete()
-        return HttpResponseForbidden(err)
+        return HttpResponseForbidden(str(err))
 
     return render_to_response("json/module_added.json",
                 {'revision': revision, 'module': mod},
@@ -234,11 +237,11 @@ def package_add_module(r, id, type, revision_number=None, version_name=None):
 
 @require_POST
 @login_required
-def package_remove_module(r, id, type, revision_number):
+def package_remove_module(r, id_number, type_id, revision_number):
     """
     Remove module from PackageRevision
     """
-    revision = get_package_revision(id, type, revision_number)
+    revision = get_package_revision(id_number, type_id, revision_number)
     if r.user.pk != revision.author.pk:
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -267,8 +270,9 @@ def package_remove_module(r, id, type, revision_number):
 
 @require_POST
 @login_required
-def package_switch_sdk(r, id, revision_number):
-    revision = get_package_revision(id, 'a', revision_number)
+def package_switch_sdk(r, id_number, revision_number):
+    " switch SDK used to create XPI - sdk_id from POST "
+    revision = get_package_revision(id_number, 'a', revision_number)
     if r.user.pk != revision.author.pk:
         return HttpResponseForbidden('You are not the author of this Add-on')
 
@@ -285,12 +289,12 @@ def package_switch_sdk(r, id, revision_number):
 
 @require_POST
 @login_required
-def package_add_attachment(r, id, type,
+def package_add_attachment(r, id_number, type_id,
                            revision_number=None, version_name=None):
     """
     Add new attachment to the PackageRevision
     """
-    revision = get_package_revision(id, type, revision_number, version_name)
+    revision = get_package_revision(id_number, type_id, revision_number, version_name)
     if r.user.pk != revision.author.pk:
         return HttpResponseForbidden(
             'You are not the author of this %s' \
@@ -328,11 +332,11 @@ def package_add_attachment(r, id, type,
 
 @require_POST
 @login_required
-def package_remove_attachment(r, id, type, revision_number):
+def package_remove_attachment(r, id_number, type_id, revision_number):
     """
     Remove attachment from PackageRevision
     """
-    revision = get_package_revision(id, type, revision_number)
+    revision = get_package_revision(id_number, type_id, revision_number)
     if r.user.pk != revision.author.pk:
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -371,15 +375,15 @@ def download_attachment(r, path):
 
 @require_POST
 @login_required
-def package_save(r, id, type, revision_number=None, version_name=None):
+def package_save(r, id_number, type_id, revision_number=None, version_name=None):
     """
     Save package and modules
     """
-    revision = get_package_revision(id, type, revision_number, version_name)
+    revision = get_package_revision(id_number, type_id, revision_number, version_name)
     if r.user.pk != revision.author.pk:
         return HttpResponseForbidden('You are not the author of this Package')
 
-    reload = False
+    should_reload = False
     save_revision = False
     save_package = False
     start_version_name = revision.version_name
@@ -404,9 +408,9 @@ def package_save(r, id, type, revision_number=None, version_name=None):
 
     if package_full_name and package_full_name != revision.package.full_name:
         try:
-            # XXX:  it was erroring as pk=package.pk
-            #       I changed it to pk=revision.package.pk
-            #       I think this check is redundant as it is in model as well
+            # it was erroring as pk=package.pk
+            # I changed it to pk=revision.package.pk
+            # TODO: Check if not redundant as it is in model as well
             package = Package.objects.exclude(pk=revision.package.pk).get(
                 full_name=package_full_name,
                 type=revision.package.type,
@@ -418,7 +422,7 @@ def package_save(r, id, type, revision_number=None, version_name=None):
                 )
         except:
             save_package = True
-            reload = True
+            should_reload = True
             revision.package.full_name = package_full_name
             revision.package.name = None
 
@@ -464,7 +468,7 @@ def package_save(r, id, type, revision_number=None, version_name=None):
     response_data['version_name'] = revision.version_name \
             if revision.version_name else ""
 
-    if reload:
+    if should_reload:
         response_data['reload'] = "yes"
 
     return render_to_response("package_saved.json", locals(),
@@ -473,7 +477,7 @@ def package_save(r, id, type, revision_number=None, version_name=None):
 
 
 @login_required
-def package_create(r, type):
+def package_create(r, type_id):
     """
     Create new Package (Add-on or Library)
     Usually no full_name used
@@ -485,11 +489,11 @@ def package_create(r, type):
     if full_name:
         packages = Package.objects.filter(
             author__username=r.user.username, full_name=full_name,
-            type=type)
+            type=type_id)
         if len(packages.all()) > 0:
             return HttpResponseForbidden(
                 "You already have a %s with that name" \
-                % conf.PACKAGE_SINGULAR_NAMES[type])
+                % conf.PACKAGE_SINGULAR_NAMES[type_id])
     else:
         description = ""
 
@@ -497,7 +501,7 @@ def package_create(r, type):
         author=r.user,
         full_name=full_name,
         description=description,
-        type=type
+        type=type_id
         )
     item.save()
 
@@ -528,10 +532,10 @@ def library_autocomplete(r):
 
 @require_POST
 @login_required
-def package_assign_library(r, id, type,
+def package_assign_library(r, id_number, type_id,
                            revision_number=None, version_name=None):
     " assign library to the package "
-    revision = get_package_revision(id, type, revision_number, version_name)
+    revision = get_package_revision(id_number, type_id, revision_number, version_name)
     if r.user.pk != revision.author.pk:
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -561,19 +565,19 @@ def package_assign_library(r, id, type,
 
 @require_POST
 @login_required
-def package_remove_library(r, id, type, revision_number):
+def package_remove_library(r, id_number, type_id, revision_number):
     " remove dependency from the library provided via POST "
-    revision = get_package_revision(id, type, revision_number)
+    revision = get_package_revision(id_number, type_id, revision_number)
     if r.user.pk != revision.author.pk:
         return HttpResponseForbidden(
             'You are not the author of this %s' \
             % revision.package.get_type_name())
 
-    id_number = r.POST.get('id_number')
-    library = get_object_or_404(Package, id_number=id_number)
+    lib_id_number = r.POST.get('id_number')
+    library = get_object_or_404(Package, id_number=lib_id_number)
 
     try:
-        revision.dependency_remove_by_id_number(id_number)
+        revision.dependency_remove_by_id_number(lib_id_number)
     except Exception, err:
         return HttpResponseForbidden(err.__unicode__())
 
@@ -602,12 +606,12 @@ def get_revisions_list_html(r, id_number):
 # ---------------------------- XPI ---------------------------------
 
 
-def package_test_xpi(r, id, revision_number=None, version_name=None):
+def package_test_xpi(r, id_number, revision_number=None, version_name=None):
     """
     Test XPI from data saved in the database
     """
     revision = get_object_with_related_or_404(PackageRevision,
-                        package__id_number=id, package__type='a',
+                        package__id_number=id_number, package__type='a',
                         revision_number=revision_number)
 
     # support temporary data
@@ -649,12 +653,12 @@ def package_test_xpi(r, id, revision_number=None, version_name=None):
     #    mimetype='application/json')
 
 
-def package_download_xpi(r, id, revision_number=None, version_name=None):
+def package_download_xpi(r, id_number, revision_number=None, version_name=None):
     """
     Edit package - only for the author
     """
     revision = get_object_with_related_or_404(PackageRevision,
-                        package__id_number=id, package__type='a',
+                        package__id_number=id_number, package__type='a',
                         revision_number=revision_number)
 
     (stdout, stderr) = revision.build_xpi()
