@@ -1,3 +1,6 @@
+"""
+Views for the Jetpack application
+"""
 import os
 import time
 
