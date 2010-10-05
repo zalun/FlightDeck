@@ -17,7 +17,7 @@ from django.template.defaultfilters import slugify
 
 from jetpack import conf
 from jetpack.managers import PackageManager
-from jetpack.errors import  SelfDependencyException, FilenameExistException, \
+from jetpack.errors import SelfDependencyException, FilenameExistException, \
         UpdateDeniedException, SingletonCopyException, DependencyException
 from jetpack.xpi_utils import sdk_copy, xpi_build, xpi_remove
 
@@ -145,7 +145,7 @@ class Package(models.Model):
         returns Boolean: True if this is a SDK Core Library
         Used to block copying the package
         """
-        return self.id_number != conf.MINIMUM_PACKAGE_ID
+        return str(self.id_number) == str(conf.MINIMUM_PACKAGE_ID)
 
     def is_singleton(self):
         """
@@ -256,9 +256,9 @@ class Package(models.Model):
         """
         create copy of the package
         """
+        print self.id_number, conf.MINIMUM_PACKAGE_ID
         if self.is_singleton():
-            raise SingletonCopyException()
-
+            raise SingletonCopyException("This is a singleton")
         new_p = Package(
             full_name=self.get_copied_full_name(),
             description=self.description,
@@ -596,8 +596,8 @@ class PackageRevision(models.Model):
         # validate if given filename is valid
         if not self.validate_module_filename(mod.filename):
             raise FilenameExistException(
-                ('Sorry, there is already a module in your add-on'
-                 'with the name "%s". Each module in your add-on'
+                ('Sorry, there is already a module in your add-on '
+                 'with the name "%s". Each module in your add-on '
                  'needs to have a unique name.') % mod.filename
             )
         # I think it's not necessary

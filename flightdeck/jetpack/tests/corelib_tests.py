@@ -1,5 +1,6 @@
 from test_utils import TestCase
-from mock import Mock
+
+from django.contrib.auth.models import User
 
 from jetpack import conf
 from jetpack.models import Package
@@ -8,14 +9,18 @@ from jetpack.errors import SingletonCopyException
 
 class CoreLibTestCase(TestCase):
 
-    fixtures = ['mozilla_user', 'core_sdk']
+    fixtures = ['mozilla_user', 'core_sdk', 'users']
+
+    def setUp(self):
+        " get core lib from fixtures "
+        self.corelib = Package.objects.get(id_number=conf.MINIMUM_PACKAGE_ID)
 
     def test_findCoreLibrary(self):
-        sdk = Package.objects.get(id_number=conf.MINIMUM_PACKAGE_ID)
-        self.failUnless(sdk)
-        self.failUnless(sdk.is_library())
+        self.failUnless(self.corelib)
+        self.failUnless(self.corelib.is_library())
+        self.failUnless(self.corelib.is_singleton())
+        self.failUnless(self.corelib.is_core())
 
     def test_preventFromCopying(self):
-        sdk = Package.objects.get(id_number=conf.MINIMUM_PACKAGE_ID)
-        author = Mock()
-        self.assertRaises(SingletonCopyException, sdk.copy, author)
+        author = User.objects.get(username='john')
+        self.assertRaises(SingletonCopyException, self.corelib.copy, author)

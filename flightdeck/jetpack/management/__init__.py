@@ -1,3 +1,4 @@
+" Predefined for all Jetpack commands "
 import os
 import simplejson
 
@@ -10,28 +11,30 @@ from jetpack import conf
 from person.models import Profile
 
 
-class BaseException(Exception):
+class SimpleException(Exception):
+    " Exception to be inherited in more precised Exception "
 
-    def __init__(self, value):
+    def __init__(self, value=None):
         self.parameter = value
 
     def __str__(self):
         return repr(self.parameter)
 
 
-class SDKVersionNotUniqueException(BaseException):
-    pass
+class SDKVersionNotUniqueException(SimpleException):
+    " Not unique version of SDK "
 
 
-class SDKDirNotUniqueException(BaseException):
-    pass
+class SDKDirNotUniqueException(SimpleException):
+    " There is already a SDK build from that directory "
 
 
-class SDKDirDoesNotExist(BaseException):
-    pass
+class SDKDirDoesNotExist(SimpleException):
+    " No such dir "
 
 
 def create_or_update_jetpack_core(sdk_dir_name):
+    " call create or update depending on the current staus "
     try:
         SDK.objects.all()[0]
         return update_jetpack_core(sdk_dir_name)
@@ -40,6 +43,7 @@ def create_or_update_jetpack_core(sdk_dir_name):
 
 
 def get_jetpack_core_manifest(sdk_source):
+    " parse the SDK's manifest "
     if not os.path.isdir(sdk_source):
         raise SDKDirDoesNotExist(
             "Jetpack SDK dir does not exist \"%s\"" % sdk_source)
@@ -51,6 +55,7 @@ def get_jetpack_core_manifest(sdk_source):
 
 
 def get_or_create_core_author():
+    " create or get Mozilla author "
     try:
         core_author = User.objects.get(username='mozilla')
     except:
@@ -79,9 +84,9 @@ def add_core_modules(sdk_source, core_revision, core_author):
                 author=core_author
             )
             core_revision.modules.add(mod)
-        except Exception, (e):
+        except Exception, err:
             print ("Warning: There was a problem with importing module ",
-                   "from file %s\n%s") % (module_file, str(e))
+                   "from file %s\n%s") % (module_file, str(err))
 
 
 def check_SDK_dir(sdk_dir_name):

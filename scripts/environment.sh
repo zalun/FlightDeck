@@ -7,7 +7,7 @@ source $BASEDIR/config_local.sh
 source $V_ENV/bin/activate
 
 # set path to the project direcotry
-PYTHONPATH=$PROJECT_DIR/$PROJECT_NAME:$PROJECT_DIR:$PYTHONPATH
+export PYTHONPATH=$PROJECT_DIR/$PROJECT_NAME:$PROJECT_DIR:$PYTHONPATH
 echo $PYTHONPATH
 
 # cuddlefish env
