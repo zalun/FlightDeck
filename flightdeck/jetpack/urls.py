@@ -1,3 +1,5 @@
+" URL definitions "
+
 from django.conf.urls.defaults import url, patterns
 
 urlpatterns = patterns('jetpack.views',
@@ -17,7 +19,8 @@ urlpatterns = patterns('jetpack.views',
     url(r'^libraries/by/(?P<username>\w+)/$',
         'package_browser', {'type_id': 'l'}, name='jp_browser_user_libraries'),
     url(r'^addons/by/(?P<username>\w+)/(?P<page_number>\d+)/$',
-        'package_browser', {'type_id': 'a'}, name='jp_browser_user_addons_page'),
+        'package_browser', {'type_id': 'a'},
+        name='jp_browser_user_addons_page'),
     url(r'^libraries/by/(?P<username>\w+)/(?P<page_number>\d+)/$',
         'package_browser', {'type_id': 'l'},
         name='jp_browser_user_libraries_page'),
@@ -44,11 +47,13 @@ urlpatterns = patterns('jetpack.views',
     url(r'^addon/(?P<id_number>[-\w]+)/version/(?P<version_name>.*)/$',
         'package_details', {'type_id': 'a'}, name='jp_addon_version_details'),
     url(r'^library/(?P<id_number>[-\w]+)/version/(?P<version_name>.*)/$',
-        'package_details', {'type_id': 'l'},  name='jp_library_version_details'),
+        'package_details', {'type_id': 'l'},
+        name='jp_library_version_details'),
     url(r'^addon/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
         'package_details', {'type_id': 'a'}, name='jp_addon_revision_details'),
     url(r'^library/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
-        'package_details', {'type_id': 'l'},  name='jp_library_revision_details'),
+        'package_details', {'type_id': 'l'},
+        name='jp_library_revision_details'),
 
     # copy a PackageRevision
     url(r'^addon/copy/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',

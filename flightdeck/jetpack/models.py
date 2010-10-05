@@ -145,7 +145,7 @@ class Package(models.Model):
         returns Boolean: True if this is a SDK Core Library
         Used to block copying the package
         """
-        return self.id_number != conf.MINIMUM_PACKAGE_ID
+        return str(self.id_number) == str(conf.MINIMUM_PACKAGE_ID)
 
     def is_singleton(self):
         """
@@ -256,9 +256,9 @@ class Package(models.Model):
         """
         create copy of the package
         """
+        print self.id_number, conf.MINIMUM_PACKAGE_ID
         if self.is_singleton():
-            raise SingletonCopyException()
-
+            raise SingletonCopyException("This is a singleton")
         new_p = Package(
             full_name=self.get_copied_full_name(),
             description=self.description,

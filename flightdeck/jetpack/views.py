@@ -94,19 +94,20 @@ def package_details(r, id_number, type_id,
 
 
 @login_required
-def package_copy(r, id_number, type_id, revision_number=None, version_name=None):
+def package_copy(r, id_number, type_id,
+                 revision_number=None, version_name=None):
     """
     Copy package - create a duplicate of the Package, set user as author
     """
-    source = get_package_revision(id_number, type_id, revision_number, version_name)
+    source = get_package_revision(id_number, type_id, revision_number,
+                                  version_name)
 
     try:
         package = Package.objects.get(
             full_name=source.package.get_copied_full_name(),
             author__username=r.user.username
             )
-    except Exception:
-        import pdb; pdb.set_trace()
+    except Package.DoesNotExist:
         package = source.package.copy(r.user)
         source.save_new_revision(package)
 
@@ -204,11 +205,13 @@ def package_activate(r, id_number):
 
 @require_POST
 @login_required
-def package_add_module(r, id_number, type_id, revision_number=None, version_name=None):
+def package_add_module(r, id_number, type_id,
+                       revision_number=None, version_name=None):
     """
     Add new module to the PackageRevision
     """
-    revision = get_package_revision(id_number, type_id, revision_number, version_name)
+    revision = get_package_revision(id_number, type_id, revision_number,
+                                    version_name)
     if r.user.pk != revision.author.pk:
         return HttpResponseForbidden(
             'You are not the author of this %s' \
@@ -294,7 +297,8 @@ def package_add_attachment(r, id_number, type_id,
     """
     Add new attachment to the PackageRevision
     """
-    revision = get_package_revision(id_number, type_id, revision_number, version_name)
+    revision = get_package_revision(id_number, type_id, revision_number,
+                                    version_name)
     if r.user.pk != revision.author.pk:
         return HttpResponseForbidden(
             'You are not the author of this %s' \
@@ -375,11 +379,13 @@ def download_attachment(r, path):
 
 @require_POST
 @login_required
-def package_save(r, id_number, type_id, revision_number=None, version_name=None):
+def package_save(r, id_number, type_id, revision_number=None,
+                 version_name=None):
     """
     Save package and modules
     """
-    revision = get_package_revision(id_number, type_id, revision_number, version_name)
+    revision = get_package_revision(id_number, type_id, revision_number,
+                                    version_name)
     if r.user.pk != revision.author.pk:
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -450,7 +456,7 @@ def package_save(r, id_number, type_id, revision_number=None, version_name=None)
     revision_message = r.POST.get('revision_message', False)
     if revision_message and revision_message != start_revision_message:
         revision.message = revision_message
-        " save revision message without changeing the revision "
+        # save revision message without changeing the revision
         super(PackageRevision, revision).save()
         response_data['revision_message'] = revision_message
 
@@ -535,7 +541,8 @@ def library_autocomplete(r):
 def package_assign_library(r, id_number, type_id,
                            revision_number=None, version_name=None):
     " assign library to the package "
-    revision = get_package_revision(id_number, type_id, revision_number, version_name)
+    revision = get_package_revision(id_number, type_id, revision_number,
+                                    version_name)
     if r.user.pk != revision.author.pk:
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -593,6 +600,7 @@ def get_revisions_list(id_number):
 
 
 def get_revisions_list_html(r, id_number):
+    " returns revision list to be displayed in the modal window "
     package = get_object_with_related_or_404(Package, id_number=id_number)
     revisions = get_revisions_list(id_number)
     return render_to_response(
@@ -606,7 +614,7 @@ def get_revisions_list_html(r, id_number):
 # ---------------------------- XPI ---------------------------------
 
 
-def package_test_xpi(r, id_number, revision_number=None, version_name=None):
+def package_test_xpi(r, id_number, revision_number=None):
     """
     Test XPI from data saved in the database
     """
@@ -653,7 +661,7 @@ def package_test_xpi(r, id_number, revision_number=None, version_name=None):
     #    mimetype='application/json')
 
 
-def package_download_xpi(r, id_number, revision_number=None, version_name=None):
+def package_download_xpi(r, id_number, revision_number=None):
     """
     Edit package - only for the author
     """
@@ -679,10 +687,10 @@ def test_xpi(r, sdk_name, pkg_name, filename):
     return XPI file for testing
     """
     path = '%s-%s/packages/%s' % (conf.SDKDIR_PREFIX, sdk_name, pkg_name)
-    file = '%s.xpi' % filename
+    _file = '%s.xpi' % filename
     mimetype = 'text/plain; charset=x-user-defined'
 
-    return HttpResponse(open(os.path.join(path, file), 'rb').read(),
+    return HttpResponse(open(os.path.join(path, _file), 'rb').read(),
                         mimetype=mimetype)
 
 
@@ -691,8 +699,8 @@ def download_xpi(r, sdk_name, pkg_name, filename):
     return XPI file for testing
     """
     path = '%s-%s/packages/%s' % (conf.SDKDIR_PREFIX, sdk_name, pkg_name)
-    file = '%s.xpi' % filename
-    response = serve(r, file, path, show_indexes=False)
+    _file = '%s.xpi' % filename
+    response = serve(r, _file, path, show_indexes=False)
     response['Content-Type'] = 'application/octet-stream'
     response['Content-Disposition'] = 'attachment; filename="%s.xpi"' \
             % filename
@@ -700,6 +708,7 @@ def download_xpi(r, sdk_name, pkg_name, filename):
 
 
 def remove_xpi(r, sdk_name):
+    " remove whole temporary SDK on request "
     # Validate sdk_name
     if not validator.is_valid('alphanum_plus', sdk_name):
         return HttpResponseForbidden("{'error': 'Wrong name'}")
