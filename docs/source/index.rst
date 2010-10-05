@@ -13,12 +13,14 @@ You may find some valuable info on the official Wiki_
 If you just want to know how to start, please read DevelopmentInstallation_ and 
 Contribution_ docs.
 
+
 Contents:
-
-
 
 .. toctree::
    :maxdepth: 2
+
+   development/index.rst
+   server/index.rst
 
 Indices and tables
 ==================
