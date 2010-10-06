@@ -21,6 +21,7 @@ Contents:
 
    development/index.rst
    server/index.rst
+   resources.rst
 
 Indices and tables
 ==================

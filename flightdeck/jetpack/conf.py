@@ -34,7 +34,6 @@ JETPACK_ITEMS_PER_PAGE = getattr(settings, 'JETPACK_ITEMS_PER_PAGE', 10)
 
 # ------------------------------------------------------------------------
 VIRTUAL_ENV = settings.VIRTUAL_ENV
-VIRTUAL_SITE_PACKAGES = settings.VIRTUAL_SITE_PACKAGES
 FRAMEWORK_PATH = settings.FRAMEWORK_PATH
 DEBUG = settings.DEBUG
 HOMEPAGE_ITEMS_LIMIT = settings.HOMEPAGE_ITEMS_LIMIT
