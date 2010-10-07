@@ -55,6 +55,7 @@ class PackageTest(TestCase):
         # one of these will be (1) and the other not
         names = (addon1.full_name, addon2.full_name)
         self.failUnless('My Add-on (1)' in names)
+        self.failUnless('My Add-on' in names)
 
     def test_manager_filtering(self):
         Package(author=self.author, type='a').save()
