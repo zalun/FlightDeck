@@ -1,55 +1,41 @@
-from exceptions import Exception
+"""
+Special Exception classes
+"""
 
-
-class SelfDependencyException(Exception):
+class SimpleException(Exception):
+    " Exception extended with a value "
 
     def __init__(self, value):
         self.value = value
+        super(SimpleException, self).__init__()
 
     def __str__(self):
         return repr(self.value)
 
 
-class FilenameExistException(Exception):
-
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
+class SelfDependencyException(SimpleException):
+    " Library may not depend on itself "
 
 
-class UpdateDeniedException(Exception):
-
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
+class DependencyException(SimpleException):
+    " All dependency errors "
 
 
-class AddingAttachmentDenied(Exception):
-
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
+class FilenameExistException(SimpleException):
+    " This filename already exists - it has to be unique "
 
 
-class AddingModuleDenied(Exception):
-
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
+class UpdateDeniedException(SimpleException):
+    " This item may not be updated "
 
 
-class SingletonCopyException(Exception):
+class AddingAttachmentDenied(SimpleException):
+    " Attachment may not be added "
 
-    def __init__(self):
-        ""
 
-    def __str__(self):
-        return repr("SDK can't be copied")
+class AddingModuleDenied(SimpleException):
+    " Modulke may not be added "
+
+
+class SingletonCopyException(SimpleException):
+    " Singleton may not be copied "

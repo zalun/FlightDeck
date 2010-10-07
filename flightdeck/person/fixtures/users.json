@@ -36,24 +36,24 @@
         }
     },
     {
-        "pk": 1, 
+        "pk": 2, 
         "model": "person.profile", 
         "fields": {
             "nickname": null, 
             "location": null, 
-            "user": 1, 
+            "user": 3, 
             "photo": null, 
             "homepage": null, 
             "occupation": null
         }
     }, 
     {
-        "pk": 2, 
+        "pk": 3, 
         "model": "person.profile", 
         "fields": {
             "nickname": null, 
             "location": null, 
-            "user": 2, 
+            "user": 4, 
             "photo": null, 
             "homepage": null, 
             "occupation": null

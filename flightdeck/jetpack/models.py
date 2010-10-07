@@ -1,9 +1,12 @@
+" Models definition for jetpack application "
+
+# TODO: split module and create the models package
+
 import os
 import csv
 import shutil
 
 from copy import deepcopy
-from exceptions import TypeError
 
 from django.db.models.signals import pre_save, post_save
 from django.db import models
@@ -14,8 +17,8 @@ from django.template.defaultfilters import slugify
 
 from jetpack import conf
 from jetpack.managers import PackageManager
-from jetpack.errors import  SelfDependencyException, FilenameExistException, \
-                            UpdateDeniedException, SingletonCopyException
+from jetpack.errors import SelfDependencyException, FilenameExistException, \
+        UpdateDeniedException, SingletonCopyException, DependencyException
 from jetpack.xpi_utils import sdk_copy, xpi_build, xpi_remove
 
 
@@ -92,6 +95,7 @@ class Package(models.Model):
     active = models.BooleanField(default=True, blank=True)
 
     class Meta:
+        " Set the ordering of objects "
         ordering = ('-last_update', '-created_at')
 
     objects = PackageManager()
@@ -141,7 +145,7 @@ class Package(models.Model):
         returns Boolean: True if this is a SDK Core Library
         Used to block copying the package
         """
-        return self.id_number != conf.MINIMUM_PACKAGE_ID
+        return str(self.id_number) == str(conf.MINIMUM_PACKAGE_ID)
 
     def is_singleton(self):
         """
@@ -151,51 +155,64 @@ class Package(models.Model):
         return self.is_core()
 
     def get_type_name(self):
+        " return name of the type (add-on / library) "
         return conf.PACKAGE_SINGULAR_NAMES[self.type]
 
     def get_lib_dir(self):
+        " returns the name of the lib directory in SDK default - packages "
         return self.lib_dir or conf.DEFAULT_LIB_DIR
 
     def get_data_dir(self):
+        " returns the name of the data directory in SDK default - data "
+        # it stays as method as it could be saved in instance in the future
+        # TODO: YAGNI!
         return conf.DEFAULT_DATA_DIR
 
     def get_unique_package_name(self):
+        """
+        returns a unique package name
+        it's name (slugified full_name)
+        accompanied with id as name is not unique
+        """
         return "%s-%s" % (self.name, self.id_number)
 
     def set_full_name(self):
+        """
+        setting automated full name of the Package item
+        add incrementing number in brackets if author already has
+        a package with default name
+        called from signals
+        """
         if self.full_name:
             return
 
-        def _get_full_name(full_name, username, type, i=0):
+        def _get_full_name(full_name, username, type_id, i=0):
+            """
+            increment until there is no package with the full_name
+            """
             new_full_name = full_name
             if i > 0:
                 new_full_name = "%s (%d)" % (full_name, i)
             packages = Package.objects.filter(author__username=username,
                                               full_name=new_full_name,
-                                              type=type)
+                                              type=type_id)
             if len(packages.all()) == 0:
                 return new_full_name
 
             i = i + 1
-            return _get_full_name(full_name, username, type, i)
+            return _get_full_name(full_name, username, type_id, i)
 
         self.full_name = _get_full_name(
             conf.DEFAULT_PACKAGE_FULLNAME[self.type],
             self.author.username, self.type)
 
     def set_name(self):
+        " set's the name from full_name "
         self.name = self.make_name()
 
     def make_name(self):
+        " wrap for slugify - this function was changed before "
         return slugify(self.full_name)
-
-    def create_id_number(self):
-        """
-        get the highest id number and increment it
-        """
-        all_packages = Package.objects.all().order_by('-id_number')
-        return str(int(all_packages[0].id_number) + 1) \
-                if all_packages else str(conf.MINIMUM_PACKAGE_ID)
 
     def generate_key(self):
         """
@@ -205,11 +222,11 @@ class Package(models.Model):
         from cuddlefish.preflight import vk_to_jid, jid_to_programid, \
                                          my_b32encode
 
-        sk = SigningKey.generate(curve=NIST256p)
-        sk_text = "private-jid0-%s" % my_b32encode(sk.to_string())
-        vk = sk.get_verifying_key()
-        vk_text = "public-jid0-%s" % my_b32encode(vk.to_string())
-        self.jid = vk_to_jid(vk)
+        signingkey = SigningKey.generate(curve=NIST256p)
+        sk_text = "private-jid0-%s" % my_b32encode(signingkey.to_string())
+        verifyingkey = signingkey.get_verifying_key()
+        vk_text = "public-jid0-%s" % my_b32encode(verifyingkey.to_string())
+        self.jid = vk_to_jid(verifyingkey)
         self.program_id = jid_to_programid(self.jid)
         self.private_key = sk_text
         self.public_key = vk_text
@@ -227,6 +244,9 @@ class Package(models.Model):
         return package_dir
 
     def get_copied_full_name(self):
+        """
+        Add "Copy of" before the full name if package is copied
+        """
         full_name = self.full_name
         if not full_name.startswith('Copy of'):
             full_name = "Copy of %s" % full_name
@@ -236,9 +256,9 @@ class Package(models.Model):
         """
         create copy of the package
         """
+        print self.id_number, conf.MINIMUM_PACKAGE_ID
         if self.is_singleton():
-            raise SingletonCopyException()
-
+            raise SingletonCopyException("This is a singleton")
         new_p = Package(
             full_name=self.get_copied_full_name(),
             description=self.description,
@@ -289,6 +309,7 @@ class PackageRevision(models.Model):
     sdk = models.ForeignKey('SDK', blank=True, null=True)
 
     class Meta:
+        " PackageRevision ordering and uniqueness "
         ordering = ('-revision_number',)
         unique_together = ('package', 'author', 'revision_number')
 
@@ -301,6 +322,7 @@ class PackageRevision(models.Model):
                             )
 
     def get_absolute_url(self):
+        " returns URL to view the package revision "
         if self.version_name:
             if self.package.version.revision_number == self.revision_number:
                 return self.package.get_absolute_url()
@@ -314,46 +336,55 @@ class PackageRevision(models.Model):
             args=[self.package.id_number, self.revision_number])
 
     def get_edit_url(self):
+        " returns URL to edit the package revision "
         return reverse(
             'jp_%s_revision_edit' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
     def get_save_url(self):
+        " returns URL to save the package revision "
         return reverse(
             'jp_%s_revision_save' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
     def get_add_module_url(self):
+        " returns URL to add module to the package revision "
         return reverse(
             'jp_%s_revision_add_module' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
     def get_remove_module_url(self):
+        " returns URL to remove module from the package revision "
         return reverse(
             'jp_%s_revision_remove_module' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
     def get_add_attachment_url(self):
+        " returns URL to add attachment to the package revision "
         return reverse(
             'jp_%s_revision_add_attachment' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
     def get_remove_attachment_url(self):
+        " returns URL to remove attachment from the package revision "
         return reverse(
             'jp_%s_revision_remove_attachment' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
     def get_assign_library_url(self):
+        " returns url to assign library to the package revision "
         return reverse(
             'jp_%s_revision_assign_library' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
     def get_remove_library_url(self):
+        " returns url to remove library from the package revision "
         return reverse(
             'jp_%s_revision_remove_library' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
     def get_test_xpi_url(self):
+        " returns URL to test Add-on "
         if self.package.type != 'a':
             raise Exception('XPI might be created only from an Add-on')
         return reverse(
@@ -361,6 +392,7 @@ class PackageRevision(models.Model):
             args=[self.package.id_number, self.revision_number])
 
     def get_download_xpi_url(self):
+        " returns URL to download Add-on's XPI "
         if self.package.type != 'a':
             raise Exception('XPI might be created only from an Add-on')
         return reverse(
@@ -368,11 +400,13 @@ class PackageRevision(models.Model):
             args=[self.package.id_number, self.revision_number])
 
     def get_copy_url(self):
+        " returns URL to copy the package "
         return reverse(
             'jp_%s_revision_copy' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
     def get_switch_sdk_url(self):
+        " returns URL to switch SDK on the package revision "
         return reverse(
             'jp_addon_switch_sdk_version',
             args=[self.package.id_number, self.revision_number])
@@ -381,18 +415,20 @@ class PackageRevision(models.Model):
     # Manifest
 
     def get_contributors_list(self):
+        " returns a CSV build from the list of contributors "
         csv_r = csv.reader([self.contributors], skipinitialspace=True)
-        for c in csv_r:
-            return c
+        for contributors in csv_r:
+            return contributors
 
     def get_dependencies_list(self):
+        " returns a list of dependencies names extended by default core "
         deps = ['jetpack-core']
         deps.extend([dep.package.get_unique_package_name() \
                      for dep in self.dependencies.all()])
         return deps
 
     def get_full_description(self):
-        " return joined description "
+        " return joined package and its revision description "
         description = self.package.description
         if self.message:
             description = "%s\n%s" % (description, self.message)
@@ -403,6 +439,7 @@ class PackageRevision(models.Model):
         return "<p>%s</p>" % self.get_full_description().replace("\n", "<br/>")
 
     def get_manifest(self, test_in_browser=False):
+        " returns manifest dictionary "
         version = self.get_version_name()
         if test_in_browser:
             version = "%s - test" % version
@@ -429,11 +466,12 @@ class PackageRevision(models.Model):
         return manifest
 
     def get_manifest_json(self, **kwargs):
+        " returns manifest as JSOIN object "
         return simplejson.dumps(self.get_manifest(**kwargs))
 
     def get_main_module(self):
         " return executable Module for Add-ons "
-        if type == 'l':
+        if self.package.type == 'l':
             return None
 
         # find main module
@@ -462,6 +500,7 @@ class PackageRevision(models.Model):
         if package:
             self.package = package
             self.author = package.author
+        # reset instance - force saving a new one
         self.id = None
         self.version_name = None
         self.origin = origin
@@ -521,15 +560,21 @@ class PackageRevision(models.Model):
         return super(PackageRevision, self).save()
 
     def validate_module_filename(self, filename):
-        for mod in self.modules.all():
-            if mod.filename == filename:
-                return False
+        """
+        returns False if the package revision contains a module with given
+        filename
+        """
+        if self.modules.filter(filename=filename).count() > 0:
+            return False
         return True
 
     def validate_attachment_filename(self, filename, ext):
-        for mod in self.attachments.all():
-            if mod.filename == filename and mod.ext == ext:
-                return False
+        """
+        returns False if the package revision contains a module with given
+        filename
+        """
+        if self.attachments.filter(filename=filename, ext=ext).count() > 0:
+            return False
         return True
 
     def module_create(self, **kwargs):
@@ -551,19 +596,18 @@ class PackageRevision(models.Model):
         # validate if given filename is valid
         if not self.validate_module_filename(mod.filename):
             raise FilenameExistException(
-                ('Sorry, there is already a module in your add-on'
-                 'with the name "%s". Each module in your add-on'
+                ('Sorry, there is already a module in your add-on '
+                 'with the name "%s". Each module in your add-on '
                  'needs to have a unique name.') % mod.filename
             )
-        """
-        I think it's not necessary
-        #TODO: check integration
-        for rev in mod.revisions.all():
-            if rev.package.id_number != self.package.id_number:
-                raise AddingModuleDenied(
-                    ('this module is already assigned to other'
-                    'Library - %s') % rev.package.get_unique_package_name())
-        """
+        # I think it's not necessary
+        # TODO: check integration
+        #for rev in mod.revisions.all():
+        #    if rev.package.id_number != self.package.id_number:
+        #        raise AddingModuleDenied(
+        #            ('this module is already assigned to other'
+        #            'Library - %s') % rev.package.get_unique_package_name())
+
         self.save()
         return self.modules.add(mod)
 
@@ -611,13 +655,14 @@ class PackageRevision(models.Model):
                 'Attachment with filename %s.%s already exists' % (
                     att.filename, att.ext)
             )
-        """
-        for rev in att.revisions.all():
-            if rev.package.id_number != self.package.id_number:
-                raise AddingAttachmentDenied(
-                    ('this attachment is already assigned to other Library '
-                     '- %s') % rev.package.get_unique_package_name())
-        """
+
+        # TODO: check integration
+        #for rev in att.revisions.all():
+        #    if rev.package.id_number != self.package.id_number:
+        #        raise AddingAttachmentDenied(
+        #            ('this attachment is already assigned to other Library '
+        #             '- %s') % rev.package.get_unique_package_name())
+
         self.save()
         return self.attachments.add(att)
 
@@ -643,22 +688,25 @@ class PackageRevision(models.Model):
                 'A Library can not depend on itself!')
 
         # dependency have to be unique in the PackageRevision
-        deps = self.dependencies.all()
-        for d in deps:
-            if d.package.pk == dep.package.pk:
-                raise Exception(
-                    'Your add-on is already using "%s" by %s.' % (
-                        dep.package.full_name,
-                        dep.package.author.get_profile()))
+        if self.dependencies.filter(package__pk=dep.package.pk).count() > 0:
+            raise DependencyException(
+                'Your add-on already depends on "%s" by %s.' % (
+                    dep.package.full_name,
+                    dep.package.author.get_profile()))
         # save as new version
         self.save()
         return self.dependencies.add(dep)
 
     def dependency_remove(self, dep):
         " copy to new revision, remove dependency "
-        # save as new version
-        self.save()
-        return self.dependencies.remove(dep)
+        if self.dependencies.filter(pk=dep.pk).count() > 0:
+            # save as new version
+            self.save()
+            return self.dependencies.remove(dep)
+        raise DependencyException(
+            'There is no such library in this %s' \
+            % self.package.get_type_name())
+
 
     def dependency_remove_by_id_number(self, id_number):
         " find dependency by its id_number call dependency_remove "
@@ -666,33 +714,37 @@ class PackageRevision(models.Model):
             if dep.package.id_number == id_number:
                 self.dependency_remove(dep)
                 return True
-        raise Exception(
+        raise DependencyException(
             'There is no such library in this %s' \
             % self.package.get_type_name())
 
     def get_dependencies_list_json(self):
-        l = [{
+        " returns dependencies list as JSON object "
+        d_list = [{
                 'full_name': d.package.full_name,
                 'view_url': d.get_absolute_url(),
                 'edit_url': d.get_edit_url()
                 } for d in self.dependencies.all()
-            ] if len(self.dependencies.all()) > 0 else []
-        return simplejson.dumps(l)
+            ] if self.dependencies.count() > 0 else []
+        return simplejson.dumps(d_list)
 
     def get_modules_list_json(self):
-        l = [{
+        " returns modules list as JSON object "
+        m_list = [{
                 'filename': m.filename,
                 'author': m.author.username,
                 'executable': self.module_main == m.filename
                 } for m in self.modules.all()
-            ] if len(self.modules.all()) > 0 else []
-        return simplejson.dumps(l)
+            ] if self.modules.count() > 0 else []
+        return simplejson.dumps(m_list)
 
     def get_sdk_name(self):
+        " returns the name of the directory to which SDK should be copied "
         return '%s-%s-%s' % (self.sdk.version,
                              self.package.id_number, self.revision_number)
 
     def get_sdk_dir(self):
+        " returns the path to the directory where the SDK should be copied "
         return '%s-%s' % (conf.SDKDIR_PREFIX, self.get_sdk_name())
 
     def build_xpi(self):
@@ -725,7 +777,7 @@ class PackageRevision(models.Model):
 
         sdk_dir = self.get_sdk_dir()
         sdk_source = self.sdk.get_source_dir()
-        # TODO: consider SDK staying per PackageRevision...
+        # This SDK is always different! - working on unsaved data
         if os.path.isdir(sdk_dir):
             xpi_remove(sdk_dir)
         sdk_copy(sdk_source, sdk_dir)
@@ -764,23 +816,28 @@ class PackageRevision(models.Model):
         handle.close()
 
     def export_manifest(self, package_dir):
+        " creates a file with an Add-on's manifest "
         handle = open('%s/package.json' % package_dir, 'w')
         handle.write(self.get_manifest_json())
         handle.close()
 
     def export_modules(self, lib_dir):
+        " creates module file for each module "
         for mod in self.modules.all():
             mod.export_code(lib_dir)
 
-    def export_attachments(self, static_dir):
+    def export_attachments(self, data_dir):
+        " creates attachment file for each attachment "
         for att in self.attachments.all():
-            att.export_file(static_dir)
+            att.export_file(data_dir)
 
     def export_dependencies(self, packages_dir):
+        " creates dependency package directory for each dependency "
         for lib in self.dependencies.all():
             lib.export_files_with_dependencies(packages_dir)
 
     def export_files(self, packages_dir):
+        " calls all export functions - creates all packages files "
         package_dir = self.package.make_dir(packages_dir)
         self.export_manifest(package_dir)
         self.export_modules(
@@ -789,10 +846,12 @@ class PackageRevision(models.Model):
             '%s/%s' % (package_dir, self.package.get_data_dir()))
 
     def export_files_with_dependencies(self, packages_dir):
+        " export dependency packages "
         self.export_files(packages_dir)
         self.export_dependencies(packages_dir)
 
     def get_version_name(self):
+        " returns version name with revision number if needed "
         return self.version_name \
                 if self.version_name \
                 else "%s.rev%s" % (
@@ -801,8 +860,11 @@ class PackageRevision(models.Model):
 
 class Module(models.Model):
     """
-    the only way to 'change' the module is to assign it to
-    different PackageRequest
+    Code used by Package.
+    It's assigned to PackageRevision.
+
+    The only way to 'change' the module is to assign it to
+    different PackageRevision
     """
     revisions = models.ManyToManyField(PackageRevision,
                                     related_name='modules', blank=True)
@@ -814,6 +876,7 @@ class Module(models.Model):
     author = models.ForeignKey(User, related_name='module_revisions')
 
     class Meta:
+        " ordering for Module model "
         ordering = ('filename',)
 
     def __unicode__(self):
@@ -821,31 +884,42 @@ class Module(models.Model):
                                   self.author, self.get_package_fullName())
 
     def get_package(self):
+        " returns first package to which the module is assigned "
+        # TODO: Check if this method is used
         try:
             return self.revisions.all()[0].package
-        except:
+        except Exception:
             return None
 
     def get_package_fullName(self):
+        " returns full name of the package to which the module is assigned "
+        # TODO: Check if this method is used
         package = self.get_package()
         return package.full_name if package else ''
 
     def get_filename(self):
+        " returns the filename with extension (adds .js)"
         return "%s.js" % self.filename
 
-    def save(self, **kwargs):
+    def save(self, *args, **kwargs):
+        " overloaded to prevent from updating an existing module "
         if self.id:
             raise UpdateDeniedException(
                 'Module can not be updated in the same row')
-        return super(Module, self).save(**kwargs)
+        return super(Module, self).save(*args, **kwargs)
 
     def export_code(self, lib_dir):
+        " creates a file containing the module "
         handle = open('%s/%s.js' % (lib_dir, self.filename), 'w')
         handle.write(self.code)
         handle.close()
 
 
 class Attachment(models.Model):
+    """
+    File (image, css, etc.) updated by the author of the PackageRevision
+    When exported should be placed in a special directory - usually "data"
+    """
 
     revisions = models.ManyToManyField(PackageRevision,
                                     related_name='attachments', blank=True)
@@ -863,32 +937,37 @@ class Attachment(models.Model):
     mimetype = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
+        " attachment ordering "
         ordering = ('filename',)
 
     def get_filename(self):
+        " returns human readable filename with extension "
         name = self.filename
         if self.ext:
             name = "%s.%s" % (name, self.ext)
         return name
 
     def save(self, **kwargs):
+        " overloaded to prevent from updating "
         if self.id:
             raise UpdateDeniedException(
                 'Attachment can not be updated in the same row')
         return super(Attachment, self).save(**kwargs)
 
     def export_file(self, static_dir):
+        " copies from uploads to the package's data directory "
         shutil.copy('%s/%s' % (conf.UPLOAD_DIR, self.path),
                     '%s/%s.%s' % (static_dir, self.filename, self.ext))
 
     def get_display_url(self):
+        " returns URL to display the attachment "
         return reverse('jp_attachment', args=[self.path])
 
 
 class SDK(models.Model):
     """
-    Placeholder for the Jetpack SDK
-    Add-ons have to depend on an SDK, by default on latest one.
+    Jetpack SDK representation in database
+    Add-ons have to depend on an SDK, by default on the latest one.
     """
     version = models.CharField(max_length=10, unique=True)
 
@@ -900,6 +979,7 @@ class SDK(models.Model):
     dir = models.CharField(max_length=255, unique=True)
 
     class Meta:
+        " orderin of SDK instances"
         ordering = ["-id"]
 
     def __unicode__(self):
@@ -909,17 +989,27 @@ class SDK(models.Model):
         return os.path.join(conf.SDK_SOURCE_DIR, self.dir)
 
 
+def _get_next_id_number():
+    """
+    get the highest id number and increment it
+    """
+    all_packages = Package.objects.all().order_by('-id_number')
+    return str(int(all_packages[0].id_number) + 1) \
+            if all_packages else str(conf.MINIMUM_PACKAGE_ID)
+
 ###############################################################################
 ## Catching Signals
 
 def set_package_id_number(instance, **kwargs):
+    " sets package's id_number before creating the new one "
     if kwargs.get('raw', False) or instance.id:
         return
-    instance.id_number = instance.create_id_number()
+    instance.id_number = _get_next_id_number()
 pre_save.connect(set_package_id_number, sender=Package)
 
 
 def make_full_name(instance, **kwargs):
+    " creates an automated full_name when not given "
     if kwargs.get("raw", False) or instance.full_name:
         return
     instance.set_full_name()
@@ -927,6 +1017,7 @@ pre_save.connect(make_full_name, sender=Package)
 
 
 def make_name(instance, **kwargs):
+    " make the name (AMO friendly) "
     if kwargs.get('raw', False) or instance.name:
         return
     instance.set_name()
@@ -934,6 +1025,7 @@ pre_save.connect(make_name, sender=Package)
 
 
 def make_keypair_on_create(instance, **kwargs):
+    " creates public and private keys for JID "
     if kwargs.get('raw', False) or instance.id or not instance.is_addon():
         return
     instance.generate_key()
@@ -942,7 +1034,8 @@ pre_save.connect(make_keypair_on_create, sender=Package)
 
 def save_first_revision(instance, **kwargs):
     """
-    Create first PackageRevision
+    every Package has at least one PackageRevision - it's created here
+    if Package is an Add-on it will create a Module as well.
     """
     if kwargs.get('raw', False) or not kwargs.get('created', False):
         return

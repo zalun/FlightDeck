@@ -7,15 +7,12 @@ Django==1.2.3
 mysql-python
 South
 
-# AMO scraping 
-# wsgiref
-# mechanize
-# BeautifulSoup
-# ElementTree
-
 # parse packages for documentation
 simplejson
 Markdown
+
+# reading docs from SDK
+cuddlefish
 
 # search functionality
 -e git+git://github.com/toastdriven/django-haystack#egg=django_haystack

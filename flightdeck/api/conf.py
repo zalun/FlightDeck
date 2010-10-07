@@ -14,6 +14,5 @@ else:
 
 # ------------------------------------------------------------------------
 VIRTUAL_ENV = settings.VIRTUAL_ENV
-VIRTUAL_SITE_PACKAGES = settings.VIRTUAL_SITE_PACKAGES
 FRAMEWORK_PATH = settings.FRAMEWORK_PATH
 DEBUG = settings.DEBUG

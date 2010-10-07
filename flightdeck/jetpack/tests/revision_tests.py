@@ -2,9 +2,9 @@ from test_utils import TestCase
 
 from django.contrib.auth.models import User
 
-from person.models import Profile
 from jetpack.models import Package, PackageRevision, Module, Attachment
-from jetpack.errors import SelfDependencyException, FilenameExistException
+from jetpack.errors import SelfDependencyException, FilenameExistException, \
+        DependencyException
 
 
 class PackageRevisionTest(TestCase):
@@ -56,7 +56,6 @@ class PackageRevisionTest(TestCase):
     def test_set_version(self):
         addon = Package(author=self.author, type='a')
         addon.save()
-        Profile(user=self.author).save()
         first = addon.latest
         old_id = first.id
         first.set_version('test')
@@ -132,11 +131,26 @@ class PackageRevisionTest(TestCase):
         self.assertRaises(TypeError, lib.dependency_add, addon)
         self.assertEqual(0, lib.dependencies.all().count())
 
-    def test_adding_library_to_itself_as_dependency(self):
+    def test_adding_library_twice(self):
         " Check recurrent dependency (one level only) "
-        lib = PackageRevision.objects.filter(
-            package__name=self.library.name)[0]
+        lib = self.library.latest
+        addon = self.addon.latest
+        addon.dependency_add(lib)
+        self.assertRaises(DependencyException, addon.dependency_add, lib)
+
+    def test_adding_library_self(self):
+        " Check recurrent dependency (one level only) "
+        lib = self.library.latest
         self.assertRaises(SelfDependencyException, lib.dependency_add, lib)
+
+    def test_removing_not_existing_dependency(self):
+        " Removing not existing dependency should raise an error "
+        self.assertRaises(DependencyException,
+                          self.addon.latest.dependency_remove_by_id_number,
+                          self.library.id_number)
+        self.assertRaises(DependencyException,
+                         self.addon.latest.dependency_remove,
+                         self.library.latest)
 
     def test_adding_module(self):
         " Test if module is added properly "
