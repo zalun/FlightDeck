@@ -1,13 +1,12 @@
-Installation on the server
-==========================
+Installation for development
+============================
 
 FligtDeck depends on Python, virtualenv, virtualenvwrapper, mysql, git, 
 mercurial, xulrunner.
 
 #. Download the code::
 
-    git clone git://github.com/mozilla/FlightDeck.git -b production
-    # or -b staging if staging server
+    git clone git://github.com/mozilla/FlightDeck.git
 
 #. Create the upload directory::
 
@@ -23,7 +22,7 @@ mercurial, xulrunner.
 #. Create virtual environment::
 
     mkvirtualenv flighdeck
-    pip install requirements/production.txt
+    pip install requirements/development.txt
     echo "export DJANGO_SETTINGS_MODULE=flightdeck.settings" >> $VIRTUAL_ENV/bin/postactivate
     echo "export CUDDLEFISH_ROOT=$VIRTUAL_ENV" >> $VIRTUAL_ENV/bin/postactivate
 
@@ -37,11 +36,12 @@ mercurial, xulrunner.
 
     cd flightdeck
     python manage.py syncdb
+    # you may find it useful for visual testing to load some fixtures
 
 #. Load Add-on SDK into the database::
 
     python manage.py create_core_lib 
 
-#. Configure Apache, a sample config is in 
-   ``apache/config_local-default.wsgi``. Please copy to 
-   ``apache/config_local.wsgi`` before modifying.
+#. **OPTIONAL** You may find it useful to load some fixtures::
+
+    # python manage.py loaddata users packages
