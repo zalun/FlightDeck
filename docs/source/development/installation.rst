@@ -1,13 +1,12 @@
-Installation on the server
-==========================
+Installation for development
+============================
 
 FligtDeck depends on Python, virtualenv, virtualenvwrapper, mysql, git, 
 mercurial, xulrunner.
 
 * Download the code::
 
-    git clone git://github.com/mozilla/FlightDeck.git -b production
-    # or -b staging if staging server
+    git clone git://github.com/mozilla/FlightDeck.git
 
 .. include:: ../_includes/installation_create_dirs.rst
 
@@ -19,6 +18,6 @@ mercurial, xulrunner.
 
 .. include:: ../_includes/installation_database.rst
 
-* Configure Apache, a sample config is in 
-   ``apache/config_local-default.wsgi``. Please copy to 
-   ``apache/config_local.wsgi`` before modifying.
+* **OPTIONAL** You may find it useful to load some fixtures::
+
+    # python manage.py loaddata users packages
