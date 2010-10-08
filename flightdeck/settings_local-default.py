@@ -1,3 +1,4 @@
+import os.environ
 import os.path
 
 FRAMEWORK_PATH = os.path.dirname(os.path.dirname(__file__)) + '/'
@@ -41,7 +42,7 @@ SDK_SOURCE_DIR = os.path.join(FRAMEWORK_PATH, 'sdk_versions/')
 
 # this setting is needed so os applications run from within the site
 # will use the same virtual environment
-VIRTUAL_ENV = '/path/to/virtual/env'
+VIRTUAL_ENV = os.environ.get('VIRTUAL_ENV')
 ACTIVATE_THIS = os.path.join(VIRTUAL_ENV, 'bin/activate_this.py')
 
 # uncomment if FlightDeck should authenticate against database

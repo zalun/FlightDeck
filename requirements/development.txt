@@ -3,9 +3,6 @@
 # load everything from production
 -r production.txt
 
-# virtualenv
-yolk
-
 # runserver additions
 django-debug-toolbar
 django-extensions
