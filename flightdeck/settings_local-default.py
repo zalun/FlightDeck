@@ -31,6 +31,8 @@ DEBUG = False
 INTERNAL_IPS = ('127.0.0.1',)
 
 MEDIA_ROOT = os.path.join(FRAMEWORK_PATH, 'flightdeck/media/')
+MEDIA_PREFIX = os.path.join(FRAMEWORK_PATH, 'flightdeck/')
+MEDIA_SUFFIX =  'media'
 
 #ADMIN_MEDIA_ROOT = os.path.join(FRAMEWORK_PATH,
 #                                'flightdeck/adminmedia/')
