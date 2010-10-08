@@ -136,10 +136,7 @@ AUTHENTICATION_BACKENDS = (
 )
 
 # overwrite default settings with the ones from settings_local.py
-try:
-    from settings_local import *
-except:
-    pass
+from settings_local import *
 
 if PRODUCTION:
     for app in DEV_APPS:
