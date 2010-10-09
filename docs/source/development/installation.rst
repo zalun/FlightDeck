@@ -14,7 +14,7 @@ mercurial, xulrunner.
 
 * Set to development mode::
 
-  echo "PRODUCTION = False" >> flightdeck/settings_local.py
+    echo "PRODUCTION = False" >> flightdeck/settings_local.py
 
 .. include:: ../_includes/installation_virtual_env.rst
 
