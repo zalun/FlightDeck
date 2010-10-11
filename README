@@ -2,6 +2,9 @@ Version 1.0a5
 FlightDeck is a SDK for creating JetPack
 (c) Mozilla Foundation
 
+For installation instructions and docs in the future please check 
+http://fddoc.zalewa.info/
+
 Production uses following third-party software:
  * Python (http://www.python.org/) [GPL-compatible]
  * Docutils (http://docutils.sourceforge.net/) [Python compatible]
