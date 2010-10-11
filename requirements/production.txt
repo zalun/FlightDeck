@@ -13,3 +13,8 @@ Markdown
 
 # search functionality
 -e git+git://github.com/toastdriven/django-haystack#egg=django_haystack
+
+# documentation
+docutils
+Sphinx
+
