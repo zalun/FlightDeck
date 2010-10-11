@@ -7,10 +7,6 @@
 django-debug-toolbar
 django-extensions
 
-# documentation
-docutils
-Sphinx
-
 # tests
 -e git://github.com/jbalogh/test-utils.git#egg=test-utils
 -e git://github.com/jbalogh/django-nose.git#egg=django_nose
