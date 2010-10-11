@@ -1,53 +1,57 @@
-import os.path
+"""
+Local settings
+Please copy to settings_local.py which should remain private
+"""
+
+import os
 
 FRAMEWORK_PATH = os.path.dirname(os.path.dirname(__file__)) + '/'
 
 ADMINS = (
-   # ('Your Name', 'your_email@domain.com'),
+    #('Your Name', 'your@email.info'),
 )
 
-# this is default development setting - please change to other db in production
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        # Change 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3'
-        'NAME': os.path.join(FRAMEWORK_PATH, 'dev.db'),
-        'USER': '',
-        'PASSWORD': '',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'db_name',
+        'USER': 'db_user',
+        'PASSWORD': '',  # database password
         'HOST': '',
         'PORT': '',
     }
 }
 
-TIME_ZONE = 'America/San Francisco'
-LANGUAGE_CODE = 'en-us'
-SITE_ID = 1
-MEDIA_ROOT = ''
-MEDIA_URL = ''
-SECRET_KEY = 'randomstring'
-
-DEBUG = False
-
-INTERNAL_IPS = ('127.0.0.1',)
-
-MEDIA_ROOT = os.path.join(FRAMEWORK_PATH, 'flightdeck/media/')
-
-#ADMIN_MEDIA_ROOT = os.path.join(FRAMEWORK_PATH,
-#                                'flightdeck/adminmedia/')
-
 SDK_SOURCE_DIR = os.path.join(FRAMEWORK_PATH, 'sdk_versions/')
 
-# this setting is needed so os applications run from within the site
+MEDIA_ROOT = os.path.join(FRAMEWORK_PATH, 'flightdeck/media')
+MEDIA_PREFIX = os.path.join(FRAMEWORK_PATH, 'flightdeck/')
+
+SECRET_KEY = 'somerandomstring' # please change it
+
+# this setting is needed so os applicatio') run from within the site
 # will use the same virtual environment
-VIRTUAL_ENV = '/path/to/virtual/env'
+VIRTUAL_ENV = os.environ.get('VIRTUAL_ENV')
 ACTIVATE_THIS = os.path.join(VIRTUAL_ENV, 'bin/activate_this.py')
 
-# uncomment if FlightDeck should authenticate against database
+
 #AUTH_DATABASE = {
-#    'NAME': '',
-#    'TABLE': 'users',
-#    'USER': '',
-#    'PASSWORD': '',
+#    'NAME': 'db_name',
+#    'TABLE': 'users_table_name',
+#    'USER': 'db_user',
+#    'PASSWORD': '',  # db_password
 #    'HOST': '',
 #    'PORT': ''
-#} # it's always MySQL!
+#}
+
+# If you want to run Selenium tests, you'll need to have a server running.
+# Then give this a dictionary of settings. Something like:
+#SELENIUM_CONFIG = {
+#     'HOST': 'localhost',
+#     'PORT': 4444,
+#     'BROWSER': '*firefox',
+#}
+
+PRODUCTION = True
+DEBUG = False
+TEMPLATE_DEBUG = DEBUG

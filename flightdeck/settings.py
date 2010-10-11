@@ -1,18 +1,21 @@
 # Set the project version
 PROJECT_VERSION = "1.0a5"
 
-# Django settings for flightdeck project.
+# If PRODUCTION do not load development apps
 PRODUCTION = True
+
+# Django settings for flightdeck project.
 DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
    # ('Your Name', 'your_email@domain.com'),
 )
+MANAGERS = ADMINS
 
+# How many packages per type should be displayed on the homepage
 HOMEPAGE_ITEMS_LIMIT = 5
 
-MANAGERS = ADMINS
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -28,28 +31,40 @@ SITE_ID = 1
 # to load the internationalization machinery.
 USE_I18N = True
 
-# Absolute path to the directory that holds media.
-# Example: "/home/media/media.lawrence.com/"
-MEDIA_ROOT = ''
+# Media section
+MEDIA_ROOT = ''    # this will get overwritten in settings_local.py
+MEDIA_PREFIX = ''  # this will get overwritten in settings_local.py
+MEDIA_SUFFIX = 'media'
+
+# Connections from which IP should be considered internal
+INTERNAL_IPS = ('127.0.0.1',)
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash if there is a path component (optional in other cases).
 # Examples: "http://media.lawrence.com", "http://example.com/media/"
 MEDIA_URL = ''
 
+# Settings for user management
 LOGIN_URL = '/user/signin/'
 LOGIN_REDIRECT_URL = '/user/dashboard/'
+AUTH_PROFILE_MODULE = 'person.Profile'
+AUTHENTICATION_BACKENDS = (
+   'amo.authentication.AMOAuthentication',
+)
+
 
 # URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
 # trailing slash.
 # Examples: "http://foo.com/media/", "/media/".
 ADMIN_MEDIA_PREFIX = '/adminmedia/'
 
+# Title to be displayed on the Admin site
 ADMIN_TITLE = "Add-on Builder Administration"
 
+# Title to be used on the page
 SITE_TITLE = "Add-on Builder"
 
-# Make this unique, and don't share it with anybody.
+# Define in settings_local.py ake this unique, and don't share it with anybody.
 SECRET_KEY = 'somesecretkey'
 
 # List of callables that know how to import templates from various sources.
@@ -78,20 +93,14 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 
 ROOT_URLCONF = 'flightdeck.urls'
 
-ADDONS_HELPER_URL = 'https://addons.mozilla.org/firefox/downloads/latest/182410?src=external-builder'
+ADDONS_HELPER_URL = ('https://addons.mozilla.org/firefox/downloads/latest/'
+                    '182410?src=external-builder')
 
-TEMPLATE_DIRS = (
-)
+TEMPLATE_DIRS = ()
 
-# Tests
+# Change default test runner (works only with mysql)
 TEST_RUNNER = 'test_utils.runner.RadicalTestSuiteRunner'
-
-
-# If you want to run Selenium tests, you'll need to have a server running.
-# Then give this a dictionary of settings. Something like:
-#     'HOST': 'localhost',
-#     'PORT': 4444,
-#     'BROWSER': '*firefox', # Alternative: *safari
+# Modify in settings_local if needed
 SELENIUM_CONFIG = {}
 
 INSTALLED_APPS = [
@@ -103,8 +112,7 @@ INSTALLED_APPS = [
     'django.contrib.markup',
     'django.contrib.messages',
 
-    # database migrations
-    # not implemented yet
+    # database migrations not implemented yet
     # 'south',
 
 # DEV_APPS
@@ -113,8 +121,6 @@ INSTALLED_APPS = [
     'django_nose',
 
 # FLIGHTDECK APPS
-
-    # FlightDeck apps
     'base',              # basic flightdeck things (utils, urls)
     'person',            # user related stuff (profile etc.)
     'amo',               # currently addons.mozilla.org authentication
@@ -123,27 +129,21 @@ INSTALLED_APPS = [
     'tutorial'           # Load tutorial templates
 ]
 
+# Which from above apps should be removed if in PRODUCTION
 DEV_APPS = [
     'django_extensions',
     'debug_toolbar',
     'django_nose',
 ]
 
-AUTH_PROFILE_MODULE = 'person.Profile'
-
-AUTHENTICATION_BACKENDS = (
-   'amo.authentication.AMOAuthentication',
-)
-
-# overwrite default settings with the ones from settings_local.py
-try:
-    from settings_local import *
-except:
-    pass
+# overwrite above settings with the ones from settings_local.py
+from settings_local import *
 
 if PRODUCTION:
     for app in DEV_APPS:
         if app in INSTALLED_APPS:
             INSTALLED_APPS.remove(app)
 
+# activate virtual environment
+# TODO: check if needed
 execfile(ACTIVATE_THIS, dict(__file__=ACTIVATE_THIS))

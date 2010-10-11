@@ -1,4 +1,6 @@
-from django.conf.urls.defaults import url, patterns, include
+import os
+
+from django.conf.urls.defaults import *
 from django.views import static
 from django.conf import settings
 from django.contrib import admin
@@ -24,6 +26,18 @@ if settings.DEBUG:
 urls.extend([
     # static files
     # this should be used only in development server
+    url(r'^media/jetpack/(?P<path>.*)$', static.serve,
+        {'document_root': os.path.join(
+            settings.MEDIA_PREFIX, 'jetpack', settings.MEDIA_SUFFIX)
+        }, name='jetpack_media'),
+    url(r'^media/api/(?P<path>.*)$', static.serve,
+        {'document_root': os.path.join(
+            settings.MEDIA_PREFIX, 'api', settings.MEDIA_SUFFIX)
+        }, name='api_media'),
+    url(r'^media/tutorial/(?P<path>.*)$', static.serve,
+        {'document_root': os.path.join(
+            settings.MEDIA_PREFIX, 'tutorial', settings.MEDIA_SUFFIX)
+        }, name='tutorial_media'),
     url(r'^media/(?P<path>.*)$', static.serve,
         {'document_root': settings.MEDIA_ROOT}, name='media'),
 
