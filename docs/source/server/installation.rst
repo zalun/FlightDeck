@@ -19,6 +19,9 @@ mercurial, xulrunner.
 
 .. include:: ../_includes/installation_database.rst
 
-* Configure Apache, a sample config is in 
-   ``apache/config_local-default.wsgi``. Please copy to 
-   ``apache/config_local.wsgi`` before modifying.
+* Deactivate the virtual environment::
+
+   deactivate
+
+* Configure Apache, a sample config is in ``apache/config_local-default.wsgi``. Please copy to ``apache/config_local.wsgi`` before modifying.
+
