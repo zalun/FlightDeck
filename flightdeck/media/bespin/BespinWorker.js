@@ -55,6 +55,7 @@ var syntaxDirectory = require('syntax_directory').syntaxDirectory;
 
 var syntaxWorker = {
     engines: {},
+    settings: {},
 
     annotate: function(state, lines, range) {
         function splitParts(str) { return str.split(":"); }
@@ -145,6 +146,13 @@ var syntaxWorker = {
         info.extension.load().then(function(engine) {
             engines[syntaxName] = engine;
 
+            if (info.settings != null) {
+                engine.settings = {};
+                info.settings.forEach(function(name) {
+                    engine.settings[name] = this.settings[name];
+                }, this);
+            }
+
             var subsyntaxes = engine.subsyntaxes;
             if (subsyntaxes == null) {
                 pr.resolve();
@@ -156,6 +164,11 @@ var syntaxWorker = {
         }.bind(this));
 
         return pr;
+    },
+
+    setSyntaxSetting: function(name, value) {
+        this.settings[name] = value;
+        return true;
     }
 };
 
@@ -941,7 +954,7 @@ exports.HTMLSyntax = new StandardSyntax(states, [ 'js' ]);
 });
 ;bespin.tiki.register("::js_syntax", {
     name: "js_syntax",
-    dependencies: { "standard_syntax": "0.0.0" }
+    dependencies: { "standard_syntax": "0.0.0", "settings": "0.0.0" }
 });
 bespin.tiki.module("js_syntax:index",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
@@ -984,14 +997,22 @@ bespin.tiki.module("js_syntax:index",function(require,exports,module) {
 "define metadata";
 ({
     "description": "JavaScript syntax highlighter",
-    "dependencies": { "standard_syntax": "0.0.0" },
+    "dependencies": { "settings": "0.0.0", "standard_syntax": "0.0.0" },
     "environments": { "worker": true },
     "provides": [
         {
             "ep": "syntax",
             "name": "js",
             "pointer": "#JSSyntax",
-            "fileexts": [ "js", "json" ]
+            "fileexts": [ "js", "json" ],
+            "settings": [ "specialmodules" ]
+        },
+        {
+            "ep": "setting",
+            "name": "specialmodules",
+            "description": "Regex that matches special modules",
+            "type": "text",
+            "defaultValue": "^jetpack\\.[^\"']+"
         }
     ]
 });
@@ -1009,6 +1030,11 @@ var states = {
         {
             regex:  /^(?:break|case|catch|continue|default|delete|do|else|false|finally|for|function|if|in|instanceof|let|new|null|return|switch|this|throw|true|try|typeof|var|void|while|with)(?![a-zA-Z0-9_])/,
             tag:    'keyword'
+        },
+        {
+            regex:  /^require/,
+            tag:    'builtin',
+            then:   'require'
         },
         {
             regex:  /^[A-Za-z_][A-Za-z0-9_]*/,
@@ -1077,10 +1103,47 @@ var states = {
             regex:  /^[*\/]/,
             tag:    'comment'
         }
+    ],
+
+    /* Special handling for "require" */
+
+    require: [
+        {
+            regex:  /^\(["']/,
+            tag:    'plain',
+            then:   'requireBody'
+        },
+        {
+            regex:  /^/,
+            tag:    'plain',
+            then:   'start'
+        }
+    ],
+
+    requireBody: [
+        {
+            regexSetting:   'specialmodules',
+            tag:            'specialmodule',
+            then:           'requireEnd'
+        },
+        {
+            regex:  /^[^"']+/,
+            tag:    'module',
+            then:   'requireEnd'
+        }
+    ],
+
+    requireEnd: [
+        {
+            regex:  /^["']?/,
+            tag:    'plain',
+            then:   'start'
+        }
     ]
 };
 
 exports.JSSyntax = new StandardSyntax(states);
+
 
 });
 ;bespin.tiki.register("::standard_syntax", {
@@ -1145,6 +1208,8 @@ var syntaxDirectory = require('syntax_directory').syntaxDirectory;
 exports.StandardSyntax = function(states, subsyntaxes) {
     this.states = states;
     this.subsyntaxes = subsyntaxes;
+
+    this.settings = {};
 };
 
 /** This syntax controller exposes a simple regex- and line-based parser. */
@@ -1161,7 +1226,13 @@ exports.StandardSyntax.prototype = {
 
         var result = null;
         _(this.states[state]).each(function(alt) {
-            var regex = alt.regex;
+            var regex;
+            if (alt.regexSetting != null) {
+                regex = new RegExp(this.settings[alt.regexSetting]);
+            } else {
+                regex = alt.regex;
+            }
+
             var match = regex.exec(str);
             if (match == null) {
                 return;
@@ -1199,7 +1270,7 @@ exports.StandardSyntax.prototype = {
             }
 
             _.breakLoop();
-        });
+        }, this);
 
         return result;
     }
@@ -1207,7 +1278,7 @@ exports.StandardSyntax.prototype = {
 
 
 });
-bespin.metadata = {"js_syntax": {"resourceURL": "resources/js_syntax/", "name": "js_syntax", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#JSSyntax", "ep": "syntax", "fileexts": ["js", "json"], "name": "js"}], "type": "plugins/supported", "description": "JavaScript syntax highlighter"}, "syntax_worker": {"resourceURL": "resources/syntax_worker/", "description": "Coordinates multiple syntax engines", "environments": {"worker": true}, "dependencies": {"syntax_directory": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "syntax_worker"}, "standard_syntax": {"resourceURL": "resources/standard_syntax/", "description": "Easy-to-use basis for syntax engines", "environments": {"worker": true}, "dependencies": {"syntax_worker": "0.0.0", "syntax_directory": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "standard_syntax"}, "html": {"resourceURL": "resources/html/", "name": "html", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#HTMLSyntax", "ep": "syntax", "fileexts": ["htm", "html"], "name": "html"}], "type": "plugins/supported", "description": "HTML syntax highlighter"}};/* ***** BEGIN LICENSE BLOCK *****
+bespin.metadata = {"js_syntax": {"resourceURL": "resources/js_syntax/", "name": "js_syntax", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0", "settings": "0.0.0"}, "testmodules": [], "provides": [{"settings": ["specialmodules"], "pointer": "#JSSyntax", "ep": "syntax", "fileexts": ["js", "json"], "name": "js"}, {"description": "Regex that matches special modules", "defaultValue": "^jetpack\\.[^\"']+", "type": "text", "ep": "setting", "name": "specialmodules"}], "type": "plugins/supported", "description": "JavaScript syntax highlighter"}, "syntax_worker": {"resourceURL": "resources/syntax_worker/", "description": "Coordinates multiple syntax engines", "environments": {"worker": true}, "dependencies": {"syntax_directory": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "syntax_worker"}, "standard_syntax": {"resourceURL": "resources/standard_syntax/", "description": "Easy-to-use basis for syntax engines", "environments": {"worker": true}, "dependencies": {"syntax_worker": "0.0.0", "syntax_directory": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "standard_syntax"}, "html": {"resourceURL": "resources/html/", "name": "html", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#HTMLSyntax", "ep": "syntax", "fileexts": ["htm", "html"], "name": "html"}], "type": "plugins/supported", "description": "HTML syntax highlighter"}};/* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
