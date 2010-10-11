@@ -4656,9 +4656,7 @@ var Event = require('events').Event;
  * @class
  *
  * This class provides support for manual scrolling and positioning for canvas-
- * based elements. Getting these elements to play nicely with SproutCore is
- * tricky and error-prone, so all canvas-based views should consider deriving
- * from this class. Derived views should implement drawRect() in order to
+ * based elements. Derived views should implement drawRect() in order to
  * perform the appropriate canvas drawing logic.
  *
  * The actual size of the canvas is always the size of the container the canvas
@@ -4740,7 +4738,9 @@ exports.CanvasView.prototype = {
         this.invalidate();
     },
 
-    drawRect: function(rect, context) { },
+    drawRect: function(rect, context) {
+        // abstract
+    },
 
     /**
      * Render the canvas. Rendering is delayed by a few ms to empty the call
@@ -4927,6 +4927,7 @@ Object.defineProperties(exports.CanvasView.prototype, {
         }
     }
 });
+
 
 });
 
@@ -6556,7 +6557,7 @@ bespin.tiki.module("text_editor:index",function(require,exports,module) {
 });
 ;bespin.tiki.register("::jslint_command", {
     name: "jslint_command",
-    dependencies: { "jslint": "0.0.0", "file_commands": "0.0.0" }
+    dependencies: { "jslint": "0.0.0", "notifier": "0.0.0" }
 });
 bespin.tiki.module("jslint_command:index",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
@@ -6598,7 +6599,7 @@ bespin.tiki.module("jslint_command:index",function(require,exports,module) {
 
 "define metadata";
 ({
-    "dependencies": { "file_commands": "0.0.0", "jslint": "0.0.0" },
+    "dependencies": { "jslint": "0.0.0", "notifier": "0.0.0" },
     "description": "Provides the JSLint command to check code for errors.",
     "objects": [],
     "provides": [
@@ -6608,6 +6609,7 @@ bespin.tiki.module("jslint_command:index",function(require,exports,module) {
             "params": [],
             "description": "Run JSLint to check the current file",
             "pointer": "#jslintCommand",
+            "key": "ctrl_shift_v",
             "predicates": { "context": "js" }
         },
         {
@@ -6615,6 +6617,12 @@ bespin.tiki.module("jslint_command:index",function(require,exports,module) {
             "name": "jslint",
             "description": "Runs JSLint when a JavaScript file is saved",
             "pointer": "#jslintSaveHook"
+        },
+        {
+            "ep": "notification",
+            "name": "jslint_error",
+            "description": "JSLint errors",
+            "level": "error"
         }
     ]
 });
@@ -6622,6 +6630,7 @@ bespin.tiki.module("jslint_command:index",function(require,exports,module) {
 
 var env = require('environment').env;
 var jslint = require('jslint').jslint;
+var catalog = require("bespin:plugins").catalog;
 
 function runJSLint(model) {
     var ok = jslint(model.getValue());
@@ -6631,8 +6640,8 @@ function runJSLint(model) {
 
     var errors = jslint.errors;
     var plural = (errors.length === 1) ? "" : "s";
-    var output = [ "<div>JSLint reported ", errors.length, " error", plural,
-        ":</div>" ];
+    var message = "JSLint reported " + errors.length + " error" + plural;
+    var output = [ "<div>", message, ":</div>" ];
 
     errors.forEach(function(err) {
         if (err == null) {
@@ -6659,13 +6668,24 @@ function runJSLint(model) {
         }
         output.push('^</pre>');
     });
+    
+    if (errors[errors.length-1] === null) {
+        var notifier = catalog.getObject('notifier');
+        if (notifier) {
+            notifier.notify({
+                plugin: 'jslint_command',
+                notification: 'jslint_error',
+                body: message
+            });
+        }
+    }
 
     return output.join("");
-}
+};
 
 exports.jslintCommand = function(args, req) {
     req.done(runJSLint(env.model));
-}
+};
 
 exports.jslintSaveHook = function(file) {
     var extension = file.extension();
@@ -6674,556 +6694,10 @@ exports.jslintSaveHook = function(file) {
     }
 
     return runJSLint(env.model);
-}
+};
 
 exports.runJSLint = runJSLint;
 
-
-});
-;bespin.tiki.register("::file_commands", {
-    name: "file_commands",
-    dependencies: { "text_editor": "0.0.0", "matcher": "0.0.0", "command_line": "0.0.0", "filesystem": "0.0.0" }
-});
-bespin.tiki.module("file_commands:index",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var catalog = require('bespin:plugins').catalog;
-var pathUtil = require('filesystem:path');
-var env = require('environment').env;
-var promise = require('bespin:promise');
-var _ = require('underscore')._;
-
-var Buffer = require('text_editor:models/buffer').Buffer;
-var Promise = promise.Promise;
-
-/*
- * Creates a path based on the current working directory and the passed 'path'.
- * This is also deals with '..' within the path and '/' at the beginning.
- */
-exports.getCompletePath = function(path) {
-    var ret;
-    path = path || '';
-
-    if (path[0] == '/') {
-        ret = path.substring(1);
-    } else {
-        ret = (env.workingDir || '') + (path || '');
-    }
-
-    // If the path ends with '..', then add a / at the end
-    if (ret.substr(-2) == '..') {
-        ret += '/';
-    }
-
-    // Replace the '..' parts
-    var parts = ret.split('/');
-    var i = 0;
-    while (i < parts.length) {
-        if (parts[i] == '..') {
-            if (i != 0) {
-                parts.splice(i - 1, 2);
-                i -= 2;
-            } else {
-                parts.splice(0, 1);
-            }
-        } else {
-            i ++;
-        }
-    }
-
-    return parts.join('/');
-};
-
-/**
- * 'files' command
- */
-exports.filesCommand = function(args, request) {
-    var path = args.path;
-
-    path = exports.getCompletePath(path);
-
-    if (path && !pathUtil.isDir(path)) {
-        path += '/';
-    }
-
-    request.async();
-    env.files.listDirectory(path).then(function(contents) {
-        var files = '';
-        for (var x = 0; x < contents.length; x++) {
-            files += contents[x] + '<br/>';
-        }
-        request.done(files);
-
-    }, function(error) {
-        request.doneWithError(error.message);
-    });
-};
-
-/**
- * 'mkdir' command
- */
-exports.mkdirCommand = function(args, request) {
-    var path = args.path;
-
-    path = exports.getCompletePath(path);
-    request.async();
-
-    var files = env.files;
-    files.makeDirectory(path).then(function() {
-        request.done('Directory ' + path + ' created.');
-    }, function(error) {
-        request.doneWithError('Unable to make directory ' + path + ': '
-                              + error.message);
-    });
-};
-
-function runSaveHooks(file) {
-    var pr = new Promise();
-    var saveHooks = catalog.getExtensions('savehook');
-    promise.group(_(saveHooks).invoke('load')).then(function(hooks) {
-            var hookOutput = _(hooks).map(function(hook) {
-                return hook(file);
-            });
-            pr.resolve(hookOutput.join("\n"));
-        },
-        function(error) { pr.reject(error); });
-
-    return pr;
-}
-
-/**
- * 'save' command
- */
-exports.saveCommand = function(args, request) {
-    var buffer = env.buffer;
-    if (buffer.untitled()) {
-        env.commandLine.setInput('saveas ');
-        request.done('The current buffer is untitled. Please enter a name.');
-        return;
-    }
-
-    runSaveHooks(buffer.file).then(function(hookOutput) {
-        buffer.save().then(function() { request.done(hookOutput + "Saved."); },
-            function(error) {
-                var message = "Unable to save: " + error.message;
-                request.doneWithError(hookOutput + message);
-            });
-    }, function(err) {
-        request.doneWithError("Save hooks failed: " + err);
-    });
-
-    request.async();
-};
-
-/**
- * 'save as' command
- */
-exports.saveAsCommand = function(args, request) {
-    var files = env.files;
-    var path = exports.getCompletePath(args.path);
-    var newFile = files.getFile(path);
-
-    runSaveHooks(newFile).then(function(hookOutput) {
-        env.buffer.saveAs(newFile).then(function() {
-            request.done(hookOutput + 'Saved to \'' + path + '\'.');
-        }, function(err) {
-            var message = "Save failed: " + err.message;
-            request.doneWithError(hookOutput + message);
-        });
-    }, function(err) {
-        request.doneWithError("Save hooks failed: " + err);
-    });
-
-    request.async();
-};
-
-/**
- * 'open' command
- */
-exports.openCommand = function(args, request) {
-    if (!('path' in args)) {
-        env.commandLine.setInput('open ');
-        return;
-    }
-
-    var files = env.files;
-    var editor = env.editor;
-    var path = exports.getCompletePath(args.path);
-
-    // TODO: handle line number in args
-    request.async();
-    var file = files.getFile(path);
-
-    var loadPromise = new Promise();
-    var buffer;
-
-    // Create a new buffer based that is bound to 'file'.
-    // TODO: After editor reshape: EditorSession should track buffer instances.
-    buffer = new Buffer(file);
-    buffer.loadPromise.then(
-        function() {
-            // Set the buffer of the current editorView after it's loaded.
-            editor.buffer = buffer;
-            request.done();
-        },
-        function(error) {
-            request.doneWithError('Unable to open the file (' +
-                error.message + ')');
-        }
-    );
-};
-
-/**
- * 'revert' command
- */
-exports.revertCommand = function(args, request) {
-    request.async();
-    var buffer = env.buffer;
-    buffer.reload().then(function() {
-        request.done('File reverted');
-    }, function(error) {
-        request.doneWithError(error.message);
-    });
-};
-
-/**
- * 'newfile' command
- */
-exports.newfileCommand = function(args, request) {
-    env.editor.buffer = new Buffer();
-};
-
-/**
- * 'rm' command
- */
-exports.rmCommand = function(args, request) {
-    var files = env.files;
-    var buffer = env.buffer;
-
-    var path = args.path;
-    path = exports.getCompletePath(path);
-
-    files.remove(path).then(function() {
-        request.done(path + ' deleted.');
-    }, function(error) {
-        request.doneWithError('Unable to delete (' + error.message + ')');
-    });
-    request.async();
-};
-
-/**
- * 'cd' command
- */
-exports.cdCommand = function(args, request) {
-    var workingDir = args.workingDir || '';
-    if (workingDir != '' && workingDir.substr(-1) != '/') {
-        workingDir += '/';
-    }
-    env.workingDir = exports.getCompletePath(workingDir);
-    request.done('/' + env.workingDir);
-}
-
-/**
- * 'pwd' command
- */
-exports.pwdCommand = function(args, request) {
-    request.done('/' + (env.workingDir || ''));
-}
-
-});
-
-bespin.tiki.module("file_commands:tests/testCommands",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1
- *
- * The contents of this file are subject to the Mozilla Public License
- * Version 1.1 (the "License"); you may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS"
- * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied.
- * See the License for the specific language governing rights and
- * limitations under the License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * ***** END LICENSE BLOCK ***** */
-
-var t = require('plugindev');
-
-var fs = require('filesystem');
-var DummyFileSource = require('filesystem:tests/fixture').DummyFileSource;
-var EnvironmentTrait = require('canon:tests/fixture').MockEnvironment;
-var MockRequest = require('canon:tests/fixture').MockRequest;
-var file_commands = require('file_commands');
-var edit_session = require('edit_session');
-var Promise = require('bespin:promise').Promise;
-
-var source = new DummyFileSource([
-    {name: 'atTheTop.js', contents: 'the top file'},
-    {name: 'anotherAtTheTop.js', contents: 'another file'},
-    {name: 'foo/'},
-    {name: 'foo/1.txt', contents: 'firsttext'},
-    {name: 'foo/2.txt', contents: 'secondtext'},
-    {name: 'foo/bar/3.txt', contents: 'thirdtext'},
-    {name: 'deeply/nested/directory/andAFile.txt', contents: 'text file'}
-]);
-
-var getNewRoot = function() {
-    return fs.Filesystem.create({
-        source: source
-    });
-};
-
-var getEnv = function() {
-    var root = getNewRoot();
-    var buffer = edit_session.Buffer.create();
-
-    var session = new edit_session.EditSession(buffer);
-
-    var env = Environment.create({
-        files: root,
-        session: session
-    });
-    return env;
-};
-
-exports.testFilesCommand = function() {
-    var env = getEnv();
-    var request = new MockRequest();
-    var testpr = new Promise();
-    request.promise.then(function() {
-        output = request.outputs.join('');
-        t.ok(output.indexOf('foo/<br/>') > -1, 'foo/ should be in output');
-        t.ok(output.indexOf('atTheTop.js<br/>') > -1,
-            'atTheTop.js should be in output');
-        testpr.resolve();
-    });
-
-    file_commands.filesCommand({path: '/'}, request);
-
-    return testpr;
-};
-
-exports.testOpenFileWithNoOpenFile = function() {
-    var env = getEnv();
-    var request = new MockRequest();
-    var testpr = new Promise();
-    request.promise.then(function() {
-        var f = env.file;
-        t.ok(!request.error, 'Should not be in error state');
-        t.equal(f.path, '/foo/bar/3.txt', 'File should have been set');
-        testpr.resolve();
-    });
-
-    file_commands.openCommand({path: '/foo/bar/3.txt'}, request);
-};
-
-exports.testFilesCommandDefaultsToRoot = function() {
-    var env = getEnv();
-
-    var testpr = new Promise();
-
-    var request = new MockRequest();
-    request.promise.then(function() {
-        output = request.outputs.join('');
-        t.ok(output.indexOf('foo/<br/>') > -1, 'foo/ should be in output');
-        t.ok(output.indexOf('atTheTop.js<br/>') > -1,
-            'atTheTop.js should be in output');
-        testpr.resolve();
-    });
-
-    file_commands.filesCommand({path: null}, request);
-    return testpr;
-};
-
-exports.testFilesAreRelativeToCurrentOpenFile = function() {
-    var env = getEnv();
-    var buffer = env.buffer;
-    var files = env.files;
-    buffer.changeFileOnly(files.getFile('foo/1.txt'));
-
-    var testpr = new Promise();
-
-    var request = new MockRequest();
-    request.promise.then(function() {
-        output = request.outputs.join('');
-        t.ok(output.indexOf('1.txt<br/>') > -1, '1.txt should be in the output');
-        t.ok(output.indexOf('2.txt<br/>') > -1,
-            '2.txt should be in output');
-        testpr.resolve();
-    });
-
-    file_commands.filesCommand({path: null}, request);
-    return testpr;
-};
-
-exports.testFilesListingInDirectoryRelativeToOpenFile = function() {
-    var env = getEnv();
-    var buffer = env.buffer;
-    var files = env.files;
-    buffer.changeFileOnly(files.getFile('foo/1.txt'));
-    var testpr = new Promise();
-
-    var request = new MockRequest();
-    request.promise.then(function() {
-        output = request.outputs.join('');
-        t.ok(output.indexOf('3.txt<br/>') > -1, '3.txt should be in the output');
-        testpr.resolve();
-    });
-
-    file_commands.filesCommand({path: 'bar/'}, request);
-    return testpr;
-};
-
-exports.testMakeDirectoryForNewDirectory = function() {
-    var env = getEnv();
-    var request = new MockRequest();
-    var testpr = new Promise();
-    var files = env.files;
-
-    request.promise.then(function() {
-        files.listDirectory('/foo/').then(function(contents) {
-            t.equal(contents.length, 4, 'should have four items in directory');
-            t.equal(contents[3], 'one/', 'new directory should be last item');
-            testpr.resolve();
-        });
-    }, function(error) {
-        testpr.reject(error.message);
-    });
-
-    file_commands.mkdirCommand({path: '/foo/one/'}, request);
-
-    return testpr;
-};
-
-});
-
-bespin.tiki.module("file_commands:views/types",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var getCompletePath = require('index').getCompletePath;
-var QuickMatcher = require('matcher:quick').QuickMatcher;
-var MatcherMenu = require('command_line:views/menu').MatcherMenu;
-var env = require('environment').env;
-
-/**
- * @see typehint#getHint()
- */
-exports.existingFileHint = {
-    getHint: function(input, assignment, typeExt) {
-        var matcher = new QuickMatcher(assignment.value || '');
-        var menu = new MatcherMenu(input, assignment, matcher);
-
-        var typed = assignment.value;
-        typed = typed.substring(0, typed.lastIndexOf('/') + 1);
-
-        var currentDir = getCompletePath(typed);
-        currentDir = currentDir.substring(0, currentDir.lastIndexOf('/') + 1);
-
-        var files = env.files;
-        files.listAll().then(function(fileList) {
-            var matchRegExp = new RegExp('^' + currentDir);
-
-            matcher.addItems(fileList.filter(function(item){
-                return matchRegExp.test(item);
-            }).map(function(item) {
-                item = item.substring(currentDir.length);
-                var lastSep = item.lastIndexOf('/');
-                if (lastSep === -1) {
-                    return {
-                        name: item,
-                        path: typed
-                    };
-                }
-                return {
-                    name: item.substring(lastSep + 1),
-                    path: typed + item.substring(0, lastSep + 1)
-                };
-            }));
-        });
-
-        return menu.hint;
-    }
-};
 
 });
 ;bespin.tiki.register("::less", {
@@ -14068,7 +13542,7 @@ exports.testBufferSaving = function() {
 });
 ;bespin.tiki.register("::syntax_manager", {
     name: "syntax_manager",
-    dependencies: { "worker_manager": "0.0.0", "events": "0.0.0", "underscore": "0.0.0", "syntax_directory": "0.0.0" }
+    dependencies: { "worker_manager": "0.0.0", "syntax_directory": "0.0.0", "events": "0.0.0", "underscore": "0.0.0", "settings": "0.0.0" }
 });
 bespin.tiki.module("syntax_manager:index",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
@@ -14113,6 +13587,7 @@ var Event = require('events').Event;
 var WorkerSupervisor = require('worker_manager').WorkerSupervisor;
 var console = require('bespin:console').console;
 var rangeutils = require('rangeutils:utils/range');
+var settings = require('settings').settings;
 var syntaxDirectory = require('syntax_directory').syntaxDirectory;
 
 // The number of lines to highlight at once.
@@ -14239,7 +13714,13 @@ Context.prototype = {
     },
 
     _workerStarted: function() {
+        this._syntaxInfo.settings.forEach(function(name) {
+            var value = settings.get(name);
+            this._worker.send('setSyntaxSetting', [ name, value ]);
+        }, this);
+
         this._worker.send('loadSyntax', [ this._syntaxInfo.name ]);
+
         if (this._active) {
             this._annotate();
         }
@@ -26167,7 +25648,7 @@ exports.whiteTheme = function() {
             },
 
             highlighterBG: {
-                plain:      'rgb(0, 0, 0, 0)',
+                plain:      '#ffffff',
                 addition:   '#008000',
                 deletion:   '#800000'
             },
@@ -26198,895 +25679,6 @@ exports.whiteTheme = function() {
         }
     };
 };
-
-});
-;bespin.tiki.register("::types", {
-    name: "types",
-    dependencies: {  }
-});
-bespin.tiki.module("types:tests/testBasic",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var types = require('types:types');
-var t = require('plugindev');
-
-exports.testTextFromString = function() {
-    types.fromString('Foo', 'text').then(function(converted) {
-        t.equal('Foo', converted);
-    });
-};
-
-exports.testTextToString = function() {
-    types.toString('Foo', 'text').then(function(converted) {
-        t.equal('Foo', converted);
-    });
-    types.toString('4', 'text').then(function(converted) {
-        t.equal('4', converted);
-    });
-};
-
-exports.testTextIsValid = function() {
-    types.isValid('Foo', 'text').then(function(valid) {
-        t.equal(true, valid);
-    });
-    types.isValid('', 'text').then(function(valid) {
-        t.equal(true, valid);
-    });
-    types.isValid('null', 'text').then(function(valid) {
-        t.equal(true, valid);
-    });
-    types.isValid(4, 'text').then(function(valid) {
-        t.equal(false, valid);
-    });
-    types.isValid(null, 'text').then(function(valid) {
-        t.equal(false, valid);
-    });
-};
-
-exports.testNumberFromString = function() {
-    types.fromString('4', 'number').then(function(converted) {
-        t.equal(4, converted);
-    });
-    types.fromString(null, 'number').then(function(converted) {
-        t.equal(null, converted);
-    });
-    // There isn't a spec for stuff like this, but at least we should know
-    // if we're changing stuff
-    types.fromString('010', 'number').then(function(converted) {
-        t.equal(10, converted);
-    });
-    types.fromString('0x10', 'number').then(function(converted) {
-        t.equal(0, converted);
-    });
-};
-
-exports.testNumberToString = function() {
-    types.toString('Foo', 'number').then(function(converted) {
-        t.equal('Foo', converted);
-    });
-    types.toString(4, 'number').then(function(converted) {
-        t.equal('4', converted);
-    });
-};
-
-exports.testNumberIsValid = function() {
-    types.isValid(0, 'number').then(function(valid) {
-        t.equal(true, valid, 'Zero');
-    });
-    types.isValid(-1, 'number').then(function(valid) {
-        t.equal(true, valid, '-1');
-    });
-    types.isValid(Infinity, 'number').then(function(valid) {
-        t.equal(false, valid, 'Infinity');
-    });
-    types.isValid(NaN, 'number').then(function(valid) {
-        t.equal(false, valid, 'NaN');
-    });
-    types.isValid(null, 'number').then(function(valid) {
-        t.equal(false, valid, 'null');
-    });
-    types.isValid('0', 'number').then(function(valid) {
-        t.equal(false, valid, 'string 0');
-    });
-    types.isValid('-1', 'number').then(function(valid) {
-        t.equal(false, valid, 'string -1');
-    });
-    types.isValid('null', 'number').then(function(valid) {
-        t.equal(false, valid, 'string null');
-    });
-    types.isValid({}, 'number').then(function(valid) {
-        t.equal(false, valid, 'object');
-    });
-};
-
-exports.testBooleanFromString = function() {
-    types.fromString('true', 'boolean').then(function(converted) {
-        t.equal(converted, true, '\'true\' should be true');
-    });
-    types.fromString('false', 'boolean').then(function(converted) {
-        t.equal(converted, false, '\'false\' should be false');
-    });
-    types.fromString('TRUE', 'boolean').then(function(converted) {
-        t.equal(converted, true, '\'TRUE\' should be true');
-    });
-    types.fromString('FALSE', 'boolean').then(function(converted) {
-        t.equal(converted, false, '\'FALSE\' should be false');
-    });
-    types.fromString(null, 'boolean').then(function(converted) {
-        t.equal(converted, null, 'null should be null');
-    });
-};
-
-exports.testBooleanToString = function() {
-    types.toString(true, 'boolean').then(function(converted) {
-        t.equal('true', converted);
-    });
-    types.toString(false, 'boolean').then(function(converted) {
-        t.equal('false', converted);
-    });
-};
-
-exports.testBooleanIsValid = function() {
-    types.isValid(0, 'boolean').then(function(valid) {
-        t.equal(false, valid, 'zero');
-    });
-    types.isValid(-1, 'boolean').then(function(valid) {
-        t.equal(false, valid, 'minus 1');
-    });
-    types.isValid(Infinity, 'boolean').then(function(valid) {
-        t.equal(false, valid, 'Infinity');
-    });
-    types.isValid(NaN, 'boolean').then(function(valid) {
-        t.equal(false, valid, 'NaN');
-    });
-    types.isValid(null, 'boolean').then(function(valid) {
-        t.equal(false, valid, 'null');
-    });
-    types.isValid('0', 'boolean').then(function(valid) {
-        t.equal(false, valid, 'string zero');
-    });
-    types.isValid('-1', 'boolean').then(function(valid) {
-        t.equal(false, valid, 'string -1');
-    });
-    types.isValid('null', 'boolean').then(function(valid) {
-        t.equal(false, valid, 'string null');
-    });
-    types.isValid({}, 'boolean').then(function(valid) {
-        t.equal(false, valid, 'object');
-    });
-    types.isValid(true, 'boolean').then(function(valid) {
-        t.equal(true, valid, 'true');
-    });
-    types.isValid(false, 'boolean').then(function(valid) {
-        t.equal(true, valid, 'false');
-    });
-};
-
-});
-
-bespin.tiki.module("types:tests/testTypes",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var Promise = require('bespin:promise').Promise;
-var types = require('types:types');
-var t = require('plugindev');
-
-exports.testGetSimpleName = function() {
-    t.equal(types.getSimpleName('text'), 'text', 'text is simple');
-    t.equal(types.getSimpleName('selection'), 'selection', 'selection simple');
-    t.equal(types.getSimpleName({ name: 'text' }), 'text', 'text complex');
-
-    var selType = { name: 'selection' };
-    t.equal(types.getSimpleName(selType), 'selection', 'selection complex');
-
-    selType = { name: 'selection', data: [ 1, 2, 3, 4 ] };
-    t.equal(types.getSimpleName(selType), 'selection', 'selection complex');
-};
-
-exports.testEquals = function() {
-    var textType = { name: 'text' };
-    t.ok(types.equals('text', 'text'), '2 already simple names are equal');
-    t.ok(types.equals('text', textType), 'simple type = complex type');
-    t.ok(types.equals(textType, 'text'), 'complex type = simple type');
-    t.ok(types.equals(textType, { name: 'text' }), 'complex = complex');
-    t.ok(types.equals('WRONG', 'WRONG'), 'We don\'t test for actual types');
-
-    var sel1 = { name: 'selection' };
-    var sel2 = 'selection';
-    t.ok(types.equals(sel1, sel2), 'complex type = simple type 1');
-
-    sel1 = { name: 'selection', data: [ 1, 2, 3, 4 ] };
-    sel2 = 'selection';
-    t.ok(types.equals(sel1, sel2), 'complex type with data = simple type');
-
-    sel1 = { name: 'selection', data: [ 1, 2, 3, 4 ] };
-    sel2 = { name: 'selection', data: [ 4, 3, 2, 1 ] };
-    t.ok(types.equals(sel1, sel2), 'complex + data = complex + other data');
-
-    //t.ok(!types.equals('text', ''), 'text != ""');
-    t.ok(!types.equals('text', 'selection'), 'text != ""');
-    t.ok(!types.equals('text', 'DOESNOTEXIST'), 'text != ""');
-
-    sel1 = { name: 'selection', data: [ 1, 2, 3, 4 ] };
-    t.ok(!types.equals(sel1, 'text'), 'complex + data != simple');
-};
-
-/**
- * types.resolveType returns a typeData thing that is { type:... typeExt }
- * @param name
- * @returns {Function}
- */
-function createTypeDataTester(name) {
-    return function(typeData) {
-        t.equal(typeData.ext.ep, 'type', 'TypeExts do give you types?');
-
-        t.equal(typeData.ext.name, name, 'type[text].name == ' + name);
-
-        t.equal(typeof typeData.ext.description, 'string', 'descr = string');
-        t.ok(typeData.ext.description.length > 0, 'type[text].description len');
-
-        t.equal(typeof typeData.ext.pointer, 'string', 'type.pointer = string');
-        t.ok(typeData.ext.pointer.length > 0, 'type[text].pointer exists');
-
-        t.equal(typeof typeData.ext.load, 'function', 'type.load = function');
-    };
-}
-
-exports.testResolveSimpleTypes = function() {
-    var typeSpec = 'text';
-    types.resolveType(typeSpec).then(createTypeDataTester('text'));
-
-    typeSpec = { name: 'text' };
-    types.resolveType(typeSpec).then(createTypeDataTester('text'));
-
-    typeSpec = { name: 'selection' };
-    types.resolveType(typeSpec).then(createTypeDataTester('selection'));
-
-    try {
-        typeSpec = { name: 'wrong' };
-        types.resolveType(typeSpec).then(t.never('should die before here'));
-    } catch (ex) {}
-};
-
-/*
- * For #testSelection
- */
-exports.resolver = function() { return [ 4, 3 ]; };
-exports.lateResolver = function() { return new Promise().resolve([ 'a' ]); };
-
-exports.testSelection = function() {
-    var typeSpec = { name: 'selection', data: [ 1, 2 ] };
-    types.resolveType(typeSpec).then(function(typeData) {
-        createTypeDataTester('selection')(typeData);
-        t.deepEqual(typeData.ext.data, [ 1, 2 ], 'selection data pass thru');
-    });
-
-    typeSpec = {
-        name: 'selection',
-        pointer: 'types:tests/testTypes#resolver'
-    };
-    types.resolveType(typeSpec).then(function(typeData) {
-        createTypeDataTester('selection')(typeData);
-        t.deepEqual(typeData.ext.data, [ 4, 3 ], 'selection data resolved');
-    });
-
-    typeSpec = {
-        name: 'selection',
-        pointer: 'types:tests/testTypes#lateResolver'
-    };
-    types.resolveType(typeSpec).then(function(typeData) {
-        createTypeDataTester('selection')(typeData);
-        t.deepEqual(typeData.ext.data, [ 'a' ], 'selection data resolved');
-    });
-};
-
-exports.deferText = function() { return 'text'; };
-exports.lateDeferText = function() { return new Promise().resolve('text'); };
-exports.deferComplexText = function() { return { name: 'text' }; };
-exports.lateDeferComplexText = function() {
-    return new Promise().resolve({ name: 'text' });
-};
-exports.lateDeferComplexSelection = function() {
-    return new Promise().resolve({ name: 'selection', data: [ 42, 43 ] });
-};
-exports.lateDoubleDeferText = function() {
-    return new Promise().resolve({
-        name: 'deferred',
-        pointer: 'types:tests/testTypes#lateDeferText'
-    });
-};
-
-exports.testDeferred = function() {
-    var typeSpec = {
-        name: 'deferred',
-        pointer: 'types:tests/testTypes#deferText'
-    };
-    types.resolveType(typeSpec).then(function(typeData) {
-        createTypeDataTester('text')(typeData);
-    });
-
-    typeSpec = {
-        name: 'deferred',
-        pointer: 'types:tests/testTypes#lateDeferText'
-    };
-    types.resolveType(typeSpec).then(function(typeData) {
-        createTypeDataTester('text')(typeData);
-    });
-
-    typeSpec = {
-        name: 'deferred',
-        pointer: 'types:tests/testTypes#deferComplexText'
-    };
-    types.resolveType(typeSpec).then(function(typeData) {
-        createTypeDataTester('text')(typeData);
-    });
-
-    typeSpec = {
-        name: 'deferred',
-        pointer: 'types:tests/testTypes#lateDoubleDeferText'
-    };
-    types.resolveType(typeSpec).then(function(typeData) {
-        createTypeDataTester('text')(typeData);
-    });
-
-    typeSpec = {
-        name: 'deferred',
-        pointer: 'types:tests/testTypes#lateDeferComplexText'
-    };
-    types.resolveType(typeSpec).then(function(typeData) {
-        createTypeDataTester('text')(typeData);
-    });
-
-    typeSpec = {
-        name: 'deferred',
-        pointer: 'types:tests/testTypes#lateDeferComplexSelection'
-    };
-    types.resolveType(typeSpec).then(function(typeData) {
-        createTypeDataTester('selection')(typeData);
-        t.deepEqual(typeData.ext.data, [ 42, 43 ], 'selection data resolved');
-    });
-};
-
-});
-
-bespin.tiki.module("types:basic",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var catalog = require('bespin:plugins').catalog;
-var console = require('bespin:console').console;
-var Promise = require('bespin:promise').Promise;
-
-var r = require;
-
-/**
- * These are the basic types that we accept. They are vaguely based on the
- * Jetpack settings system (https://wiki.mozilla.org/Labs/Jetpack/JEP/24)
- * although clearly more restricted.
- * <p>In addition to these types, Jetpack also accepts range, member, password
- * that we are thinking of adding in the short term.
- */
-
-/**
- * 'text' is the default if no type is given.
- */
-exports.text = {
-    isValid: function(value, typeExt) {
-        return typeof value == 'string';
-    },
-
-    toString: function(value, typeExt) {
-        return value;
-    },
-
-    fromString: function(value, typeExt) {
-        return value;
-    }
-};
-
-/**
- * We don't currently plan to distinguish between integers and floats
- */
-exports.number = {
-    isValid: function(value, typeExt) {
-        if (isNaN(value)) {
-            return false;
-        }
-        if (value === null) {
-            return false;
-        }
-        if (value === undefined) {
-            return false;
-        }
-        if (value === Infinity) {
-            return false;
-        }
-        return typeof value == 'number';// && !isNaN(value);
-    },
-
-    toString: function(value, typeExt) {
-        if (!value) {
-            return null;
-        }
-        return '' + value;
-    },
-
-    fromString: function(value, typeExt) {
-        if (!value) {
-            return null;
-        }
-        var reply = parseInt(value, 10);
-        if (isNaN(reply)) {
-            throw new Error('Can\'t convert "' + value + '" to a number.');
-        }
-        return reply;
-    }
-};
-
-/**
- * true/false values
- */
-exports.bool = {
-    isValid: function(value, typeExt) {
-        return typeof value == 'boolean';
-    },
-
-    toString: function(value, typeExt) {
-        return '' + value;
-    },
-
-    fromString: function(value, typeExt) {
-        if (value === null) {
-            return null;
-        }
-
-        if (!value.toLowerCase) {
-            return !!value;
-        }
-
-        var lower = value.toLowerCase();
-        if (lower == 'true') {
-            return true;
-        } else if (lower == 'false') {
-            return false;
-        }
-
-        return !!value;
-    }
-};
-
-/**
- * A JSON object
- * TODO: Check to see how this works out.
- */
-exports.object = {
-    isValid: function(value, typeExt) {
-        return typeof value == 'object';
-    },
-
-    toString: function(value, typeExt) {
-        return JSON.stringify(value);
-    },
-
-    fromString: function(value, typeExt) {
-        return JSON.parse(value);
-    }
-};
-
-/**
- * One of a known set of options
- */
-exports.selection = {
-    isValid: function(value, typeExt) {
-        if (typeof value != 'string') {
-            return false;
-        }
-
-        if (!typeExt.data) {
-            console.error('Missing data on selection type extension. Skipping');
-            return true;
-        }
-
-        var match = false;
-        typeExt.data.forEach(function(option) {
-            if (value == option) {
-                match = true;
-            }
-        });
-
-        return match;
-    },
-
-    toString: function(value, typeExt) {
-        return value;
-    },
-
-    fromString: function(value, typeExt) {
-        // TODO: should we validate and return null if invalid?
-        return value;
-    },
-
-    resolveTypeSpec: function(extension, typeSpec) {
-        var promise = new Promise();
-
-        if (typeSpec.data) {
-            // If we've got the data already - just use it
-            extension.data = typeSpec.data;
-            promise.resolve();
-        } else if (typeSpec.pointer) {
-            catalog.loadObjectForPropertyPath(typeSpec.pointer).then(function(obj) {
-                var reply = obj(typeSpec);
-                if (typeof reply.then === 'function') {
-                    reply.then(function(data) {
-                        extension.data = data;
-                        promise.resolve();
-                    });
-                } else {
-                    extension.data = reply;
-                    promise.resolve();
-                }
-            }, function(ex) {
-                promise.reject(ex);
-            });
-        } else {
-            // No extra data available
-            console.warn('Missing data/pointer for selection', typeSpec);
-            promise.resolve();
-        }
-
-        return promise;
-    }
-};
-
-});
-
-bespin.tiki.module("types:types",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var catalog = require('bespin:plugins').catalog;
-var console = require('bespin:console').console;
-var Promise = require('bespin:promise').Promise;
-
-/**
- * Get the simple text-only, no-param version of a typeSpec.
- */
-exports.getSimpleName = function(typeSpec) {
-    if (!typeSpec) {
-        throw new Error('null|undefined is not a valid typeSpec');
-    }
-
-    if (typeof typeSpec == 'string') {
-        return typeSpec;
-    }
-
-    if (typeof typeSpec == 'object') {
-        if (!typeSpec.name) {
-            throw new Error('Missing name member to typeSpec');
-        }
-
-        return typeSpec.name;
-    }
-
-    throw new Error('Not a typeSpec: ' + typeSpec);
-};
-
-/**
- * 2 typeSpecs are considered equal if their simple names are the same.
- */
-exports.equals = function(typeSpec1, typeSpec2) {
-    return exports.getSimpleName(typeSpec1) == exports.getSimpleName(typeSpec2);
-};
-
-/**
- * A deferred type is one where we hope to find out what the type is just
- * in time to use it. For example the 'set' command where the type of the 2nd
- * param is defined by the 1st param.
- * @param typeSpec An object type spec with name = 'deferred' and a pointer
- * which to call through catalog.loadObjectForPropertyPath (passing in the
- * original typeSpec as a parameter). This function is expected to return either
- * a new typeSpec, or a promise of a typeSpec.
- * @returns A promise which resolves to the new type spec from the pointer.
- */
-exports.undeferTypeSpec = function(typeSpec) {
-    // Deferred types are specified by the return from the pointer
-    // function.
-    var promise = new Promise();
-    if (!typeSpec.pointer) {
-        promise.reject(new Error('Missing deferred pointer'));
-        return promise;
-    }
-
-    catalog.loadObjectForPropertyPath(typeSpec.pointer).then(function(obj) {
-        var reply = obj(typeSpec);
-        if (typeof reply.then === 'function') {
-            reply.then(function(newTypeSpec) {
-                promise.resolve(newTypeSpec);
-            }, function(ex) {
-                promise.reject(ex);
-            });
-        } else {
-            promise.resolve(reply);
-        }
-    }, function(ex) {
-        promise.reject(ex);
-    });
-
-    return promise;
-};
-
-// Warning: These next 2 functions are virtually cut and paste from
-// command_line:typehint.js
-// If you change this, there are probably parallel changes to be made there
-// There are 2 differences between the functions:
-// - We lookup type|typehint in the catalog
-// - There is a concept of a default typehint, where there is no similar
-//   thing for types. This is sensible, because hints are optional nice
-//   to have things. Not so for types.
-// Whilst we could abstract out the changes, I'm not sure this simplifies
-// already complex code
-
-/**
- * Given a string, look up the type extension in the catalog
- * @param name The type name. Object type specs are not allowed
- * @returns A promise that resolves to a type extension
- */
-function resolveObjectType(typeSpec) {
-    var promise = new Promise();
-    var ext = catalog.getExtensionByKey('type', typeSpec.name);
-    if (ext) {
-        promise.resolve({ ext: ext, typeSpec: typeSpec });
-    } else {
-        promise.reject(new Error('Unknown type: ' + typeSpec.name));
-    }
-    return promise;
-};
-
-/**
- * Look-up a typeSpec and find a corresponding type extension. This function
- * does not attempt to load the type or go through the resolution process,
- * for that you probably want #resolveType()
- * @param typeSpec A string containing the type name or an object with a name
- * and other type parameters e.g. { name: 'selection', data: [ 'one', 'two' ] }
- * @return a promise that resolves to an object containing the resolved type
- * extension and the typeSpec used to resolve the type (which could be different
- * from the passed typeSpec if this was deferred). The object will be in the
- * form { ext:... typeSpec:... }
- */
-function resolveTypeExt(typeSpec) {
-    if (typeof typeSpec === 'string') {
-        return resolveObjectType({ name: typeSpec });
-    }
-
-    if (typeof typeSpec === 'object') {
-        if (typeSpec.name === 'deferred') {
-            var promise = new Promise();
-            exports.undeferTypeSpec(typeSpec).then(function(newTypeSpec) {
-                resolveTypeExt(newTypeSpec).then(function(reply) {
-                    promise.resolve(reply);
-                }, function(ex) {
-                    promise.reject(ex);
-                });
-            });
-            return promise;
-        } else {
-            return resolveObjectType(typeSpec);
-        }
-    }
-
-    throw new Error('Unknown typeSpec type: ' + typeof typeSpec);
-};
-
-/**
- * Do all the nastiness of: converting the typeSpec to an extension, then
- * asynchronously loading the extension to a type and then calling
- * resolveTypeSpec if the loaded type defines it.
- * @param typeSpec a string or object defining the type to resolve
- * @returns a promise which resolves to an object containing the type and type
- * extension as follows: { type:... ext:... }
- * @see #resolveTypeExt
- */
-exports.resolveType = function(typeSpec) {
-    var promise = new Promise();
-
-    resolveTypeExt(typeSpec).then(function(data) {
-        data.ext.load(function(type) {
-            // We might need to resolve the typeSpec in a custom way
-            if (typeof type.resolveTypeSpec === 'function') {
-                type.resolveTypeSpec(data.ext, data.typeSpec).then(function() {
-                    promise.resolve({ type: type, ext: data.ext });
-                }, function(ex) {
-                    promise.reject(ex);
-                });
-            } else {
-                // Nothing to resolve - just go
-                promise.resolve({ type: type, ext: data.ext });
-            }
-        });
-    }, function(ex) {
-        promise.reject(ex);
-    });
-
-    return promise;
-};
-
-/**
- * Convert some data from a string to another type as specified by
- * <tt>typeSpec</tt>.
- */
-exports.fromString = function(stringVersion, typeSpec) {
-    var promise = new Promise();
-    exports.resolveType(typeSpec).then(function(typeData) {
-        promise.resolve(typeData.type.fromString(stringVersion, typeData.ext));
-    });
-    return promise;
-};
-
-/**
- * Convert some data from an original type to a string as specified by
- * <tt>typeSpec</tt>.
- */
-exports.toString = function(objectVersion, typeSpec) {
-    var promise = new Promise();
-    exports.resolveType(typeSpec).then(function(typeData) {
-        promise.resolve(typeData.type.toString(objectVersion, typeData.ext));
-    });
-    return promise;
-};
-
-/**
- * Convert some data from an original type to a string as specified by
- * <tt>typeSpec</tt>.
- */
-exports.isValid = function(originalVersion, typeSpec) {
-    var promise = new Promise();
-    exports.resolveType(typeSpec).then(function(typeData) {
-        promise.resolve(typeData.type.isValid(originalVersion, typeData.ext));
-    });
-    return promise;
-};
-
-});
-
-bespin.tiki.module("types:index",function(require,exports,module) {
 
 });
 ;bespin.tiki.register("::jquery", {
@@ -33401,620 +31993,9 @@ bespin.tiki.module("embedded:index",function(require,exports,module) {
 // the common dependencies for embedded use
 
 });
-;bespin.tiki.register("::settings", {
-    name: "settings",
-    dependencies: { "types": "0.0.0" }
-});
-bespin.tiki.module("settings:index",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-/**
- * This plug-in manages settings.
- *
- * <p>Some quick terminology: A _Choice_, is something that the application
- * offers as a way to customize how it works. For each _Choice_ there will be
- * a number of _Options_ but ultimately the user will have a _Setting_ for each
- * _Choice_. This _Setting_ maybe the default for that _Choice_.
- *
- * <p>It provides an API for controlling the known settings. This allows us to
- * provide better GUI/CLI support. See setting.js
- * <p>It provides 3 implementations of a setting store:<ul>
- * <li>MemorySettings: i.e. temporary, non-persistent. Useful in textarea
- * replacement type scenarios. See memory.js
- * <li>CookieSettings: Stores the data in a cookie. Generally not practical as
- * it slows client server communication (if any). See cookie.js
- * <li>ServerSettings: Stores data on a server using the <tt>server</tt> API.
- * See server.js
- * </ul>
- * <p>It is expected that an HTML5 storage option will be developed soon. This
- * plug-in did contain a prototype Gears implementation, however this was never
- * maintained, and has been deleted due to bit-rot.
- * <p>This plug-in also provides commands to manipulate the settings from the
- * command_line and canon plug-ins.
- *
- * <p>TODO:<ul>
- * <li>Check what happens when we alter settings from the UI
- * <li>Ensure that values can be bound in a SC sense
- * <li>Convert all subscriptions to bindings.
- * <li>Implement HTML5 storage option
- * <li>Make all settings have a 'description' member and use that in set|unset
- * commands.
- * <li>When the command system is re-worked to include more GUI interaction,
- * expose data in settings to that system.
- * </ul>
- *
- * <p>For future versions of the API it might be better to decrease the
- * dependency on settings, and increase it on the system with a setting.
- * e.g. Now:
- * <pre>
- * setting.addSetting({ name:'foo', ... });
- * settings.set('foo', 'bar');
- * </pre>
- * <p>Vs the potentially better:
- * <pre>
- * var foo = setting.addSetting({ name:'foo', ... });
- * foo.value = 'bar';
- * </pre>
- * <p>Comparison:
- * <ul>
- * <li>The latter version gains by forcing access to the setting to be through
- * the plug-in providing it, so there wouldn't be any hidden dependencies.
- * <li>It's also more compact.
- * <li>It could provide access to to other methods e.g. <tt>foo.reset()</tt>
- * and <tt>foo.onChange(function(val) {...});</tt> (but see SC binding)
- * <li>On the other hand dependencies are so spread out right now that it's
- * probably hard to do this easily. We should move to this in the future.
- * </ul>
- */
-
-var catalog = require('bespin:plugins').catalog;
-var console = require('bespin:console').console;
-var Promise = require('bespin:promise').Promise;
-var groupPromises = require('bespin:promise').group;
-
-var types = require('types:types');
-
-/**
- * Find and configure the settings object.
- * @see MemorySettings.addSetting()
- */
-exports.addSetting = function(settingExt) {
-    require('settings').settings.addSetting(settingExt);
-};
-
-/**
- * Fetch an array of the currently known settings
- */
-exports.getSettings = function() {
-    return catalog.getExtensions('setting');
-};
-
-/**
- * Something of a hack to allow the set command to give a clearer definition
- * of the type to the command line.
- */
-exports.getTypeSpecFromAssignment = function(typeSpec) {
-    var assignments = typeSpec.assignments;
-    var replacement = 'text';
-
-    if (assignments) {
-        // Find the assignment for 'setting' so we can get it's value
-        var settingAssignment = null;
-        assignments.forEach(function(assignment) {
-            if (assignment.param.name === 'setting') {
-                settingAssignment = assignment;
-            }
-        });
-
-        if (settingAssignment) {
-            var settingName = settingAssignment.value;
-            if (settingName && settingName !== '') {
-                var settingExt = catalog.getExtensionByKey('setting', settingName);
-                if (settingExt) {
-                    replacement = settingExt.type;
-                }
-            }
-        }
-    }
-
-    return replacement;
-};
-
-/**
- * A base class for all the various methods of storing settings.
- * <p>Usage:
- * <pre>
- * // Create manually, or require 'settings' from the container.
- * // This is the manual version:
- * var settings = require('bespin:plugins').catalog.getObject('settings');
- * // Add a new setting
- * settings.addSetting({ name:'foo', ... });
- * // Display the default value
- * alert(settings.get('foo'));
- * // Alter the value, which also publishes the change etc.
- * settings.set('foo', 'bar');
- * // Reset the value to the default
- * settings.resetValue('foo');
- * </pre>
- * @class
- */
-exports.MemorySettings = function() {
-};
-
-exports.MemorySettings.prototype = {
-    /**
-     * Storage for the setting values
-     */
-    _values: {},
-
-    /**
-     * Storage for deactivated values
-     */
-    _deactivated: {},
-
-    /**
-     * A Persister is able to store settings. It is an object that defines
-     * two functions:
-     * loadInitialValues(settings) and persistValue(settings, key, value).
-     */
-    setPersister: function(persister) {
-        this._persister = persister;
-        if (persister) {
-            persister.loadInitialValues(this);
-        }
-    },
-
-    /**
-     * Read accessor
-     */
-    get: function(key) {
-        return this._values[key];
-    },
-
-    /**
-     * Override observable.set(key, value) to provide type conversion and
-     * validation.
-     */
-    set: function(key, value) {
-        var settingExt = catalog.getExtensionByKey('setting', key);
-        if (!settingExt) {
-            // If there is no definition for this setting, then warn the user
-            // and store the setting in raw format. If the setting gets defined,
-            // the addSetting() function is called which then takes up the
-            // here stored setting and calls set() to convert the setting.
-            console.warn('Setting not defined: ', key, value);
-            this._deactivated[key] = value;
-        }
-        else if (typeof value == 'string' && settingExt.type == 'string') {
-            // no conversion needed
-            this._values[key] = value;
-        }
-        else {
-            var inline = false;
-
-            types.fromString(value, settingExt.type).then(function(converted) {
-                inline = true;
-                this._values[key] = converted;
-
-                // Inform subscriptions of the change
-                catalog.publish(this, 'settingChange', key, converted);
-            }.bind(this), function(ex) {
-                console.error('Error setting', key, ': ', ex);
-            });
-
-            if (!inline) {
-                console.warn('About to set string version of ', key, 'delaying typed set.');
-                this._values[key] = value;
-            }
-        }
-
-        this._persistValue(key, value);
-        return this;
-    },
-
-    /**
-     * Function to add to the list of available settings.
-     * <p>Example usage:
-     * <pre>
-     * var settings = require('bespin:plugins').catalog.getObject('settings');
-     * settings.addSetting({
-     *     name: 'tabsize', // For use in settings.get('X')
-     *     type: 'number',  // To allow value checking.
-     *     defaultValue: 4  // Default value for use when none is directly set
-     * });
-     * </pre>
-     * @param {object} settingExt Object containing name/type/defaultValue members.
-     */
-    addSetting: function(settingExt) {
-        if (!settingExt.name) {
-            console.error('Setting.name == undefined. Ignoring.', settingExt);
-            return;
-        }
-
-        if (!settingExt.defaultValue === undefined) {
-            console.error('Setting.defaultValue == undefined', settingExt);
-        }
-
-        types.isValid(settingExt.defaultValue, settingExt.type).then(function(valid) {
-            if (!valid) {
-                console.warn('!Setting.isValid(Setting.defaultValue)', settingExt);
-            }
-
-            // The value can be
-            // 1) the value of a setting that is not activated at the moment
-            //       OR
-            // 2) the defaultValue of the setting.
-            var value = this._deactivated[settingExt.name] ||
-                    settingExt.defaultValue;
-
-            // Set the default value up.
-            this.set(settingExt.name, value);
-        }.bind(this), function(ex) {
-            console.error('Type error ', ex, ' ignoring setting ', settingExt);
-        });
-    },
-
-    /**
-     * Reset the value of the <code>key</code> setting to it's default
-     */
-    resetValue: function(key) {
-        var settingExt = catalog.getExtensionByKey('setting', key);
-        if (settingExt) {
-            this.set(key, settingExt.defaultValue);
-        } else {
-            console.log('ignore resetValue on ', key);
-        }
-    },
-
-    resetAll: function() {
-        this._getSettingNames().forEach(function(key) {
-            this.resetValue(key);
-        }.bind(this));
-    },
-
-    /**
-     * Make a list of the valid type names
-     */
-    _getSettingNames: function() {
-        var typeNames = [];
-        catalog.getExtensions('setting').forEach(function(settingExt) {
-            typeNames.push(settingExt.name);
-        });
-        return typeNames;
-    },
-
-    /**
-     * Retrieve a list of the known settings and their values
-     */
-    _list: function() {
-        var reply = [];
-        this._getSettingNames().forEach(function(setting) {
-            reply.push({
-                'key': setting,
-                'value': this.get(setting)
-            });
-        }.bind(this));
-        return reply;
-    },
-
-    /**
-     * delegates to the persister. no-op if there's no persister.
-     */
-    _persistValue: function(key, value) {
-        var persister = this._persister;
-        if (persister) {
-            persister.persistValue(this, key, value);
-        }
-    },
-
-    /**
-     * Delegates to the persister, otherwise sets up the defaults if no
-     * persister is available.
-     */
-    _loadInitialValues: function() {
-        var persister = this._persister;
-        if (persister) {
-            persister.loadInitialValues(this);
-        } else {
-            this._loadDefaultValues();
-        }
-    },
-
-    /**
-     * Prime the local cache with the defaults.
-     */
-    _loadDefaultValues: function() {
-        return this._loadFromObject(this._defaultValues());
-    },
-
-    /**
-     * Utility to load settings from an object
-     */
-    _loadFromObject: function(data) {
-        var promises = [];
-        // take the promise action out of the loop to avoid closure problems
-        var setterFactory = function(keyName) {
-            return function(value) {
-                this.set(keyName, value);
-            };
-        };
-
-        for (var key in data) {
-            if (data.hasOwnProperty(key)) {
-                var valueStr = data[key];
-                var settingExt = catalog.getExtensionByKey('setting', key);
-                if (settingExt) {
-                    // TODO: We shouldn't just ignore values without a setting
-                    var promise = types.fromString(valueStr, settingExt.type);
-                    var setter = setterFactory(key);
-                    promise.then(setter);
-                    promises.push(promise);
-                }
-            }
-        }
-
-        // Promise.group (a.k.a groupPromises) gives you a list of all the data
-        // in the grouped promises. We don't want that in case we change how
-        // this works with ignored settings (see above).
-        // So we do this to hide the list of promise resolutions.
-        var replyPromise = new Promise();
-        groupPromises(promises).then(function() {
-            replyPromise.resolve();
-        });
-        return replyPromise;
-    },
-
-    /**
-     * Utility to grab all the settings and export them into an object
-     */
-    _saveToObject: function() {
-        var promises = [];
-        var reply = {};
-
-        this._getSettingNames().forEach(function(key) {
-            var value = this.get(key);
-            var settingExt = catalog.getExtensionByKey('setting', key);
-            if (settingExt) {
-                // TODO: We shouldn't just ignore values without a setting
-                var promise = types.toString(value, settingExt.type);
-                promise.then(function(value) {
-                    reply[key] = value;
-                });
-                promises.push(promise);
-            }
-        }.bind(this));
-
-        var replyPromise = new Promise();
-        groupPromises(promises).then(function() {
-            replyPromise.resolve(reply);
-        });
-        return replyPromise;
-    },
-
-    /**
-     * The default initial settings
-     */
-    _defaultValues: function() {
-        var defaultValues = {};
-        catalog.getExtensions('setting').forEach(function(settingExt) {
-            defaultValues[settingExt.name] = settingExt.defaultValue;
-        });
-        return defaultValues;
-    }
-};
-
-exports.settings = new exports.MemorySettings();
-
-});
-
-bespin.tiki.module("settings:commands",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var catalog = require('bespin:plugins').catalog;
-var env = require('environment').env;
-
-var settings = require('settings').settings;
-
-/**
- * 'set' command
- */
-exports.setCommand = function(args, request) {
-    var html;
-
-    if (!args.setting) {
-        var settingsList = settings._list();
-        html = '';
-        // first sort the settingsList based on the key
-        settingsList.sort(function(a, b) {
-            if (a.key < b.key) {
-                return -1;
-            } else if (a.key == b.key) {
-                return 0;
-            } else {
-                return 1;
-            }
-        });
-
-        settingsList.forEach(function(setting) {
-            html += '<a class="setting" href="https://wiki.mozilla.org/Labs/Bespin/Settings#' +
-                    setting.key +
-                    '" title="View external documentation on setting: ' +
-                    setting.key +
-                    '" target="_blank">' +
-                    setting.key +
-                    '</a> = ' +
-                    setting.value +
-                    '<br/>';
-        });
-    } else {
-        if (args.value === undefined) {
-            html = '<strong>' + args.setting + '</strong> = ' + settings.get(args.setting);
-        } else {
-            html = 'Setting: <strong>' + args.setting + '</strong> = ' + args.value;
-            settings.set(args.setting, args.value);
-        }
-    }
-
-    request.done(html);
-};
-
-/**
- * 'unset' command
- */
-exports.unsetCommand = function(args, request) {
-    settings.resetValue(args.setting);
-    request.done('Reset ' + args.setting + ' to default: ' + settings.get(args.setting));
-};
-
-});
-
-bespin.tiki.module("settings:cookie",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var cookie = require('bespin:util/cookie');
-
-/**
- * Save the settings in a cookie
- * This code has not been tested since reboot
- * @constructor
- */
-exports.CookiePersister = function() {
-};
-
-exports.CookiePersister.prototype = {
-    loadInitialValues: function(settings) {
-        settings._loadDefaultValues().then(function() {
-            var data = cookie.get('settings');
-            settings._loadFromObject(JSON.parse(data));
-        }.bind(this));
-    },
-
-    persistValue: function(settings, key, value) {
-        try {
-            // Aggregate the settings into a file
-            var data = {};
-            settings._getSettingNames().forEach(function(key) {
-                data[key] = settings.get(key);
-            });
-
-            var stringData = JSON.stringify(data);
-            cookie.set('settings', stringData);
-        } catch (ex) {
-            console.error('Unable to JSONify the settings! ' + ex);
-            return;
-        }
-    }
-};
-
-});
 ;bespin.tiki.register("::appconfig", {
     name: "appconfig",
-    dependencies: { "jquery": "0.0.0", "canon": "0.0.0", "settings": "0.0.0" }
+    dependencies: { "jquery": "0.0.0", "canon": "0.0.0", "underscore": "0.0.0", "settings": "0.0.0" }
 });
 bespin.tiki.module("appconfig:index",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
@@ -34055,6 +32036,7 @@ bespin.tiki.module("appconfig:index",function(require,exports,module) {
  * ***** END LICENSE BLOCK ***** */
 
 var $ = require('jquery').$;
+var _ = require('underscore')._;
 var settings = require('settings').settings;
 var group = require("bespin:promise").group;
 var Promise = require("bespin:promise").Promise;
@@ -34354,1070 +32336,452 @@ var generateGUI = function(catalog, config, pr) {
     // Add the 'bespin' class to the element in case it doesn't have this already.
     util.addClass(element, 'bespin');
     element.appendChild(container);
-    
-    // this shouldn't be necessary, but it looks like Firefox has an issue
-    // with the box-ordinal-group CSS property
-    ['north', 'west', 'center', 'east', 'south'].forEach(function(place) {
-        var descriptor = config.gui[place];
-        if (!descriptor) {
-            return;
-        }
 
-        var component = catalog.getObject(descriptor.component);
-        if (!component) {
-            error = 'Cannot find object ' + descriptor.component +
-                            ' to attach to the Bespin UI';
-            console.error(error);
-            pr.reject(error);
-            return;
-        }
-
-        element = component.element;
-        if (!element) {
-            error = 'Component ' + descriptor.component + ' does not have' +
-                          ' an "element" attribute to attach to the Bespin UI';
-            console.error(error);
-            pr.reject(error);
-            return;
-        }
-
-        $(element).addClass(place);
-
-        if (place == 'west' || place == 'east' || place == 'center') {
-            if (!centerAdded) {
-                container.appendChild(centerContainer);
-                centerAdded = true;
+    try {
+        // this shouldn't be necessary, but it looks like Firefox has an issue
+        // with the box-ordinal-group CSS property
+        ['north', 'west', 'center', 'east', 'south'].forEach(function(place) {
+            var descriptor = config.gui[place];
+            if (!descriptor) {
+                return;
             }
-            centerContainer.appendChild(element);
-        } else {
-            container.appendChild(element);
-        }
 
-        // Call the elementAppended event if there is one.
-        if (component.elementAppended) {
-            component.elementAppended();
-        }
-    });
+            var component = catalog.getObject(descriptor.component);
+            if (!component) {
+                throw 'Cannot find object ' + descriptor.component +
+                                ' to attach to the Bespin UI';
+            }
 
-    pr.resolve();
+            element = component.element;
+            if (!element) {
+                throw 'Component ' + descriptor.component + ' does not ' +
+                            'have an "element" attribute to attach to the ' +
+                            'Bespin UI';
+            }
+
+            $(element).addClass(place);
+
+            if (place == 'west' || place == 'east' || place == 'center') {
+                if (!centerAdded) {
+                    container.appendChild(centerContainer);
+                    centerAdded = true;
+                }
+                centerContainer.appendChild(element);
+            } else {
+                container.appendChild(element);
+            }
+        });
+
+        // Call the "elementAppended" callbacks.
+        ['north', 'west', 'east', 'south', 'center'].forEach(function(place) {
+            var descriptor = config.gui[place];
+            if (!descriptor) {
+                return;
+            }
+
+            var component = catalog.getObject(descriptor.component);
+            if (component.elementAppended != null) {
+                component.elementAppended();
+            }
+        });
+
+        pr.resolve();
+    } catch (e) {
+        console.error(e);
+        pr.reject(e);
+    }
+
 };
 
 });
-;bespin.tiki.register("::filesystem", {
-    name: "filesystem",
-    dependencies: { "types": "0.0.0" }
+;bespin.tiki.register("::notifier", {
+    name: "notifier",
+    dependencies: { "settings": "0.0.0" }
 });
-bespin.tiki.module("filesystem:index",function(require,exports,module) {
+bespin.tiki.module("notifier:index",function(require,exports,module) {
 /* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
- * The contents of this file are subject to the Mozilla Public License
- * Version 1.1 (the "License"); you may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
  * http://www.mozilla.org/MPL/
  *
- * Software distributed under the License is distributed on an "AS IS"
- * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied.
- * See the License for the specific language governing rights and
- * limitations under the License.
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
  *
  * The Original Code is Bespin.
  *
- * The Initial Developer of the Original Code is Mozilla.
+ * The Initial Developer of the Original Code is
+ * Mozilla.
  * Portions created by the Initial Developer are Copyright (C) 2009
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
  *   Bespin Team (bespin@mozilla.com)
  *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
  * ***** END LICENSE BLOCK ***** */
 
-var console = require('bespin:console').console;
-var util = require('bespin:util/util');
-var m_promise = require('bespin:promise');
 var catalog = require('bespin:plugins').catalog;
-
-var pathUtil = require('filesystem:path');
-
-var Promise = m_promise.Promise;
-
-// Does a binary search on a sorted array, returning
-// the *first* index in the array with the prefix
-exports._prefixSearch = function(arr, find) {
-    var low = 0;
-    var high = arr.length - 1;
-    var findlength = find.length;
-    var i;
-    var lowmark = null;
-    var sub;
-
-    while (low <= high) {
-        i = parseInt((low + high) / 2, 10);
-        sub = arr[i].substring(0, findlength);
-        if (i == lowmark) {
-            return i;
-        }
-
-        if (sub == find) {
-            lowmark = i;
-            high = i - 1;
-        } else {
-            if (sub < find) {
-                low = i + 1;
-            } else {
-                high = i - 1;
-            }
-        }
-    }
-    return lowmark;
-};
-
-// Standard binary search
-exports._binarySearch = function(arr, find) {
-    var low = 0;
-    var high = arr.length - 1;
-    var i;
-    var current;
-
-    while (low <= high) {
-        i = parseInt((low + high) / 2, 10);
-        current = arr[i];
-        if (current < find) {
-            low = i + 1;
-        } else if (current > find) {
-            high = i - 1;
-        } else {
-            return i;
-        }
-    }
-    return null;
-};
-
-exports.NEW = { name: 'NEW' };
-exports.LOADING = { name: 'LOADING' };
-exports.READY = { name: 'READY' };
-
-exports.Filesystem = function(source) {
-    if (!source) {
-        throw new Error('Filesystem must have a source.');
-    }
-
-    this._loadingPromises = [];
-    this.source = source;
-};
-
-exports.Filesystem.prototype = {
-    // FileSource for this filesytem
-    source: null,
-
-    // list of filenames
-    _files: null,
-
-    status: exports.NEW,
-    _loadingPromises: null,
-
-    _load: function() {
-        var pr = new Promise();
-        if (this.status === exports.READY) {
-            pr.resolve();
-        } else if (this.status === exports.LOADING) {
-            this._loadingPromises.push(pr);
-        } else {
-            this.status = exports.LOADING;
-            this._loadingPromises.push(pr);
-            this.source.loadAll().then(this._fileListReceived.bind(this));
-        }
-        return pr;
-    },
-
-    _fileListReceived: function(filelist) {
-        filelist.sort();
-        this._files = filelist;
-        this.status = exports.READY;
-        var lp = this._loadingPromises;
-        while (lp.length > 0) {
-            var pr = lp.pop();
-            pr.resolve();
-        }
-    },
-
-    /**
-     * Call this if you make a big change to the files in the filesystem. This will cause the entire cache
-     * to be reloaded on the next call that requires it.
-     */
-    invalidate: function() {
-        this._files = [];
-        this.status = exports.NEW;
-    },
-
-    /**
-     * Get a list of all files in the filesystem.
-     */
-    listAll: function() {
-        return this._load().chainPromise(function() {
-            return this._files;
-        }.bind(this));
-    },
-
-    /**
-     * Loads the contents of the file at path. When the promise is
-     * resolved, the contents are passed in.
-     */
-    loadContents: function(path) {
-        path = pathUtil.trimLeadingSlash(path);
-        var source = this.source;
-        return source.loadContents(path);
-    },
-
-    /**
-     * Save a contents to the path provided. If the file does not
-     * exist, it will be created.
-     */
-    saveContents: function(path, contents) {
-        var pr = new Promise();
-        path = pathUtil.trimLeadingSlash(path);
-        var source = this.source;
-        var self = this;
-        source.saveContents(path, contents).then(function() {
-            self.exists(path).then(function(exists) {
-                if (!exists) {
-                    self._files.push(path);
-                    self._files.sort();
-                }
-                pr.resolve();
-            });
-        }, function(error) {
-            pr.reject(error);
-        });
-        return pr;
-    },
-
-    /**
-     * get a File object that provides convenient path
-     * manipulation and access to the file data.
-     */
-    getFile: function(path) {
-        return new exports.File(this, path);
-    },
-
-    /**
-     * Returns a promise that will resolve to true if the given path
-     * exists.
-     */
-    exists: function(path) {
-        path = pathUtil.trimLeadingSlash(path);
-        var pr = new Promise();
-        this._load().then(function() {
-            var result = exports._binarySearch(this._files, path);
-            pr.resolve(result !== null);
-        }.bind(this));
-        return pr;
-    },
-
-    /**
-     * Deletes the file or directory at a path.
-     */
-    remove: function(path) {
-        path = pathUtil.trimLeadingSlash(path);
-        var pr = new Promise();
-        var self = this;
-        var source = this.source;
-        source.remove(path).then(function() {
-            // Check if the file list is already loaded or about to load.
-            // If true, then we have to remove the deleted file from the list.
-            if (self.status !== exports.NEW) {
-                self._load().then(function() {
-                    var position = exports._binarySearch(self._files, path);
-                    // In some circumstances, the deleted file might not be
-                    // in the file list.
-                    if (position !== null) {
-                        self._files.splice(position, 1);
-                    }
-                    pr.resolve();
-                }, function(error) {
-                    pr.reject(error);
-                });
-            } else {
-                pr.resolve();
-            }
-        }, function(error) {
-            pr.reject(error);
-        });
-        return pr;
-    },
-
-    /*
-     * Lists the contents of the directory at the path provided.
-     * Returns a promise that will be given a list of file
-     * and directory names for the contents of the directory.
-     * Directories are distinguished by a trailing slash.
-     */
-    listDirectory: function(path) {
-        path = pathUtil.trimLeadingSlash(path);
-        var pr = new Promise();
-        this._load().then(function() {
-            var files = this._files;
-            var index = exports._prefixSearch(files, path);
-            if (index === null) {
-                pr.reject(new Error('Path ' + path + ' not found.'));
-                return;
-            }
-            var result = [];
-            var numfiles = files.length;
-            var pathlength = path.length;
-            var lastSegment = null;
-            for (var i = index; i < numfiles; i++) {
-                var file = files[i];
-                if (file.substring(0, pathlength) != path) {
-                    break;
-                }
-                var segmentEnd = file.indexOf('/', pathlength) + 1;
-                if (segmentEnd == 0) {
-                    segmentEnd = file.length;
-                }
-                var segment = file.substring(pathlength, segmentEnd);
-                if (segment == '') {
-                    continue;
-                }
-
-                if (segment != lastSegment) {
-                    lastSegment = segment;
-                    result.push(segment);
-                }
-            }
-            pr.resolve(result);
-        }.bind(this));
-        return pr;
-    },
-
-    /**
-     * Creates a directory at the path provided. Nothing is
-     * passed into the promise callback.
-     */
-    makeDirectory: function(path) {
-        path = pathUtil.trimLeadingSlash(path);
-        if (!pathUtil.isDir(path)) {
-            path += '/';
-        }
-
-        var self = this;
-        var pr = new Promise();
-        this._load().then(function() {
-            var source = self.source;
-            source.makeDirectory(path).then(function() {
-                self._files.push(path);
-                // O(n log n), eh? but all in C so it's possible
-                // that this may be quicker than binary search + splice
-                self._files.sort();
-                pr.resolve();
-            });
-        });
-        return pr;
-    }
-};
-
-exports.File = function(fs, path) {
-    this.fs = fs;
-    this.path = path;
-};
-
-exports.File.prototype = {
-    parentdir: function() {
-        return pathUtil.parentdir(this.path);
-    },
-
-    loadContents: function() {
-        return this.fs.loadContents(this.path);
-    },
-
-    saveContents: function(contents) {
-        return this.fs.saveContents(this.path, contents);
-    },
-
-    exists: function() {
-        return this.fs.exists(this.path);
-    },
-
-    remove: function() {
-        return this.fs.remove(this.path);
-    },
-
-    extension: function() {
-        return pathUtil.fileType(this.path);
-    }
-};
-
-});
-
-bespin.tiki.module("filesystem:tests/testPathUtils",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var path = require('path');
-var t = require('plugindev');
-
-exports.testBasename = function() {
-    var basename = path.basename;
-    t.equal(basename(''), '', 'Empty string yields empty response');
-    t.equal(basename('foo/bar.js'), 'bar.js', '\'foo/bar.js\' yields ' +
-        '\'bar.js\'');
-    t.equal(basename('/'), '', 'Root alone yields empty response');
-    t.equal(basename('/foo/'), '', 'Directory references yields empty response');
-    t.equal(basename('/foo'), 'foo');
-    t.equal(basename('/foo/bar.js'), 'bar.js');
-};
-
-exports.testDirectory = function() {
-    var dir = path.directory;
-    t.equal(dir(''), '', 'the directory part of \'\' and \'\'');
-    t.equal(dir('foo.txt'), '', 'the directory part of \'foo.txt\' and \'\'');
-    t.equal(dir('foo/bar/baz.txt'), 'foo/bar/', 'the directory part of ' +
-        '\'foo/bar/baz.txt\' and \'foo/bar/\'');
-    t.equal(dir('/foo.txt'), '/', 'the directory part of \'/foo.txt\' and ' +
-        '\'/\'');
-    t.equal(dir('/foo/bar/baz.txt'), '/foo/bar/', 'the directory part of ' +
-        '\'/foo/bar/baz.txt\' and \'/foo/bar/\'');
-};
-
-exports.testSplitext = function() {
-    var splitext = path.splitext;
-    t.deepEqual(splitext(''), ['', '']);
-    t.deepEqual(splitext('/'), ['/', '']);
-    t.deepEqual(splitext('/foo/bar'), ['/foo/bar', '']);
-    t.deepEqual(splitext('/foo/bar.js'), ['/foo/bar', 'js']);
-};
-
-exports.testParentdir = function() {
-    var parentdir = path.parentdir;
-    t.equal(parentdir(''), '', 'Empty string is empty');
-    t.equal(parentdir('/'), '', 'Root directory is empty (no parent)');
-    t.equal(parentdir('/foo/'), '/', 'Directory under root has root as parent');
-    t.equal(parentdir('/foo.txt'), '/', 'File under root has root as parent');
-    t.equal(parentdir('/foo/bar/'), '/foo/', 'directory gets proper parent');
-    t.equal(parentdir('/foo/bar/baz.txt'), '/foo/bar/', 'file gets proper parent');
-};
-
-});
-
-bespin.tiki.module("filesystem:tests/fixture",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1
- *
- * The contents of this file are subject to the Mozilla Public License
- * Version 1.1 (the "License"); you may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS"
- * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied.
- * See the License for the specific language governing rights and
- * limitations under the License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * ***** END LICENSE BLOCK ***** */
-
-var Promise = require('bespin:promise').Promise;
-var t = require('plugindev');
-var util = require('bespin:util/util');
-var pathUtil = require('path');
-
-/**
- * @param files {file[]} Should be a list, each item an object with path
- * (ending in / for directories) and contents for files.
- * @param requests the list of requests made
- */
-exports.DummyFileSource = function(files, requests) {
-    this.files = files;
-    this.requests = requests;
-
-    // keep a shallow copy of the files list
-    var originalFiles = [];
-    this.files.forEach(function(f) {
-        originalFiles.push({name: f.name, contents: f.contents});
-    });
-    this._originalFiles = originalFiles;
-    this.reset();
-};
-
-exports.DummyFileSource.prototype = {
-    reset: function() {
-        this.requests = [];
-
-        // restore the files list
-        var files = [];
-        this._originalFiles.forEach(function(f) {
-            files.push({name: f.name, contents: f.contents});
-        });
-        this.files = files;
-    },
-
-    // Loads the complete file list
-    loadAll: function() {
-        this.requests.push(['loadAll']);
-        console.log('loadAll called');
-
-        var pr = new Promise();
-        var result = [];
-        this.get('files').forEach(function(f) {
-            result.push(f.name);
-        });
-        pr.resolve(result);
-        console.log('returning from loadAll');
-        return pr;
-    },
-
-    loadContents: function(path) {
-        this.requests.push(['loadContents', arguments]);
-        var pr = new Promise();
-        var matches = this._findMatching(path);
-        pr.resolve(matches.contents);
-        return pr;
-    },
-
-    saveContents: function(path, contents) {
-        this.requests.push(['saveContents', arguments]);
-        var pr = new Promise();
-        var entry = this._findOrCreateFile(path);
-        entry.contents = contents;
-        pr.resolve();
-        return pr;
-    },
-
-    remove: function(path) {
-        this.requests.push(['remove', arguments]);
-        var pr = new Promise();
-        pr.resolve();
-        return pr;
-    },
-
-    makeDirectory: function(path) {
-        this.requests.push(['makeDirectory', arguments]);
-        var pr = new Promise();
-        this.files.push({name: path});
-        pr.resolve(path);
-        return pr;
-    },
-
-    _findMatching: function(path, deep) {
-        path = pathUtil.trimLeadingSlash(path);
-        if (path == '' || pathUtil.isDir(path)) {
-            return this._findInDirectory(path, deep);
-        } else {
-            return this._findFile(path);
-        }
-    },
-
-    _findFile: function(path) {
-        var f = this.files.findProperty('name', path);
-        return f;
-    },
-
-    _findOrCreateFile: function(path) {
-        path = pathUtil.trimLeadingSlash(path);
-
-        var f = this._findFile(path);
-        if (util.none(f)) {
-            f = {name: path, contents: ''};
-            this.files.push(f);
-        }
-
-        return f;
-    },
-
-    _findInDirectory: function(path, deep) {
-        path = path.slice(0, path.length - 1);
-        var segments = path.split('/');
-        if (path == '') {
-            segments = [];
-        }
-        var matches = [];
-        this.files.forEach(function(f) {
-            var fSegments = f.name.split('/');
-            for (var i = 0; i < segments.length; i++) {
-                if (segments[i] != fSegments[i]) {
-                    return;
-                }
-            }
-
-            // If the search we're doing is for the directory
-            // itself and the directory is listed in the
-            // file list, we don't want to return the
-            // directory itself (which would actually come back as
-            // undefined).
-            if (!fSegments[i]) {
-                return;
-            }
-
-            var name;
-            if (deep) {
-                name = fSegments.slice(i).join('/');
-            } else if (fSegments.length > segments.length + 1) {
-                // it's a directory
-                name = fSegments[i] + '/';
-            } else {
-                name = fSegments[i];
-            }
-
-            matches.push({ name: name });
-        });
-        return matches;
-    }
-};
-
-});
-
-bespin.tiki.module("filesystem:tests/testFileManagement",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1
- *
- * The contents of this file are subject to the Mozilla Public License
- * Version 1.1 (the "License"); you may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS"
- * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied.
- * See the License for the specific language governing rights and
- * limitations under the License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * ***** END LICENSE BLOCK ***** */
-
-var t = require('plugindev');
-var fs = require('filesystem');
-var DummyFileSource = require('filesystem:tests/fixture').DummyFileSource;
+var settings = require('settings').settings;
 var console = require('bespin:console').console;
-var Promise = require('bespin:promise').Promise;
 
-var source = new DummyFileSource([
-    { name: 'atTheTop.js', contents: 'the top file' },
-    { name: 'anotherAtTheTop.js', contents: 'another file' },
-    { name: 'foo/' },
-    { name: 'deeply/nested/directory/andAFile.txt', contents: 'text file' }
-]);
+exports.Notifier = function() {};
 
-var getNewRoot = function() {
-    return fs.Filesystem.create({
-        source: 'filesystem:tests/testFileManagement#source'
-    });
+var levels = {
+    // Level definitions
+    DEBUG: 1,
+    INFO: 2,
+    ERROR: 3
 };
 
-var genericFailureHandler = function(error) {
-    console.log(error);
-    t.ok(false, 'Async failed: ' + error.message);
-    t.start();
+var levelNames = [null, "debug", "info", "error"];
+
+exports._notifications = {};
+
+exports.registerNotification = function(ext) {
+    exports._notifications[ext.pluginName + '_' + ext.name] = ext;
 };
 
-exports.testPrefixSearch = function() {
-    var i;
-    var ps = fs._prefixSearch;
-    var arr = [];
-    t.equal(ps(arr, 'hello'), null, 'Expected null for empty array');
-    arr = ['hello'];
-    t.equal(ps(arr, 'hello'), 0, 'Simple case: one matching element');
-    arr = ['hello/there'];
-    t.equal(ps(arr, 'hello'), 0, 'Prefix case: one element');
-    arr = [];
-    for (i = 0; i < 10; i++) {
-        arr.push('hello/' + i);
+exports.unregisterNotification = function(ext) {
+    delete exports._notifications[ext.pluginName + '_' + ext.name];
+};
+
+
+
+/*
+ * Normalizes and converts a level to an integer value.
+ *
+ * @param level {string|int} level to convert
+ * @return {int} level or null if the level is not properly defined
+ */
+var _convertLevel = function(level) {
+    if (typeof(level) === "number") {
+        if (level == 1 || level == 2 || level == 3) {
+            return level;
+        }
+        return null;
     }
-    t.equal(ps(arr, 'hello'), 0, 'all match');
-
-    arr = [];
-    for (i = 0; i < 9; i++) {
-        arr.push('abracadabra/' + i);
+    if (level === undefined || level === null) {
+        return null;
     }
-    arr.push('hello/10');
-    t.equal(ps(arr, 'hello'), 9, 'last match');
-
-    arr = [];
-    for (i = 0; i < 99; i++) {
-        arr.push('abracadabra/' + i);
-    }
-    arr.splice(49, 0, 'hello/49');
-    t.equal(ps(arr, 'hello'), 49, 'middle match');
-
-    arr.splice(45, 4, 'hello/45', 'hello/46', 'hello/47', 'hello/48');
-    t.equal(ps(arr, 'hello'), 45, 'middle match with more');
-};
-
-exports.testDirectoryListing = function() {
-    source.reset();
-    var root = getNewRoot();
-    var testpr = new Promise();
-
-    root.listDirectory('/').then(function(results) {
-        t.equal(results.length, 4, 'Expected 4 items');
-        t.deepEqual(results, ['anotherAtTheTop.js', 'atTheTop.js', 'deeply/',
-                             'foo/']);
-        testpr.resolve();
-    });
-
-    t.deepEqual(source.requests[0], ['loadAll']);
-
-    return testpr;
-};
-
-exports.testFileContents = function() {
-    source.reset();
-    var root = getNewRoot();
-    var testpr = new Promise();
-
-    root.loadContents('atTheTop.js').then(function(contents) {
-        t.equal(contents, 'the top file');
-        testpr.resolve();
-    });
-    return testpr;
-};
-
-exports.testDirectoryCreation = function() {
-    source.reset();
-    var root = getNewRoot();
-    var testpr = new Promise();
-    root.makeDirectory('acme/insurance').then(function() {
-        t.equal(root._files[0], 'acme/insurance/');
-        testpr.resolve();
-    });
-    return testpr;
-};
-
-exports.testPathRemoval = function() {
-    source.reset();
-    var root = getNewRoot();
-    var testpr = new Promise();
-    root.remove('atTheTop.js').then(function() {
-        t.equal(root._files.length, 3, 'file should be removed from filesystem');
-        t.equal(root._files[1], 'deeply/nested/directory/andAFile.txt');
-        t.equal(source.requests[0][0], 'remove');
-        testpr.resolve();
-    });
-    return testpr;
-};
-
-exports.testFileAbstraction = function() {
-    source.reset();
-    var root = getNewRoot();
-    var testpr = new Promise();
-    var file = root.getFile('deeply/nested/directory/andAFile.txt');
-    t.equal(file.extension(), 'txt');
-    t.equal(file.parentdir(), 'deeply/nested/directory/', 'parentdir is the root for this file');
-    file.loadContents().then(function(contents) {
-        t.equal(contents, 'text file');
-
-        file.saveContents('New data').then(function() {
-            // there will be a loadAll at the end, so we do -2
-            var request = source.requests[source.requests.length-2];
-            t.equal(request[0], 'saveContents');
-            t.equal(request[1][0], 'deeply/nested/directory/andAFile.txt');
-            t.equal(request[1][1], 'New data');
-            file.exists().then(function(exists) {
-                t.ok(exists, 'File should exist');
-                var badfile = root.getFile('no/such/file.txt');
-                badfile.exists().then(function(exists) {
-                    t.ok(!exists, 'badfile should not exist');
-                    testpr.resolve();
-                });
-            });
-        });
-    });
-    return testpr;
-};
-
-});
-
-bespin.tiki.module("filesystem:types",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-/**
- * One of a known set of options
- */
-exports.existingFile = {
-    isValid: function(value, typeExt) {
-        return true;
-    },
-
-    toString: function(value, typeExt) {
-        return value;
-    },
-
-    fromString: function(value, typeExt) {
-        // TODO: should we validate and return null if invalid?
-        return value;
-    }
-};
-
-});
-
-bespin.tiki.module("filesystem:path",function(require,exports,module) {
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Bespin.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Bespin Team (bespin@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-var util = require('bespin:util/util');
-
-/**
- * Take the given arguments and combine them with one path separator:
- * <pre>
- * combine('foo', 'bar') -&gt; foo/bar
- * combine(' foo/', '/bar  ') -&gt; foo/bar
- * </pre>
- */
-exports.combine = function() {
-    // clone to a true array
-    var args = Array.prototype.slice.call(arguments);
-
-    var path = args.join('/');
-    path = path.replace(/\/\/+/g, '/');
-    path = path.replace(/^\s+|\s+$/g, '');
-    return path;
-};
-
-/**
- * Given a <code>path</code> return the directory
- * <li>directory('/path/to/directory/file.txt') -&gt; /path/to/directory/
- * <li>directory('/path/to/directory/') -&gt; /path/to/directory/
- * <li>directory('foo.txt') -&gt; ''
- */
-exports.directory = function(path) {
-    var match = /^(.*?\/)[^\/]*$/.exec(path);
-    return match === null ? '' : match[1];
-};
-
-/**
- * Given a <code>path</code> make sure that it returns as a directory
- * (As in, ends with a '/')
- * <pre>
- * makeDirectory('/path/to/directory') -&gt; /path/to/directory/
- * makeDirectory('/path/to/directory/') -&gt; /path/to/directory/
- * </pre>
- */
-exports.makeDirectory = function(path) {
-    if (!((/\/$/).test(path))) {
-        path += '/';
-    }
-    return path;
-};
-
-/**
- * Take the given arguments and combine them with one path separator and
- * then make sure that you end up with a directory
- * <pre>
- * combine('foo', 'bar') -&gt; foo/bar/
- * combine(' foo/', '/bar  ') -&gt; foo/bar/
- * </pre>
- */
-exports.combineAsDirectory = function() {
-    return this.makeDirectory(this.combine.apply(this, arguments));
-};
-
-/**
- * This function doubles down and calls <code>combine</code> and then
- * escapes the output
- */
-exports.escape = function() {
-    return escape(this.combine.apply(this, arguments));
-};
-
-/**
- *
- */
-exports.trimLeadingSlash = function(path) {
-    if (path.indexOf('/') == 0) {
-        path = path.substring(1, path.length);
-    }
-    return path;
-};
-
-exports.hasLeadingSlash = function(path) {
-    return path.indexOf('/') == 0;
-};
-
-/**
- * This function returns a file type based on the extension
- * (foo.html -&gt; html)
- */
-exports.fileType = function(path) {
-    if (path.indexOf('.') >= 0) {
-        var split = path.split('.');
-        if (split.length > 1) {
-            return split[split.length - 1];
+    if (typeof(level) === "string") {
+        level = level.toUpperCase();
+        level = levels[level];
+        if (level === undefined) {
+            return null;
         }
     }
-    return null;
+    return level;
 };
 
-/*
-* Returns true if the path points to a directory (ends with a /).
-*/
-exports.isDir = function(path) {
-    return util.endsWith(path, '/');
+exports.Notifier.prototype = {
+    DEBUG: levels.DEBUG,
+    INFO: levels.INFO,
+    ERROR: levels.ERROR,
+    
+    /*
+     * Decides which handlers should receive the given message.
+     * 
+     * @param message {object} the message for which to decide on handlers
+     * @param notification {object} extension that defines the notification
+     * @param handlers {array} list of available handlers (usually taken from the catalog)
+     * @param config {array} list of handler configurations (usually from the "notifications" setting
+     * @return an array of handler names
+     */
+    _chooseHandlers: function(message, notification, handlers, config) {
+        var level = message.level;
+        level = _convertLevel(level);
+        if (level === null) {
+            level = notification.level;
+            level = _convertLevel(level);
+            if (level === null) {
+                level = this.INFO;
+            }
+        }
+        message.level = level;
+        message.levelName = levelNames[level];
+        
+        var plugin = message.plugin;
+        
+        if (!config) {
+            config = [];
+        }
+        
+        var result = {};
+        var seenHandlers = {};
+        config.forEach(function(item) {
+            var handler = item.handler;
+            if (!handler) {
+                return;
+            }
+            // even if this handler isn't going to be used,
+            // we keep track of its presence
+            seenHandlers[handler] = true;
+            
+            var configLevel = _convertLevel(item.level);
+            if (configLevel && level < configLevel) {
+                return;
+            }
+            
+            if (plugin && item.plugin && item.plugin !== plugin) {
+                return;
+            }
+            result[handler] = true;
+        });
+        
+        // take note of handlers that are installed but not explicitly configured.
+        handlers.forEach(function(handler) {
+            var handlerLevel = _convertLevel(handler.level);
+            if (!handlerLevel || level < handlerLevel || seenHandlers[handler.name]) {
+                return;
+            }
+            result[handler.name] = true;
+        });
+        
+        result = Object.keys(result);
+        if (level === levels.ERROR && result.length == 0 && config.length == 0) {
+            result.push('alert');
+        }
+        
+        return result;
+    },
+    
+    /*
+     * Publishes a notification to the configured handlers. The message object can contain
+     * the following:
+     * - plugin (required): the name of the plugin sending the message
+     * - notification (required): the name of the notification type. This should be defined in the
+     *                                plugin metadata
+     * - level: overrides the default level for this notification type. should be one of
+     *          notifier.ERROR, notifier.INFO, notifier.DEBUG
+     * - body (required): main message text (plain text)
+     * - title
+     * - iconUrl (this will likely have a default for some handlers based on the level)
+     * - onclick: called if the user clicks on the notification in a handler that supports clicking on
+     *            notifications. It is passed the "message" object (you can place anything
+     *            you want in the message to allow proper handling of the click)
+     */
+    notify: function(message) {
+        if (!message.plugin || !message.notification || !message.body) {
+            console.error('Received an invalid notification (plugin, notification and body are required)', message);
+            return;
+        }
+        var notification = exports._notifications[message.plugin + '_' + message.notification];
+        if (!notification) {
+            console.error('Notification message has an unknown notification type:', notification);
+            return;
+        }
+        var handlers = catalog.getExtensions('notificationHandler');
+        var config = settings.get('notifications');
+        
+        try {
+            config = JSON.parse(config);
+        } catch(e) {
+            config = [];
+        }
+        
+        var publishTo = this._chooseHandlers(message, notification, handlers, config);
+        publishTo.forEach(function(handlerName) {
+            var handler = catalog.getExtensionByKey('notificationHandler', handlerName);
+            if (!handler) {
+                return;
+            }
+            handler.load().then(function(handlerFunction) {
+                handlerFunction(message);
+            });
+        });
+    },
+    
+    /*
+     * convenience function that is equivalent to
+     * notify({
+     *  plugin: plugin,
+     *  body: body,
+     *  notification: "debug"
+     * })
+     */
+    debug: function(plugin, body) {
+        this.notify({
+            plugin: plugin,
+            body: body,
+            notification: 'debug'
+        });
+    }
 };
 
-/*
- * compute the basename of a path:
- * /foo/bar/ -> ''
- * /foo/bar/baz.js -> 'baz.js'
- */
-exports.basename = function(path) {
-    var lastSlash = path.lastIndexOf('/');
-    if (lastSlash == -1) {
-        return path;
+});
+
+bespin.tiki.module("notifier:handlers",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an 'AS IS' basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var console = require('bespin:console').console;
+
+var getMessageText = function(message) {
+    var text = '';
+    if (message.title) {
+        text = message.title + '\n';
     }
-    var afterSlash = path.substring(lastSlash+1);
-    return afterSlash;
+    if (message.body) {
+        text += message.body;
+    }
+    return text;
 };
 
-/*
- * splits the path from the extension, returning a 2 element array
- * '/foo/bar/' -> ['/foo/bar', '']
- * '/foo/bar/baz.js' -> ['/foo/bar/baz', 'js']
- */
-exports.splitext = function(path) {
-    var lastDot = path.lastIndexOf('.');
-    if (lastDot == -1) {
-        return [path, ''];
-    }
-    var before = path.substring(0, lastDot);
-    var after = path.substring(lastDot+1);
-    return [before, after];
+exports.console = function(message) {
+    var text = getMessageText(message);
+    console[message.level](text);
 };
 
-/*
- * figures out the parent directory
- * '' -&gt; ''
- * '/' -&gt; ''
- * '/foo/bar/' -&gt; '/foo/'
- * '/foo/bar/baz.txt' -&gt; '/foo/bar/'
- */
-exports.parentdir = function(path) {
-    if (path == '' || path == '/') {
-        return '';
-    }
+exports.alert = function(message) {
+    var text = getMessageText(message);
+    alert(text);
+};
 
-    if (exports.isDir(path)) {
-        path = path.substring(0, path.length-1);
-    }
-    slash = path.lastIndexOf('/');
-    path = path.substring(0, slash+1);
-    return path;
+});
+
+bespin.tiki.module("notifier:tests/testNotifications",function(require,exports,module) {
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an 'AS IS' basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Bespin.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bespin Team (bespin@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+var catalog = require('bespin:plugins').catalog;
+var t = require('plugindev');
+var notifier = require('notifier');
+
+var defaultHandlers = function() {
+    return [
+        {
+            "name": "console",
+            "description": "Logs the output to the browser's console."
+        },
+        {
+            "name": "alert",
+            "description": "Shows a browser alert popup"
+        },
+        {
+            "name": "popup",
+            "description": "Displays a more Growl-like display",
+            "level": "error"
+        }
+    ]
+};
+
+exports.testHandlerSelection = function() {
+    var n = new notifier.Notifier();
+    var config = [];
+    var handlers = [];
+    var notification = {level: 'info'};
+    var result = n._chooseHandlers({plugin: 'bar'}, notification, handlers, config);
+    t.deepEqual(result, [], 'should get empty list for empty handlers/config');
+    
+    // note that if nothing is configured and error level is reached,
+    // the alert handler is going to be presented regardless of whether it
+    // is present in handlers
+    result = n._chooseHandlers({plugin: 'bar', level: 'error'}, notification, handlers, config);
+    t.deepEqual(result, ['alert'], 'error level, alert handler returned by default');
+    
+    handlers = defaultHandlers();
+    notification.level = 'error';
+    result = n._chooseHandlers({plugin: 'bar'}, notification, handlers, config);
+    t.deepEqual(result, ['popup'], 'expected popup from default level set in handler ep');
+    
+    config = [
+        {
+            handler: 'popup',
+            level: 'info'
+        }
+    ];
+    handlers = defaultHandlers();
+    notification.level = 'info';
+    result = n._chooseHandlers({plugin: 'bar'}, notification, handlers, config);
+    t.deepEqual(result, ['popup'], 'expected popup with configured handler');
+    
+    config[0].plugin = 'foo';
+    result = n._chooseHandlers({plugin: 'bar'}, notification, handlers, config);
+    t.deepEqual(result, [], 'expected none when plugin does not match');
 };
 
 });
@@ -35432,7 +32796,7 @@ bespin.tiki.module("screen_theme:index",function(require,exports,module) {
 (function() {
 var $ = bespin.tiki.require("jquery").$;
 $(document).ready(function() {
-    bespin.tiki.require("bespin:plugins").catalog.registerMetadata({"text_editor": {"resourceURL": "resources/text_editor/", "description": "Canvas-based text editor component and many common editing commands", "dependencies": {"completion": "0.0.0", "undomanager": "0.0.0", "settings": "0.0.0", "canon": "0.0.0", "rangeutils": "0.0.0", "traits": "0.0.0", "theme_manager": "0.0.0", "keyboard": "0.0.0", "edit_session": "0.0.0", "syntax_manager": "0.0.0"}, "testmodules": ["tests/testScratchcanvas", "tests/controllers/testLayoutmanager", "tests/models/testTextstorage", "tests/utils/testRect"], "provides": [{"action": "new", "pointer": "views/editor#EditorView", "ep": "factory", "name": "text_editor"}, {"predicates": {"isTextView": true}, "pointer": "commands/editing#backspace", "ep": "command", "key": "backspace", "name": "backspace"}, {"predicates": {"isTextView": true}, "pointer": "commands/editing#deleteCommand", "ep": "command", "key": "delete", "name": "delete"}, {"description": "Delete all lines currently selected", "key": "ctrl_d", "predicates": {"isTextView": true}, "pointer": "commands/editing#deleteLines", "ep": "command", "name": "deletelines"}, {"description": "Create a new, empty line below the current one", "key": "ctrl_return", "predicates": {"isTextView": true}, "pointer": "commands/editing#openLine", "ep": "command", "name": "openline"}, {"description": "Join the current line with the following", "key": "ctrl_shift_j", "predicates": {"isTextView": true}, "pointer": "commands/editing#joinLines", "ep": "command", "name": "joinline"}, {"params": [{"defaultValue": "", "type": "text", "name": "text", "description": "The text to insert"}], "pointer": "commands/editing#insertText", "ep": "command", "name": "insertText"}, {"predicates": {"completing": false, "isTextView": true}, "pointer": "commands/editing#newline", "ep": "command", "key": "return", "name": "newline"}, {"predicates": {"completing": false, "isTextView": true}, "pointer": "commands/editing#tab", "ep": "command", "key": "tab", "name": "tab"}, {"predicates": {"isTextView": true}, "pointer": "commands/editing#untab", "ep": "command", "key": "shift_tab", "name": "untab"}, {"predicates": {"isTextView": true}, "ep": "command", "name": "move"}, {"description": "Repeat the last search (forward)", "pointer": "commands/editor#findNextCommand", "ep": "command", "key": "ctrl_g", "name": "findnext"}, {"description": "Repeat the last search (backward)", "pointer": "commands/editor#findPrevCommand", "ep": "command", "key": "ctrl_shift_g", "name": "findprev"}, {"predicates": {"completing": false, "isTextView": true}, "pointer": "commands/movement#moveDown", "ep": "command", "key": "down", "name": "move down"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveLeft", "ep": "command", "key": "left", "name": "move left"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveRight", "ep": "command", "key": "right", "name": "move right"}, {"predicates": {"completing": false, "isTextView": true}, "pointer": "commands/movement#moveUp", "ep": "command", "key": "up", "name": "move up"}, {"predicates": {"isTextView": true}, "ep": "command", "name": "select"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectDown", "ep": "command", "key": "shift_down", "name": "select down"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectLeft", "ep": "command", "key": "shift_left", "name": "select left"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectRight", "ep": "command", "key": "shift_right", "name": "select right"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectUp", "ep": "command", "key": "shift_up", "name": "select up"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveLineEnd", "ep": "command", "key": ["end", "ctrl_right"], "name": "move lineend"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectLineEnd", "ep": "command", "key": ["shift_end", "ctrl_shift_right"], "name": "select lineend"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveDocEnd", "ep": "command", "key": "ctrl_down", "name": "move docend"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectDocEnd", "ep": "command", "key": "ctrl_shift_down", "name": "select docend"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveLineStart", "ep": "command", "key": ["home", "ctrl_left"], "name": "move linestart"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectLineStart", "ep": "command", "key": ["shift_home", "ctrl_shift_left"], "name": "select linestart"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveDocStart", "ep": "command", "key": "ctrl_up", "name": "move docstart"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectDocStart", "ep": "command", "key": "ctrl_shift_up", "name": "select docstart"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveNextWord", "ep": "command", "key": ["alt_right"], "name": "move nextword"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectNextWord", "ep": "command", "key": ["alt_shift_right"], "name": "select nextword"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#movePreviousWord", "ep": "command", "key": ["alt_left"], "name": "move prevword"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectPreviousWord", "ep": "command", "key": ["alt_shift_left"], "name": "select prevword"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectAll", "ep": "command", "key": ["ctrl_a", "meta_a"], "name": "select all"}, {"predicates": {"isTextView": true}, "ep": "command", "name": "scroll"}, {"predicates": {"isTextView": true}, "pointer": "commands/scrolling#scrollDocStart", "ep": "command", "key": "ctrl_home", "name": "scroll start"}, {"predicates": {"isTextView": true}, "pointer": "commands/scrolling#scrollDocEnd", "ep": "command", "key": "ctrl_end", "name": "scroll end"}, {"predicates": {"isTextView": true}, "pointer": "commands/scrolling#scrollPageDown", "ep": "command", "key": "pagedown", "name": "scroll down"}, {"predicates": {"isTextView": true}, "pointer": "commands/scrolling#scrollPageUp", "ep": "command", "key": "pageup", "name": "scroll up"}, {"pointer": "commands/editor#lcCommand", "description": "Change all selected text to lowercase", "withKey": "CMD SHIFT L", "ep": "command", "name": "lc"}, {"pointer": "commands/editor#detabCommand", "description": "Convert tabs to spaces.", "params": [{"defaultValue": null, "type": "text", "name": "tabsize", "description": "Optionally, specify a tab size. (Defaults to setting.)"}], "ep": "command", "name": "detab"}, {"pointer": "commands/editor#entabCommand", "description": "Convert spaces to tabs.", "params": [{"defaultValue": null, "type": "text", "name": "tabsize", "description": "Optionally, specify a tab size. (Defaults to setting.)"}], "ep": "command", "name": "entab"}, {"pointer": "commands/editor#trimCommand", "description": "trim trailing or leading whitespace from each line in selection", "params": [{"defaultValue": "both", "type": {"data": [{"name": "left"}, {"name": "right"}, {"name": "both"}], "name": "selection"}, "name": "side", "description": "Do we trim from the left, right or both"}], "ep": "command", "name": "trim"}, {"pointer": "commands/editor#ucCommand", "description": "Change all selected text to uppercase", "withKey": "CMD SHIFT U", "ep": "command", "name": "uc"}, {"predicates": {"isTextView": true}, "pointer": "controllers/undo#undoManagerCommand", "ep": "command", "key": ["ctrl_shift_z"], "name": "redo"}, {"predicates": {"isTextView": true}, "pointer": "controllers/undo#undoManagerCommand", "ep": "command", "key": ["ctrl_z"], "name": "undo"}, {"description": "The distance in characters between each tab", "defaultValue": 8, "type": "number", "ep": "setting", "name": "tabstop"}, {"description": "Customize the keymapping", "defaultValue": "{}", "type": "text", "ep": "setting", "name": "customKeymapping"}, {"description": "The keymapping to use", "defaultValue": "standard", "type": "text", "ep": "setting", "name": "keymapping"}, {"description": "The editor font size in pixels", "defaultValue": 14, "type": "number", "ep": "setting", "name": "fontsize"}, {"description": "The editor font face", "defaultValue": "Monaco, Lucida Console, monospace", "type": "text", "ep": "setting", "name": "fontface"}, {"defaultValue": {"color": "#e5c138", "paddingLeft": 5, "backgroundColor": "#4c4a41", "paddingRight": 10}, "ep": "themevariable", "name": "gutter"}, {"defaultValue": {"color": "#e6e6e6", "selectedTextBackgroundColor": "#526da5", "backgroundColor": "#2a211c", "cursorColor": "#879aff", "unfocusedCursorBackgroundColor": "#73171e", "unfocusedCursorColor": "#ff0033"}, "ep": "themevariable", "name": "editor"}, {"defaultValue": {"comment": "#666666", "directive": "#999999", "keyword": "#42A8ED", "addition": "#FFFFFF", "plain": "#e6e6e6", "deletion": "#FFFFFF", "error": "#ff0000", "operator": "#88BBFF", "identifier": "#D841FF", "string": "#039A0A"}, "ep": "themevariable", "name": "highlighterFG"}, {"defaultValue": {"addition": "#008000", "deletion": "#800000"}, "ep": "themevariable", "name": "highlighterBG"}, {"defaultValue": {"nibStrokeStyle": "rgb(150, 150, 150)", "fullAlpha": 1.0, "barFillStyle": "rgb(0, 0, 0)", "particalAlpha": 0.29999999999999999, "barFillGradientBottomStop": "rgb(44, 44, 44)", "backgroundStyle": "#2A211C", "thickness": 17, "padding": 5, "trackStrokeStyle": "rgb(150, 150, 150)", "nibArrowStyle": "rgb(255, 255, 255)", "barFillGradientBottomStart": "rgb(22, 22, 22)", "barFillGradientTopStop": "rgb(40, 40, 40)", "barFillGradientTopStart": "rgb(90, 90, 90)", "nibStyle": "rgb(100, 100, 100)", "trackFillStyle": "rgba(50, 50, 50, 0.8)"}, "ep": "themevariable", "name": "scroller"}, {"description": "Event: Notify when something within the editor changed.", "params": [{"required": true, "name": "pointer", "description": "Function that is called whenever a change happened."}], "ep": "extensionpoint", "name": "editorChange"}, {"description": "Decoration for the gutter", "ep": "extensionpoint", "name": "gutterDecoration"}, {"description": "Line number decoration for the gutter", "pointer": "views/gutter#lineNumbers", "ep": "gutterDecoration", "name": "lineNumbers"}], "type": "plugins/supported", "name": "text_editor"}, "jslint_command": {"resourceURL": "resources/jslint_command/", "name": "jslint_command", "objects": [], "dependencies": {"jslint": "0.0.0", "file_commands": "0.0.0"}, "testmodules": [], "provides": [{"description": "Run JSLint to check the current file", "params": [], "predicates": {"context": "js"}, "pointer": "#jslintCommand", "ep": "command", "name": "jslint"}, {"description": "Runs JSLint when a JavaScript file is saved", "pointer": "#jslintSaveHook", "ep": "savehook", "name": "jslint"}], "type": "plugins/supported", "description": "Provides the JSLint command to check code for errors."}, "file_commands": {"resourceURL": "resources/file_commands/", "description": "File management commands", "dependencies": {"text_editor": "0.0.0", "matcher": "0.0", "command_line": "0.0", "filesystem": "0.0"}, "testmodules": ["tests/testCommands"], "provides": [{"description": "Hooks to be executed on save", "ep": "extensionpoint", "name": "savehook"}, {"description": "show files", "name": "ls", "params": [{"type": "text", "name": "path", "description": "list files relative to current file, or start with /projectname"}], "pointer": "#filesCommand", "ep": "command", "aliases": ["dir", "list", "files"]}, {"description": "save the current contents", "params": [{"defaultValue": null, "type": "text", "name": "filename", "description": "add the filename to save as, or use the current file"}], "key": "ctrl_s", "pointer": "#saveCommand", "ep": "command", "name": "save"}, {"description": "save the current contents under a new name", "params": [{"defaultValue": "", "type": "text", "name": "path", "description": "the filename to save to"}], "key": "ctrl_shift_s", "pointer": "#saveAsCommand", "ep": "command", "name": "saveas"}, {"description": "load up the contents of the file", "name": "open", "params": [{"type": "existingFile", "name": "path", "description": "the filename to open"}, {"defaultValue": null, "type": "number", "name": "line", "description": "optional line to jump to"}], "key": "ctrl_o", "pointer": "#openCommand", "ep": "command", "aliases": ["load"]}, {"description": "remove the file", "name": "rm", "params": [{"type": "text", "name": "path", "description": "add the filename to remove, give a full path starting with '/' to delete from a different project. To delete a directory end the path in a '/'"}], "pointer": "#rmCommand", "ep": "command", "aliases": ["remove", "del"]}, {"description": "A method of selecting an existing file", "pointer": "views/types#existingFileHint", "ep": "typehint", "name": "existingFile"}, {"description": "Creates an empty buffer for editing a new file.", "pointer": "#newfileCommand", "ep": "command", "name": "newfile"}, {"pointer": "#mkdirCommand", "description": "create a new directory, use a leading / to create a directory in a different project", "params": [{"type": "text", "name": "path", "description": "Directory to create"}], "ep": "command", "name": "mkdir"}, {"pointer": "#cdCommand", "description": "change working directory", "params": [{"type": "text", "name": "workingDir", "description": "Directory as working directory"}], "ep": "command", "name": "cd"}, {"description": "show the current working directory", "pointer": "#pwdCommand", "ep": "command", "name": "pwd"}, {"description": "revert the current buffer to the last saved version", "pointer": "#revertCommand", "ep": "command", "name": "revert"}], "type": "plugins/supported", "name": "file_commands"}, "less": {"resourceURL": "resources/less/", "description": "Leaner CSS", "contributors": [], "author": "Alexis Sellier <self@cloudhead.net>", "url": "http://lesscss.org", "version": "1.0.11", "dependencies": {}, "testmodules": [], "provides": [], "keywords": ["css", "parser", "lesscss", "browser"], "type": "plugins/thirdparty", "name": "less"}, "theme_manager_base": {"resourceURL": "resources/theme_manager_base/", "name": "theme_manager_base", "share": true, "environments": {"main": true}, "dependencies": {}, "testmodules": [], "provides": [{"description": "(Less)files holding the CSS style information for the UI.", "params": [{"required": true, "name": "url", "description": "Name of the ThemeStylesFile - can also be an array of files."}], "ep": "extensionpoint", "name": "themestyles"}, {"description": "Event: Notify when the theme(styles) changed.", "params": [{"required": true, "name": "pointer", "description": "Function that is called whenever the theme is changed."}], "ep": "extensionpoint", "name": "themeChange"}, {"indexOn": "name", "description": "A theme is a way change the look of the application.", "params": [{"required": false, "name": "url", "description": "Name of a ThemeStylesFile that holds theme specific CSS rules - can also be an array of files."}, {"required": true, "name": "pointer", "description": "Function that returns the ThemeData"}], "ep": "extensionpoint", "name": "theme"}], "type": "plugins/supported", "description": "Defines extension points required for theming"}, "canon": {"resourceURL": "resources/canon/", "name": "canon", "environments": {"main": true, "worker": false}, "dependencies": {"environment": "0.0.0", "events": "0.0.0", "settings": "0.0.0"}, "testmodules": [], "provides": [{"indexOn": "name", "description": "A command is a bit of functionality with optional typed arguments which can do something small like moving the cursor around the screen, or large like cloning a project from VCS.", "ep": "extensionpoint", "name": "command"}, {"description": "An extension point to be called whenever a new command begins output.", "ep": "extensionpoint", "name": "addedRequestOutput"}, {"description": "A dimensionsChanged is a way to be notified of changes to the dimension of Bespin", "ep": "extensionpoint", "name": "dimensionsChanged"}, {"description": "How many typed commands do we recall for reference?", "defaultValue": 50, "type": "number", "ep": "setting", "name": "historyLength"}, {"action": "create", "pointer": "history#InMemoryHistory", "ep": "factory", "name": "history"}], "type": "plugins/supported", "description": "Manages commands"}, "traits": {"resourceURL": "resources/traits/", "description": "Traits library, traitsjs.org", "dependencies": {}, "testmodules": [], "provides": [], "type": "plugins/thirdparty", "name": "traits"}, "keyboard": {"resourceURL": "resources/keyboard/", "description": "Keyboard shortcuts", "dependencies": {"canon": "0.0", "settings": "0.0"}, "testmodules": ["tests/testKeyboard"], "provides": [{"description": "A keymapping defines how keystrokes are interpreted.", "params": [{"required": true, "name": "states", "description": "Holds the states and all the informations about the keymapping. See docs: pluginguide/keymapping"}], "ep": "extensionpoint", "name": "keymapping"}], "type": "plugins/supported", "name": "keyboard"}, "worker_manager": {"resourceURL": "resources/worker_manager/", "description": "Manages a web worker on the browser side", "dependencies": {"canon": "0.0.0", "events": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "provides": [{"description": "Low-level web worker control (for plugin development)", "ep": "command", "name": "worker"}, {"description": "Restarts all web workers (for plugin development)", "pointer": "#workerRestartCommand", "ep": "command", "name": "worker restart"}], "type": "plugins/supported", "name": "worker_manager"}, "diff": {"testmodules": [], "type": "plugins/thirdparty", "resourceURL": "resources/diff/", "description": "Diff/Match/Patch module (support code, no UI)", "name": "diff"}, "edit_session": {"resourceURL": "resources/edit_session/", "description": "Ties together the files being edited with the views on screen", "dependencies": {"events": "0.0.0"}, "testmodules": ["tests/testSession"], "provides": [{"action": "call", "pointer": "#createSession", "ep": "factory", "name": "session"}], "type": "plugins/supported", "name": "edit_session"}, "syntax_manager": {"resourceURL": "resources/syntax_manager/", "name": "syntax_manager", "environments": {"main": true, "worker": false}, "dependencies": {"worker_manager": "0.0.0", "events": "0.0.0", "underscore": "0.0.0", "syntax_directory": "0.0.0"}, "testmodules": [], "provides": [], "type": "plugins/supported", "description": "Provides syntax highlighting services for the editor"}, "completion": {"resourceURL": "resources/completion/", "description": "Code completion support", "dependencies": {"jquery": "0.0.0", "ctags": "0.0.0", "rangeutils": "0.0.0", "canon": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "provides": [{"indexOn": "name", "description": "Code completion support for specific languages", "ep": "extensionpoint", "name": "completion"}, {"description": "Accept the chosen completion", "key": ["return", "tab"], "predicates": {"completing": true}, "pointer": "controller#completeCommand", "ep": "command", "name": "complete"}, {"description": "Abandon the completion", "key": "escape", "predicates": {"completing": true}, "pointer": "controller#completeCancelCommand", "ep": "command", "name": "complete cancel"}, {"description": "Choose the completion below", "key": "down", "predicates": {"completing": true}, "pointer": "controller#completeDownCommand", "ep": "command", "name": "complete down"}, {"description": "Choose the completion above", "key": "up", "predicates": {"completing": true}, "pointer": "controller#completeUpCommand", "ep": "command", "name": "complete up"}], "type": "plugins/supported", "name": "completion"}, "environment": {"testmodules": [], "dependencies": {"settings": "0.0.0"}, "resourceURL": "resources/environment/", "name": "environment", "type": "plugins/supported"}, "undomanager": {"resourceURL": "resources/undomanager/", "description": "Manages undoable events", "testmodules": ["tests/testUndomanager"], "provides": [{"pointer": "#undoManagerCommand", "ep": "command", "key": ["ctrl_shift_z"], "name": "redo"}, {"pointer": "#undoManagerCommand", "ep": "command", "key": ["ctrl_z"], "name": "undo"}], "type": "plugins/supported", "name": "undomanager"}, "command_line": {"resourceURL": "resources/command_line/", "description": "Provides the command line user interface", "dependencies": {"templater": "0.0.0", "settings": "0.0.0", "matcher": "0.0.0", "theme_manager_base": "0.0.0", "canon": "0.0.0", "keyboard": "0.0.0", "diff": "0.0.0", "types": "0.0.0"}, "testmodules": ["tests/testInput"], "provides": [{"url": ["article.less", "cli.less", "menu.less", "requestOutput.less", "global.less"], "ep": "themestyles"}, {"defaultValue": "@global_container_background", "ep": "themevariable", "name": "bg"}, {"defaultValue": "@global_container_background + #090807", "ep": "themevariable", "name": "input_bg_light"}, {"defaultValue": "@global_container_background - #030303", "ep": "themevariable", "name": "input_bg"}, {"defaultValue": "@global_container_background - #050506", "ep": "themevariable", "name": "input_bg2"}, {"defaultValue": "@global_menu_inset_color_top_left", "ep": "themevariable", "name": "border_fg"}, {"defaultValue": "@global_menu_inset_color_right", "ep": "themevariable", "name": "border_fg2"}, {"defaultValue": "@global_menu_background", "ep": "themevariable", "name": "menu_bg"}, {"defaultValue": "@global_menu_border_color", "ep": "themevariable", "name": "border_bg"}, {"defaultValue": "@global_color", "ep": "themevariable", "name": "text"}, {"defaultValue": "@global_header_color", "ep": "themevariable", "name": "hi_text"}, {"defaultValue": "@global_hint_color", "ep": "themevariable", "name": "lo_text"}, {"defaultValue": "@global_hint_color", "ep": "themevariable", "name": "lo_text2"}, {"defaultValue": "@global_link_color", "ep": "themevariable", "name": "link_text"}, {"defaultValue": "@global_error_color", "ep": "themevariable", "name": "error_text"}, {"defaultValue": "@global_selectable_hover_background", "ep": "themevariable", "name": "theme_text"}, {"comment": "#FFCE00", "defaultValue": "rgb(255,206,0)", "ep": "themevariable", "name": "theme_text_light"}, {"defaultValue": "@global_selectable_hover_background - #222000", "ep": "themevariable", "name": "theme_text_dark"}, {"defaultValue": "@global_accelerator_color", "ep": "themevariable", "name": "theme_text_dark2"}, {"comment": "#0E0906", "defaultValue": "rgb(14,9,6)", "ep": "themevariable", "name": "input_submenu"}, {"defaultValue": "@global_font", "ep": "themevariable", "name": "fonts"}, {"defaultValue": "@global_selectable_hover_color", "ep": "themevariable", "name": "li_hover_color"}, {"defaultValue": "@global_hint_hover_color", "ep": "themevariable", "name": "li_hint_hover_color"}, {"defaultValue": "@global_accelerator_hover_color", "ep": "themevariable", "name": "li_accelerator_hover_color"}, {"action": "new", "pointer": "views/cli#CliInputView", "ep": "factory", "name": "commandLine"}, {"description": "Display number|date|none next to each historical instruction", "defaultValue": "none", "type": {"data": ["number", "date", "none"], "name": "selection"}, "ep": "setting", "name": "historyTimeMode"}, {"description": "The maximum size (in pixels) for the command line output area", "defaultValue": 0, "type": "number", "ep": "setting", "name": "minConsoleHeight"}, {"description": "The minimum size (in pixels) for the command line output area", "defaultValue": 300, "type": "number", "ep": "setting", "name": "maxConsoleHeight"}, {"predicates": {"isKeyUp": false, "isCommandLine": true}, "pointer": "commands/simple#completeCommand", "ep": "command", "key": "tab", "name": "complete"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_1", "name": "menu1"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_2", "name": "menu2"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_1", "name": "menu1"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_3", "name": "menu3"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_4", "name": "menu4"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_5", "name": "menu5"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_6", "name": "menu6"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_7", "name": "menu7"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_8", "name": "menu8"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_9", "name": "menu9"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_0", "name": "menu0"}, {"pointer": "commands/simple#helpCommand", "description": "Get help on the available commands.", "params": [{"defaultValue": null, "type": "text", "name": "search", "description": "Search string to narrow the output."}], "ep": "command", "name": "help"}, {"pointer": "commands/simple#aliasCommand", "description": "define and show aliases for commands", "params": [{"defaultValue": null, "type": "text", "name": "alias", "description": "optionally, your alias name"}, {"defaultValue": null, "type": "text", "name": "command", "description": "optionally, the command name"}], "ep": "command", "name": "alias"}, {"description": "evals given js code and show the result", "params": [{"type": "text", "name": "javascript", "description": "The JavaScript to evaluate"}], "hidden": true, "pointer": "commands/basic#evalCommand", "ep": "command", "name": "eval"}, {"description": "show the Bespin version", "hidden": true, "pointer": "commands/basic#versionCommand", "ep": "command", "name": "version"}, {"description": "has", "hidden": true, "pointer": "commands/basic#bespinCommand", "ep": "command", "name": "bespin"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "commands/history#historyPreviousCommand", "ep": "command", "key": "up", "name": "historyPrevious"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "commands/history#historyNextCommand", "ep": "command", "key": "down", "name": "historyNext"}, {"params": [], "description": "Show history of the commands", "pointer": "commands/history#historyCommand", "ep": "command", "name": "history"}, {"pointer": "commands/history#addedRequestOutput", "ep": "addedRequestOutput"}, {"indexOn": "name", "description": "A function to allow the command line to show a hint to the user on how they should finish what they're typing", "ep": "extensionpoint", "name": "typehint"}, {"description": "A UI for string that is constrained to be one of a number of pre-defined values", "pointer": "views/basic#selection", "ep": "typehint", "name": "selection"}, {"description": "A UI for a boolean", "pointer": "views/basic#bool", "ep": "typehint", "name": "boolean"}], "type": "plugins/supported", "name": "command_line"}, "editing_commands": {"resourceURL": "resources/editing_commands/", "description": "Provides higher level commands for working with the text.", "objects": ["commandLine"], "testmodules": [], "provides": [{"description": "Search for text within this buffer", "params": [{"type": "text", "name": "value", "description": "string to search for"}], "key": "ctrl_f", "pointer": "#findCommand", "ep": "command", "name": "find"}, {"description": "move it! make the editor head to a line number.", "params": [{"type": "text", "name": "line", "description": "add the line number to move to in the file"}], "key": "ctrl_l", "pointer": "#gotoCommand", "ep": "command", "name": "goto"}], "type": "plugins/supported", "name": "editing_commands"}, "rangeutils": {"testmodules": ["tests/test"], "type": "plugins/supported", "resourceURL": "resources/rangeutils/", "description": "Utility functions for dealing with ranges of text", "name": "rangeutils"}, "html": {"resourceURL": "resources/html/", "name": "html", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#HTMLSyntax", "ep": "syntax", "fileexts": ["htm", "html"], "name": "html"}], "type": "plugins/supported", "description": "HTML syntax highlighter"}, "js_syntax": {"resourceURL": "resources/js_syntax/", "name": "js_syntax", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#JSSyntax", "ep": "syntax", "fileexts": ["js", "json"], "name": "js"}], "type": "plugins/supported", "description": "JavaScript syntax highlighter"}, "ctags": {"resourceURL": "resources/ctags/", "description": "Reads and writes tag files", "dependencies": {"traits": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "ctags"}, "events": {"resourceURL": "resources/events/", "description": "Dead simple event implementation", "dependencies": {"traits": "0.0"}, "testmodules": ["tests/test"], "provides": [], "type": "plugins/supported", "name": "events"}, "templater": {"testmodules": [], "resourceURL": "resources/templater/", "name": "templater", "type": "plugins/supported"}, "matcher": {"resourceURL": "resources/matcher/", "description": "Provides various routines to match items in a list", "dependencies": {}, "testmodules": ["tests/testIndex", "tests/testPrefix", "tests/testQuick"], "type": "plugins/supported", "name": "matcher"}, "jslint": {"testmodules": [], "type": "plugins/thirdparty", "resourceURL": "resources/jslint/", "description": "JSLint support code", "name": "jslint"}, "theme_manager": {"resourceURL": "resources/theme_manager/", "name": "theme_manager", "share": true, "environments": {"main": true, "worker": false}, "dependencies": {"theme_manager_base": "0.0.0", "settings": "0.0.0", "events": "0.0.0", "less": "0.0.0"}, "testmodules": [], "provides": [{"unregister": "themestyles#unregisterThemeStyles", "register": "themestyles#registerThemeStyles", "ep": "extensionhandler", "name": "themestyles"}, {"unregister": "index#unregisterTheme", "register": "index#registerTheme", "ep": "extensionhandler", "name": "theme"}, {"defaultValue": "standard", "description": "The theme plugin's name to use. If set to 'standard' no theme will be used", "type": "text", "ep": "setting", "name": "theme"}, {"pointer": "#appLaunched", "ep": "appLaunched"}], "type": "plugins/supported", "description": "Handles colors in Bespin"}, "whitetheme": {"resourceURL": "resources/whitetheme/", "description": "Provides a white theme for Bespin", "dependencies": {"theme_manager": "0.0.0"}, "testmodules": [], "provides": [{"url": ["theme.less"], "description": "A basic white theme", "pointer": "index#whiteTheme", "ep": "theme", "name": "white"}], "type": "plugins/supported", "name": "whitetheme"}, "standard_syntax": {"resourceURL": "resources/standard_syntax/", "description": "Easy-to-use basis for syntax engines", "environments": {"worker": true}, "dependencies": {"syntax_worker": "0.0.0", "syntax_directory": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "standard_syntax"}, "types": {"resourceURL": "resources/types/", "description": "Defines parameter types for commands", "testmodules": ["tests/testBasic", "tests/testTypes"], "provides": [{"indexOn": "name", "description": "Commands can accept various arguments that the user enters or that are automatically supplied by the environment. Those arguments have types that define how they are supplied or completed. The pointer points to an object with methods convert(str value) and getDefault(). Both functions have `this` set to the command's `takes` parameter. If getDefault is not defined, the default on the command's `takes` is used, if there is one. The object can have a noInput property that is set to true to reflect that this type is provided directly by the system. getDefault must be defined in that case.", "ep": "extensionpoint", "name": "type"}, {"description": "Text that the user needs to enter.", "pointer": "basic#text", "ep": "type", "name": "text"}, {"description": "A JavaScript number", "pointer": "basic#number", "ep": "type", "name": "number"}, {"description": "A true/false value", "pointer": "basic#bool", "ep": "type", "name": "boolean"}, {"description": "An object that converts via JavaScript", "pointer": "basic#object", "ep": "type", "name": "object"}, {"description": "A string that is constrained to be one of a number of pre-defined values", "pointer": "basic#selection", "ep": "type", "name": "selection"}, {"description": "A type which we don't understand from the outset, but which we hope context can help us with", "ep": "type", "name": "deferred"}], "type": "plugins/supported", "name": "types"}, "jquery": {"testmodules": [], "resourceURL": "resources/jquery/", "name": "jquery", "type": "plugins/thirdparty"}, "embedded": {"testmodules": [], "dependencies": {"theme_manager": "0.0.0", "text_editor": "0.0.0", "appconfig": "0.0.0", "edit_session": "0.0.0", "screen_theme": "0.0.0"}, "resourceURL": "resources/embedded/", "name": "embedded", "type": "plugins/supported"}, "settings": {"resourceURL": "resources/settings/", "description": "Infrastructure and commands for managing user preferences", "share": true, "dependencies": {"types": "0.0"}, "testmodules": [], "provides": [{"indexOn": "name", "description": "A setting is something that the application offers as a way to customize how it works", "register": "index#addSetting", "ep": "extensionpoint", "name": "setting"}, {"description": "A settingChange is a way to be notified of changes to a setting", "ep": "extensionpoint", "name": "settingChange"}, {"pointer": "commands#setCommand", "description": "define and show settings", "params": [{"defaultValue": null, "type": {"pointer": "settings:index#getSettings", "name": "selection"}, "name": "setting", "description": "The name of the setting to display or alter"}, {"defaultValue": null, "type": {"pointer": "settings:index#getTypeSpecFromAssignment", "name": "deferred"}, "name": "value", "description": "The new value for the chosen setting"}], "ep": "command", "name": "set"}, {"pointer": "commands#unsetCommand", "description": "unset a setting entirely", "params": [{"type": {"pointer": "settings:index#getSettings", "name": "selection"}, "name": "setting", "description": "The name of the setting to return to defaults"}], "ep": "command", "name": "unset"}], "type": "plugins/supported", "name": "settings"}, "appconfig": {"resourceURL": "resources/appconfig/", "description": "Instantiates components and displays the GUI based on configuration.", "dependencies": {"jquery": "0.0.0", "canon": "0.0.0", "settings": "0.0.0"}, "testmodules": [], "provides": [{"description": "Event: Fired when the app is completely launched.", "ep": "extensionpoint", "name": "appLaunched"}], "type": "plugins/supported", "name": "appconfig"}, "syntax_worker": {"resourceURL": "resources/syntax_worker/", "description": "Coordinates multiple syntax engines", "environments": {"worker": true}, "dependencies": {"syntax_directory": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "syntax_worker"}, "js_completion": {"resourceURL": "resources/js_completion/", "description": "JavaScript code completion", "dependencies": {"completion": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#JSCompletion", "ep": "completion", "name": "js"}], "type": "plugins/supported", "name": "js_completion"}, "filesystem": {"resourceURL": "resources/filesystem/", "description": "Provides the file and directory model used within Bespin", "dependencies": {"types": "0.0"}, "testmodules": ["tests/testPathUtils", "tests/testFileManagement"], "provides": [{"action": "new", "pointer": "#Filesystem", "ep": "factory", "name": "files"}, {"description": "A pointer to a file which we believe to already exist", "pointer": "types#existingFile", "ep": "type", "name": "existingFile"}], "type": "plugins/supported", "name": "filesystem"}, "screen_theme": {"resourceURL": "resources/screen_theme/", "description": "Bespins standard theme basePlugin", "dependencies": {"theme_manager": "0.0.0"}, "testmodules": [], "provides": [{"url": ["theme.less"], "ep": "themestyles"}, {"defaultValue": "@global_font", "ep": "themevariable", "name": "container_font"}, {"defaultValue": "@global_font_size", "ep": "themevariable", "name": "container_font_size"}, {"defaultValue": "@global_container_background", "ep": "themevariable", "name": "container_bg"}, {"defaultValue": "@global_color", "ep": "themevariable", "name": "container_color"}, {"defaultValue": "@global_line_height", "ep": "themevariable", "name": "container_line_height"}, {"defaultValue": "@global_pane_background", "ep": "themevariable", "name": "pane_bg"}, {"defaultValue": "@global_pane_border_radius", "ep": "themevariable", "name": "pane_border_radius"}, {"defaultValue": "@global_form_font", "ep": "themevariable", "name": "form_font"}, {"defaultValue": "@global_form_font_size", "ep": "themevariable", "name": "form_font_size"}, {"defaultValue": "@global_form_line_height", "ep": "themevariable", "name": "form_line_height"}, {"defaultValue": "@global_form_color", "ep": "themevariable", "name": "form_color"}, {"defaultValue": "@global_form_text_shadow", "ep": "themevariable", "name": "form_text_shadow"}, {"defaultValue": "@global_pane_link_color", "ep": "themevariable", "name": "pane_a_color"}, {"defaultValue": "@global_font", "ep": "themevariable", "name": "pane_font"}, {"defaultValue": "@global_font_size", "ep": "themevariable", "name": "pane_font_size"}, {"defaultValue": "@global_pane_text_shadow", "ep": "themevariable", "name": "pane_text_shadow"}, {"defaultValue": "@global_pane_h1_font", "ep": "themevariable", "name": "pane_h1_font"}, {"defaultValue": "@global_pane_h1_font_size", "ep": "themevariable", "name": "pane_h1_font_size"}, {"defaultValue": "@global_pane_h1_color", "ep": "themevariable", "name": "pane_h1_color"}, {"defaultValue": "@global_font_size * 1.8", "ep": "themevariable", "name": "pane_line_height"}, {"defaultValue": "@global_pane_color", "ep": "themevariable", "name": "pane_color"}, {"defaultValue": "@global_text_shadow", "ep": "themevariable", "name": "pane_text_shadow"}, {"defaultValue": "@global_font", "ep": "themevariable", "name": "button_font"}, {"defaultValue": "@global_font_size", "ep": "themevariable", "name": "button_font_size"}, {"defaultValue": "@global_button_color", "ep": "themevariable", "name": "button_color"}, {"defaultValue": "@global_button_background", "ep": "themevariable", "name": "button_bg"}, {"defaultValue": "@button_bg - #063A27", "ep": "themevariable", "name": "button_bg2"}, {"defaultValue": "@button_bg - #194A5E", "ep": "themevariable", "name": "button_border"}, {"defaultValue": "@global_control_background", "ep": "themevariable", "name": "control_bg"}, {"defaultValue": "@global_control_color", "ep": "themevariable", "name": "control_color"}, {"defaultValue": "@global_control_border", "ep": "themevariable", "name": "control_border"}, {"defaultValue": "@global_control_border_radius", "ep": "themevariable", "name": "control_border_radius"}, {"defaultValue": "@global_control_active_background", "ep": "themevariable", "name": "control_active_bg"}, {"defaultValue": "@global_control_active_border", "ep": "themevariable", "name": "control_active_border"}, {"defaultValue": "@global_control_active_color", "ep": "themevariable", "name": "control_active_color"}, {"defaultValue": "@global_control_active_inset_color", "ep": "themevariable", "name": "control_active_inset_color"}], "type": "plugins/supported", "name": "screen_theme"}});;
+    bespin.tiki.require("bespin:plugins").catalog.registerMetadata({"text_editor": {"resourceURL": "resources/text_editor/", "description": "Canvas-based text editor component and many common editing commands", "dependencies": {"completion": "0.0.0", "undomanager": "0.0.0", "settings": "0.0.0", "canon": "0.0.0", "rangeutils": "0.0.0", "traits": "0.0.0", "theme_manager": "0.0.0", "keyboard": "0.0.0", "edit_session": "0.0.0", "syntax_manager": "0.0.0"}, "testmodules": ["tests/testScratchcanvas", "tests/controllers/testLayoutmanager", "tests/models/testTextstorage", "tests/utils/testRect"], "provides": [{"action": "new", "pointer": "views/editor#EditorView", "ep": "factory", "name": "text_editor"}, {"predicates": {"isTextView": true}, "pointer": "commands/editing#backspace", "ep": "command", "key": "backspace", "name": "backspace"}, {"predicates": {"isTextView": true}, "pointer": "commands/editing#deleteCommand", "ep": "command", "key": "delete", "name": "delete"}, {"description": "Delete all lines currently selected", "key": "ctrl_d", "predicates": {"isTextView": true}, "pointer": "commands/editing#deleteLines", "ep": "command", "name": "deletelines"}, {"description": "Create a new, empty line below the current one", "key": "ctrl_return", "predicates": {"isTextView": true}, "pointer": "commands/editing#openLine", "ep": "command", "name": "openline"}, {"description": "Join the current line with the following", "key": "ctrl_shift_j", "predicates": {"isTextView": true}, "pointer": "commands/editing#joinLines", "ep": "command", "name": "joinline"}, {"params": [{"defaultValue": "", "type": "text", "name": "text", "description": "The text to insert"}], "pointer": "commands/editing#insertText", "ep": "command", "name": "insertText"}, {"predicates": {"completing": false, "isTextView": true}, "pointer": "commands/editing#newline", "ep": "command", "key": "return", "name": "newline"}, {"predicates": {"completing": false, "isTextView": true}, "pointer": "commands/editing#tab", "ep": "command", "key": "tab", "name": "tab"}, {"predicates": {"isTextView": true}, "pointer": "commands/editing#untab", "ep": "command", "key": "shift_tab", "name": "untab"}, {"predicates": {"isTextView": true}, "ep": "command", "name": "move"}, {"description": "Repeat the last search (forward)", "pointer": "commands/editor#findNextCommand", "ep": "command", "key": "ctrl_g", "name": "findnext"}, {"description": "Repeat the last search (backward)", "pointer": "commands/editor#findPrevCommand", "ep": "command", "key": "ctrl_shift_g", "name": "findprev"}, {"predicates": {"completing": false, "isTextView": true}, "pointer": "commands/movement#moveDown", "ep": "command", "key": "down", "name": "move down"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveLeft", "ep": "command", "key": "left", "name": "move left"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveRight", "ep": "command", "key": "right", "name": "move right"}, {"predicates": {"completing": false, "isTextView": true}, "pointer": "commands/movement#moveUp", "ep": "command", "key": "up", "name": "move up"}, {"predicates": {"isTextView": true}, "ep": "command", "name": "select"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectDown", "ep": "command", "key": "shift_down", "name": "select down"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectLeft", "ep": "command", "key": "shift_left", "name": "select left"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectRight", "ep": "command", "key": "shift_right", "name": "select right"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectUp", "ep": "command", "key": "shift_up", "name": "select up"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveLineEnd", "ep": "command", "key": ["end", "ctrl_right"], "name": "move lineend"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectLineEnd", "ep": "command", "key": ["shift_end", "ctrl_shift_right"], "name": "select lineend"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveDocEnd", "ep": "command", "key": "ctrl_down", "name": "move docend"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectDocEnd", "ep": "command", "key": "ctrl_shift_down", "name": "select docend"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveLineStart", "ep": "command", "key": ["home", "ctrl_left"], "name": "move linestart"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectLineStart", "ep": "command", "key": ["shift_home", "ctrl_shift_left"], "name": "select linestart"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveDocStart", "ep": "command", "key": "ctrl_up", "name": "move docstart"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectDocStart", "ep": "command", "key": "ctrl_shift_up", "name": "select docstart"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#moveNextWord", "ep": "command", "key": ["alt_right"], "name": "move nextword"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectNextWord", "ep": "command", "key": ["alt_shift_right"], "name": "select nextword"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#movePreviousWord", "ep": "command", "key": ["alt_left"], "name": "move prevword"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectPreviousWord", "ep": "command", "key": ["alt_shift_left"], "name": "select prevword"}, {"predicates": {"isTextView": true}, "pointer": "commands/movement#selectAll", "ep": "command", "key": ["ctrl_a", "meta_a"], "name": "select all"}, {"predicates": {"isTextView": true}, "ep": "command", "name": "scroll"}, {"predicates": {"isTextView": true}, "pointer": "commands/scrolling#scrollDocStart", "ep": "command", "key": "ctrl_home", "name": "scroll start"}, {"predicates": {"isTextView": true}, "pointer": "commands/scrolling#scrollDocEnd", "ep": "command", "key": "ctrl_end", "name": "scroll end"}, {"predicates": {"isTextView": true}, "pointer": "commands/scrolling#scrollPageDown", "ep": "command", "key": "pagedown", "name": "scroll down"}, {"predicates": {"isTextView": true}, "pointer": "commands/scrolling#scrollPageUp", "ep": "command", "key": "pageup", "name": "scroll up"}, {"pointer": "commands/editor#lcCommand", "description": "Change all selected text to lowercase", "withKey": "CMD SHIFT L", "ep": "command", "name": "lc"}, {"pointer": "commands/editor#detabCommand", "description": "Convert tabs to spaces.", "params": [{"defaultValue": null, "type": "text", "name": "tabsize", "description": "Optionally, specify a tab size. (Defaults to setting.)"}], "ep": "command", "name": "detab"}, {"pointer": "commands/editor#entabCommand", "description": "Convert spaces to tabs.", "params": [{"defaultValue": null, "type": "text", "name": "tabsize", "description": "Optionally, specify a tab size. (Defaults to setting.)"}], "ep": "command", "name": "entab"}, {"pointer": "commands/editor#trimCommand", "description": "trim trailing or leading whitespace from each line in selection", "params": [{"defaultValue": "both", "type": {"data": [{"name": "left"}, {"name": "right"}, {"name": "both"}], "name": "selection"}, "name": "side", "description": "Do we trim from the left, right or both"}], "ep": "command", "name": "trim"}, {"pointer": "commands/editor#ucCommand", "description": "Change all selected text to uppercase", "withKey": "CMD SHIFT U", "ep": "command", "name": "uc"}, {"predicates": {"isTextView": true}, "pointer": "controllers/undo#undoManagerCommand", "ep": "command", "key": ["ctrl_shift_z"], "name": "redo"}, {"predicates": {"isTextView": true}, "pointer": "controllers/undo#undoManagerCommand", "ep": "command", "key": ["ctrl_z"], "name": "undo"}, {"description": "The distance in characters between each tab", "defaultValue": 8, "type": "number", "ep": "setting", "name": "tabstop"}, {"description": "Customize the keymapping", "defaultValue": "{}", "type": "text", "ep": "setting", "name": "customKeymapping"}, {"description": "The keymapping to use", "defaultValue": "standard", "type": "text", "ep": "setting", "name": "keymapping"}, {"description": "The editor font size in pixels", "defaultValue": 14, "type": "number", "ep": "setting", "name": "fontsize"}, {"description": "The editor font face", "defaultValue": "Monaco, Lucida Console, monospace", "type": "text", "ep": "setting", "name": "fontface"}, {"defaultValue": {"color": "#e5c138", "paddingLeft": 5, "backgroundColor": "#4c4a41", "paddingRight": 10}, "ep": "themevariable", "name": "gutter"}, {"defaultValue": {"color": "#e6e6e6", "selectedTextBackgroundColor": "#526da5", "backgroundColor": "#2a211c", "cursorColor": "#879aff", "unfocusedCursorBackgroundColor": "#73171e", "unfocusedCursorColor": "#ff0033"}, "ep": "themevariable", "name": "editor"}, {"defaultValue": {"comment": "#666666", "directive": "#999999", "keyword": "#42A8ED", "addition": "#FFFFFF", "plain": "#e6e6e6", "module": "#BA4946", "specialmodule": "#C741BB", "builtin": "#307BAD", "deletion": "#FFFFFF", "error": "#ff0000", "operator": "#88BBFF", "identifier": "#D841FF", "string": "#039A0A"}, "ep": "themevariable", "name": "highlighterFG"}, {"defaultValue": {"addition": "#008000", "deletion": "#800000"}, "ep": "themevariable", "name": "highlighterBG"}, {"defaultValue": {"nibStrokeStyle": "rgb(150, 150, 150)", "fullAlpha": 1.0, "barFillStyle": "rgb(0, 0, 0)", "particalAlpha": 0.29999999999999999, "barFillGradientBottomStop": "rgb(44, 44, 44)", "backgroundStyle": "#2A211C", "thickness": 17, "padding": 5, "trackStrokeStyle": "rgb(150, 150, 150)", "nibArrowStyle": "rgb(255, 255, 255)", "barFillGradientBottomStart": "rgb(22, 22, 22)", "barFillGradientTopStop": "rgb(40, 40, 40)", "barFillGradientTopStart": "rgb(90, 90, 90)", "nibStyle": "rgb(100, 100, 100)", "trackFillStyle": "rgba(50, 50, 50, 0.8)"}, "ep": "themevariable", "name": "scroller"}, {"description": "Event: Notify when something within the editor changed.", "params": [{"required": true, "name": "pointer", "description": "Function that is called whenever a change happened."}], "ep": "extensionpoint", "name": "editorChange"}, {"description": "Decoration for the gutter", "ep": "extensionpoint", "name": "gutterDecoration"}, {"description": "Line number decoration for the gutter", "pointer": "views/gutter#lineNumbers", "ep": "gutterDecoration", "name": "lineNumbers"}], "type": "plugins/supported", "name": "text_editor"}, "jslint_command": {"resourceURL": "resources/jslint_command/", "name": "jslint_command", "objects": [], "dependencies": {"jslint": "0.0.0", "notifier": "0.0.0"}, "testmodules": [], "provides": [{"description": "Run JSLint to check the current file", "params": [], "key": "ctrl_shift_v", "predicates": {"context": "js"}, "pointer": "#jslintCommand", "ep": "command", "name": "jslint"}, {"description": "Runs JSLint when a JavaScript file is saved", "pointer": "#jslintSaveHook", "ep": "savehook", "name": "jslint"}, {"description": "JSLint errors", "level": "error", "ep": "notification", "name": "jslint_error"}], "type": "plugins/supported", "description": "Provides the JSLint command to check code for errors."}, "less": {"resourceURL": "resources/less/", "description": "Leaner CSS", "contributors": [], "author": "Alexis Sellier <self@cloudhead.net>", "url": "http://lesscss.org", "version": "1.0.11", "dependencies": {}, "testmodules": [], "provides": [], "keywords": ["css", "parser", "lesscss", "browser"], "type": "plugins/thirdparty", "name": "less"}, "theme_manager_base": {"resourceURL": "resources/theme_manager_base/", "name": "theme_manager_base", "share": true, "environments": {"main": true}, "dependencies": {}, "testmodules": [], "provides": [{"description": "(Less)files holding the CSS style information for the UI.", "params": [{"required": true, "name": "url", "description": "Name of the ThemeStylesFile - can also be an array of files."}], "ep": "extensionpoint", "name": "themestyles"}, {"description": "Event: Notify when the theme(styles) changed.", "params": [{"required": true, "name": "pointer", "description": "Function that is called whenever the theme is changed."}], "ep": "extensionpoint", "name": "themeChange"}, {"indexOn": "name", "description": "A theme is a way change the look of the application.", "params": [{"required": false, "name": "url", "description": "Name of a ThemeStylesFile that holds theme specific CSS rules - can also be an array of files."}, {"required": true, "name": "pointer", "description": "Function that returns the ThemeData"}], "ep": "extensionpoint", "name": "theme"}], "type": "plugins/supported", "description": "Defines extension points required for theming"}, "canon": {"resourceURL": "resources/canon/", "name": "canon", "environments": {"main": true, "worker": false}, "dependencies": {"environment": "0.0.0", "events": "0.0.0", "settings": "0.0.0"}, "testmodules": [], "provides": [{"indexOn": "name", "description": "A command is a bit of functionality with optional typed arguments which can do something small like moving the cursor around the screen, or large like cloning a project from VCS.", "ep": "extensionpoint", "name": "command"}, {"description": "An extension point to be called whenever a new command begins output.", "ep": "extensionpoint", "name": "addedRequestOutput"}, {"description": "A dimensionsChanged is a way to be notified of changes to the dimension of Bespin", "ep": "extensionpoint", "name": "dimensionsChanged"}, {"description": "How many typed commands do we recall for reference?", "defaultValue": 50, "type": "number", "ep": "setting", "name": "historyLength"}, {"action": "create", "pointer": "history#InMemoryHistory", "ep": "factory", "name": "history"}], "type": "plugins/supported", "description": "Manages commands"}, "traits": {"resourceURL": "resources/traits/", "description": "Traits library, traitsjs.org", "dependencies": {}, "testmodules": [], "provides": [], "type": "plugins/thirdparty", "name": "traits"}, "keyboard": {"resourceURL": "resources/keyboard/", "description": "Keyboard shortcuts", "dependencies": {"canon": "0.0", "settings": "0.0"}, "testmodules": ["tests/testKeyboard"], "provides": [{"description": "A keymapping defines how keystrokes are interpreted.", "params": [{"required": true, "name": "states", "description": "Holds the states and all the informations about the keymapping. See docs: pluginguide/keymapping"}], "ep": "extensionpoint", "name": "keymapping"}], "type": "plugins/supported", "name": "keyboard"}, "worker_manager": {"resourceURL": "resources/worker_manager/", "description": "Manages a web worker on the browser side", "dependencies": {"canon": "0.0.0", "events": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "provides": [{"description": "Low-level web worker control (for plugin development)", "ep": "command", "name": "worker"}, {"description": "Restarts all web workers (for plugin development)", "pointer": "#workerRestartCommand", "ep": "command", "name": "worker restart"}], "type": "plugins/supported", "name": "worker_manager"}, "diff": {"testmodules": [], "type": "plugins/thirdparty", "resourceURL": "resources/diff/", "description": "Diff/Match/Patch module (support code, no UI)", "name": "diff"}, "edit_session": {"resourceURL": "resources/edit_session/", "description": "Ties together the files being edited with the views on screen", "dependencies": {"events": "0.0.0"}, "testmodules": ["tests/testSession"], "provides": [{"action": "call", "pointer": "#createSession", "ep": "factory", "name": "session"}], "type": "plugins/supported", "name": "edit_session"}, "syntax_manager": {"resourceURL": "resources/syntax_manager/", "name": "syntax_manager", "environments": {"main": true, "worker": false}, "dependencies": {"worker_manager": "0.0.0", "syntax_directory": "0.0.0", "events": "0.0.0", "underscore": "0.0.0", "settings": "0.0.0"}, "testmodules": [], "provides": [], "type": "plugins/supported", "description": "Provides syntax highlighting services for the editor"}, "completion": {"resourceURL": "resources/completion/", "description": "Code completion support", "dependencies": {"jquery": "0.0.0", "ctags": "0.0.0", "rangeutils": "0.0.0", "canon": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "provides": [{"indexOn": "name", "description": "Code completion support for specific languages", "ep": "extensionpoint", "name": "completion"}, {"description": "Accept the chosen completion", "key": ["return", "tab"], "predicates": {"completing": true}, "pointer": "controller#completeCommand", "ep": "command", "name": "complete"}, {"description": "Abandon the completion", "key": "escape", "predicates": {"completing": true}, "pointer": "controller#completeCancelCommand", "ep": "command", "name": "complete cancel"}, {"description": "Choose the completion below", "key": "down", "predicates": {"completing": true}, "pointer": "controller#completeDownCommand", "ep": "command", "name": "complete down"}, {"description": "Choose the completion above", "key": "up", "predicates": {"completing": true}, "pointer": "controller#completeUpCommand", "ep": "command", "name": "complete up"}], "type": "plugins/supported", "name": "completion"}, "environment": {"testmodules": [], "dependencies": {"settings": "0.0.0"}, "resourceURL": "resources/environment/", "name": "environment", "type": "plugins/supported"}, "undomanager": {"resourceURL": "resources/undomanager/", "description": "Manages undoable events", "testmodules": ["tests/testUndomanager"], "provides": [{"pointer": "#undoManagerCommand", "ep": "command", "key": ["ctrl_shift_z"], "name": "redo"}, {"pointer": "#undoManagerCommand", "ep": "command", "key": ["ctrl_z"], "name": "undo"}], "type": "plugins/supported", "name": "undomanager"}, "command_line": {"resourceURL": "resources/command_line/", "description": "Provides the command line user interface", "dependencies": {"templater": "0.0.0", "settings": "0.0.0", "matcher": "0.0.0", "theme_manager_base": "0.0.0", "canon": "0.0.0", "keyboard": "0.0.0", "diff": "0.0.0", "types": "0.0.0"}, "testmodules": ["tests/testInput"], "provides": [{"url": ["article.less", "cli.less", "menu.less", "requestOutput.less", "global.less"], "ep": "themestyles"}, {"defaultValue": "@global_container_background", "ep": "themevariable", "name": "bg"}, {"defaultValue": "@global_container_background + #090807", "ep": "themevariable", "name": "input_bg_light"}, {"defaultValue": "@global_container_background - #030303", "ep": "themevariable", "name": "input_bg"}, {"defaultValue": "@global_container_background - #050506", "ep": "themevariable", "name": "input_bg2"}, {"defaultValue": "@global_menu_inset_color_top_left", "ep": "themevariable", "name": "border_fg"}, {"defaultValue": "@global_menu_inset_color_right", "ep": "themevariable", "name": "border_fg2"}, {"defaultValue": "@global_menu_background", "ep": "themevariable", "name": "menu_bg"}, {"defaultValue": "@global_menu_border_color", "ep": "themevariable", "name": "border_bg"}, {"defaultValue": "@global_color", "ep": "themevariable", "name": "text"}, {"defaultValue": "@global_header_color", "ep": "themevariable", "name": "hi_text"}, {"defaultValue": "@global_hint_color", "ep": "themevariable", "name": "lo_text"}, {"defaultValue": "@global_hint_color", "ep": "themevariable", "name": "lo_text2"}, {"defaultValue": "@global_link_color", "ep": "themevariable", "name": "link_text"}, {"defaultValue": "@global_error_color", "ep": "themevariable", "name": "error_text"}, {"defaultValue": "@global_selectable_hover_background", "ep": "themevariable", "name": "theme_text"}, {"comment": "#FFCE00", "defaultValue": "rgb(255,206,0)", "ep": "themevariable", "name": "theme_text_light"}, {"defaultValue": "@global_selectable_hover_background - #222000", "ep": "themevariable", "name": "theme_text_dark"}, {"defaultValue": "@global_accelerator_color", "ep": "themevariable", "name": "theme_text_dark2"}, {"comment": "#0E0906", "defaultValue": "rgb(14,9,6)", "ep": "themevariable", "name": "input_submenu"}, {"defaultValue": "@global_font", "ep": "themevariable", "name": "fonts"}, {"defaultValue": "@global_selectable_hover_color", "ep": "themevariable", "name": "li_hover_color"}, {"defaultValue": "@global_hint_hover_color", "ep": "themevariable", "name": "li_hint_hover_color"}, {"defaultValue": "@global_accelerator_hover_color", "ep": "themevariable", "name": "li_accelerator_hover_color"}, {"action": "new", "pointer": "views/cli#CliInputView", "ep": "factory", "name": "commandLine"}, {"description": "Display number|date|none next to each historical instruction", "defaultValue": "none", "type": {"data": ["number", "date", "none"], "name": "selection"}, "ep": "setting", "name": "historyTimeMode"}, {"description": "The maximum size (in pixels) for the command line output area", "defaultValue": 0, "type": "number", "ep": "setting", "name": "minConsoleHeight"}, {"description": "The minimum size (in pixels) for the command line output area", "defaultValue": 300, "type": "number", "ep": "setting", "name": "maxConsoleHeight"}, {"predicates": {"isKeyUp": false, "isCommandLine": true}, "pointer": "commands/simple#completeCommand", "ep": "command", "key": "tab", "name": "complete"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_1", "name": "menu1"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_2", "name": "menu2"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_1", "name": "menu1"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_3", "name": "menu3"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_4", "name": "menu4"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_5", "name": "menu5"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_6", "name": "menu6"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_7", "name": "menu7"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_8", "name": "menu8"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_9", "name": "menu9"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "views/menu#activateItemAction", "ep": "command", "key": "alt_0", "name": "menu0"}, {"pointer": "commands/simple#helpCommand", "description": "Get help on the available commands.", "params": [{"defaultValue": null, "type": "text", "name": "search", "description": "Search string to narrow the output."}], "ep": "command", "name": "help"}, {"pointer": "commands/simple#aliasCommand", "description": "define and show aliases for commands", "params": [{"defaultValue": null, "type": "text", "name": "alias", "description": "optionally, your alias name"}, {"defaultValue": null, "type": "text", "name": "command", "description": "optionally, the command name"}], "ep": "command", "name": "alias"}, {"description": "evals given js code and show the result", "params": [{"type": "text", "name": "javascript", "description": "The JavaScript to evaluate"}], "hidden": true, "pointer": "commands/basic#evalCommand", "ep": "command", "name": "eval"}, {"description": "show the Bespin version", "hidden": true, "pointer": "commands/basic#versionCommand", "ep": "command", "name": "version"}, {"description": "has", "hidden": true, "pointer": "commands/basic#bespinCommand", "ep": "command", "name": "bespin"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "commands/history#historyPreviousCommand", "ep": "command", "key": "up", "name": "historyPrevious"}, {"predicates": {"isKeyUp": true, "isCommandLine": true}, "pointer": "commands/history#historyNextCommand", "ep": "command", "key": "down", "name": "historyNext"}, {"params": [], "description": "Show history of the commands", "pointer": "commands/history#historyCommand", "ep": "command", "name": "history"}, {"pointer": "commands/history#addedRequestOutput", "ep": "addedRequestOutput"}, {"indexOn": "name", "description": "A function to allow the command line to show a hint to the user on how they should finish what they're typing", "ep": "extensionpoint", "name": "typehint"}, {"description": "A UI for string that is constrained to be one of a number of pre-defined values", "pointer": "views/basic#selection", "ep": "typehint", "name": "selection"}, {"description": "A UI for a boolean", "pointer": "views/basic#bool", "ep": "typehint", "name": "boolean"}], "type": "plugins/supported", "name": "command_line"}, "editing_commands": {"resourceURL": "resources/editing_commands/", "description": "Provides higher level commands for working with the text.", "objects": ["commandLine"], "testmodules": [], "provides": [{"description": "Search for text within this buffer", "params": [{"type": "text", "name": "value", "description": "string to search for"}], "key": "ctrl_f", "pointer": "#findCommand", "ep": "command", "name": "find"}, {"description": "move it! make the editor head to a line number.", "params": [{"type": "text", "name": "line", "description": "add the line number to move to in the file"}], "key": "ctrl_l", "pointer": "#gotoCommand", "ep": "command", "name": "goto"}], "type": "plugins/supported", "name": "editing_commands"}, "rangeutils": {"testmodules": ["tests/test"], "type": "plugins/supported", "resourceURL": "resources/rangeutils/", "description": "Utility functions for dealing with ranges of text", "name": "rangeutils"}, "html": {"resourceURL": "resources/html/", "name": "html", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#HTMLSyntax", "ep": "syntax", "fileexts": ["htm", "html"], "name": "html"}], "type": "plugins/supported", "description": "HTML syntax highlighter"}, "js_syntax": {"resourceURL": "resources/js_syntax/", "name": "js_syntax", "environments": {"worker": true}, "dependencies": {"standard_syntax": "0.0.0", "settings": "0.0.0"}, "testmodules": [], "provides": [{"settings": ["specialmodules"], "pointer": "#JSSyntax", "ep": "syntax", "fileexts": ["js", "json"], "name": "js"}, {"description": "Regex that matches special modules", "defaultValue": "^jetpack\\.[^\"']+", "type": "text", "ep": "setting", "name": "specialmodules"}], "type": "plugins/supported", "description": "JavaScript syntax highlighter"}, "ctags": {"resourceURL": "resources/ctags/", "description": "Reads and writes tag files", "dependencies": {"traits": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "ctags"}, "events": {"resourceURL": "resources/events/", "description": "Dead simple event implementation", "dependencies": {"traits": "0.0"}, "testmodules": ["tests/test"], "provides": [], "type": "plugins/supported", "name": "events"}, "templater": {"testmodules": [], "resourceURL": "resources/templater/", "name": "templater", "type": "plugins/supported"}, "matcher": {"resourceURL": "resources/matcher/", "description": "Provides various routines to match items in a list", "dependencies": {}, "testmodules": ["tests/testIndex", "tests/testPrefix", "tests/testQuick"], "type": "plugins/supported", "name": "matcher"}, "jslint": {"testmodules": [], "type": "plugins/thirdparty", "resourceURL": "resources/jslint/", "description": "JSLint support code", "name": "jslint"}, "theme_manager": {"resourceURL": "resources/theme_manager/", "name": "theme_manager", "share": true, "environments": {"main": true, "worker": false}, "dependencies": {"theme_manager_base": "0.0.0", "settings": "0.0.0", "events": "0.0.0", "less": "0.0.0"}, "testmodules": [], "provides": [{"unregister": "themestyles#unregisterThemeStyles", "register": "themestyles#registerThemeStyles", "ep": "extensionhandler", "name": "themestyles"}, {"unregister": "index#unregisterTheme", "register": "index#registerTheme", "ep": "extensionhandler", "name": "theme"}, {"defaultValue": "standard", "description": "The theme plugin's name to use. If set to 'standard' no theme will be used", "type": "text", "ep": "setting", "name": "theme"}, {"pointer": "#appLaunched", "ep": "appLaunched"}], "type": "plugins/supported", "description": "Handles colors in Bespin"}, "whitetheme": {"resourceURL": "resources/whitetheme/", "description": "Provides a white theme for Bespin", "dependencies": {"theme_manager": "0.0.0"}, "testmodules": [], "provides": [{"url": ["theme.less"], "description": "A basic white theme", "pointer": "index#whiteTheme", "ep": "theme", "name": "white"}], "type": "plugins/supported", "name": "whitetheme"}, "standard_syntax": {"resourceURL": "resources/standard_syntax/", "description": "Easy-to-use basis for syntax engines", "environments": {"worker": true}, "dependencies": {"syntax_worker": "0.0.0", "syntax_directory": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "standard_syntax"}, "jquery": {"testmodules": [], "resourceURL": "resources/jquery/", "name": "jquery", "type": "plugins/thirdparty"}, "embedded": {"testmodules": [], "dependencies": {"theme_manager": "0.0.0", "text_editor": "0.0.0", "appconfig": "0.0.0", "edit_session": "0.0.0", "screen_theme": "0.0.0"}, "resourceURL": "resources/embedded/", "name": "embedded", "type": "plugins/supported"}, "appconfig": {"resourceURL": "resources/appconfig/", "description": "Instantiates components and displays the GUI based on configuration.", "dependencies": {"jquery": "0.0.0", "canon": "0.0.0", "underscore": "0.0.0", "settings": "0.0.0"}, "testmodules": [], "provides": [{"description": "Event: Fired when the app is completely launched.", "ep": "extensionpoint", "name": "appLaunched"}], "type": "plugins/supported", "name": "appconfig"}, "syntax_worker": {"resourceURL": "resources/syntax_worker/", "description": "Coordinates multiple syntax engines", "environments": {"worker": true}, "dependencies": {"syntax_directory": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "type": "plugins/supported", "name": "syntax_worker"}, "js_completion": {"resourceURL": "resources/js_completion/", "description": "JavaScript code completion", "dependencies": {"completion": "0.0.0", "underscore": "0.0.0"}, "testmodules": [], "provides": [{"pointer": "#JSCompletion", "ep": "completion", "name": "js"}], "type": "plugins/supported", "name": "js_completion"}, "screen_theme": {"resourceURL": "resources/screen_theme/", "description": "Bespins standard theme basePlugin", "dependencies": {"theme_manager": "0.0.0"}, "testmodules": [], "provides": [{"url": ["theme.less"], "ep": "themestyles"}, {"defaultValue": "@global_font", "ep": "themevariable", "name": "container_font"}, {"defaultValue": "@global_font_size", "ep": "themevariable", "name": "container_font_size"}, {"defaultValue": "@global_container_background", "ep": "themevariable", "name": "container_bg"}, {"defaultValue": "@global_color", "ep": "themevariable", "name": "container_color"}, {"defaultValue": "@global_line_height", "ep": "themevariable", "name": "container_line_height"}, {"defaultValue": "@global_pane_background", "ep": "themevariable", "name": "pane_bg"}, {"defaultValue": "@global_pane_border_radius", "ep": "themevariable", "name": "pane_border_radius"}, {"defaultValue": "@global_form_font", "ep": "themevariable", "name": "form_font"}, {"defaultValue": "@global_form_font_size", "ep": "themevariable", "name": "form_font_size"}, {"defaultValue": "@global_form_line_height", "ep": "themevariable", "name": "form_line_height"}, {"defaultValue": "@global_form_color", "ep": "themevariable", "name": "form_color"}, {"defaultValue": "@global_form_text_shadow", "ep": "themevariable", "name": "form_text_shadow"}, {"defaultValue": "@global_pane_link_color", "ep": "themevariable", "name": "pane_a_color"}, {"defaultValue": "@global_font", "ep": "themevariable", "name": "pane_font"}, {"defaultValue": "@global_font_size", "ep": "themevariable", "name": "pane_font_size"}, {"defaultValue": "@global_pane_text_shadow", "ep": "themevariable", "name": "pane_text_shadow"}, {"defaultValue": "@global_pane_h1_font", "ep": "themevariable", "name": "pane_h1_font"}, {"defaultValue": "@global_pane_h1_font_size", "ep": "themevariable", "name": "pane_h1_font_size"}, {"defaultValue": "@global_pane_h1_color", "ep": "themevariable", "name": "pane_h1_color"}, {"defaultValue": "@global_font_size * 1.8", "ep": "themevariable", "name": "pane_line_height"}, {"defaultValue": "@global_pane_color", "ep": "themevariable", "name": "pane_color"}, {"defaultValue": "@global_text_shadow", "ep": "themevariable", "name": "pane_text_shadow"}, {"defaultValue": "@global_font", "ep": "themevariable", "name": "button_font"}, {"defaultValue": "@global_font_size", "ep": "themevariable", "name": "button_font_size"}, {"defaultValue": "@global_button_color", "ep": "themevariable", "name": "button_color"}, {"defaultValue": "@global_button_background", "ep": "themevariable", "name": "button_bg"}, {"defaultValue": "@button_bg - #063A27", "ep": "themevariable", "name": "button_bg2"}, {"defaultValue": "@button_bg - #194A5E", "ep": "themevariable", "name": "button_border"}, {"defaultValue": "@global_control_background", "ep": "themevariable", "name": "control_bg"}, {"defaultValue": "@global_control_color", "ep": "themevariable", "name": "control_color"}, {"defaultValue": "@global_control_border", "ep": "themevariable", "name": "control_border"}, {"defaultValue": "@global_control_border_radius", "ep": "themevariable", "name": "control_border_radius"}, {"defaultValue": "@global_control_active_background", "ep": "themevariable", "name": "control_active_bg"}, {"defaultValue": "@global_control_active_border", "ep": "themevariable", "name": "control_active_border"}, {"defaultValue": "@global_control_active_color", "ep": "themevariable", "name": "control_active_color"}, {"defaultValue": "@global_control_active_inset_color", "ep": "themevariable", "name": "control_active_inset_color"}], "type": "plugins/supported", "name": "screen_theme"}, "notifier": {"resourceURL": "resources/notifier/", "description": "Provides a way to un-obtrusively notify users of asynchronous events", "dependencies": {"settings": "0.0.0"}, "testmodules": ["tests/testNotifications"], "provides": [{"action": "new", "pointer": "#Notifier", "ep": "factory", "name": "notifier"}, {"description": "tells the notifier about a kind of notification that may be presented to the user. This will be used in a notification configuration user interface, for example.", "unregister": "#unregisterNotification", "register": "#registerNotification", "params": [{"required": true, "type": "string", "name": "name", "description": "name of the notification type. Notifications are identified by the combination of pluginName_notificationName, so you don't need to worry about making this unique across Bespin."}, {"type": "string", "name": "description", "description": "The more human-readable form of the notification name that will be presented to the user."}, {"type": "string", "name": "level", "description": "default level for these notifications. Value should be 'error', 'info' or 'debug'."}, {"type": "pointer", "name": "onclick", "description": "function that should be called if one of these notifications is clicked on. Will be passed the message object."}, {"type": "resourceUrl", "name": "iconUrl", "description": "custom icon for this notification. looked up relative to the plugins resources directory."}], "ep": "extensionpoint", "name": "notification"}, {"description": "Debugging Messages", "level": "debug", "ep": "notification", "name": "debug"}, {"indexOn": "name", "description": "A function that is called with message objects whenever appropriate notifications are published.", "params": [{"required": true, "type": "string", "name": "name", "description": "convenient name for the handler (used in configuration)"}, {"type": "string", "name": "description", "description": "Longer, more human-readable description of the handler"}, {"required": true, "name": "pointer", "description": "function that will be called with the message"}], "ep": "extensionpoint", "name": "notificationHandler"}, {"description": "Logs to the browser console", "pointer": "handlers#console", "ep": "notificationHandler", "name": "console"}, {"description": "Displays in browser alerts", "pointer": "handlers#alert", "ep": "notificationHandler", "name": "alert"}, {"description": "JSON array of objects describing how notifications are configured", "defaultValue": "[]", "type": "text", "ep": "setting", "name": "notifications"}], "type": "plugins/supported", "name": "notifier"}});;
 });
 })();
 /* ***** BEGIN LICENSE BLOCK *****
@@ -35505,29 +32869,6 @@ var getCSSProperty = function(element, container, property) {
     }
     return ret;
 };
-
-/**
- * Returns the sum of all passed property values. Calls internal getCSSProperty
- * to get the value of the individual peroperties.
-  */
-// var sumCSSProperties = function(element, container, props) {
-//     var ret = document.defaultView.getComputedStyle(element, '').
-//                                         getPropertyValue(props[0]);
-//
-//     if (!ret || ret == 'auto' || ret == 'intrinsic') {
-//         return container.style[props[0]];
-//     }
-//
-//     var sum = props.map(function(item) {
-//         var cssProp = getCSSProperty(element, container, item);
-//         // Remove the 'px; and parse the property to a floating point.
-//         return parseFloat(cssProp.replace('px', ''));
-//     }).reduce(function(a, b) {
-//         return a + b;
-//     });
-//
-//     return sum;
-// };
 
 bespin.useBespin = function(element, options) {
     var util = bespin.tiki.require('bespin:util/util');
@@ -35605,12 +32946,6 @@ bespin.useBespin = function(element, options) {
 
                 // The complete width is the width of the textarea + the padding
                 // to the left and right.
-                // var width = sumCSSProperties(element, container, [
-                //     'width', 'padding-left', 'padding-right'
-                // ]) + 'px';
-                // var height = sumCSSProperties(element, container, [
-                //     'height', 'padding-top', 'padding-bottom'
-                // ]) + 'px';
                 var width = getCSSProperty(element, container, 'width');
                 var height = getCSSProperty(element, container, 'height');
                 style += 'height:' + height + ';width:' + width + ';';
