@@ -74,14 +74,14 @@ TEMPLATE_LOADERS = (
     'django.template.loaders.eggs.load_template_source',
 )
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE_CLASSES = [
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
-)
+]
 
 TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.auth',
@@ -130,11 +130,16 @@ INSTALLED_APPS = [
 ]
 
 # Which from above apps should be removed if in PRODUCTION
-DEV_APPS = [
+DEV_APPS = (
     'django_extensions',
     'debug_toolbar',
     'django_nose',
-]
+)
+# Which from above Middleware classes should be removed if in PRODUCTION
+DEV_MIDDLEWARE_CLASSES = (
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+)
+
 
 # overwrite above settings with the ones from settings_local.py
 from settings_local import *
@@ -143,6 +148,10 @@ if PRODUCTION:
     for app in DEV_APPS:
         if app in INSTALLED_APPS:
             INSTALLED_APPS.remove(app)
+
+    for middleware in MIDDLEWARE_CLASSES:
+        if middleware in DEV_MIDDLEWARE_CLASSES:
+            MIDDLEWARE_CLASSES.remove(middleware)
 
 # activate virtual environment
 # TODO: check if needed
