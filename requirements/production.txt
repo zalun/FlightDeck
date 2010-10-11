@@ -11,8 +11,5 @@ South
 simplejson
 Markdown
 
-# reading docs from SDK
-cuddlefish
-
 # search functionality
 -e git+git://github.com/toastdriven/django-haystack#egg=django_haystack
