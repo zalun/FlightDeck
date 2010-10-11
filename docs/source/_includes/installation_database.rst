@@ -5,5 +5,4 @@
 
 * Load Add-on SDK into the database::
 
-    # fails here
     python manage.py create_core_lib 
