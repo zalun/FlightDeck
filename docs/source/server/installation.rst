@@ -1,7 +1,7 @@
 Installation on the server
 ==========================
 
-FligtDeck depends on Python, virtualenv, virtualenvwrapper, mysql, git, 
+FligtDeck depends on Python, virtualenv, virtualenvwrapper, mysql, git,
 mercurial, xulrunner.
 
 * Download the code::
@@ -23,5 +23,7 @@ mercurial, xulrunner.
 
    deactivate
 
-* Configure Apache, a sample config is in ``apache/config_local-default.wsgi``. Please copy to ``apache/config_local.wsgi`` before modifying.
+Configure Apache
+----------------
 
+.. include:: ../_includes/example_apache_wsgi.rst
