@@ -27,3 +27,5 @@ Configure Apache
 ----------------
 
 .. include:: ../_includes/example_apache_wsgi.rst
+
+.. include:: ../_includes/example_apache_conf.rst
