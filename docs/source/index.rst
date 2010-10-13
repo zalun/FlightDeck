@@ -10,8 +10,8 @@ Hi, this is a development documentation for FlightDeck.
 
 You may find some valuable info on the official Wiki_
 
-If you just want to know how to start, please read DevelopmentInstallation_ and 
-Contribution_ docs.
+If you just want to know how to start, please read :ref:`Installation for development <dev-install>` and 
+other :ref:`Contribution <contribution>` pages.
 
 
 Contents:
@@ -30,3 +30,6 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
+
+.. _Wiki: https://wiki.mozilla.org/Labs/Jetpack/FlightDeck/
+.. _Contribution: https://wiki.mozilla.org/Labs/Jetpack/FlightDeck/Contribution

@@ -1,5 +1,7 @@
-Development
-===========
+.. _contribution:
+
+Contribution
+============
 
 Content
 
@@ -8,4 +10,7 @@ Content
 
    installation.rst
    update.rst
+   code_workflow.rst
+   developer_commands.rst
+   .. manager_commands.rst
 
