@@ -3,11 +3,9 @@ import os
 from django.conf.urls.defaults import *
 from django.views import static
 from django.conf import settings
-from django.contrib import admin
 
 from flightdeck.base import views as base_views
 
-admin.autodiscover()
 
 
 urls = [
@@ -17,6 +15,8 @@ urls = [
 
 if settings.DEBUG:
 
+    from django.contrib import admin
+    admin.autodiscover()
     # admin
     urls.extend([
         (r'^admin/doc/', include('django.contrib.admindocs.urls')),
@@ -47,8 +47,10 @@ urls.extend([
     # Tutorial
     (r'^tutorial/', include('tutorial.urls')),
 
-    # Jetpack
+    # Person
     (r'^user/', include('person.urls')),
+
+    # Jetpack
     (r'', include('jetpack.urls'))
 ])
 urlpatterns = patterns('', *urls)
