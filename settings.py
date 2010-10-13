@@ -1,11 +1,19 @@
+import os
+
+# Make filepaths relative to settings.
+ROOT = os.path.dirname(os.path.abspath(__file__))
+path = lambda *a: os.path.join(ROOT, *a)
+
 # Set the project version
 PROJECT_VERSION = "1.0a5"
 
+# TODO: This should be handled by prod in a settings_local.  By default, we
+# shouldn't be in prod mode
 # If PRODUCTION do not load development apps
 PRODUCTION = True
 
 # Django settings for flightdeck project.
-DEBUG = False
+DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
@@ -13,31 +21,46 @@ ADMINS = (
 )
 MANAGERS = ADMINS
 
+DATABASES = {
+    'default': {
+        'NAME': 'zamboni',
+        'ENGINE': 'django.db.backends.mysql',
+        'HOST': '',
+        'PORT': '',
+        'USER': '',
+        'PASSWORD': '',
+        'OPTIONS': {'init_command': 'SET storage_engine=InnoDB'},
+        'TEST_CHARSET': 'utf8',
+        'TEST_COLLATION': 'utf8_general_ci',
+    },
+}
+
 # How many packages per type should be displayed on the homepage
 HOMEPAGE_ITEMS_LIMIT = 5
 
-
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
-TIME_ZONE = 'America/Chicago'
+TIME_ZONE = 'America/Los_Angeles'
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'en-us'
 
-SITE_ID = 1
-
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
 USE_I18N = True
+
+MEDIA_ROOT = path('media')
+
+FRAMEWORK_PATH = os.path.dirname(os.path.dirname(__file__)) + '/'
+SDK_SOURCE_DIR = path('lib')  # TODO: remove this var
+MEDIA_PREFIX = os.path.join(FRAMEWORK_PATH, 'flightdeck/')
+VIRTUAL_ENV = os.environ.get('VIRTUAL_ENV')
 
 # Media section
 MEDIA_ROOT = ''    # this will get overwritten in settings_local.py
 MEDIA_PREFIX = ''  # this will get overwritten in settings_local.py
 MEDIA_SUFFIX = 'media'
-
-# Connections from which IP should be considered internal
-INTERNAL_IPS = ('127.0.0.1',)
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash if there is a path component (optional in other cases).
@@ -100,6 +123,7 @@ TEMPLATE_DIRS = ()
 
 # Change default test runner (works only with mysql)
 TEST_RUNNER = 'test_utils.runner.RadicalTestSuiteRunner'
+
 # Modify in settings_local if needed
 SELENIUM_CONFIG = {}
 
@@ -140,10 +164,6 @@ DEV_MIDDLEWARE_CLASSES = (
     'debug_toolbar.middleware.DebugToolbarMiddleware',
 )
 
-
-# overwrite above settings with the ones from settings_local.py
-from settings_local import *
-
 if PRODUCTION:
     for app in DEV_APPS:
         if app in INSTALLED_APPS:
@@ -152,3 +172,20 @@ if PRODUCTION:
     for middleware in MIDDLEWARE_CLASSES:
         if middleware in DEV_MIDDLEWARE_CLASSES:
             MIDDLEWARE_CLASSES.remove(middleware)
+
+#AUTH_DATABASE = {
+#    'NAME': 'db_name',
+#    'TABLE': 'users_table_name',
+#    'USER': 'db_user',
+#    'PASSWORD': '',  # db_password
+#    'HOST': '',
+#    'PORT': ''
+#}
+
+# If you want to run Selenium tests, you'll need to have a server running.
+# Then give this a dictionary of settings. Something like:
+#SELENIUM_CONFIG = {
+#     'HOST': 'localhost',
+#     'PORT': 4444,
+#     'BROWSER': '*firefox',
+#}
