@@ -152,7 +152,3 @@ if PRODUCTION:
     for middleware in MIDDLEWARE_CLASSES:
         if middleware in DEV_MIDDLEWARE_CLASSES:
             MIDDLEWARE_CLASSES.remove(middleware)
-
-# activate virtual environment
-# TODO: check if needed
-execfile(ACTIVATE_THIS, dict(__file__=ACTIVATE_THIS))
