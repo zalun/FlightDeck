@@ -5,7 +5,7 @@ from django.views import static
 from django.conf import settings
 from django.contrib import admin
 
-from flightdeck.base import views as base_views
+from base import views as base_views
 
 admin.autodiscover()
 
