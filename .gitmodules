@@ -1,3 +1,0 @@
-[submodule "lib/jetpack-sdk"]
-	path = lib/jetpack-sdk
-	url = git://github.com/mozillalabs/jetpack-sdk.git
