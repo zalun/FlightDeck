@@ -4,7 +4,7 @@ from django.conf.urls.defaults import *
 from django.views import static
 from django.conf import settings
 
-from flightdeck.base import views as base_views
+from base import views as base_views
 
 
 
