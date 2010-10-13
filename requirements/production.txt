@@ -3,7 +3,7 @@
 # Django
 Django==1.2.3
 
-# Database 
+# Database
 mysql-python
 South
 
@@ -13,6 +13,7 @@ Markdown
 
 # search functionality
 -e git+git://github.com/toastdriven/django-haystack#egg=django_haystack
+-e git://github.com/warner/python-ecdsa.git#egg=python-ecdsa
 
 # documentation
 docutils
