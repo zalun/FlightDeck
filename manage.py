@@ -37,6 +37,15 @@ except ImportError:
             " Please come back and try again later.")
         raise
 
+if settings.PRODUCTION:
+    for app in settings.DEV_APPS:
+        if app in settings.INSTALLED_APPS:
+            settings.INSTALLED_APPS.remove(app)
+
+    for middleware in settings.DEV_MIDDLEWARE_CLASSES:
+        if middleware in settings.MIDDLEWARE_CLASSES:
+            settings.MIDDLEWARE_CLASSES.remove(middleware)
+
 # The first thing execute_manager does is call `setup_environ`.  Logging config
 # needs to access settings, so we'll setup the environ early.
 setup_environ(settings)

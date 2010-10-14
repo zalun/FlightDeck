@@ -1,3 +1,7 @@
+"""
+Default settings for the FlightDeck site
+For local configuration please use settings_local.py
+"""
 import os
 
 # Make filepaths relative to settings.
@@ -13,7 +17,7 @@ PROJECT_VERSION = "1.0a5"
 PRODUCTION = True
 
 # Django settings for flightdeck project.
-DEBUG = True
+DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
@@ -82,6 +86,7 @@ ADMIN_MEDIA_PREFIX = '/adminmedia/'
 # Title to be displayed on the Admin site
 ADMIN_TITLE = "Add-on Builder Administration"
 
+SITE_ID = 1
 # Title to be used on the page
 SITE_TITLE = "Add-on Builder"
 
@@ -125,6 +130,15 @@ TEST_RUNNER = 'test_utils.runner.RadicalTestSuiteRunner'
 # Modify in settings_local if needed
 SELENIUM_CONFIG = {}
 
+# Django toolbar configuration
+DEBUG_TOOLBAR_CONFIG = {
+    # change to True needed if debugging creation of Add-ons
+    'INTERCEPT_REDIRECTS': False
+}
+
+# Switch on debug_toolbar for these IPs
+INTERNAL_IPS = ('127.0.0.1',)
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -161,15 +175,6 @@ DEV_APPS = (
 DEV_MIDDLEWARE_CLASSES = (
     'debug_toolbar.middleware.DebugToolbarMiddleware',
 )
-
-if PRODUCTION:
-    for app in DEV_APPS:
-        if app in INSTALLED_APPS:
-            INSTALLED_APPS.remove(app)
-
-    for middleware in MIDDLEWARE_CLASSES:
-        if middleware in DEV_MIDDLEWARE_CLASSES:
-            MIDDLEWARE_CLASSES.remove(middleware)
 
 #AUTH_DATABASE = {
 #    'NAME': 'db_name',
