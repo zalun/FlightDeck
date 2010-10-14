@@ -8,7 +8,7 @@ var FDBespin = new Class({
 	initialize: function(element, options) {
 		var self = this;
 		this.setOptions(options);
-		$log('FD: initializing bespin on ' + element);
+		$log('FD: initializing bespin on ' + element.get('tag') + '.' + element.get('id'));
 		bespin.useBespin($(element), {
 			stealFocus: true
 		}).then(function(env){
@@ -69,7 +69,8 @@ Class.refactor(FlightDeck, {
 			'id': 'bespin_editor',
 			'class': 'UI_Editor_Area'
 		}).inject($('editor-wrapper'), 'top');
-		if (bespin && bespin.bootLoaded) {
+		if (window.bespinLoaded) {
+            $log('FD: initializing Bespin together with FlightDeck ')
 			this.initializeBespin();
 		} else {
 			$log('FD: setting bespinLoad');
@@ -92,7 +93,6 @@ Class.refactor(FlightDeck, {
 		this.bespin.setContent('');
 	},
 	initializeBespin: function() {
-		$log('FD: initializing Bespin');
 		this.bespin = new FDBespin(this.bespin_editor);
 		this.bespin.addEvents({
 			'change': function() {
@@ -106,7 +106,9 @@ Class.refactor(FlightDeck, {
 	}
 });
 
+window.bespinLoaded = false;
 window.onBespinLoad = function() {
 	// this theoretically can happen before fd is initialized
+    window.bespinLoaded = true;
 	$log('FD: bespin loaded');
 };
