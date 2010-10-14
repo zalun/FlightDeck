@@ -52,15 +52,13 @@ USE_I18N = True
 
 MEDIA_ROOT = path('media')
 
-FRAMEWORK_PATH = os.path.dirname(os.path.dirname(__file__)) + '/'
+FRAMEWORK_PATH = path()
 SDK_SOURCE_DIR = path('lib')  # TODO: remove this var
-MEDIA_PREFIX = os.path.join(FRAMEWORK_PATH, 'flightdeck/')
+APP_MEDIA_PREFIX = os.path.join(FRAMEWORK_PATH, 'apps')
 VIRTUAL_ENV = os.environ.get('VIRTUAL_ENV')
 
 # Media section
-MEDIA_ROOT = ''    # this will get overwritten in settings_local.py
-MEDIA_PREFIX = ''  # this will get overwritten in settings_local.py
-MEDIA_SUFFIX = 'media'
+APP_MEDIA_SUFFIX = 'media'
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash if there is a path component (optional in other cases).
@@ -114,7 +112,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'person.context_processors.profile',
 )
 
-ROOT_URLCONF = 'flightdeck.urls'
+ROOT_URLCONF = 'urls'
 
 ADDONS_HELPER_URL = ('https://addons.mozilla.org/firefox/downloads/latest/'
                     '182410?src=external-builder')

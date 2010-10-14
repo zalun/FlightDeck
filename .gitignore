@@ -15,3 +15,5 @@ flightdeck/jetpack/media/media
 upload
 sdk_versions
 settings_local.py
+.coverage
+.figleaf

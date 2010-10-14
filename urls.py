@@ -28,15 +28,15 @@ urls.extend([
     # this should be used only in development server
     url(r'^media/jetpack/(?P<path>.*)$', static.serve,
         {'document_root': os.path.join(
-            settings.MEDIA_PREFIX, 'jetpack', settings.MEDIA_SUFFIX)
+            settings.APP_MEDIA_PREFIX, 'jetpack', settings.APP_MEDIA_SUFFIX)
         }, name='jetpack_media'),
     url(r'^media/api/(?P<path>.*)$', static.serve,
         {'document_root': os.path.join(
-            settings.MEDIA_PREFIX, 'api', settings.MEDIA_SUFFIX)
+            settings.APP_MEDIA_PREFIX, 'api', settings.APP_MEDIA_SUFFIX)
         }, name='api_media'),
     url(r'^media/tutorial/(?P<path>.*)$', static.serve,
         {'document_root': os.path.join(
-            settings.MEDIA_PREFIX, 'tutorial', settings.MEDIA_SUFFIX)
+            settings.APP_MEDIA_PREFIX, 'tutorial', settings.APP_MEDIA_SUFFIX)
         }, name='tutorial_media'),
     url(r'^media/(?P<path>.*)$', static.serve,
         {'document_root': settings.MEDIA_ROOT}, name='media'),
