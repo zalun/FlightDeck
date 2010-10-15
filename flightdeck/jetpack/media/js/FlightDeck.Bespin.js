@@ -69,7 +69,7 @@ Class.refactor(FlightDeck, {
 			'id': 'bespin_editor',
 			'class': 'UI_Editor_Area'
 		}).inject($('editor-wrapper'), 'top');
-		if (bespin && bespin.bootLoaded) {
+		if (window.bespin_loaded) {
 			this.initializeBespin();
 		} else {
 			$log('FD: setting bespinLoad');
@@ -106,7 +106,9 @@ Class.refactor(FlightDeck, {
 	}
 });
 
+window.bespin_lodaed = false;
 window.onBespinLoad = function() {
 	// this theoretically can happen before fd is initialized
+    window.bespin_loaded = true;
 	$log('FD: bespin loaded');
 };
