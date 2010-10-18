@@ -7,7 +7,7 @@ PACKAGES_PER_PAGE = getattr(settings, 'PACKAGES_PER_PAGE', 10)
 MINIMUM_PACKAGE_ID = getattr(settings, 'MINIMUM_PACKAGE_ID', 1000000)
 INITIAL_VERSION_NAME = getattr(settings, 'INITIAL_VERSION_NAME', 'initial')
 UPLOAD_DIR = getattr(settings, 'UPLOAD_DIR',
-                     '%supload' % settings.FRAMEWORK_PATH)
+                     os.path.join(settings.FRAMEWORK_PATH, 'upload'))
 DEFAULT_LIB_DIR = getattr(settings, 'JETPACK_LIB_DIR', 'lib')
 DEFAULT_DATA_DIR = getattr(settings, 'JETPACK_DATA_DIR', 'data')
 PACKAGE_PLURAL_NAMES = {
