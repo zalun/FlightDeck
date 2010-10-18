@@ -16,8 +16,10 @@ nose
 mock
 # translate-toolkit==1.6.0
 
-#editing
+# code quality
 pylint
+coverage
+figleaf
 
 # check before commit
 -e git://github.com/jbalogh/check.git#egg=check

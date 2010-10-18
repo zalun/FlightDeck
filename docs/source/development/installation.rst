@@ -1,3 +1,5 @@
+.. _dev-install:
+
 Installation for development
 ============================
 
