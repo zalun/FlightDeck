@@ -10,7 +10,25 @@ from jetpack.models import Package, PackageRevision, Module
 from jetpack.xpi_utils import sdk_copy, xpi_build
 
 
-class XPIBuildTest(TestCase):
+class SDKTestBase(TestCase):
+    """
+    Base class for tests depending on existance of lib/jetpack-sdk
+    """
+    def setUp(self):
+        " discover the newest dir and link to it "
+        self.sdk_path = os.path.join(conf.FRAMEWORK_PATH, 'lib/jetpack-sdk')
+        sdk_orig = os.path.join(conf.FRAMEWORK_PATH, 'lib', self.sdk_filename)
+        self.remove_link = False
+        if not os.path.exists(self.sdk_path):
+            os.symlink(sdk_orig, self.sdk_path)
+            self.remove_link = True
+
+    def tearDown(self):
+        " remove symlink "
+        if self.remove_link:
+            os.remove(self.sdk_path)
+
+class XPIBuildTest(SDKTestBase):
 
     fixtures = ['nozilla', 'core_sdk', 'users', 'packages']
 
@@ -28,10 +46,29 @@ class XPIBuildTest(TestCase):
         )
         self.librev.module_add(mod)
         self.SDKDIR = self.addon.latest.get_sdk_dir()
+        self.attachment_file_name = os.path.join(
+                conf.UPLOAD_DIR, 'test_filename.txt')
+        handle = open(self.attachment_file_name, 'w')
+        handle.write('.')
+        handle.close()
+        # find the newest SDK
+        sdks = os.listdir(os.path.join(conf.FRAMEWORK_PATH, 'lib'))
+        self.sdk_filename = None
+        sdk_time = -1
+        for sdk in sdks:
+            if sdk != '__init__.py':
+                sdk_inf = os.stat(os.path.join(conf.FRAMEWORK_PATH, 'lib',sdk))
+                if sdk_time < 0 or sdk_time > sdk_inf.st_ctime:
+                    sdk_time = sdk_inf.st_ctime
+                    self.sdk_filename = sdk
+        super(XPIBuildTest, self).setUp()
 
     def tearDown(self):
+        super(XPIBuildTest, self).tearDown()
         if os.path.exists(self.SDKDIR):
             shutil.rmtree(self.SDKDIR)
+        if os.path.exists(self.attachment_file_name):
+            os.remove(self.attachment_file_name)
 
     def makeSDKDir(self):
         os.mkdir(self.SDKDIR)
@@ -109,7 +146,7 @@ class XPIBuildTest(TestCase):
         " test if attachment file is coped "
         self.makeSDKDir()
         # create attachment in upload dir
-        handle = open(os.path.join(conf.UPLOAD_DIR, 'test_filename.txt'), 'w')
+        handle = open(self.attachment_file_name, 'w')
         handle.write('unit test file')
         handle.close()
         addon_dir = '%s/packages/%s' % (self.SDKDIR,
@@ -122,10 +159,7 @@ class XPIBuildTest(TestCase):
         )
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        self.failUnless(os.path.isfile('%s/%s/%s.%s' % (
-                            addon_dir,
-                            self.addon.get_data_dir(),
-                            'test_filename', 'txt')))
+        self.failUnless(os.path.isfile(self.attachment_file_name))
 
     def test_copying_sdk(self):
         sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
