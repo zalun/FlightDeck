@@ -86,7 +86,7 @@ def add_core_modules(sdk_source, core_revision, core_author):
             core_revision.modules.add(mod)
         except Exception, err:
             print ("Warning: There was a problem with importing module "
-                   "from file %s\n%s") % (module_file, str(err))
+                   "from file %s/%s") % (core_lib_dir,module_file)
 
 
 def check_SDK_dir(sdk_dir_name):
