@@ -2,6 +2,10 @@
 import os
 import site
 import sys
+import site
+
+site.addsitedir('vendor')
+site.addsitedir('vendor/lib/python')
 
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
