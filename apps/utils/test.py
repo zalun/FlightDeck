@@ -10,8 +10,16 @@ class TestCase(_TestCase):
     """
     def createCore(self):
         " discover the newest dir and link to it "
-        if not hasattr(self, 'sdk_filename'):
-            return
+        # find the newest SDK
+        sdks = os.listdir(os.path.join(conf.FRAMEWORK_PATH, 'lib'))
+        self.sdk_filename = None
+        sdk_time = -1
+        for sdk in sdks:
+            if sdk != '__init__.py':
+                sdk_inf = os.stat(os.path.join(conf.FRAMEWORK_PATH, 'lib',sdk))
+                if sdk_time < 0 or sdk_time > sdk_inf.st_ctime:
+                    sdk_time = sdk_inf.st_ctime
+                    self.sdk_filename = sdk
         self.sdk_path = os.path.join(conf.FRAMEWORK_PATH, 'lib/jetpack-sdk')
         sdk_orig = os.path.join(conf.FRAMEWORK_PATH, 'lib', self.sdk_filename)
         self.core_link_created = False
@@ -21,24 +29,8 @@ class TestCase(_TestCase):
 
     def deleteCore(self):
         " remove symlink "
-        if not hasattr(self, 'remove_link'):
+        if not hasattr(self, 'core_link_created'):
             return
         if self.core_link_created:
             os.remove(self.sdk_path)
 
-
-#def create_test_user(username="test_username", password="password",
-#                     email="test@example.com"):
-#    from django.contrib.auth.models import User
-#    from person.models import Profile
-#
-#    user = User(
-#        username=username,
-#        password=password,
-#        email=email
-#    )
-#    user.save()
-#    Profile(
-#        user=user
-#    ).save()
-#    return user

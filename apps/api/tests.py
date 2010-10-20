@@ -11,6 +11,8 @@ from utils.test import TestCase
 
 class CuddleTest(TestCase):
 
+    fixtures = ['mozilla', 'core_sdk']
+
     def setUp(self):
         self.createCore()
 
