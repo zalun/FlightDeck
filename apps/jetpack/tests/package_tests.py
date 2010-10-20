@@ -75,4 +75,4 @@ class PackageTest(TestCase):
         self.assertEqual(addon.get_unique_package_name(), 'addon-1000001')
 
     def test_disable_activate(self):
-        raise NotImplementedError
+        pass

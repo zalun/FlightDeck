@@ -1,7 +1,8 @@
 import os
 import shutil
 import simplejson
-from test_utils import TestCase
+
+from utils.test import TestCase
 
 from django.contrib.auth.models import User
 
@@ -10,25 +11,7 @@ from jetpack.models import Package, PackageRevision, Module
 from jetpack.xpi_utils import sdk_copy, xpi_build
 
 
-class SDKTestBase(TestCase):
-    """
-    Base class for tests depending on existance of lib/jetpack-sdk
-    """
-    def setUp(self):
-        " discover the newest dir and link to it "
-        self.sdk_path = os.path.join(conf.FRAMEWORK_PATH, 'lib/jetpack-sdk')
-        sdk_orig = os.path.join(conf.FRAMEWORK_PATH, 'lib', self.sdk_filename)
-        self.remove_link = False
-        if not os.path.exists(self.sdk_path):
-            os.symlink(sdk_orig, self.sdk_path)
-            self.remove_link = True
-
-    def tearDown(self):
-        " remove symlink "
-        if self.remove_link:
-            os.remove(self.sdk_path)
-
-class XPIBuildTest(SDKTestBase):
+class XPIBuildTest(TestCase):
 
     fixtures = ['nozilla', 'core_sdk', 'users', 'packages']
 
@@ -61,10 +44,10 @@ class XPIBuildTest(SDKTestBase):
                 if sdk_time < 0 or sdk_time > sdk_inf.st_ctime:
                     sdk_time = sdk_inf.st_ctime
                     self.sdk_filename = sdk
-        super(XPIBuildTest, self).setUp()
+        self.createCore()
 
     def tearDown(self):
-        super(XPIBuildTest, self).tearDown()
+        self.deleteCore()
         if os.path.exists(self.SDKDIR):
             shutil.rmtree(self.SDKDIR)
         if os.path.exists(self.attachment_file_name):
