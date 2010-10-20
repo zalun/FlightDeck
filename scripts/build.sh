@@ -23,9 +23,7 @@ fi
 
 source $VENV/bin/activate
 
-# TODO: temporary until we make a compiled.txt
-pip install -q mysql-python
-#pip install -q -r requirements/compiled.txt
+pip install -q -r requirements/compiled.txt
 
 pushd vendor && git pull && git submodule update --init && popd
 
