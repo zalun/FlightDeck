@@ -3,18 +3,14 @@
 # load everything from production
 -r production.txt
 
-# runserver additions
 django-debug-toolbar
 django-extensions
 
 # tests
 -e git://github.com/jbalogh/test-utils.git#egg=test-utils
 -e git://github.com/jbalogh/django-nose.git#egg=django_nose
-nose
-# coverage==3.2b4
-# selenium==1.0.1
-mock
-# translate-toolkit==1.6.0
+nose==0.11.1
+mock==0.6.0
 
 # code quality
 pylint
@@ -23,3 +19,5 @@ figleaf
 
 # check before commit
 -e git://github.com/jbalogh/check.git#egg=check
+
+Sphinx==0.6.3

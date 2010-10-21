@@ -1,21 +1,11 @@
 # requirements for production environment
 
-# Django
 Django==1.2.3
-
-# Database
-mysql-python
-South
-
-# parse packages for documentation
-simplejson
-Markdown
 
 # search functionality
 -e git+git://github.com/toastdriven/django-haystack#egg=django_haystack
 -e git://github.com/warner/python-ecdsa.git#egg=python-ecdsa
 
-# documentation
-docutils
-Sphinx
+docutils==0.7
+Markdown==2.0.3
 
