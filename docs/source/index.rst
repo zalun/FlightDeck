@@ -6,12 +6,11 @@
 Welcome to Add-on Builder's documentation!
 ==========================================
 
-Hi, this is a development documentation for FlightDeck.
+Hi, this is the development documentation for FlightDeck.
 
 You may find some valuable info on the official Wiki_
 
-If you just want to know how to start, please read :ref:`Installation for development <dev-install>` and 
-other :ref:`Contribution <contribution>` pages.
+To get started please read the :ref:`Installation section <install>`.
 
 
 Contents:
@@ -19,9 +18,8 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   installation.rst
    development/index.rst
-   server/index.rst
-   resources.rst
 
 Indices and tables
 ==================
