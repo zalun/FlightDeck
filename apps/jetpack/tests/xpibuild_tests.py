@@ -34,16 +34,7 @@ class XPIBuildTest(TestCase):
         handle = open(self.attachment_file_name, 'w')
         handle.write('.')
         handle.close()
-        # find the newest SDK
-        sdks = os.listdir(os.path.join(conf.FRAMEWORK_PATH, 'lib'))
-        self.sdk_filename = None
-        sdk_time = -1
-        for sdk in sdks:
-            if sdk != '__init__.py':
-                sdk_inf = os.stat(os.path.join(conf.FRAMEWORK_PATH, 'lib',sdk))
-                if sdk_time < 0 or sdk_time > sdk_inf.st_ctime:
-                    sdk_time = sdk_inf.st_ctime
-                    self.sdk_filename = sdk
+        # link core to the latest SDK
         self.createCore()
 
     def tearDown(self):
