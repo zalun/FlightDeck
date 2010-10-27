@@ -577,7 +577,7 @@ class PackageRevision(models.Model):
             return False
         return True
 
-    def module_create(self, **kwargs):
+    def module_create(self, save=True, **kwargs):
         " create module and add to modules "
         # validate if given filename is valid
         if not self.validate_module_filename(kwargs['filename']):
@@ -587,10 +587,10 @@ class PackageRevision(models.Model):
                  'needs to have a unique name.') % kwargs['filename']
             )
         mod = Module.objects.create(**kwargs)
-        self.module_add(mod)
+        self.module_add(mod, save=save)
         return mod
 
-    def module_add(self, mod):
+    def module_add(self, mod, save=True):
         " copy to new revision, add module "
         # save as new version
         # validate if given filename is valid
@@ -608,7 +608,8 @@ class PackageRevision(models.Model):
         #            ('this module is already assigned to other'
         #            'Library - %s') % rev.package.get_unique_package_name())
 
-        self.save()
+        if save:
+            self.save()
         return self.modules.add(mod)
 
     def module_remove(self, mod):
