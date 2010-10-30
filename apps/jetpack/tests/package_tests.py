@@ -3,7 +3,8 @@ import time
 from test_utils import TestCase
 
 from django.contrib.auth.models import User
-from jetpack import conf
+from django.conf import settings
+
 from jetpack.models import Package
 
 
@@ -21,7 +22,7 @@ class PackageTest(TestCase):
         package.save()
         # all packages have assigned an incremental id_number
         self.failUnless(package.id_number)
-        self.assertEqual(int(package.id_number), conf.MINIMUM_PACKAGE_ID + 1)
+        self.assertEqual(int(package.id_number), settings.MINIMUM_PACKAGE_ID + 1)
         # all add-ons have PackageRevision created
         self.failUnless(package.version and package.latest)
         self.assertEqual(package.version.id, package.latest.id)

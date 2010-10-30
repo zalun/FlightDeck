@@ -3,11 +3,10 @@ import os
 import simplejson
 
 from django.contrib.auth.models import User
-
 from django.core.exceptions import ObjectDoesNotExist
+from django.conf import settings
 
 from jetpack.models import Package, Module, PackageRevision, SDK
-from jetpack import conf
 from person.models import Profile
 
 
@@ -135,7 +134,7 @@ def update_jetpack_core(sdk_dir_name):
 
     check_SDK_dir(sdk_dir_name)
 
-    sdk_source = os.path.join(conf.SDK_SOURCE_DIR, sdk_dir_name)
+    sdk_source = os.path.join(settings.SDK_SOURCE_DIR, sdk_dir_name)
 
     core_author = get_or_create_core_author()
     core_manifest = get_jetpack_core_manifest(sdk_source)
@@ -145,7 +144,7 @@ def update_jetpack_core(sdk_dir_name):
     core_contributors = [core_manifest['author']]
     core_contributors.extend(core_manifest['contributors'])
 
-    core = Package.objects.get(id_number=conf.MINIMUM_PACKAGE_ID)
+    core = Package.objects.get(id_number=settings.MINIMUM_PACKAGE_ID)
     # create new revision
     core_revision = PackageRevision(
         package=core,
@@ -171,7 +170,7 @@ def create_jetpack_core(sdk_dir_name='jetpack-sdk'):
 
     check_SDK_dir(sdk_dir_name)
 
-    sdk_source = os.path.join(conf.SDK_SOURCE_DIR, sdk_dir_name)
+    sdk_source = os.path.join(settings.SDK_SOURCE_DIR, sdk_dir_name)
     core_author = get_or_create_core_author()
     core_manifest = get_jetpack_core_manifest(sdk_source)
 

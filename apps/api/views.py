@@ -4,12 +4,19 @@ import os
 
 from django.shortcuts import render_to_response
 from django.template import RequestContext
+from django.conf import settings
 
-from api import conf
+from jetpack.models import SDK
 
+sdks = SDK.objects.all()
+if sdks.count() > 0:
+    SDKPACKAGESDIR = os.path.join(settings.SDK_SOURCE_DIR, sdks[0].dir, 'packages')
+    SDKVERSION = sdks[0].version
+else:
+    raise Exception('No SDK imported')
 
 def _get_module_filenames(package_name):
-    files = os.listdir(os.path.join(conf.SDKPACKAGESDIR, package_name, 'docs'))
+    files = os.listdir(os.path.join(SDKPACKAGESDIR, package_name, 'docs'))
     files.sort()
     return files
 
@@ -24,7 +31,7 @@ def _get_module_names(package_name):
 def homepage(r, package_name='jetpack-core'):
     page = 'apibrowser'
 
-    sdk_version = conf.SDKVERSION
+    sdk_version = SDKVERSION
     package = {'name': package_name,
                'modules': _get_module_names(package_name)}
 
@@ -43,14 +50,14 @@ def package(r, package_name='jetpack-core'):
     """
     page = 'apibrowser'
 
-    sdk_version = conf.SDKVERSION
+    sdk_version = SDKVERSION
 
     DOC_FILES = _get_module_filenames(package_name)
 
     package = {'name': package_name, 'modules': []}
     for d in DOC_FILES:
         text = open(
-            os.path.join(conf.SDKPACKAGESDIR, package_name, 'docs', d)).read()
+            os.path.join(SDKPACKAGESDIR, package_name, 'docs', d)).read()
         (doc_name, extension) = os.path.splitext(d)
         # changing the tuples to dictionaries
         hunks = list(apiparser.parse_hunks(text))
@@ -78,10 +85,10 @@ def package(r, package_name='jetpack-core'):
 def module(r, package_name, module_name):
     page = 'apibrowser'
 
-    sdk_version = conf.SDKVERSION
+    sdk_version = SDKVERSION
     doc_file = '.'.join((module_name, 'md'))
     text = open(
-        os.path.join(conf.SDKPACKAGESDIR,
+        os.path.join(SDKPACKAGESDIR,
                      package_name, 'docs', doc_file)).read()
     # changing the tuples to dictionaries
     hunks = list(apiparser.parse_hunks(text))
