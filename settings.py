@@ -54,12 +54,57 @@ LANGUAGE_CODE = 'en-us'
 # to load the internationalization machinery.
 USE_I18N = True
 
+# Paths settings
 MEDIA_ROOT = path('media')
 
 FRAMEWORK_PATH = path()
 SDK_SOURCE_DIR = path('lib')  # TODO: remove this var
 APP_MEDIA_PREFIX = os.path.join(FRAMEWORK_PATH, 'apps')
-VIRTUAL_ENV = os.environ.get('VIRTUAL_ENV')
+UPLOAD_DIR = path('upload')
+VIRTUAL_ENV = os.environ.get('VIRTUAL_ENV') # TODO: remove this var
+
+# jetpack defaults
+PACKAGES_PER_PAGE = 10
+MINIMUM_PACKAGE_ID = 1000000
+INITIAL_VERSION_NAME = 'initial'
+PACKAGE_PLURAL_NAMES = {
+    'l': 'libraries',
+    'a': 'addons'
+}
+PACKAGE_SINGULAR_NAMES = {
+    'l': 'library',
+    'a': 'addon'
+}
+DEFAULT_PACKAGE_FULLNAME = {
+    'l': 'My Library',
+    'a': 'My Add-on'
+}
+HOMEPAGE_PACKAGES_NUMBER = 3
+SDKDIR_PREFIX = '/tmp/SDK'
+LIBRARY_AUTOCOMPLETE_LIMIT = 20
+KEYDIR = 'keydir'
+JETPACK_NEW_IS_BASE = False
+JETPACK_ITEMS_PER_PAGE = 10
+
+JETPACK_LIB_DIR = 'lib'
+JETPACK_DATA_DIR = 'data'
+
+# amo defaults
+AMO_LIMITED_ACCESS = False
+AUTH_DATABASE = None
+# set it in settings_local.py if AMO auth should be used
+#AUTH_DATABASE = {
+#    'NAME': 'db_name',
+#    'TABLE': 'users_table_name',
+#    'USER': 'db_user',
+#    'PASSWORD': '',  # db_password
+#    'HOST': '',
+#    'PORT': ''
+#}
+
+# api defaults
+
+
 
 # Media section
 APP_MEDIA_SUFFIX = 'media'
@@ -176,14 +221,6 @@ DEV_MIDDLEWARE_CLASSES = (
     'debug_toolbar.middleware.DebugToolbarMiddleware',
 )
 
-#AUTH_DATABASE = {
-#    'NAME': 'db_name',
-#    'TABLE': 'users_table_name',
-#    'USER': 'db_user',
-#    'PASSWORD': '',  # db_password
-#    'HOST': '',
-#    'PORT': ''
-#}
 
 # If you want to run Selenium tests, you'll need to have a server running.
 # Then give this a dictionary of settings. Something like:

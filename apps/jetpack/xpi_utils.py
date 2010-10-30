@@ -6,9 +6,9 @@ import os
 import shutil
 import subprocess
 import stat
-from django.http import HttpResponseServerError
 
-from jetpack import conf
+from django.http import HttpResponseServerError
+from django.conf import settings
 
 
 def sdk_copy(sdk_source, sdk_dir=None):
@@ -42,7 +42,7 @@ def xpi_build(sdk_dir, package_dir):
     cfx_command = [
         '%s/bin/cfx.sh' % sdk_dir,
         '--binary=/usr/bin/xulrunner',
-        '--keydir=%s/%s' % (sdk_dir, conf.KEYDIR),
+        '--keydir=%s/%s' % (sdk_dir, settings.KEYDIR),
         'xpi']
 
     try:
@@ -54,7 +54,7 @@ def xpi_build(sdk_dir, package_dir):
         return HttpResponseServerError
 
     out = process.communicate()
-    #if out[1] and not conf.DEBUG:
+    #if out[1] and not settings.DEBUG:
         #xpi_remove(sdk_dir)
 
     # clean up environment

@@ -1,7 +1,9 @@
 from copy import deepcopy
 from test_utils import TestCase
+
+from django.conf import settings
+
 from jetpack.models import Package
-from jetpack import conf
 
 
 class ManifestsTest(TestCase):
@@ -14,7 +16,7 @@ class ManifestsTest(TestCase):
         'name': 'test-addon',
         'description': '',
         'author': 'john',
-        'version': conf.INITIAL_VERSION_NAME,
+        'version': settings.INITIAL_VERSION_NAME,
         'dependencies': ['jetpack-core'],
         'license': '',
         'url': '',
@@ -46,7 +48,7 @@ class ManifestsTest(TestCase):
         first.save()
 
         manifest = deepcopy(self.manifest)
-        manifest['version'] = "%s.rev1" % conf.INITIAL_VERSION_NAME
+        manifest['version'] = "%s.rev1" % settings.INITIAL_VERSION_NAME
 
         first_manifest = first.get_manifest()
         del first_manifest['id']
@@ -60,9 +62,9 @@ class ManifestsTest(TestCase):
 
         manifest = deepcopy(self.manifest)
         manifest['dependencies'].append('%s-%d' % ('test-library',
-                                                   conf.MINIMUM_PACKAGE_ID + 2)
+                                                   settings.MINIMUM_PACKAGE_ID + 2)
                                        )
-        manifest['version'] = "%s.rev1" % conf.INITIAL_VERSION_NAME
+        manifest['version'] = "%s.rev1" % settings.INITIAL_VERSION_NAME
 
         first_manifest = first.get_manifest()
         del first_manifest['id']
@@ -75,7 +77,7 @@ class ManifestsTest(TestCase):
         first.save()
 
         manifest = deepcopy(self.manifest)
-        manifest['version'] = "%s.rev1" % conf.INITIAL_VERSION_NAME
+        manifest['version'] = "%s.rev1" % settings.INITIAL_VERSION_NAME
         manifest['contributors'] = ['one', '12345', 'two words', 'no space']
 
         first_manifest = first.get_manifest()

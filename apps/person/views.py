@@ -3,8 +3,7 @@ from django.template import RequestContext
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-
-from person import conf
+from django.conf import settings
 
 
 def public_profile(r, username):
@@ -69,9 +68,9 @@ def dashboard_browser(r, page_number=1, type=None, disabled=False):
         other_type = 'l' if type == 'a' else 'a'
         other_packages_number = len(packages.filter(type=other_type))
         packages = packages.filter(type=type)
-        template_suffix = conf.PACKAGE_PLURAL_NAMES[type]
+        template_suffix = settings.PACKAGE_PLURAL_NAMES[type]
 
-    limit = r.GET.get('limit', conf.PACKAGES_PER_PAGE)
+    limit = r.GET.get('limit', settings.PACKAGES_PER_PAGE)
 
     pager = Paginator(
         packages,
