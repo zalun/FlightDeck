@@ -915,6 +915,11 @@ class Module(models.Model):
         handle.write(self.code)
         handle.close()
 
+    def get_json(self):
+        return simplejson.dumps({
+            'filename': self.filename,
+            'code': self.code,
+            'author': self.author.username})
 
 class Attachment(models.Model):
     """

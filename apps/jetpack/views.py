@@ -92,6 +92,19 @@ def package_details(r, id_number, type_id,
             'readonly': True
         }, context_instance=RequestContext(r))
 
+def get_module(r, id_number, revision_number, filename):
+    """
+    return a JSON with all module info
+    """
+    try:
+        revision = PackageRevision.objects.get(
+                package__id_number=id_number,
+                revision_number=revision_number)
+        mod = revision.modules.get(filename=filename)
+    except:
+        raise Http404('No such module %s' % filename)
+    return HttpResponse(mod.get_json())
+
 
 @login_required
 def package_copy(r, id_number, type_id,
@@ -383,6 +396,7 @@ def package_save(r, id_number, type_id, revision_number=None,
                  version_name=None):
     """
     Save package and modules
+    @TODO: check how dynamic module loading affects saving
     """
     revision = get_package_revision(id_number, type_id, revision_number,
                                     version_name)
@@ -627,7 +641,7 @@ def package_test_xpi(r, id_number, revision_number=None):
         modules = []
         for mod in revision.modules.all():
             if r.POST.get(mod.filename, False):
-                code = r.POST[mod.filename]
+                code = r.POST.get(mod.filename, '')
                 if mod.code != code:
                     mod.code = code
                     modules.append(mod)

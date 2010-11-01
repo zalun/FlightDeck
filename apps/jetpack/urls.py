@@ -54,6 +54,9 @@ urlpatterns = patterns('jetpack.views',
     url(r'^library/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
         'package_details', {'type_id': 'l'},
         name='jp_library_revision_details'),
+    # get full module info
+    url(r'^get_module/(?P<id_number>[-\w]+)/(?P<revision_number>\d+)/(?P<filename>.*)$',
+        'get_module', name='jp_get_module'),
 
     # copy a PackageRevision
     url(r'^addon/copy/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
