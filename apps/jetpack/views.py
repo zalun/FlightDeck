@@ -396,7 +396,7 @@ def package_save(r, id_number, type_id, revision_number=None,
                  version_name=None):
     """
     Save package and modules
-    @TODO: check how dynamic module loading affects saving
+    @TODO: check how dynamic module loading affects save
     """
     revision = get_package_revision(id_number, type_id, revision_number,
                                     version_name)

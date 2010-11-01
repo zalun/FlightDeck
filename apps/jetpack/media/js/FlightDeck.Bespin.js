@@ -18,7 +18,6 @@ var FDBespin = new Class({
 		window.addEvent('resize', function() {
 			if (!self.element) {
 				$log('FD: resizing window: fd.bespin.element undefined')
-				$log(self);
 				return;
 			}
 			self.element.dimensionsChanged();

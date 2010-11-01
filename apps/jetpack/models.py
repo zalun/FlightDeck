@@ -734,7 +734,11 @@ class PackageRevision(models.Model):
         m_list = [{
                 'filename': m.filename,
                 'author': m.author.username,
-                'executable': self.module_main == m.filename
+                'executable': self.module_main == m.filename,
+                'get_url': reverse('jp_get_module', args=[
+                    self.package.id_number,
+                    self.revision_number,
+                    m.filename])
                 } for m in self.modules.all()
             ] if self.modules.count() > 0 else []
         return simplejson.dumps(m_list)

@@ -17,21 +17,26 @@ Class.refactor(FDEditor, {
 		var self = this;
 		this.editor_id = editor_id || this.options.element;
 		this.element = $(this.editor_id);
-		// register element's content
-		fd.editor_contents[this.editor_id] = this.element.get('text')
-		// mark hidden elements and record initial state
-		if (this.options.activate) { 
-			$log('FD: activate {element}'.substitute(this.options));
-			if (fd.bespinLoaded) {
-				this.show();
-			} else {
-				fd.addEvent('bespinLoad', function() {
-					self.show();
-				});
-			}
-		} else {
-			self.hidden = true; 
-		}
+        if (this.element) {
+          // register element's content
+          fd.editor_contents[this.editor_id] = this.element.get('text')
+          // mark hidden elements and record initial state
+          if (this.options.activate) { 
+              $log('FD: activate {element}'.substitute(this.options));
+              if (fd.bespinLoaded) {
+                  this.show();
+              } else {
+                  fd.addEvent('bespinLoad', function() {
+                      self.show();
+                  });
+              }
+          } else {
+              self.hidden = true; 
+          }
+          this.element.hide();
+        } else {
+          self.hidden = true;
+        }
 		fd.addEvent('bespinChange', function() {
 			if (fd.current_editor == self.editor_id) {
 				if (!fd.switching) {
@@ -40,7 +45,6 @@ Class.refactor(FDEditor, {
 				}
 			}
 		});
-		this.element.hide();
 	},
 
 	getContent: function() {
@@ -48,7 +52,7 @@ Class.refactor(FDEditor, {
 		if (fd.current_editor == this.editor_id) {
 			return fd.bespin.getContent();
 		} else {
-			return fd.editor_contents[this.editor_id];
+          return fd.editor_contents[this.editor_id];
 		}
 	},
 
