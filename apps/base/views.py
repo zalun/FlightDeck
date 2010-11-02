@@ -1,15 +1,15 @@
 from django.template import RequestContext
 from django.shortcuts import render_to_response
+from django.conf import settings
 
 from jetpack.models import Package
-from jetpack import conf
 
 
 def homepage(r):
     # one more for the main one
-    addons_limit = conf.HOMEPAGE_PACKAGES_NUMBER
+    addons_limit = settings.HOMEPAGE_PACKAGES_NUMBER
 
-    libraries = Package.objects.libraries()[:conf.HOMEPAGE_PACKAGES_NUMBER]
+    libraries = Package.objects.libraries()[:settings.HOMEPAGE_PACKAGES_NUMBER]
     addons = Package.objects.addons()[:addons_limit]
 
     addons = list(addons)
