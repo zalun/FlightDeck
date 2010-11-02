@@ -3,11 +3,10 @@ import os
 import simplejson
 
 from django.contrib.auth.models import User
-
 from django.core.exceptions import ObjectDoesNotExist
+from django.conf import settings
 
 from jetpack.models import Package, Module, PackageRevision, SDK
-from jetpack import conf
 from person.models import Profile
 
 
@@ -69,24 +68,43 @@ def get_or_create_core_author():
 
 def add_core_modules(sdk_source, core_revision, core_author):
     " add all provided core modules to core_revision "
+
+    def _get_code(path):
+       handle = open(path, 'r')
+       code = handle.read()
+       handle.close()
+       return code
+
     core_lib_dir = '%s/packages/jetpack-core/lib' % sdk_source
     core_modules = os.listdir(core_lib_dir)
+    # @TODO: it should be recurrent
     for module_file in core_modules:
         try:
             module_path = '%s/%s' % (core_lib_dir, module_file)
             module_name = os.path.splitext(module_file)[0]
-            handle = open(module_path, 'r')
-            module_code = handle.read()
-            handle.close()
-            mod = Module.objects.create(
-                filename=module_name,
-                code=module_code,
-                author=core_author
-            )
-            core_revision.modules.add(mod)
+            if os.path.isdir(module_path):
+                submodules = os.listdir(module_path)
+                for submodule_file in submodules:
+                    submodule_name = '%s/%s' % (module_name,
+                            os.path.splitext(submodule_file)[0])
+                    submodule_path = '%s/%s/%s' % (
+                            core_lib_dir, module_name, submodule_file)
+                    core_revision.module_create(
+                            save=False,
+                            filename=submodule_name,
+                            code=_get_code(submodule_path),
+                            author=core_author
+                            )
+            else:
+                core_revision.module_create(
+                    save=False,
+                    filename=module_name,
+                    code=_get_code(module_path),
+                    author=core_author
+                )
         except Exception, err:
             print ("Warning: There was a problem with importing module "
-                   "from file %s/%s") % (core_lib_dir,module_file)
+                   "from file %s/%s\n%s") % (core_lib_dir,module_file, err)
 
 
 def check_SDK_dir(sdk_dir_name):
@@ -116,7 +134,7 @@ def update_jetpack_core(sdk_dir_name):
 
     check_SDK_dir(sdk_dir_name)
 
-    sdk_source = os.path.join(conf.SDK_SOURCE_DIR, sdk_dir_name)
+    sdk_source = os.path.join(settings.SDK_SOURCE_DIR, sdk_dir_name)
 
     core_author = get_or_create_core_author()
     core_manifest = get_jetpack_core_manifest(sdk_source)
@@ -126,7 +144,7 @@ def update_jetpack_core(sdk_dir_name):
     core_contributors = [core_manifest['author']]
     core_contributors.extend(core_manifest['contributors'])
 
-    core = Package.objects.get(id_number=conf.MINIMUM_PACKAGE_ID)
+    core = Package.objects.get(id_number=settings.MINIMUM_PACKAGE_ID)
     # create new revision
     core_revision = PackageRevision(
         package=core,
@@ -152,7 +170,7 @@ def create_jetpack_core(sdk_dir_name='jetpack-sdk'):
 
     check_SDK_dir(sdk_dir_name)
 
-    sdk_source = os.path.join(conf.SDK_SOURCE_DIR, sdk_dir_name)
+    sdk_source = os.path.join(settings.SDK_SOURCE_DIR, sdk_dir_name)
     core_author = get_or_create_core_author()
     core_manifest = get_jetpack_core_manifest(sdk_source)
 

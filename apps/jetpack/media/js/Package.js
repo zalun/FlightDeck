@@ -157,8 +157,7 @@ var Module = new Class({
 			this.append();
 		}
 		// connect trigger with editor
-		if ($(this.get_trigger_id()) && $(this.get_editor_id())) {
-			this.textarea = $(this.get_editor_id());
+		if ($(this.get_trigger_id())) {
 			this.trigger = $(this.get_trigger_id());
 			this.trigger.store('Module', this);
 			this.editor = new FDEditor({
@@ -192,7 +191,22 @@ var Module = new Class({
 			}
 		}
 	},
+    loadCode: function() {
+      // load data synchronously
+      new Request.JSON({
+        url: this.options.get_url,
+        async: false,
+        useSpinner: true,
+        spinnerTarget: 'editor-wrapper',
+        onSuccess: function(mod) {
+          fd.editor_contents[this.get_editor_id()] = mod.code;
+        }.bind(this)
+      }).send();
+    },
 	switchBespin: function() {
+        if (!fd.editor_contents[this.get_editor_id()]) {
+          this.loadCode();
+        }
 		fd.switchBespinEditor(this.get_editor_id(), this.options.type); 
 		if (fd.getItem()) {
 			$each(fd.getItem().modules, function(mod) {
@@ -518,7 +532,8 @@ Package.Edit = new Class({
 					active: true,
 					filename: response.filename,
 					author: response.author,
-					code: response.code
+					code: response.code,
+                    get_url: response.get_url
 				});
 				this.modules[response.filename] = mod;
 			}.bind(this)

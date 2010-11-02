@@ -18,7 +18,6 @@ var FDBespin = new Class({
 		window.addEvent('resize', function() {
 			if (!self.element) {
 				$log('FD: resizing window: fd.bespin.element undefined')
-				$log(self);
 				return;
 			}
 			self.element.dimensionsChanged();
@@ -33,7 +32,9 @@ var FDBespin = new Class({
 		});
 	},
 	setContent: function(value) {
+        this.unloading = true;
 		this.element.value = '';
+        this.loading = true;
 		this.element.value = value;
 		return this;
 	},
@@ -96,7 +97,13 @@ Class.refactor(FlightDeck, {
 		this.bespin = new FDBespin(this.bespin_editor);
 		this.bespin.addEvents({
 			'change': function() {
-				this.fireEvent('change');
+                // this should check if it's simply a switch of files!
+                if (this.bespin.unloading || this.bespin.loading) {
+                  if (this.bespin.unloading) this.bespin.unloading = false;
+                  if (this.bespin.loading) this.bespin.loading = false;
+                } else {
+                  this.fireEvent('change');
+                }
 			}.bind(this),
 			'ready': function() {
 				this.bespinLoaded = true;

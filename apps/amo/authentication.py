@@ -3,9 +3,9 @@ import hashlib
 
 from django.contrib.auth.models import User
 from django.utils.encoding import smart_str
+from django.conf import settings
 
 from person.models import Profile, Limit
-from amo import conf
 
 DEFAULT_AMO_PASSWORD = 'saved in AMO'
 
@@ -39,11 +39,11 @@ class AMOAuthentication:
             user = None
 
         # if access to the FD is limited
-        if conf.AMO_LIMITED_ACCESS:
+        if settings.AMO_LIMITED_ACCESS:
             if username not in [x.email for x in list(Limit.objects.all())]:
                 return None
 
-        if not conf.AUTH_DATABASE:
+        if not settings.AUTH_DATABASE:
             return None
 
         # here contact AMO and receive authentication status
@@ -90,14 +90,14 @@ class AMOAuthentication:
                    'homepage')
 
         auth_conn = MySQLdb.connect(
-            host=conf.AUTH_DATABASE['HOST'],
-            user=conf.AUTH_DATABASE['USER'],
-            passwd=conf.AUTH_DATABASE['PASSWORD'],
-            db=conf.AUTH_DATABASE['NAME']
+            host=settings.AUTH_DATABASE['HOST'],
+            user=settings.AUTH_DATABASE['USER'],
+            passwd=settings.AUTH_DATABASE['PASSWORD'],
+            db=settings.AUTH_DATABASE['NAME']
         )
         auth_cursor = auth_conn.cursor()
         SQL = ('SELECT %s FROM %s WHERE email="%s"'
-              ) % (','.join(columns), conf.AUTH_DATABASE['TABLE'], username)
+              ) % (','.join(columns), settings.AUTH_DATABASE['TABLE'], username)
         auth_cursor.execute(SQL)
         data = auth_cursor.fetchone()
         user_data = {}

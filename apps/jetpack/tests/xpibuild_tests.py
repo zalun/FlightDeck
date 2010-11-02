@@ -5,8 +5,8 @@ import simplejson
 from utils.test import TestCase
 
 from django.contrib.auth.models import User
+from django.conf import settings
 
-from jetpack import conf
 from jetpack.models import Package, PackageRevision, Module
 from jetpack.xpi_utils import sdk_copy, xpi_build
 
@@ -30,7 +30,7 @@ class XPIBuildTest(TestCase):
         self.librev.module_add(mod)
         self.SDKDIR = self.addon.latest.get_sdk_dir()
         self.attachment_file_name = os.path.join(
-                conf.UPLOAD_DIR, 'test_filename.txt')
+                settings.UPLOAD_DIR, 'test_filename.txt')
         handle = open(self.attachment_file_name, 'w')
         handle.write('.')
         handle.close()

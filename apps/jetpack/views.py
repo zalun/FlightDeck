@@ -19,12 +19,12 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.views.decorators.http import require_POST
 from django.template.defaultfilters import slugify
+from django.conf import settings
 
 from base.shortcuts import get_object_with_related_or_404
 from utils import validator
 
 from jetpack.models import Package, PackageRevision, Module, Attachment, SDK
-from jetpack import conf
 from jetpack.package_helpers import get_package_revision
 from jetpack.xpi_utils import xpi_remove
 from jetpack.errors import FilenameExistException
@@ -49,9 +49,9 @@ def package_browser(r, page_number=1, type_id=None, username=None):
         other_packages_number = len(packages.filter(type=other_type))
         packages = packages.filter(type=type_id)
         template_suffix = '%s_%s' % (template_suffix,
-                                     conf.PACKAGE_PLURAL_NAMES[type_id])
+                                     settings.PACKAGE_PLURAL_NAMES[type_id])
 
-    limit = r.GET.get('limit', conf.PACKAGES_PER_PAGE)
+    limit = r.GET.get('limit', settings.PACKAGES_PER_PAGE)
 
     pager = Paginator(
         packages,
@@ -79,7 +79,7 @@ def package_details(r, id_number, type_id,
     library_counter = len(libraries)
     core_library = None
     if revision.package.is_addon():
-        corelibrary = Package.objects.get(id_number=conf.MINIMUM_PACKAGE_ID)
+        corelibrary = Package.objects.get(id_number=settings.MINIMUM_PACKAGE_ID)
         corelibrary = corelibrary.latest
         library_counter += 1
 
@@ -91,6 +91,19 @@ def package_details(r, id_number, type_id,
             'library_counter': library_counter,
             'readonly': True
         }, context_instance=RequestContext(r))
+
+def get_module(r, id_number, revision_number, filename):
+    """
+    return a JSON with all module info
+    """
+    try:
+        revision = PackageRevision.objects.get(
+                package__id_number=id_number,
+                revision_number=revision_number)
+        mod = revision.modules.get(filename=filename)
+    except:
+        raise Http404('No such module %s' % filename)
+    return HttpResponse(mod.get_json())
 
 
 @login_required
@@ -148,7 +161,7 @@ def package_edit(r, id_number, type_id,
     core_library = None
     sdk_list = None
     if revision.package.is_addon():
-        core_library = Package.objects.get(id_number=conf.MINIMUM_PACKAGE_ID)
+        core_library = Package.objects.get(id_number=settings.MINIMUM_PACKAGE_ID)
         core_library = core_library.latest
         library_counter += 1
         sdk_list = SDK.objects.all()
@@ -317,7 +330,7 @@ def package_add_attachment(r, id_number, type_id,
                                    time.strftime("%m-%d-%H-%M-%S"),
                                    filename, ext)
 
-    handle = open(os.path.join(conf.UPLOAD_DIR, upload_path), 'w')
+    handle = open(os.path.join(settings.UPLOAD_DIR, upload_path), 'w')
     handle.write(content)
     handle.close()
 
@@ -372,7 +385,7 @@ def download_attachment(r, path):
     Display attachment from PackageRevision
     """
     get_object_or_404(Attachment, path=path)
-    response = serve(r, path, conf.UPLOAD_DIR, show_indexes=False)
+    response = serve(r, path, settings.UPLOAD_DIR, show_indexes=False)
     #response['Content-Type'] = 'application/octet-stream';
     return response
 
@@ -383,6 +396,7 @@ def package_save(r, id_number, type_id, revision_number=None,
                  version_name=None):
     """
     Save package and modules
+    @TODO: check how dynamic module loading affects save
     """
     revision = get_package_revision(id_number, type_id, revision_number,
                                     version_name)
@@ -499,7 +513,7 @@ def package_create(r, type_id):
         if len(packages.all()) > 0:
             return HttpResponseForbidden(
                 "You already have a %s with that name" \
-                % conf.PACKAGE_SINGULAR_NAMES[type_id])
+                % settings.PACKAGE_SINGULAR_NAMES[type_id])
     else:
         description = ""
 
@@ -522,7 +536,7 @@ def library_autocomplete(r):
     """
     try:
         query = r.GET.get('q')
-        limit = r.GET.get('limit', conf.LIBRARY_AUTOCOMPLETE_LIMIT)
+        limit = r.GET.get('limit', settings.LIBRARY_AUTOCOMPLETE_LIMIT)
         found = Package.objects.libraries().exclude(
             name='jetpack-core').filter(
                 Q(name__icontains=query) | Q(full_name__icontains=query)
@@ -627,7 +641,7 @@ def package_test_xpi(r, id_number, revision_number=None):
         modules = []
         for mod in revision.modules.all():
             if r.POST.get(mod.filename, False):
-                code = r.POST[mod.filename]
+                code = r.POST.get(mod.filename, '')
                 if mod.code != code:
                     mod.code = code
                     modules.append(mod)
@@ -636,7 +650,7 @@ def package_test_xpi(r, id_number, revision_number=None):
     else:
         (stdout, stderr) = revision.build_xpi()
 
-    if stderr and not conf.DEBUG:
+    if stderr and not settings.DEBUG:
         # XXX: this should also log the error in file
         xpi_remove(revision.get_sdk_dir())
 
@@ -671,7 +685,7 @@ def package_download_xpi(r, id_number, revision_number=None):
 
     (stdout, stderr) = revision.build_xpi()
 
-    if stderr and not conf.DEBUG:
+    if stderr and not settings.DEBUG:
         # XXX: this should also log the error in file
         xpi_remove(revision.get_sdk_dir())
 
@@ -686,7 +700,7 @@ def test_xpi(r, sdk_name, pkg_name, filename):
     """
     return XPI file for testing
     """
-    path = '%s-%s/packages/%s' % (conf.SDKDIR_PREFIX, sdk_name, pkg_name)
+    path = '%s-%s/packages/%s' % (settings.SDKDIR_PREFIX, sdk_name, pkg_name)
     _file = '%s.xpi' % filename
     mimetype = 'text/plain; charset=x-user-defined'
 
@@ -698,7 +712,7 @@ def download_xpi(r, sdk_name, pkg_name, filename):
     """
     return XPI file for testing
     """
-    path = '%s-%s/packages/%s' % (conf.SDKDIR_PREFIX, sdk_name, pkg_name)
+    path = '%s-%s/packages/%s' % (settings.SDKDIR_PREFIX, sdk_name, pkg_name)
     _file = '%s.xpi' % filename
     response = serve(r, _file, path, show_indexes=False)
     response['Content-Type'] = 'application/octet-stream'
@@ -712,5 +726,5 @@ def remove_xpi(r, sdk_name):
     # Validate sdk_name
     if not validator.is_valid('alphanum_plus', sdk_name):
         return HttpResponseForbidden("{'error': 'Wrong name'}")
-    xpi_remove('%s-%s' % (conf.SDKDIR_PREFIX, sdk_name))
+    xpi_remove('%s-%s' % (settings.SDKDIR_PREFIX, sdk_name))
     return HttpResponse('{}', mimetype='application/json')

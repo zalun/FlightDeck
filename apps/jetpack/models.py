@@ -14,8 +14,8 @@ from django.utils import simplejson
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
+from django.conf import settings
 
-from jetpack import conf
 from jetpack.managers import PackageManager
 from jetpack.errors import SelfDependencyException, FilenameExistException, \
         UpdateDeniedException, SingletonCopyException, DependencyException
@@ -73,7 +73,7 @@ class Package(models.Model):
 
     # this is set in the PackageRevision.set_version
     version_name = models.CharField(max_length=250, blank=True, null=True,
-                                    default=conf.INITIAL_VERSION_NAME)
+                                    default=settings.INITIAL_VERSION_NAME)
 
     # Revision which is setting the version name
     version = models.ForeignKey('PackageRevision', blank=True, null=True,
@@ -145,7 +145,7 @@ class Package(models.Model):
         returns Boolean: True if this is a SDK Core Library
         Used to block copying the package
         """
-        return str(self.id_number) == str(conf.MINIMUM_PACKAGE_ID)
+        return str(self.id_number) == str(settings.MINIMUM_PACKAGE_ID)
 
     def is_singleton(self):
         """
@@ -156,17 +156,17 @@ class Package(models.Model):
 
     def get_type_name(self):
         " return name of the type (add-on / library) "
-        return conf.PACKAGE_SINGULAR_NAMES[self.type]
+        return settings.PACKAGE_SINGULAR_NAMES[self.type]
 
     def get_lib_dir(self):
         " returns the name of the lib directory in SDK default - packages "
-        return self.lib_dir or conf.DEFAULT_LIB_DIR
+        return self.lib_dir or settings.JETPACK_LIB_DIR
 
     def get_data_dir(self):
         " returns the name of the data directory in SDK default - data "
         # it stays as method as it could be saved in instance in the future
         # TODO: YAGNI!
-        return conf.DEFAULT_DATA_DIR
+        return settings.JETPACK_DATA_DIR
 
     def get_unique_package_name(self):
         """
@@ -203,7 +203,7 @@ class Package(models.Model):
             return _get_full_name(full_name, username, type_id, i)
 
         self.full_name = _get_full_name(
-            conf.DEFAULT_PACKAGE_FULLNAME[self.type],
+            settings.DEFAULT_PACKAGE_FULLNAME[self.type],
             self.author.username, self.type)
 
     def set_name(self):
@@ -256,7 +256,7 @@ class Package(models.Model):
         """
         create copy of the package
         """
-        print self.id_number, conf.MINIMUM_PACKAGE_ID
+        print self.id_number, settings.MINIMUM_PACKAGE_ID
         if self.is_singleton():
             raise SingletonCopyException("This is a singleton")
         new_p = Package(
@@ -281,7 +281,7 @@ class PackageRevision(models.Model):
     # public version name
     # this is a tag used to mark important revisions
     version_name = models.CharField(max_length=250, blank=True, null=True,
-                                    default=conf.INITIAL_VERSION_NAME)
+                                    default=settings.INITIAL_VERSION_NAME)
     # this makes the revision unique across the same package/user
     revision_number = models.IntegerField(blank=True, default=0)
     # commit message
@@ -316,7 +316,7 @@ class PackageRevision(models.Model):
     def __unicode__(self):
         version = 'v. %s ' % self.version_name if self.version_name else ''
         return '%s - %s %sr. %d by %s' % (
-                            conf.PACKAGE_SINGULAR_NAMES[self.package.type],
+                            settings.PACKAGE_SINGULAR_NAMES[self.package.type],
                             self.package.full_name, version,
                             self.revision_number, self.author.get_profile()
                             )
@@ -328,11 +328,11 @@ class PackageRevision(models.Model):
                 return self.package.get_absolute_url()
             return reverse(
                 'jp_%s_version_details' \
-                % conf.PACKAGE_SINGULAR_NAMES[self.package.type],
+                % settings.PACKAGE_SINGULAR_NAMES[self.package.type],
                 args=[self.package.id_number, self.version_name])
         return reverse(
             'jp_%s_revision_details' \
-            % conf.PACKAGE_SINGULAR_NAMES[self.package.type],
+            % settings.PACKAGE_SINGULAR_NAMES[self.package.type],
             args=[self.package.id_number, self.revision_number])
 
     def get_edit_url(self):
@@ -577,7 +577,7 @@ class PackageRevision(models.Model):
             return False
         return True
 
-    def module_create(self, **kwargs):
+    def module_create(self, save=True, **kwargs):
         " create module and add to modules "
         # validate if given filename is valid
         if not self.validate_module_filename(kwargs['filename']):
@@ -587,10 +587,10 @@ class PackageRevision(models.Model):
                  'needs to have a unique name.') % kwargs['filename']
             )
         mod = Module.objects.create(**kwargs)
-        self.module_add(mod)
+        self.module_add(mod, save=save)
         return mod
 
-    def module_add(self, mod):
+    def module_add(self, mod, save=True):
         " copy to new revision, add module "
         # save as new version
         # validate if given filename is valid
@@ -608,7 +608,8 @@ class PackageRevision(models.Model):
         #            ('this module is already assigned to other'
         #            'Library - %s') % rev.package.get_unique_package_name())
 
-        self.save()
+        if save:
+            self.save()
         return self.modules.add(mod)
 
     def module_remove(self, mod):
@@ -733,7 +734,11 @@ class PackageRevision(models.Model):
         m_list = [{
                 'filename': m.filename,
                 'author': m.author.username,
-                'executable': self.module_main == m.filename
+                'executable': self.module_main == m.filename,
+                'get_url': reverse('jp_get_module', args=[
+                    self.package.id_number,
+                    self.revision_number,
+                    m.filename])
                 } for m in self.modules.all()
             ] if self.modules.count() > 0 else []
         return simplejson.dumps(m_list)
@@ -745,7 +750,7 @@ class PackageRevision(models.Model):
 
     def get_sdk_dir(self):
         " returns the path to the directory where the SDK should be copied "
-        return '%s-%s' % (conf.SDKDIR_PREFIX, self.get_sdk_name())
+        return '%s-%s' % (settings.SDKDIR_PREFIX, self.get_sdk_name())
 
     def build_xpi(self):
         " prepare and build XPI "
@@ -807,7 +812,7 @@ class PackageRevision(models.Model):
 
     def export_keys(self, sdk_dir):
         " export private and public keys "
-        keydir = '%s/%s' % (sdk_dir, conf.KEYDIR)
+        keydir = '%s/%s' % (sdk_dir, settings.KEYDIR)
         if not os.path.isdir(keydir):
             os.mkdir(keydir)
         handle = open('%s/%s' % (keydir, self.package.jid), 'w')
@@ -914,6 +919,11 @@ class Module(models.Model):
         handle.write(self.code)
         handle.close()
 
+    def get_json(self):
+        return simplejson.dumps({
+            'filename': self.filename,
+            'code': self.code,
+            'author': self.author.username})
 
 class Attachment(models.Model):
     """
@@ -956,7 +966,7 @@ class Attachment(models.Model):
 
     def export_file(self, static_dir):
         " copies from uploads to the package's data directory "
-        shutil.copy('%s/%s' % (conf.UPLOAD_DIR, self.path),
+        shutil.copy('%s/%s' % (settings.UPLOAD_DIR, self.path),
                     '%s/%s.%s' % (static_dir, self.filename, self.ext))
 
     def get_display_url(self):
@@ -986,7 +996,7 @@ class SDK(models.Model):
         return self.version
 
     def get_source_dir(self):
-        return os.path.join(conf.SDK_SOURCE_DIR, self.dir)
+        return os.path.join(settings.SDK_SOURCE_DIR, self.dir)
 
 
 def _get_next_id_number():
@@ -995,7 +1005,7 @@ def _get_next_id_number():
     """
     all_packages = Package.objects.all().order_by('-id_number')
     return str(int(all_packages[0].id_number) + 1) \
-            if all_packages else str(conf.MINIMUM_PACKAGE_ID)
+            if all_packages else str(settings.MINIMUM_PACKAGE_ID)
 
 ###############################################################################
 ## Catching Signals
