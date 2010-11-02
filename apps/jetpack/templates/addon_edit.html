@@ -37,5 +37,8 @@
 	{% with revision.get_main_module as module %}
 		{% include "_module_code_textarea.html" %}
 	{% endwith %}
+	{% for module in revision.modules.all %}{% if module.filename != revision.module_main %}
+		{% include "_module_code_textarea.html" %}
+	{% endif %}{% endfor %}
 {% endblock %}
 
