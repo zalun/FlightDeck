@@ -983,7 +983,10 @@ class SDK(models.Model):
 
     # It has to be accompanied with a jetpack-core version
     # needs to exist before SDK is created
-    core_lib = models.OneToOneField(PackageRevision, related_name="parent_sdk")
+    core_lib = models.OneToOneField(PackageRevision,
+            related_name="parent_sdk_core+")
+    kit_lib = models.OneToOneField(PackageRevision,
+            related_name="parent_sdk_kit+", blank=True, null=True)
 
     # placement in the filesystem
     dir = models.CharField(max_length=255, unique=True)
@@ -1012,7 +1015,7 @@ def _get_next_id_number():
 
 def set_package_id_number(instance, **kwargs):
     " sets package's id_number before creating the new one "
-    if kwargs.get('raw', False) or instance.id:
+    if kwargs.get('raw', False) or instance.id or instance.id_number:
         return
     instance.id_number = _get_next_id_number()
 pre_save.connect(set_package_id_number, sender=Package)

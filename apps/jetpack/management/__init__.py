@@ -32,22 +32,24 @@ class SDKDirDoesNotExist(SimpleException):
     " No such dir "
 
 
-def create_or_update_jetpack_core(sdk_dir_name):
+def create_or_update_SDK(sdk_dir_name):
     " call create or update depending on the current staus "
-    try:
-        SDK.objects.all()[0]
-        return update_jetpack_core(sdk_dir_name)
-    except Exception:
-        return create_jetpack_core(sdk_dir_name)
+    sdk_number = SDK.objects.count()
+    if sdk_number > 0:
+        return update_SDK(sdk_dir_name)
+    return create_SDK(sdk_dir_name)
 
 
-def get_jetpack_core_manifest(sdk_source):
+def get_manifest(sdk_source, core_name='jetpack-core'):
     " parse the SDK's manifest "
     if not os.path.isdir(sdk_source):
         raise SDKDirDoesNotExist(
             "Jetpack SDK dir does not exist \"%s\"" % sdk_source)
 
-    handle = open('%s/packages/jetpack-core/package.json' % sdk_source)
+    manifest_file = '%s/packages/%s/package.json' % (sdk_source, core_name)
+    if (not os.path.isfile(manifest_file)):
+        return None
+    handle = open(manifest_file)
     manifest = simplejson.loads(handle.read())
     handle.close()
     return manifest
@@ -66,7 +68,8 @@ def get_or_create_core_author():
     return core_author
 
 
-def add_core_modules(sdk_source, core_revision, core_author):
+def add_core_modules(sdk_source, core_revision, core_author,
+        core_name='jetpack-core'):
     " add all provided core modules to core_revision "
 
     def _get_code(path):
@@ -75,7 +78,7 @@ def add_core_modules(sdk_source, core_revision, core_author):
        handle.close()
        return code
 
-    core_lib_dir = '%s/packages/jetpack-core/lib' % sdk_source
+    core_lib_dir = '%s/packages/%s/lib' % (sdk_source, core_name)
     core_modules = os.listdir(core_lib_dir)
     # @TODO: it should be recurrent
     for module_file in core_modules:
@@ -129,74 +132,110 @@ def check_SDK_manifest(manifest):
         pass
 
 
-def update_jetpack_core(sdk_dir_name):
+def _update_lib(package, author, manifest):
+    check_SDK_manifest(manifest)
+    contributors = [manifest['author']]
+    contributors.extend(manifest['contributors'])
+
+    package_revision = PackageRevision(
+        package=package,
+        author=author,
+        contributors=', '.join(contributors),
+        revision_number=package.latest.get_next_revision_number()
+    )
+    package_revision.save()
+    package_revision.set_version(manifest['version'])
+    return package_revision
+
+def _create_lib(author, manifest, full_name, name, id_number):
+    check_SDK_manifest(manifest)
+
+    # create Jetpack Core Library
+    contributors = [manifest['author']]
+    contributors.extend(manifest['contributors'])
+    core = Package(
+        author=author,
+        full_name=full_name,
+        name=name,
+        type='l',
+        public_permission=2,
+        description=manifest['description'],
+        id_number=id_number
+    )
+    core.save()
+    revision = core.latest
+    revision.set_version(manifest['version'])
+    revision.contributors = ', '.join(contributors)
+    super(PackageRevision, revision).save()
+    return revision
+
+def update_SDK(sdk_dir_name):
     " add new jetpack-core revision "
+    print "updating sdk"
 
     check_SDK_dir(sdk_dir_name)
 
     sdk_source = os.path.join(settings.SDK_SOURCE_DIR, sdk_dir_name)
 
     core_author = get_or_create_core_author()
-    core_manifest = get_jetpack_core_manifest(sdk_source)
-
-    check_SDK_manifest(core_manifest)
-
-    core_contributors = [core_manifest['author']]
-    core_contributors.extend(core_manifest['contributors'])
+    core_manifest = get_manifest(sdk_source)
 
     core = Package.objects.get(id_number=settings.MINIMUM_PACKAGE_ID)
-    # create new revision
-    core_revision = PackageRevision(
-        package=core,
-        author=core_author,
-        contributors=', '.join(core_contributors),
-        revision_number=core.latest.get_next_revision_number()
-    )
-    core_revision.save()
-    core_revision.set_version(core_manifest['version'])
-
+    core_revision = _update_lib(core, core_author, core_manifest)
     add_core_modules(sdk_source, core_revision, core_author)
+
+    kit_name = 'addon-kit'
+    kit_manifest = get_manifest(sdk_source, core_name=kit_name)
+    if kit_manifest:
+        try:
+            kit = Package.objects.get(
+                id_number=settings.MINIMUM_PACKAGE_ID - 1)
+            kit_revision = _update_lib(kit, core_author, kit_manifest)
+        except Exception: # TODO: be precise
+            kit_revision = _create_lib(
+                core_author, kit_manifest, 'Addon Kit', kit_name,
+                settings.MINIMUM_PACKAGE_ID-1)
+
+        add_core_modules(sdk_source, kit_revision, core_author,
+                core_name=kit_name)
 
     # create SDK
     SDK.objects.create(
         version=core_manifest['version'],
         core_lib=core_revision,
+        kit_lib=kit_revision if kit_manifest else None,
         dir=sdk_dir_name
     )
 
 
-def create_jetpack_core(sdk_dir_name='jetpack-sdk'):
+def create_SDK(sdk_dir_name='jetpack-sdk'):
     " create first jetpack-core revision "
+    print "creating core"
 
     check_SDK_dir(sdk_dir_name)
 
     sdk_source = os.path.join(settings.SDK_SOURCE_DIR, sdk_dir_name)
     core_author = get_or_create_core_author()
-    core_manifest = get_jetpack_core_manifest(sdk_source)
+    core_manifest = get_manifest(sdk_source)
 
-    check_SDK_manifest(core_manifest)
-
-    # create Jetpack Core Library
-    core_contributors = [core_manifest['author']]
-    core_contributors.extend(core_manifest['contributors'])
-    core = Package(
-        author=core_author,
-        full_name='Jetpack Core',
-        name='jetpack-core',
-        type='l',
-        public_permission=2,
-        description=core_manifest['description']
-    )
-    core.save()
-    core_revision = core.latest
-    core_revision.set_version(core_manifest['version'])
-    core_revision.contributors = ', '.join(core_contributors)
-    super(PackageRevision, core_revision).save()
+    core_revision = _create_lib(
+        core_author, core_manifest, 'Jetpack Core', 'jetpack-core',
+        settings.MINIMUM_PACKAGE_ID)
     add_core_modules(sdk_source, core_revision, core_author)
+
+    kit_name = 'addon-kit'
+    kit_manifest = get_manifest(sdk_source, core_name=kit_name)
+    if kit_manifest:
+        kit_revision = _create_lib(
+            core_author, kit_manifest, 'Addon Kit', 'addon-kit',
+            settings.MINIMUM_PACKAGE_ID-1)
+        add_core_modules(sdk_source, kit_revision, core_author,
+                core_name=kit_name)
 
     # create SDK
     SDK.objects.create(
         version=core_manifest['version'],
         core_lib=core_revision,
+        kit_lib=kit_revision if kit_manifest else None,
         dir=sdk_dir_name
     )
