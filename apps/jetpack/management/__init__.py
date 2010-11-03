@@ -48,6 +48,7 @@ def get_manifest(sdk_source, core_name='jetpack-core'):
             "Jetpack SDK dir does not exist \"%s\"" % sdk_source)
 
     manifest_file = '%s/packages/%s/package.json' % (sdk_source, core_name)
+    print manifest_file
     if (not os.path.isfile(manifest_file)):
         return None
     handle = open(manifest_file)
@@ -161,10 +162,28 @@ def update_jetpack_core(sdk_dir_name):
 
     add_core_modules(sdk_source, core_revision, core_author)
 
+    kit_name = 'addon-kit'
+    kit_manifest = get_manifest(sdk_source, core_name=kit_name)
+    if kit_manifest:
+        kit_contributors = [kit_manifest['author']]
+        kit_contributors.extend(kit_manifest['contributors'])
+
+        kit = Package.objects.get(id_number=settings.MINIMUM_PACKAGE_ID - 1)
+        kit_revision = PackageRevision(
+                package=kit,
+                author=core_author,
+                contributors=', '.join(kit_contributors),
+                revision_number=kit.latest.get_next_revision_number())
+        kit_revision.save()
+        kit_revision.set_version(kit_manifest['version'])
+        add_core_modules(sdk_source, kit_revision, core_author,
+                core_name=kit_name)
+
     # create SDK
     SDK.objects.create(
         version=core_manifest['version'],
         core_lib=core_revision,
+        kit_lib=kit_revision if kit_manifest else None,
         dir=sdk_dir_name
     )
 
@@ -199,14 +218,14 @@ def create_jetpack_core(sdk_dir_name='jetpack-sdk'):
     add_core_modules(sdk_source, core_revision, core_author)
 
     kit_name = 'addon-kit'
-    kit_manifest = get_manifest(sdk_source, kit_name)
+    kit_manifest = get_manifest(sdk_source, core_name=kit_name)
     if kit_manifest:
         kit_contributors = [kit_manifest['author']]
         kit_contributors.extend(kit_manifest['contributors'])
         kit = Package(
             author=core_author,
             full_name='AddonKit',
-            name='addon-kit',
+            name=kit_name,
             type='l',
             public_permission=2,
             description=kit_manifest['description'],
@@ -218,7 +237,7 @@ def create_jetpack_core(sdk_dir_name='jetpack-sdk'):
         kit_revision.contributors = ', '.join(kit_contributors)
         super(PackageRevision, kit_revision).save()
         add_core_modules(sdk_source, kit_revision, core_author,
-                core_name='addon-kit')
+                core_name=kit_name)
 
     # create SDK
     SDK.objects.create(
