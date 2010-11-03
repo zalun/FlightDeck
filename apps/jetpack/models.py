@@ -983,7 +983,10 @@ class SDK(models.Model):
 
     # It has to be accompanied with a jetpack-core version
     # needs to exist before SDK is created
-    core_lib = models.OneToOneField(PackageRevision, related_name="parent_sdk")
+    core_lib = models.OneToOneField(PackageRevision,
+            related_name="parent_sdk_core+")
+    kit_lib = models.OneToOneField(PackageRevision,
+            related_name="parent_sdk_kit+", blank=True, null=True)
 
     # placement in the filesystem
     dir = models.CharField(max_length=255, unique=True)
