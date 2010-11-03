@@ -1015,7 +1015,7 @@ def _get_next_id_number():
 
 def set_package_id_number(instance, **kwargs):
     " sets package's id_number before creating the new one "
-    if kwargs.get('raw', False) or instance.id:
+    if kwargs.get('raw', False) or instance.id or instance.id_number:
         return
     instance.id_number = _get_next_id_number()
 pre_save.connect(set_package_id_number, sender=Package)
