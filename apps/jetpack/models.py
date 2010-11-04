@@ -1006,9 +1006,10 @@ def _get_next_id_number():
     """
     get the highest id number and increment it
     """
-    all_packages = Package.objects.all().order_by('-id_number')
-    return str(int(all_packages[0].id_number) + 1) \
-            if all_packages else str(settings.MINIMUM_PACKAGE_ID)
+    all_packages_ids = [int(x.id_number) for x in Package.objects.all()]
+    all_packages_ids.sort()
+    return str(all_packages_ids[-1] + 1) \
+            if all_packages_ids else str(settings.MINIMUM_PACKAGE_ID)
 
 ###############################################################################
 ## Catching Signals
