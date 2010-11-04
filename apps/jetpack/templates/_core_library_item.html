@@ -1,7 +1,7 @@
 {% if revision.sdk %}
 <li class="UI_File_Normal Core_library">
-	<a title="" href="{{ revision.sdk.core_lib.get_absolute_url }}" target="{{ revision.sdk.core_lib.package.name }}" class="library_link">
-		{{ revision.sdk.core_lib.package.full_name }}{% if not edit_mode %} {{ revision.sdk.version }}{% endif %}
+	<a title="" href="{{ revision.get_sdk_revision.get_absolute_url }}" target="{{ revision.get_sdk_revision.package.name }}" class="library_link">
+		{{ revision.get_sdk_revision.package.full_name }}{% if not edit_mode %} {{ revision.sdk.version }}{% endif %}
 	</a>
 	{% if edit_mode %}
 	<select id="jetpack_core_sdk_version">

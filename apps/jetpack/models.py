@@ -752,6 +752,14 @@ class PackageRevision(models.Model):
         " returns the path to the directory where the SDK should be copied "
         return '%s-%s' % (settings.SDKDIR_PREFIX, self.get_sdk_name())
 
+    def get_sdk_revision(self):
+        " return core_lib, addon_kit or None "
+        if not self.sdk:
+            return None
+
+        return self.sdk.kit_lib if self.sdk.kit_lib else self.sdk.core_lib
+
+
     def build_xpi(self):
         " prepare and build XPI "
         if self.package.type == 'l':

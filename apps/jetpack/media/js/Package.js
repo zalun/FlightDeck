@@ -412,6 +412,8 @@ Package.Edit = new Class({
 						fd.setURIRedirect(response.edit_url);
 						// set data changed by save
 						this.setUrls(response);
+                        // change url to the SDK lib code
+                        // change name of the SDK lib 
 						fd.message.alert(response.message_title, response.message);
 					}.bind(this)
 				}).send();
