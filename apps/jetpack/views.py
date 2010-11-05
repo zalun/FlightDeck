@@ -301,7 +301,7 @@ def package_switch_sdk(r, id_number, revision_number):
 
     return render_to_response("json/sdk_switched.json",
                 {'revision': revision, 'sdk': sdk,
-                 'sdk_lib_package': revision.get_sdk_revision().package
+                 'sdk_lib': revision.get_sdk_revision()
                 },
                 context_instance=RequestContext(r),
                 mimetype='application/json')
