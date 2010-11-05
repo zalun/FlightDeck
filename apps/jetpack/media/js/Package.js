@@ -412,6 +412,12 @@ Package.Edit = new Class({
 						fd.setURIRedirect(response.edit_url);
 						// set data changed by save
 						this.setUrls(response);
+                        // change url to the SDK lib code
+                        $('core_library_lib').getElement('a').set(
+                          'href', response.lib_url);
+                        // change name of the SDK lib 
+                        $('core_library_lib').getElement('span').set(
+                          'text', response.lib_name);
 						fd.message.alert(response.message_title, response.message);
 					}.bind(this)
 				}).send();

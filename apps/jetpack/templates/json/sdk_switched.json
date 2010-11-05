@@ -1,5 +1,7 @@
 {
 	{% include "json/_edit_urls.json" %}
 	"message_title": "Success",
-	"message": "Switched to Jetpack SDK {{ sdk.version }}",
+	"message": "Switched to SDK {{ sdk.version }}",
+    "lib_name": "{{ sdk_lib.package.full_name }}",
+    "lib_url": "{{ sdk_lib.get_absolute_url }}"
 }

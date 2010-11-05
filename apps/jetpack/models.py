@@ -752,6 +752,14 @@ class PackageRevision(models.Model):
         " returns the path to the directory where the SDK should be copied "
         return '%s-%s' % (settings.SDKDIR_PREFIX, self.get_sdk_name())
 
+    def get_sdk_revision(self):
+        " return core_lib, addon_kit or None "
+        if not self.sdk:
+            return None
+
+        return self.sdk.kit_lib if self.sdk.kit_lib else self.sdk.core_lib
+
+
     def build_xpi(self):
         " prepare and build XPI "
         if self.package.type == 'l':
@@ -983,7 +991,10 @@ class SDK(models.Model):
 
     # It has to be accompanied with a jetpack-core version
     # needs to exist before SDK is created
-    core_lib = models.OneToOneField(PackageRevision, related_name="parent_sdk")
+    core_lib = models.OneToOneField(PackageRevision,
+            related_name="parent_sdk_core+")
+    kit_lib = models.OneToOneField(PackageRevision,
+            related_name="parent_sdk_kit+", blank=True, null=True)
 
     # placement in the filesystem
     dir = models.CharField(max_length=255, unique=True)
@@ -1003,16 +1014,17 @@ def _get_next_id_number():
     """
     get the highest id number and increment it
     """
-    all_packages = Package.objects.all().order_by('-id_number')
-    return str(int(all_packages[0].id_number) + 1) \
-            if all_packages else str(settings.MINIMUM_PACKAGE_ID)
+    all_packages_ids = [int(x.id_number) for x in Package.objects.all()]
+    all_packages_ids.sort()
+    return str(all_packages_ids[-1] + 1) \
+            if all_packages_ids else str(settings.MINIMUM_PACKAGE_ID)
 
 ###############################################################################
 ## Catching Signals
 
 def set_package_id_number(instance, **kwargs):
     " sets package's id_number before creating the new one "
-    if kwargs.get('raw', False) or instance.id:
+    if kwargs.get('raw', False) or instance.id or instance.id_number:
         return
     instance.id_number = _get_next_id_number()
 pre_save.connect(set_package_id_number, sender=Package)
