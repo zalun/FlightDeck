@@ -18,7 +18,7 @@ from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.views.decorators.http import require_POST
-from django.template.defaultfilters import slugify
+from django.template.defaultfilters import slugify, escape
 from django.conf import settings
 
 from base.shortcuts import get_object_with_related_or_404
@@ -132,7 +132,7 @@ def package_copy(r, id_number, type_id,
 
     return HttpResponseForbidden(
         'You already have a %s with that name' \
-            % source.package.get_type_name()
+            % escape(source.package.get_type_name())
         )
 
 @login_required
@@ -186,7 +186,8 @@ def package_disable(r, id_number):
     package = get_object_or_404(Package, id_number=id_number)
     if r.user.pk != package.author.pk:
         return HttpResponseForbidden(
-            'You are not the author of this %s' % package.get_type_name())
+            'You are not the author of this %s' % escape(
+                package.get_type_name()))
 
     package.active = False
     package.save()
@@ -205,7 +206,8 @@ def package_activate(r, id_number):
     package = get_object_or_404(Package, id_number=id_number)
     if r.user.pk != package.author.pk:
         return HttpResponseForbidden(
-            'You are not the author of this %s' % package.get_type_name())
+            'You are not the author of this %s' % escape(
+                package.get_type_name()))
 
     package.active = True
     package.save()
@@ -227,8 +229,8 @@ def package_add_module(r, id_number, type_id,
                                     version_name)
     if r.user.pk != revision.author.pk:
         return HttpResponseForbidden(
-            'You are not the author of this %s' \
-                % revision.package.get_type_name())
+            'You are not the author of this %s' % escape(
+                revision.package.get_type_name()))
 
     filename = slugify(r.POST.get('filename'))
 
@@ -243,7 +245,7 @@ def package_add_module(r, id_number, type_id,
         revision.module_add(mod)
     except FilenameExistException, err:
         mod.delete()
-        return HttpResponseForbidden(str(err))
+        return HttpResponseForbidden(escape(str(err)))
 
     return render_to_response("json/module_added.json",
                 {'revision': revision, 'module': mod},
@@ -274,7 +276,8 @@ def package_remove_module(r, id_number, type_id, revision_number):
 
     if not module_found:
         return HttpResponseForbidden(
-            'There is no such module in %s' % revision.package.full_name)
+            'There is no such module in %s' % escape(
+                revision.package.full_name))
 
     revision.module_remove(module)
 
@@ -319,7 +322,7 @@ def package_add_attachment(r, id_number, type_id,
     if r.user.pk != revision.author.pk:
         return HttpResponseForbidden(
             'You are not the author of this %s' \
-                % revision.package.get_type_name())
+                % escape(revision.package.get_type_name()))
 
     content = r.raw_post_data
     path = r.META.get('HTTP_X_FILE_NAME', False)
@@ -374,7 +377,8 @@ def package_remove_attachment(r, id_number, type_id, revision_number):
 
     if not attachment_found:
         return HttpResponseForbidden(
-            'There is no such attachment in %s' % revision.package.full_name)
+            'There is no such attachment in %s' % escape(
+                revision.package.full_name))
 
     revision.attachment_remove(attachment)
 
@@ -422,13 +426,13 @@ def package_save(r, id_number, type_id, revision_number=None,
     # validate package_full_name and version_name
     if package_full_name and not validator.is_valid(
         'alphanum_plus_space', package_full_name):
-        return HttpResponseNotAllowed(
-            validator.get_validation_message('alphanum_plus_space'))
+        return HttpResponseNotAllowed(escape(
+            validator.get_validation_message('alphanum_plus_space')))
 
     if version_name and not validator.is_valid(
         'alphanum_plus', version_name):
-        return HttpResponseNotAllowed(
-            validator.get_validation_message('alphanum_plus'))
+        return HttpResponseNotAllowed(escape(
+            validator.get_validation_message('alphanum_plus')))
 
     if package_full_name and package_full_name != revision.package.full_name:
         try:
@@ -441,8 +445,8 @@ def package_save(r, id_number, type_id, revision_number=None,
                 author__username=r.user.username,
                 )
             return HttpResponseForbidden(
-                'You already have a %s with that name' \
-                    % revision.package.get_type_name()
+                'You already have a %s with that name' % escape(
+                    revision.package.get_type_name())
                 )
         except:
             save_package = True
@@ -484,7 +488,7 @@ def package_save(r, id_number, type_id, revision_number=None,
         try:
             revision.set_version(version_name)
         except Exception, err:
-            return HttpResponseForbidden(err.__str__())
+            return HttpResponseForbidden(escape(err.__str__()))
 
     if save_package:
         revision.package.save()
@@ -516,8 +520,8 @@ def package_create(r, type_id):
             type=type_id)
         if len(packages.all()) > 0:
             return HttpResponseForbidden(
-                "You already have a %s with that name" \
-                % settings.PACKAGE_SINGULAR_NAMES[type_id])
+                "You already have a %s with that name" % escape(
+                    settings.PACKAGE_SINGULAR_NAMES[type_id]))
     else:
         description = ""
 
@@ -574,7 +578,7 @@ def package_assign_library(r, id_number, type_id,
     try:
         revision.dependency_add(lib_revision)
     except Exception, err:
-        return HttpResponseForbidden(err.__str__())
+        return HttpResponseForbidden(escape(err.__str__()))
 
     lib_revision_url = lib_revision.get_edit_url() \
         if r.user.pk == lib_revision.pk \
@@ -595,8 +599,8 @@ def package_remove_library(r, id_number, type_id, revision_number):
     revision = get_package_revision(id_number, type_id, revision_number)
     if r.user.pk != revision.author.pk:
         return HttpResponseForbidden(
-            'You are not the author of this %s' \
-            % revision.package.get_type_name())
+            'You are not the author of this %s' % escape(
+                revision.package.get_type_name()))
 
     lib_id_number = r.POST.get('id_number')
     library = get_object_or_404(Package, id_number=lib_id_number)
@@ -604,7 +608,7 @@ def package_remove_library(r, id_number, type_id, revision_number):
     try:
         revision.dependency_remove_by_id_number(lib_id_number)
     except Exception, err:
-        return HttpResponseForbidden(err.__unicode__())
+        return HttpResponseForbidden(escape(err.__unicode__()))
 
     return render_to_response('json/dependency_removed.json',
                 {'revision': revision, 'library': library},
