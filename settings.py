@@ -138,6 +138,10 @@ SITE_TITLE = "Add-on Builder"
 # Define in settings_local.py ake this unique, and don't share it with anybody.
 SECRET_KEY = 'somesecretkey'
 
+# Cookies which should not have the httponly set to true
+JAVASCRIPT_READABLE_COOKIES = ()
+#SESSION_COOKIE_SECURE = True
+
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
     'django.template.loaders.filesystem.load_template_source',
@@ -152,6 +156,7 @@ MIDDLEWARE_CLASSES = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
+    'utils.cookies.HttpOnlyMiddleware',
 ]
 
 TEMPLATE_CONTEXT_PROCESSORS = (
