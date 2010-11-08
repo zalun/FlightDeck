@@ -1,17 +1,6 @@
-{% load markup %}
-
-<dt>
-	{{ class_doc.name }}.{{ property.name }} : {{ property.property_type }}
-</dt>
-
-<dd>
-{% if property.description %}
-	<p>{{ property.description|markdown}}</p>
-{% endif %}
-
 <div class="object-contents">
-{% if property.constructors %}
-	{% for method in property.constructors %}
+{% if class_doc.constructors %}
+	{% for method in class_doc.constructors %}
 		{% if forloop.first %}
 			<p class="api-header">
 				Constructors</p>
@@ -20,8 +9,8 @@
 	{% endfor %}
 {% endif %}
 
-{% if property.methods %}
-	{% for method in property.methods %}
+{% if class_doc.methods %}
+	{% for method in class_doc.methods %}
 		{% if forloop.first %}
 			<p class="api-header">Methods</p>
 		{% endif %}
@@ -29,8 +18,8 @@
 	{% endfor %}
 {% endif %}
 
-{% if property.properties %}
-	{% for property in property.properties %}
+{% if class_doc.properties %}
+	{% for property in class_doc.properties %}
 		{% if forloop.first %}
 			<p class="api-header">Properties</p>
 		{% endif %}
@@ -38,5 +27,3 @@
 	{% endfor %}
 {% endif %}
 </div>
-
-</dd>

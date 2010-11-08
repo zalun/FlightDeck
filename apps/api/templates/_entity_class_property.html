@@ -1,0 +1,10 @@
+{% load markup %}
+
+<p class="api-element-name" id="{{ class_doc.name }}_{{property.name }}">
+	<a title={{ property.name }} href="#{{ class_doc.name }}_{{property.name }}" class="api-name">{{ class_doc.name }}.{{ property.name }} : {{ property.property_type }}</a>
+</p>
+
+{% if property.description %}
+	<p>{{ property.description|markdown}}</p>
+{% endif %}
+

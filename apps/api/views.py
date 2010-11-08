@@ -92,18 +92,27 @@ def module(r, package_name, module_name):
                      package_name, 'docs', doc_file)).read()
     # changing the tuples to dictionaries
     hunks = list(apiparser.parse_hunks(text))
-    data = []
+    classes = []
+    functions = []
+    properties = []
     for h in hunks:
         # convert JSON to a nice list
         if h[0] == 'api-json':
             entity = h[1]
             entity['template'] = '_entity_%s.html' % entity['type']
-            data.append(entity)
+            if entity['type'] == 'class':
+                classes.append(entity)
+            elif entity['type'] == 'function':
+                functions.append(entity)
+            elif entity['type'] == 'property':
+                properties.append(entity)
 
     module = {
         'name': module_name,
         'info': hunks[0][1],
-        'data': data,
+        'classes' : classes,
+        'functions' : functions,
+        'properties' : properties,
         'hunks': hunks
     }
     package = {'name': package_name,
