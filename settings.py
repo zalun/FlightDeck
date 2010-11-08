@@ -140,6 +140,7 @@ SECRET_KEY = 'somesecretkey'
 
 # Cookies which should not have the httponly set to true
 JAVASCRIPT_READABLE_COOKIES = ()
+#SESSION_COOKIE_SECURE = True
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
