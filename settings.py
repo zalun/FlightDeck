@@ -3,6 +3,7 @@ Default settings for the FlightDeck site
 For local configuration please use settings_local.py
 """
 import os
+import logging
 
 # Make filepaths relative to settings.
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -36,6 +37,26 @@ DATABASES = {
         'OPTIONS': {'init_command': 'SET storage_engine=InnoDB'},
         'TEST_CHARSET': 'utf8',
         'TEST_COLLATION': 'utf8_general_ci',
+    },
+}
+
+
+# Logging (copied from zamboni)
+LOG_LEVEL = logging.DEBUG
+HAS_SYSLOG = True # syslog is used if HAS_SYSLOG and NOT DEBUG.
+SYSLOG_TAG = "http_app_builder"
+# See PEP 391 and log_settings.py for formatting help. Each section of LOGGING
+# will get merged into the corresponding section of log_settings.py.
+# Handlers and log levels are set up automatically based on LOG_LEVEL and DEBUG
+# unless you set them here. Messages will not propagate through a logger
+# unless propagate: True is set.
+LOGGING = {
+    'loggers': {
+        'amqplib': {'handlers': ['null']},
+        'caching': {'handlers': ['null']},
+        'suds': {'handlers': ['null']},
+        'z.sphinx': {'level': logging.INFO},
+        'z.task': {'level': logging.INFO},
     },
 }
 
@@ -157,6 +178,7 @@ MIDDLEWARE_CLASSES = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'utils.cookies.HttpOnlyMiddleware',
+    'commonware.middleware.FrameOptionsHeader',
 ]
 
 TEMPLATE_CONTEXT_PROCESSORS = (
