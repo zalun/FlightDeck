@@ -1,0 +1,12 @@
+{
+    "include_tests": true,
+    "plugins": ["command_line", "completion", "ctags", "editing_commands", "embedded", "events", "html", "js_syntax", "js_completion", "jslint_command", "keyboard", "matcher", "syntax_worker", "whitetheme"],
+	"config": {
+		"settings": {
+		    "theme": "white",
+			"tabstop": 4,
+			"fontsize": 12
+		}
+	}
+}
+
