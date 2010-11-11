@@ -1,5 +1,5 @@
 from django.contrib import admin
-from models import Package, PackageRevision, Module, Attachment
+from models import Package, PackageRevision, Module, Attachment, SDK
 
 
 class PackageAdmin(admin.ModelAdmin):
@@ -20,3 +20,8 @@ admin.site.register(Module, ModuleAdmin)
 class AttachmentAdmin(admin.ModelAdmin):
     pass
 admin.site.register(Attachment, AttachmentAdmin)
+
+
+class SdkAdmin(admin.ModelAdmin):
+    pass
+admin.site.register(SDK, SdkAdmin)
