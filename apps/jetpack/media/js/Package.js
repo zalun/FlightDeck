@@ -58,7 +58,7 @@ var Package = new Class({
 				var template_end = '</div><div class="UI_Modal_Actions"><ul><li><input type="reset" value="Close" class="closeModal"/></li></ul></div></div>';
 				var template_middle = 'Download <a href="'+url+'">'+filename+'</a>';
 				if (['jpg', 'gif', 'png'].contains(ext)) template_middle = '<img src="'+url+'"/>'; 
-				if (['css', 'js', 'css'].contains(ext)) {
+				if (['css', 'js', 'txt'].contains(ext)) {
 					new Request({
 						url: url,
 						evalScripts: false,
