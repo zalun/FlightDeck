@@ -23,8 +23,6 @@ fi
 
 source $VENV/bin/activate
 
-# temporary to update the list of dependencies
-pip install -q -r requirements/production.txt
 pip install -q -r requirements/compiled.txt
 
 pushd vendor && git pull && git submodule update --init && popd
