@@ -234,7 +234,8 @@ INSTALLED_APPS = [
     'amo',               # currently addons.mozilla.org authentication
     'jetpack',           # Jetpack functionality
     'api',               # API browser
-    'tutorial'           # Load tutorial templates
+    'tutorial',          # Load tutorial templates
+    'cronjobs',
 ]
 
 # Which from above apps should be removed if in PRODUCTION
