@@ -1,6 +1,6 @@
 import os
 
-#from cuddlefish import apiparser
+from cuddlefish import apiparser
 
 from django.shortcuts import render_to_response
 from django.template import RequestContext
@@ -92,18 +92,17 @@ def module(r, package_name, module_name):
                      package_name, 'docs', doc_file)).read()
     # changing the tuples to dictionaries
     hunks = list(apiparser.parse_hunks(text))
-    data = []
+    entities = []
     for h in hunks:
         # convert JSON to a nice list
         if h[0] == 'api-json':
-            entity = h[1]
-            entity['template'] = '_entity_%s.html' % entity['type']
-            data.append(entity)
+            h[1]['json_type'] = "api"
+        entities.append(h[1])
 
     module = {
         'name': module_name,
         'info': hunks[0][1],
-        'data': data,
+        'entities': entities,
         'hunks': hunks
     }
     package = {'name': package_name,
