@@ -3,13 +3,14 @@ import shutil
 import simplejson
 
 from utils.test import TestCase
+from nose.tools import eq_
 
 from django.contrib.auth.models import User
 from django.conf import settings
 
-from jetpack.models import Package, PackageRevision, Module
+from jetpack.models import Module, Package, PackageRevision, SDK
 from jetpack.xpi_utils import sdk_copy, xpi_build
-
+from jetpack.cron import find_files, clean_tmp
 
 class XPIBuildTest(TestCase):
 
@@ -216,3 +217,22 @@ class XPIBuildTest(TestCase):
         self.failUnless(os.path.isfile('%s/packages/%s/%s.xpi' % (
             self.SDKDIR,
             self.addon.get_unique_package_name(), self.addon.name)))
+
+    def test_xpi_clean(self):
+        """Test that we clean up the /tmp directory correctly."""
+        sdk = SDK.objects.create(version='0.8',
+                                 core_lib_id=6,
+                                 dir='jetpack-sdk-0.8')
+        rev = Package.objects.get(id=4).revisions.all()[0]
+        rev.sdk = sdk
+        rev.save()
+
+        # Clean out /tmp directory.
+        [ shutil.rmtree(full) for full in find_files() ]
+        assert not find_files()
+        rev.build_xpi()
+
+        # There should be one directory in the /tmp directory now.
+        eq_(len(find_files()), 1)
+        clean_tmp(length=0)
+        assert not find_files()
