@@ -61,8 +61,6 @@ var Package = new Class({
 				if (['css', 'js', 'txt'].contains(ext)) {
 					new Request({
 						url: url,
-						evalScripts: false,
-						evalResponse: false,
 						onSuccess: function(response) {
 							template_middle = '<pre>'+response.escapeAll()+'</pre>';
 							this.attachmentWindow = fd.displayModal(template_start+template_middle+template_end);
