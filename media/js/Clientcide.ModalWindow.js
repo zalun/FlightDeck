@@ -13,7 +13,7 @@ var ModalWindow = new Class({
 		this.modal = new StickyWin({
 			content: content,
 			relativeTo: $(document.body),
-			position: 'cetner',
+			position: 'center',
 			edge: 'center',
 			closeClassName: 'closeModal',
 			draggable: true,

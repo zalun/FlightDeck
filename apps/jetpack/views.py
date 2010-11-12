@@ -1,9 +1,9 @@
 """
 Views for the Jetpack application
 """
-# XXX: Error 500 is not fired properly
 import os
 import time
+import commonware
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -11,7 +11,7 @@ from django.views.static import serve
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponseRedirect, HttpResponse, \
                         HttpResponseForbidden, HttpResponseServerError, \
-                        HttpResponseNotAllowed
+                        HttpResponseNotAllowed, Http404
 from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -102,7 +102,10 @@ def get_module(r, id_number, revision_number, filename):
                 revision_number=revision_number)
         mod = revision.modules.get(filename=filename)
     except:
-        raise Http404('No such module %s' % filename)
+        log_msg = 'No such module %s' % filename
+        log = commonware.log.getLogger('f.jetpack')
+        log.debug(log_msg)
+        raise Http404(log_msg)
     return HttpResponse(mod.get_json())
 
 
