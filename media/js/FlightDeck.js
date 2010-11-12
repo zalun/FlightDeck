@@ -213,7 +213,12 @@ Request = Class.refactor(Request, {
 				'{statusText}<br/>{responseText}'.substitute(xhr)
 				);
 		}
-	}
+	},
+    // overloading processScripts to *not* execute JS responses
+	processScripts: function(text){
+		if (this.options.evalResponse) return $exec(text);
+		return text.stripScripts(this.options.evalScripts);
+	},
 });
 
 
