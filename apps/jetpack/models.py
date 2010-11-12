@@ -8,6 +8,9 @@ import shutil
 
 from copy import deepcopy
 
+from ecdsa import SigningKey, NIST256p
+from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
+
 from django.db.models.signals import pre_save, post_save
 from django.db import models
 from django.utils import simplejson
@@ -218,9 +221,6 @@ class Package(models.Model):
         """
         create keypair, program_id and jid
         """
-        from ecdsa import SigningKey, NIST256p
-        from cuddlefish.preflight import vk_to_jid, jid_to_programid, \
-                                         my_b32encode
 
         signingkey = SigningKey.generate(curve=NIST256p)
         sk_text = "private-jid0-%s" % my_b32encode(signingkey.to_string())
