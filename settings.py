@@ -52,11 +52,7 @@ SYSLOG_TAG = "http_app_builder"
 # unless propagate: True is set.
 LOGGING = {
     'loggers': {
-        'amqplib': {'handlers': ['null']},
-        'caching': {'handlers': ['null']},
-        'suds': {'handlers': ['null']},
-        'z.sphinx': {'level': logging.INFO},
-        'z.task': {'level': logging.INFO},
+        'f.jetpack': {'level': logging.INFO},
     },
 }
 
