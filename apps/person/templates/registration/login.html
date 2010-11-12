@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load safe_csrf %}
 {# default django template for login page #}
 
 {% block title %}Sign In - {% endblock %}
@@ -30,7 +31,7 @@
 	<div class="UI_Login">
 		
 		<form class="UI_Forms" id="login_form" method="post" action="{% url django.contrib.auth.views.login %}" accept-charset="utf-8">
-			{% csrf_token %}
+			{% safe_csrf_token %}
 			<fieldset>
 				<legend>Login</legend>
 				

@@ -6,7 +6,6 @@ import site
 site.addsitedir('vendor')
 site.addsitedir('vendor/lib/python')
 
-
 ROOT = os.path.dirname(os.path.abspath(__file__))
 path = lambda *a: os.path.join(ROOT, *a)
 

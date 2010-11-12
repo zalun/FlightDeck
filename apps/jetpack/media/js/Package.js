@@ -61,8 +61,6 @@ var Package = new Class({
 				if (['css', 'js', 'txt'].contains(ext)) {
 					new Request({
 						url: url,
-						evalScripts: false,
-						evalResponse: false,
 						onSuccess: function(response) {
 							template_middle = '<pre>'+response.escapeAll()+'</pre>';
 							this.attachmentWindow = fd.displayModal(template_start+template_middle+template_end);
@@ -577,24 +575,32 @@ Package.Edit = new Class({
 		}).send();
 	},
 	assignLibraryAction: function(e) {
+        e.stop();
 		// get data
 		library_id = $(this.options.assign_library_input).get('value');
 		// assign Library by giving filename
 		this.assignLibrary(library_id);
 	},
 	assignLibrary: function(library_id) {
-		new Request.JSON({
-			url: this.assign_library_url || this.options.assign_library_url,
-			data: {'id_number': library_id},
-			onSuccess: function(response) {
-				// set the redirect data to edit_url of the new revision
-				fd.setURIRedirect(response.edit_url);
-				// set data changed by save
-				this.setUrls(response);
-				//fd.message.alert('Library assigned', response.message);
-				this.appendLibrary(response);
-			}.bind(this)
-		}).send();
+        if (library_id) {
+          new Request.JSON({
+              url: this.assign_library_url || this.options.assign_library_url,
+              data: {'id_number': library_id},
+              onSuccess: function(response) {
+                  // clear the library search field
+                  $(this.options.assign_library_input).set('value','');
+                  $(this.autocomplete.options.display_el).set('value','');
+                  // set the redirect data to edit_url of the new revision
+                  fd.setURIRedirect(response.edit_url);
+                  // set data changed by save
+                  this.setUrls(response);
+                  //fd.message.alert('Library assigned', response.message);
+                  this.appendLibrary(response);
+              }.bind(this)
+          }).send();
+        } else {
+          fd.error.alert('No such Library', 'Please choose a library from the list');
+        }
 	},
 	appendLibrary: function(lib) {
 		var html='<a title="" id="library_{library_name}" href="{library_url}" target="{id_number}" class="library_link">'+
