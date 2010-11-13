@@ -220,10 +220,11 @@ class XPIBuildTest(TestCase):
 
     def test_xpi_clean(self):
         """Test that we clean up the /tmp directory correctly."""
-        sdk = SDK.objects.create(version='0.8',
-                                 core_lib_id=6,
-                                 dir='jetpack-sdk-0.8')
         rev = Package.objects.get(id=4).revisions.all()[0]
+        sdk = SDK.objects.create(version='0.8',
+                                     core_lib=rev,
+                                     dir='jetpack-sdk-0.8')
+
         rev.sdk = sdk
         rev.save()
 
