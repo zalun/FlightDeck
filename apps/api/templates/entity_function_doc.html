@@ -1,0 +1,26 @@
+{% load markup %}
+
+<p class="api-name" id="{{function_doc.name}}">
+<a title={{ function_doc.name }} href="#{{ function_doc.name }}" class="api-name">{{ function_doc.signature }}</a>
+</p>
+
+
+{% if function_doc.description %}
+	<p>{{ function_doc.description|markdown}}</p>
+{% endif %}
+
+{% if function_doc.returns.description %}
+	returns {{ function_doc.returns.type }}
+	<p>{{ entity.returns.description|markdown }}</p>
+{% endif %}
+
+<div class="function-parameter-list">
+{% for param in function_doc.params %}
+	{% if forloop.first %}
+		<p class="api-element-header">Parameters</p>
+	{% endif %}
+	<dl>
+		{% include "_entity_parameter.html" %}
+	</dl>
+{% endfor %}
+</div>

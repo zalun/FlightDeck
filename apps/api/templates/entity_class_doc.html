@@ -1,0 +1,11 @@
+{% load markup %}
+
+<h3 class="UI_Heading" id="{{class_doc.name}}">
+<a title={{ class_doc.name }} href="#{{ class_doc.name }}" class="api-name">{{ class_doc.name }} object</a>
+</h3>
+
+{% if class_doc.description %}
+	<p>{{ class_doc.description|markdown}}</p>
+{% endif %}
+
+{% include "_object_contents.html" %}

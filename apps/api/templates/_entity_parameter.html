@@ -1,0 +1,35 @@
+
+{% load markup %}
+
+<div class="parameter">
+<p class="parameter-name">
+	{{ param.name }} : {{ param.type }}
+</p>
+
+<p>
+{% if param.description %}
+	<p>{{ param.description|markdown}}</p>
+{% endif %}
+
+{% if param.props %}
+<div class="property-list">
+	{% for property in param.props %}
+		{% if forloop.first %}
+			<p class="api-element-header">Properties</p>
+		{% endif %}
+		<dl>
+			<dt>
+				{{ property.name }} : {{ property.type }}
+			</dt>
+
+			<dd>
+			{% if property.description %}
+				<p>{{ property.description|markdown}}</p>
+			{% endif %}
+			</dd>
+		</dl>
+	{% endfor %}
+</div>
+{% endif %}
+</p>
+</div>
