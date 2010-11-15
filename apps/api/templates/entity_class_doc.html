@@ -1,11 +1,20 @@
 {% load markup %}
 
+<<<<<<< HEAD
 <h3 class="UI_Heading" id="{{class_doc.name}}">
 <a title={{ class_doc.name }} href="#{{ class_doc.name }}" class="api-name">{{ class_doc.name }} object</a>
 </h3>
 
 {% if class_doc.description %}
 	<p>{{ class_doc.description|markdown}}</p>
+=======
+<h3 class="UI_Heading" id="{{entity.name}}">
+<a title={{ entity.name }} href="#{{ entity.name }}" class="api-name">{{ entity.name }} object</a>
+</h3>
+
+{% if entity.description %}
+	<p>{{ entity.description|markdown}}</p>
+>>>>>>> bug-611173-
 {% endif %}
 
 {% include "_object_contents.html" %}

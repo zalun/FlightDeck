@@ -1,6 +1,11 @@
 <div class="object-contents">
+<<<<<<< HEAD
 {% if class_doc.constructors %}
 	{% for method in class_doc.constructors %}
+=======
+{% if entity.constructors %}
+	{% for method in entity.constructors %}
+>>>>>>> bug-611173-
 		{% if forloop.first %}
 			<p class="api-header">
 				Constructors</p>
@@ -9,8 +14,13 @@
 	{% endfor %}
 {% endif %}
 
+<<<<<<< HEAD
 {% if class_doc.methods %}
 	{% for method in class_doc.methods %}
+=======
+{% if entity.methods %}
+	{% for method in entity.methods %}
+>>>>>>> bug-611173-
 		{% if forloop.first %}
 			<p class="api-header">Methods</p>
 		{% endif %}
@@ -18,8 +28,13 @@
 	{% endfor %}
 {% endif %}
 
+<<<<<<< HEAD
 {% if class_doc.properties %}
 	{% for property in class_doc.properties %}
+=======
+{% if entity.properties %}
+	{% for property in entity.properties %}
+>>>>>>> bug-611173-
 		{% if forloop.first %}
 			<p class="api-header">Properties</p>
 		{% endif %}

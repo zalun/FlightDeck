@@ -55,8 +55,12 @@ body {
 	#api-body h3.UI_Heading {
 		margin: 10px 0 8px;
 		margin-top: 30px;
+<<<<<<< HEAD
 		padding-top:5px;
 		padding-bottom:5px;
+=======
+		padding:5px;
+>>>>>>> bug-611173-
 		font-weight: bold;
 		font-size: 1.5em;
 		border: solid 1px #ECEFF5;
@@ -141,11 +145,24 @@ body {
 		#api-body div.function-parameter-list
 			{
 			margin-left:20px;
+<<<<<<< HEAD
 		}
 
 		#api-body div.property-list
 			{
 			margin-left:60px;
+=======
+		}
+
+		#api-body div.property-list
+			{
+			margin-left:60px;
+		}
+
+		#api-body span.data-type
+			{
+			font-style:italic;
+>>>>>>> bug-611173-
 		}
 
 		#api-body div.object-contents
