@@ -422,7 +422,10 @@ class PackageRevision(models.Model):
 
     def get_dependencies_list(self):
         " returns a list of dependencies names extended by default core "
-        deps = ['jetpack-core']
+        if self.package.is_addon() and self.sdk.kit_lib:
+            deps = ['addon-kit']
+        else:
+            deps = ['jetpack-core']
         deps.extend([dep.package.get_unique_package_name() \
                      for dep in self.dependencies.all()])
         return deps
@@ -999,6 +1002,7 @@ class SDK(models.Model):
     #core_fullname = models.CharField(max_length=100, default='Jetpack Core')
     #kit_name = models.CharField(max_length=100, default='addon-kit')
     #kit_fullname = models.CharField(max_length=100, default='Addon Kit')
+      this.previous(options);
 
     # placement in the filesystem
     dir = models.CharField(max_length=255, unique=True)
