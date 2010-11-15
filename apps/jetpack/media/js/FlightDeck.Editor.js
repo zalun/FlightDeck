@@ -14,7 +14,7 @@ FlightDeck = Class.refactor(FlightDeck,{
 
 		this.edited = false;
 		window.addEvent('beforeunload', function(e) {
-			if (fd.edited && !fd.saving) {
+			if (0 && fd.edited && !fd.saving) {
 				e.stop();
 				e.returnValue = "You've got unsaved changes.";
 			} else {
