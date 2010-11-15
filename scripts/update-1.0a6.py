@@ -27,7 +27,12 @@ conn = MySQLdb.connect (
         )
 cursor = conn.cursor()
 
-SQL = "ALTER TABLE jetpack_sdk ADD kit_lib_id INT DEFAULT NULL"
+SQL = """ALTER TABLE jetpack_sdk
+            ADD kit_lib_id INT DEFAULT NULL"""
+            #ADD kit_name VARCHAR(100) DEFAULT 'addon-kit',
+            #ADD kit_fullname VARCHAR(100) DEFAULT 'Addon Kit',
+            #ADD core_name VARCHAR(100) DEFAULT 'jetpack-core',
+            #ADD core_fullname VARCHAR(100) DEFAULT 'Jetpack Core'"""
 try:
     cursor.execute(SQL)
 except MySQLdb.OperationalError, err:

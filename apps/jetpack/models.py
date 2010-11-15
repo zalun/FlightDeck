@@ -995,6 +995,10 @@ class SDK(models.Model):
             related_name="parent_sdk_core+")
     kit_lib = models.OneToOneField(PackageRevision,
             related_name="parent_sdk_kit+", blank=True, null=True)
+    #core_name = models.CharField(max_length=100, default='jetpack-core')
+    #core_fullname = models.CharField(max_length=100, default='Jetpack Core')
+    #kit_name = models.CharField(max_length=100, default='addon-kit')
+    #kit_fullname = models.CharField(max_length=100, default='Addon Kit')
 
     # placement in the filesystem
     dir = models.CharField(max_length=255, unique=True)
