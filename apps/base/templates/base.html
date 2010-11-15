@@ -29,6 +29,7 @@
 		{% endblock %}
 		
 		<script type='text/javascript'>
+            {% block head_jstop %}{% endblock %}
 			var fd;
 			var settings = {
 				{% block app_settings %}{% endblock %}{% block page_settings %}{% endblock %}
