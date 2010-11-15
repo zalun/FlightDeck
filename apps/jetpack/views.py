@@ -188,6 +188,10 @@ def package_disable(r, id_number):
     """
     package = get_object_or_404(Package, id_number=id_number)
     if r.user.pk != package.author.pk:
+        log_msg = ('User %s wanted to disable not his own Package %s.' % (
+            r.user, id_number)
+        log = commonware.log.getLogger('f.jetpack')
+        log.debug(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
                 package.get_type_name()))
@@ -208,6 +212,10 @@ def package_activate(r, id_number):
     """
     package = get_object_or_404(Package, id_number=id_number)
     if r.user.pk != package.author.pk:
+        log_msg = ('User %s wanted to activate not his own Package %s.' % (
+            r.user, id_number)
+        log = commonware.log.getLogger('f.jetpack')
+        log.debug(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
                 package.get_type_name()))
@@ -231,6 +239,10 @@ def package_add_module(r, id_number, type_id,
     revision = get_package_revision(id_number, type_id, revision_number,
                                     version_name)
     if r.user.pk != revision.author.pk:
+        log_msg = ('User %s wanted to add a module to not his own Package %s.' % (
+            r.user, id_number)
+        log = commonware.log.getLogger('f.jetpack')
+        log.debug(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
                 revision.package.get_type_name()))
@@ -264,6 +276,10 @@ def package_remove_module(r, id_number, type_id, revision_number):
     """
     revision = get_package_revision(id_number, type_id, revision_number)
     if r.user.pk != revision.author.pk:
+        log_msg = ('User %s wanted to remove a module from not his own Package %s.' % (
+            r.user, id_number)
+        log = commonware.log.getLogger('f.jetpack')
+        log.debug(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
     filename = r.POST.get('filename')
@@ -278,6 +294,10 @@ def package_remove_module(r, id_number, type_id, revision_number):
             module_found = True
 
     if not module_found:
+        log_msg = ('Attempt to delete a non existing module %s from %s.' % (
+            filename, id_number)
+        log = commonware.log.getLogger('f.jetpack')
+        log.debug(log_msg)
         return HttpResponseForbidden(
             'There is no such module in %s' % escape(
                 revision.package.full_name))
@@ -323,6 +343,10 @@ def package_add_attachment(r, id_number, type_id,
     revision = get_package_revision(id_number, type_id, revision_number,
                                     version_name)
     if r.user.pk != revision.author.pk:
+        log_msg = ('Unauthorised attempt to add attachment. user: %s, package: %s.' % (
+            r.user, id_number)
+        log = commonware.log.getLogger('f.jetpack')
+        log.debug(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' \
                 % escape(revision.package.get_type_name()))
@@ -331,6 +355,10 @@ def package_add_attachment(r, id_number, type_id,
     path = r.META.get('HTTP_X_FILE_NAME', False)
 
     if not path:
+        log_msg = ('Path not found: %s, package: %s.' % (
+            path, id_number)
+        log = commonware.log.getLogger('f.jetpack')
+        log.debug(log_msg)
         return HttpResponseServerError
 
     filename, ext = os.path.splitext(path)
@@ -365,6 +393,10 @@ def package_remove_attachment(r, id_number, type_id, revision_number):
     """
     revision = get_package_revision(id_number, type_id, revision_number)
     if r.user.pk != revision.author.pk:
+        log_msg = ('Unauthorised attempt to remove attachment. user: %s, package: %s.' % (
+            r.user, id_number)
+        log = commonware.log.getLogger('f.jetpack')
+        log.debug(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
     filename = r.POST.get('filename', '').strip()
@@ -379,6 +411,10 @@ def package_remove_attachment(r, id_number, type_id, revision_number):
             attachment_found = True
 
     if not attachment_found:
+        log_msg = ('Attempt to remove a non existingattachment. attachment: %s, package: %s.' % (
+            filename, id_number)
+        log = commonware.log.getLogger('f.jetpack')
+        log.debug(log_msg)
         return HttpResponseForbidden(
             'There is no such attachment in %s' % escape(
                 revision.package.full_name))
@@ -412,6 +448,10 @@ def package_save(r, id_number, type_id, revision_number=None,
     revision = get_package_revision(id_number, type_id, revision_number,
                                     version_name)
     if r.user.pk != revision.author.pk:
+        log_msg = ('Unauthorised attempt to save package. user: %s, package: %s.' % (
+            r.user, id_number)
+        log = commonware.log.getLogger('f.jetpack')
+        log.debug(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
     should_reload = False
@@ -569,6 +609,10 @@ def package_assign_library(r, id_number, type_id,
     revision = get_package_revision(id_number, type_id, revision_number,
                                     version_name)
     if r.user.pk != revision.author.pk:
+        log_msg = ('Unauthorised attempt to assign library. user: %s, package: %s.' % (
+            r.user, id_number)
+        log = commonware.log.getLogger('f.jetpack')
+        log.debug(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
     library = get_object_or_404(
@@ -601,6 +645,10 @@ def package_remove_library(r, id_number, type_id, revision_number):
     " remove dependency from the library provided via POST "
     revision = get_package_revision(id_number, type_id, revision_number)
     if r.user.pk != revision.author.pk:
+        log_msg = ('Unauthorised attempt to remove a library. user: %s, package: %s.' % (
+            r.user, id_number)
+        log = commonware.log.getLogger('f.jetpack')
+        log.debug(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
                 revision.package.get_type_name()))
