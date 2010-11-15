@@ -1,17 +1,23 @@
 {% load markup %}
 
-<h4>returns {{ entity.returns.type }}</h4>
+<p class="api-element-name" id="{{ entity.name }}_{{method.name }}">
+<a title={{ method.name }} href="#{{ entity.name }}_{{method.name }}" class="api-name">{{ entity.name }}.{{ method.signature }}</a>
+</p>
 
-{% if entity.returns.description %}
-	<p>{{ entity.returns.description|markdown }}</p>
+{% if method.description %}
+	<p>{{ method.description|markdown }}</p>
 {% endif %}
 
-{% if entity.params %}
-	<h4>Params:</h4>
-	<dl>
-		{% for param in entity.params %}
-			<dt>{{ param.type }}: {{ param.name }}</dt>
-			<dd>{{ param.description|markdown }}</dd>
-		{% endfor %}
-	</dl>
+{% if method.returns.description %}
+	returns {{ method.returns.type }}
+	<p>{{ method.returns.description|markdown }}</p>
 {% endif %}
+
+<div class="class-parameter-list">
+{% for param in method.params %}
+	{% if forloop.first %}
+		<p class="api-element-header">Parameters</p>
+	{% endif %}
+		{% include "_entity_parameter.html" %}
+{% endfor %}
+</div>

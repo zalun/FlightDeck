@@ -214,7 +214,7 @@ var Module = new Class({
 		this.active = true;
 	},
 	destroy: function() {
-		this.textarea.destroy();
+        if (this.textarea) this.textarea.destroy();
 		this.trigger.getParent('li').destroy();
 		$('modules-counter').set('text', '('+ $('modules').getElements('.UI_File_Listing li').length +')')
 		delete fd.getItem().modules[this.options.filename];
@@ -552,7 +552,7 @@ Package.Edit = new Class({
 			return;
 		}
 		this.question = fd.showQuestion({
-			title: 'Are you sure you want to remove {filename}.js?'.substitute(module),
+			title: 'Are you sure you want to remove {filename}.js?'.substitute(module.options),
 			message: 'You may always copy it from this revision',
 			ok: 'Remove',
 			id: 'remove_module_button',
