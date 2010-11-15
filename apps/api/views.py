@@ -10,10 +10,14 @@ from jetpack.models import SDK
 
 sdks = SDK.objects.all()
 if sdks.count() > 0:
-    SDKPACKAGESDIR = os.path.join(settings.SDK_SOURCE_DIR, sdks[0].dir, 'packages')
-    SDKVERSION = sdks[0].version
+    MAIN_SDK = sdks[0]
+    SDKPACKAGESDIR = os.path.join(settings.SDK_SOURCE_DIR, MAIN_SDK.dir, 'packages')
+    SDKVERSION = MAIN_SDK.version
+    CORELIB_NAME = MAIN_SDK.core_lib.package.name
+    ADDON_KIT = MAIN_SDK.kit_lib
 else:
     raise Exception('No SDK imported')
+
 
 def _get_module_filenames(package_name):
     files = os.listdir(os.path.join(SDKPACKAGESDIR, package_name, 'docs'))
@@ -28,11 +32,22 @@ def _get_module_names(package_name):
     return DOC_FILES
 
 
-def homepage(r, package_name='jetpack-core'):
+def _get_package_fullname(package_name):
+    special = {
+            'jetpack-core': 'Core Library (%s)' % SDKVERSION,
+            'addon-kit': 'Addon Kit (%s)' % SDKVERSION
+            }
+    if package_name in special.keys():
+        return special[package_name]
+    return package_name
+
+def homepage(r, package_name=None):
+    if not package_name:
+        package_name = CORELIB_NAME
     page = 'apibrowser'
 
     sdk_version = SDKVERSION
-    package = {'name': package_name,
+    package = {'name': _get_package_fullname(package_name),
                'modules': _get_module_names(package_name)}
 
     return render_to_response(
@@ -40,44 +55,53 @@ def homepage(r, package_name='jetpack-core'):
         {'page': page,
          'sdk_version': sdk_version,
          'package': package,
-         'package_name': package_name
+         'package_name': package_name,
+         'corelib': (package_name == CORELIB_NAME),
+         'addon_kit': ADDON_KIT
         }, context_instance=RequestContext(r))
 
 
-def package(r, package_name='jetpack-core'):
+def package(r, package_name=None):
     """
     containing a listing of all modules docs
     """
+    if not package_name:
+        package_name = CORELIB_NAME
     page = 'apibrowser'
 
     sdk_version = SDKVERSION
 
     DOC_FILES = _get_module_filenames(package_name)
 
-    package = {'name': package_name, 'modules': []}
+    package = {
+            'name': _get_package_fullname(package_name),
+            'modules': []}
     for d in DOC_FILES:
-        text = open(
-            os.path.join(SDKPACKAGESDIR, package_name, 'docs', d)).read()
-        (doc_name, extension) = os.path.splitext(d)
-        # changing the tuples to dictionaries
-        hunks = list(apiparser.parse_hunks(text))
-        data = {}
-        for h in hunks:
-            data[h[0]] = h[1]
-        package['modules'].append({
-            'name': doc_name,
-            'info': hunks[0][1],
-            'data': data,
-            'hunks': hunks
-        })
+        path = os.path.join(SDKPACKAGESDIR, package_name, 'docs', d)
+        if not os.path.isdir(path):
+            text = open(
+                os.path.join(SDKPACKAGESDIR, package_name, 'docs', d)).read()
+            (doc_name, extension) = os.path.splitext(d)
+            # changing the tuples to dictionaries
+            hunks = list(apiparser.parse_hunks(text))
+            data = {}
+            for h in hunks:
+                data[h[0]] = h[1]
+            package['modules'].append({
+                'name': doc_name,
+                'info': hunks[0][1],
+                'data': data,
+                'hunks': hunks
+            })
 
-    print locals()
     return render_to_response(
         'package_doc.html',
         {'page': page,
          'sdk_version': sdk_version,
          'package': package,
          'package_name': package_name,
+         'corelib': (package_name == CORELIB_NAME),
+         'addon_kit': ADDON_KIT
         },
         context_instance=RequestContext(r))
 
@@ -105,7 +129,7 @@ def module(r, package_name, module_name):
         'entities': entities,
         'hunks': hunks
     }
-    package = {'name': package_name,
+    package = {'name': _get_package_fullname(package_name),
                'modules': _get_module_names(package_name)}
 
     return render_to_response(
@@ -114,6 +138,8 @@ def module(r, package_name, module_name):
          'sdk_version': sdk_version,
          'package': package,
          'package_name': package_name,
-         'module': module
+         'module': module,
+         'corelib': (package_name == CORELIB_NAME),
+         'addon_kit': ADDON_KIT
         },
         context_instance=RequestContext(r))

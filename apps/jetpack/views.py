@@ -3,7 +3,7 @@ Views for the Jetpack application
 """
 import os
 import time
-import commonware
+import commonware.log
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse

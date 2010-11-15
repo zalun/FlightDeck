@@ -52,11 +52,7 @@ SYSLOG_TAG = "http_app_builder"
 # unless propagate: True is set.
 LOGGING = {
     'loggers': {
-        'amqplib': {'handlers': ['null']},
-        'caching': {'handlers': ['null']},
-        'suds': {'handlers': ['null']},
-        'z.sphinx': {'level': logging.INFO},
-        'z.task': {'level': logging.INFO},
+        'f.jetpack': {'level': logging.INFO},
     },
 }
 
@@ -234,7 +230,8 @@ INSTALLED_APPS = [
     'amo',               # currently addons.mozilla.org authentication
     'jetpack',           # Jetpack functionality
     'api',               # API browser
-    'tutorial'           # Load tutorial templates
+    'tutorial',          # Load tutorial templates
+    'cronjobs',
 ]
 
 # Which from above apps should be removed if in PRODUCTION
