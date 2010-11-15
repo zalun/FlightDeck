@@ -13,8 +13,10 @@ if sdks.count() > 0:
     MAIN_SDK = sdks[0]
     SDKPACKAGESDIR = os.path.join(settings.SDK_SOURCE_DIR, MAIN_SDK.dir, 'packages')
     SDKVERSION = MAIN_SDK.version
-    CORELIB_NAME = MAIN_SDK.core_lib.package.name
     ADDON_KIT = MAIN_SDK.kit_lib
+    CORELIB_NAME = MAIN_SDK.core_lib.package.name
+    DEFAULTLIB_NAME = ADDON_KIT.package.name \
+            if ADDON_KIT else MAIN_SDK.core_lib.package.name
 else:
     raise Exception('No SDK imported')
 
@@ -43,7 +45,7 @@ def _get_package_fullname(package_name):
 
 def homepage(r, package_name=None):
     if not package_name:
-        package_name = CORELIB_NAME
+        package_name = DEFAULTLIB_NAME
     page = 'apibrowser'
 
     sdk_version = SDKVERSION
@@ -66,7 +68,7 @@ def package(r, package_name=None):
     containing a listing of all modules docs
     """
     if not package_name:
-        package_name = CORELIB_NAME
+        package_name = DEFAULTLIB_NAME
     page = 'apibrowser'
 
     sdk_version = SDKVERSION
