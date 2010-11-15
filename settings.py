@@ -97,8 +97,7 @@ PACKAGE_SINGULAR_NAMES = {
     'a': 'addon'
 }
 DEFAULT_PACKAGE_FULLNAME = {
-    'l': 'My Library',
-    'a': 'My Add-on'
+    'l': 'My Library'
 }
 HOMEPAGE_PACKAGES_NUMBER = 3
 SDKDIR_PREFIX = '/tmp/SDK'

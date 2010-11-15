@@ -555,6 +555,7 @@ def library_autocomplete(r):
     except:
         found = []
 
+
     return render_to_response('json/library_autocomplete.json',
                 {'libraries': found},
                 context_instance=RequestContext(r),

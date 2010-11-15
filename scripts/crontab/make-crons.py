@@ -10,7 +10,7 @@ COMMON = {
 }
 
 CRONS['prod'] = {
-    'FLIGHTDECK': '/data/amo_python/src/prod/flightdeck',
+    'FLIGHTDECK': '/data/flightdeck_python/src/prod/flightdeck',
     'DJANGO': 'apache cd $FLIGHTDECK; $MANAGE',
 }
 

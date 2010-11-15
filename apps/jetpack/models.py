@@ -196,15 +196,16 @@ class Package(models.Model):
             packages = Package.objects.filter(author__username=username,
                                               full_name=new_full_name,
                                               type=type_id)
-            if len(packages.all()) == 0:
+            if packages.count() == 0:
                 return new_full_name
 
             i = i + 1
             return _get_full_name(full_name, username, type_id, i)
 
-        self.full_name = _get_full_name(
-            settings.DEFAULT_PACKAGE_FULLNAME[self.type],
-            self.author.username, self.type)
+
+        name = settings.DEFAULT_PACKAGE_FULLNAME.get(self.type,
+                                                     self.author.username)
+        self.full_name = _get_full_name(name, self.author.username, self.type)
 
     def set_name(self):
         " set's the name from full_name "
