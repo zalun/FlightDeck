@@ -1002,7 +1002,6 @@ class SDK(models.Model):
     #core_fullname = models.CharField(max_length=100, default='Jetpack Core')
     #kit_name = models.CharField(max_length=100, default='addon-kit')
     #kit_fullname = models.CharField(max_length=100, default='Addon Kit')
-      this.previous(options);
 
     # placement in the filesystem
     dir = models.CharField(max_length=255, unique=True)
