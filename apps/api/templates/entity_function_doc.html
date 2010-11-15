@@ -1,18 +1,5 @@
 {% load markup %}
 
-<<<<<<< HEAD
-<p class="api-name" id="{{function_doc.name}}">
-<a title={{ function_doc.name }} href="#{{ function_doc.name }}" class="api-name">{{ function_doc.signature }}</a>
-</p>
-
-
-{% if function_doc.description %}
-	<p>{{ function_doc.description|markdown}}</p>
-{% endif %}
-
-{% if function_doc.returns.description %}
-	returns {{ function_doc.returns.type }}
-=======
 {% if entity.signature %}
 <h3 class="UI_Heading" id="{{entity.name}}">
 <a title={{ entity.name }} href="#{{ entity.name }}" class="api-name">{{ entity.signature }}</a>
@@ -29,16 +16,11 @@
 
 {% if entity.returns.description %}
 	returns {{ entity.returns.type }}
->>>>>>> bug-611173-
 	<p>{{ entity.returns.description|markdown }}</p>
 {% endif %}
 
 <div class="function-parameter-list">
-<<<<<<< HEAD
-{% for param in function_doc.params %}
-=======
 {% for param in entity.params %}
->>>>>>> bug-611173-
 	{% if forloop.first %}
 		<p class="api-element-header">Parameters</p>
 	{% endif %}

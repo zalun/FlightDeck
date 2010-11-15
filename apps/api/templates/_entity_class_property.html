@@ -1,12 +1,7 @@
 {% load markup %}
 
-<<<<<<< HEAD
-<p class="api-element-name" id="{{ class_doc.name }}_{{property.name }}">
-	<a title={{ property.name }} href="#{{ class_doc.name }}_{{property.name }}" class="api-name">{{ class_doc.name }}.{{ property.name }} : {{ property.property_type }}</a>
-=======
 <p class="api-element-name" id="{{ entity.name }}_{{property.name }}">
 	<a title={{ property.name }} href="#{{ entity.name }}_{{property.name }}" class="api-name">{{ entity.name }}.{{ property.name }} : {{ property.property_type }}</a>
->>>>>>> bug-611173-
 </p>
 
 {% if property.description %}

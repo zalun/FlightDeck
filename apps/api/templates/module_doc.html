@@ -5,31 +5,6 @@
 
 {% block app_content %}
 	<h1 class="UI_Heading">{{ module.name }}</h1>
-<<<<<<< HEAD
-
-	<div id="api-body">
-
-		<div class="UI_ModuleInfo markdown">
-			{{ module.info|markdown }}
-		</div>
-		<h2 class="UI_Heading">API Reference</h2>
-		{% for class_doc in module.classes %}
-			{% include "entity_class_doc.html" %}
-		{% endfor %}
-
-		{% for function_doc in module.functions %}
-			{% if forloop.first %}
-				 <h3 class="UI_Heading">Global Functions</h3>
-			{% endif %}
-			{% include "entity_function_doc.html" %}
-		{% endfor %}
-		{% for class_doc in module.properties %}
-			{% if forloop.first %}
-				 <h3 class="UI_Heading">Global Properties</h3>
-			{% endif %}
-			{% include "entity_property_doc.html" %}
-		{% endfor %}
-=======
 	<div id="api-body">
 
 {% for entity in module.entities %}
@@ -65,7 +40,6 @@
 
 {% endfor %}
 
->>>>>>> bug-611173-
 	</div>
 
 {% endblock %}
