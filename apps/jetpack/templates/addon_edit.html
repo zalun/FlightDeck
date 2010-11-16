@@ -21,7 +21,7 @@
       </a>
       <select id="jetpack_core_sdk_version">
           {% for s in sdk_list %}
-            <option value="{{ s.id }}"
+          <option value="{{ s.id }}" {% if s.is_deprecated %}disabled{% endif %}
               {% if revision.sdk.id == s.id %} selected{% endif %}>
               {{ s.version }}
             </option>

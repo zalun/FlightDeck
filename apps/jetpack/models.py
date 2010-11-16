@@ -1016,6 +1016,9 @@ class SDK(models.Model):
     def get_source_dir(self):
         return os.path.join(settings.SDK_SOURCE_DIR, self.dir)
 
+    def is_deprecated(self):
+        return self.version < '0.9'
+
 
 def _get_next_id_number():
     """
