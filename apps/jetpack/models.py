@@ -256,7 +256,6 @@ class Package(models.Model):
         """
         create copy of the package
         """
-        print self.id_number, settings.MINIMUM_PACKAGE_ID
         if self.is_singleton():
             raise SingletonCopyException("This is a singleton")
         new_p = Package(
