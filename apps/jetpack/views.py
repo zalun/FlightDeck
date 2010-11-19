@@ -188,7 +188,7 @@ def package_disable(r, id_number):
     """
     package = get_object_or_404(Package, id_number=id_number)
     if r.user.pk != package.author.pk:
-        log_msg = ('User %s wanted to disable not his own Package %s.' % (
+        log_msg = 'User %s wanted to disable not his own Package %s.' % (
             r.user, id_number)
         log = commonware.log.getLogger('f.jetpack')
         log.debug(log_msg)
