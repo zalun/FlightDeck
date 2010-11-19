@@ -1,0 +1,11 @@
+# requirements for production environment
+
+Django==1.2.3
+
+# search functionality
+-e git+git://github.com/toastdriven/django-haystack#egg=django_haystack
+-e git://github.com/warner/python-ecdsa.git#egg=python-ecdsa
+
+docutils==0.7
+Markdown==2.0.3
+-e git://github.com/jsocol/commonware.git#egg=commonware

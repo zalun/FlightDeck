@@ -1,0 +1,60 @@
+{% extends "edit.html" %}
+
+
+{% block modules_sidebar %}
+	{% with revision.get_main_module as module %}
+		{% include "_sidebar_revision_module.html" %}
+	{% endwith %}
+	{% for module in modules %}{% if revision.module_main != module.filename %}
+		{% include "_sidebar_revision_module.html" %}
+	{% endif %}{% endfor %}
+{% endblock %}
+
+
+{% block core_library %}
+  {% if revision.sdk %}
+  <li class="UI_File_Normal Core_library" id="core_library_lib">
+    <a title="" href="{{ revision.get_sdk_revision.get_absolute_url }}" 
+      target="{{ revision.get_sdk_revision.package.name }}" 
+      class="library_link">
+        <span>{{ revision.get_sdk_revision.package.full_name }}</span>
+      </a>
+      <select id="jetpack_core_sdk_version">
+          {% for s in sdk_list %}
+          <option value="{{ s.id }}" {% if s.is_deprecated %}disabled{% endif %}
+              {% if revision.sdk.id == s.id %} selected{% endif %}>
+              {{ s.version }}
+            </option>
+          {% endfor %}
+      </select>
+  </li>
+  {% endif %}
+{% endblock %}
+
+
+{% block app_content_menu_items %}
+	<li class="UI_Editor_Menu_Button Icon_try XPI_test">
+		<a id="try_in_browser" rel="{{ revision.package.jid }}" title="" href="{{ revision.get_test_xpi_url }}">
+			Test
+			<span class="UI_Editor_Icon"></span>
+		</a>
+	</li>
+	<li class="UI_Editor_Menu_Button Icon_download">
+		<a id="download" target="_new" title="" href="{{ revision.get_download_xpi_url }}">
+			Download
+			<span class="UI_Editor_Icon"></span>
+		</a>
+	</li>
+	<li class="UI_Editor_Menu_Separator"></li>
+{% endblock %}
+
+
+{% block editor_wrapper %}
+	{% with revision.get_main_module as module %}
+		{% include "_module_code_textarea.html" %}
+	{% endwith %}
+	{% for module in revision.modules.all %}{% if module.filename != revision.module_main %}
+		{% include "_module_code_textarea.html" %}
+	{% endif %}{% endfor %}
+{% endblock %}
+
