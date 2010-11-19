@@ -7,6 +7,7 @@ import site
 ROOT = os.path.dirname(os.path.abspath(os.path.join(__file__,'..')))
 path = lambda *a: os.path.join(ROOT, *a)
 
+site.addsitedir('./')
 site.addsitedir('../')
 
 site.addsitedir(path('vendor'))
