@@ -20,12 +20,15 @@ def sdk_copy(sdk_source, sdk_dir=None):
     # create cfx.sh
     handle = open('%s/bin/cfx.sh' % sdk_dir, 'w')
     handle.write("""#!/bin/bash
+alias python=%s
 ADDON_DIR=`pwd`
 SDK_DIR=%s
 cd $SDK_DIR
 source $SDK_DIR/bin/activate
 cd $ADDON_DIR
-cfx $*""" % sdk_dir)
+cfx $*""" % (
+    settings.PYTHON_EXEC,
+    sdk_dir))
     handle.close()
     os.chmod('%s/bin/cfx.sh' % sdk_dir, stat.S_IXUSR | stat.S_IRUSR)
 
