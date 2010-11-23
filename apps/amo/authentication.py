@@ -38,11 +38,6 @@ class AMOAuthentication:
             # username does not exist in FD database
             user = None
 
-        # if access to the FD is limited
-        if settings.AMO_LIMITED_ACCESS:
-            if username not in [x.email for x in list(Limit.objects.all())]:
-                return None
-
         if not settings.AUTH_DATABASE:
             return None
 

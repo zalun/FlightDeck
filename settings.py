@@ -106,8 +106,9 @@ JETPACK_ITEMS_PER_PAGE = 10
 JETPACK_LIB_DIR = 'lib'
 JETPACK_DATA_DIR = 'data'
 
+PYTHON_EXEC = 'python'
+
 # amo defaults
-AMO_LIMITED_ACCESS = False
 AUTH_DATABASE = None
 # set it in settings_local.py if AMO auth should be used
 #AUTH_DATABASE = {
