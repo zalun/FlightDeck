@@ -14,8 +14,8 @@
 {% block core_library %}
   {% if revision.sdk %}
   <li class="UI_File_Normal Core_library" id="core_library_lib">
-    <a title="" href="{{ revision.get_sdk_revision.get_absolute_url }}" 
-      target="{{ revision.get_sdk_revision.package.name }}" 
+    <a title="" href="{{ revision.get_sdk_revision.get_absolute_url }}"
+      target="{{ revision.get_sdk_revision.package.name }}"
       class="library_link">
         <span>{{ revision.get_sdk_revision.package.full_name }}</span>
       </a>
@@ -56,5 +56,7 @@
 	{% for module in revision.modules.all %}{% if module.filename != revision.module_main %}
 		{% include "_module_code_textarea.html" %}
 	{% endif %}{% endfor %}
+	{% for attachment in revision.attachments.all %}
+		{% include "_attachment_code_textarea.html" %}
+	{% endfor %}
 {% endblock %}
-

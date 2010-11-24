@@ -1,8 +1,6 @@
 """
 Views for the Jetpack application
 """
-import os
-import time
 import commonware.log
 
 from django.contrib import messages
@@ -80,6 +78,7 @@ def package_view_or_edit(r, id_number, type_id, revision_number=None,
         return package_edit(r, revision)
     else:
         return package_view(r, revision)
+
 
 @login_required
 def package_edit(r, revision):
@@ -177,8 +176,6 @@ def package_copy(r, id_number, type_id,
 
     return HttpResponseForbidden('You already have a %s with that name' %
                                  escape(source.package.get_type_name()))
-
-
 
 
 @login_required
@@ -344,31 +341,17 @@ def package_add_attachment(r, id_number, type_id,
                 % escape(revision.package.get_type_name()))
 
     content = r.raw_post_data
-    path = r.META.get('HTTP_X_FILE_NAME', False)
+    filename = r.META.get('HTTP_X_FILE_NAME')
 
-    if not path:
+    if not filename:
         log_msg = 'Path not found: %s, package: %s.' % (
-            path, id_number)
+            filename, id_number)
         log.debug(log_msg)
-        return HttpResponseServerError
+        return HttpResponseServerError('Path not found.')
 
-    filename, ext = os.path.splitext(path)
-    ext = ext.split('.')[1].lower() if ext else ''
-
-    upload_path = "%s_%s_%s.%s" % (revision.package.id_number,
-                                   time.strftime("%m-%d-%H-%M-%S"),
-                                   filename, ext)
-
-    handle = open(os.path.join(settings.UPLOAD_DIR, upload_path), 'w')
-    handle.write(content)
-    handle.close()
-
-    attachment = revision.attachment_create(
-        author=r.user,
-        filename=filename,
-        ext=ext,
-        path=upload_path
-    )
+    attachment = revision.attachment_create(r.user, filename)
+    attachment.data = content
+    attachment.write()
 
     return render_to_response("json/attachment_added.json",
                 {'revision': revision, 'attachment': attachment},
@@ -416,13 +399,14 @@ def package_remove_attachment(r, id_number, type_id, revision_number):
                 mimetype='application/json')
 
 
-def download_attachment(r, path):
+def download_attachment(request, uid):
     """
     Display attachment from PackageRevision
     """
-    get_object_or_404(Attachment, path=path)
-    response = serve(r, path, settings.UPLOAD_DIR, show_indexes=False)
-    #response['Content-Type'] = 'application/octet-stream';
+    attachment = get_object_or_404(Attachment, id=uid)
+    response = serve(request, attachment.path,
+                     settings.UPLOAD_DIR, show_indexes=False)
+    response['Content-Disposition'] = 'filename=%s' % attachment.filename
     return response
 
 
@@ -482,16 +466,23 @@ def package_save(r, id_number, type_id, revision_number=None,
         revision.package.description = package_description
         response_data['package_description'] = package_description
 
-    modules = []
+    changes = []
     for mod in revision.modules.all():
         if r.POST.get(mod.filename, False):
             code = r.POST[mod.filename]
             if mod.code != code:
                 mod.code = code
-                modules.append(mod)
+                changes.append(mod)
 
-    if modules:
-        revision.modules_update(modules)
+    for attachment in revision.attachments.all():
+        if attachment.get_uid in r.POST:
+            data = r.POST[attachment.get_uid]
+            attachment.data = data
+            if attachment.changed():
+                changes.append(attachment)
+
+    if changes:
+        revision.updates(changes)
         save_revision = False
 
     if save_revision:
@@ -573,7 +564,6 @@ def library_autocomplete(r):
             )[:limit]
     except:
         found = []
-
 
     return render_to_response('json/library_autocomplete.json',
                 {'libraries': found},
@@ -663,5 +653,3 @@ def get_revisions_list_html(r, id_number):
 
 
 # ---------------------------- XPI ---------------------------------
-
-

@@ -3,7 +3,7 @@
 var FDBespin = new Class({
 	Implements: [Options, Events],
 	options: {
-		validSyntaxes: ['js', 'html', 'plain']
+		validSyntaxes: ['js', 'html', 'plain', 'css']
 	},
 	initialize: function(element, options) {
 		var self = this;
@@ -43,15 +43,10 @@ var FDBespin = new Class({
 	},
 	setSyntax: function(syntax) {
 		if (!this.options.validSyntaxes.contains(syntax)) {
-			if (syntax == 'css') {
-				syntax = 'html'
+			if (syntax == 'json') {
+			    syntax = 'js'
 			} else {
-				if (syntax == 'json') {
-					syntax = 'js'
-				
-				} else {
-					syntax = 'plain'
-				}
+			    syntax = 'plain'
 			}
 		}
 		// XXX Switched off as incompatible with MooTools
