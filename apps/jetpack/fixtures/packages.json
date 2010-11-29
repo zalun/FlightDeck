@@ -1,0 +1,193 @@
+[
+    {
+        "pk": 4,
+        "model": "jetpack.package",
+        "fields": {
+            "public_key": "public-jid0-xizozk5ctqqwvnvd7gcc3mq6s7ggcqlswlheza54xgbr4e2q5kremwfepxuzxgta7d5v5xj6hutgsfw6enslfkoxwenmhddftpgltpy",
+            "private_key": "private-jid0-f3hwpic5fwfgiqt2hnj5tlahk7demekjv2uaqzbfhagkiesd766a",
+            "name": "test-addon",
+            "license": "",
+            "author": 4,
+            "id_number": "1000003",
+            "lib_dir": null,
+            "jid": "jid0-YZCBIaXmLoQMBbL1fBzvOy5rFZk",
+            "program_id": "jid0-YZCBIaXmLoQMBbL1fBzvOy5rFZk@jetpack",
+            "last_update": "2010-09-27 12:40:00",
+            "url": "",
+            "version": 5,
+            "full_name": "Test Addon",
+            "active": true,
+            "version_name": "initial",
+            "latest": 5,
+            "type": "a",
+            "created_at": "2010-09-27 12:39:38",
+            "public_permission": 1,
+            "description": ""
+        }
+    },
+    {
+        "pk": 3,
+        "model": "jetpack.package",
+        "fields": {
+            "public_key": null,
+            "private_key": null,
+            "name": "test-library",
+            "license": "",
+            "author": 3,
+            "id_number": "1000002",
+            "lib_dir": null,
+            "jid": null,
+            "program_id": null,
+            "last_update": "2010-09-27 12:35:27",
+            "url": "",
+            "version": 3,
+            "full_name": "Test Library",
+            "active": true,
+            "version_name": "initial",
+            "latest": 4,
+            "type": "l",
+            "created_at": "2010-09-27 12:34:25",
+            "public_permission": 1,
+            "description": ""
+        }
+    },
+    {
+        "pk": 2,
+        "model": "jetpack.package",
+        "fields": {
+            "public_key": "public-jid0-32qi6jsjaz3wjae7amarsik5q7jk3m6hkotls6dsokydl3z7xr5tlhj3htxv4crsjpcelr5oozekycxlvqbvi3ck4nc465g2yhqdxvq",
+            "private_key": "private-jid0-xsw66myjvnoq2rqgrx4b3nvgjtfm5smlw3bqt2bsuha55rkhfboq",
+            "name": "test-addon",
+            "license": "",
+            "author": 3,
+            "id_number": "1000001",
+            "lib_dir": null,
+            "jid": "jid0-ut6xorB6IZ7gMePg9E6gm9TwIgI",
+            "program_id": "jid0-ut6xorB6IZ7gMePg9E6gm9TwIgI@jetpack",
+            "last_update": "2010-09-27 12:34:07",
+            "url": "",
+            "version": 2,
+            "full_name": "Test Addon",
+            "active": true,
+            "version_name": "initial",
+            "latest": 2,
+            "type": "a",
+            "created_at": "2010-09-27 12:33:43",
+            "public_permission": 1,
+            "description": ""
+        }
+    },
+    {
+        "pk": 4,
+        "model": "jetpack.packagerevision",
+        "fields": {
+            "origin": 3,
+            "contributors": "",
+            "author": 3,
+            "created_at": "2010-09-27 12:35:27",
+            "package": 3,
+            "module_main": "main",
+            "revision_number": 1,
+            "dependencies": [],
+            "version_name": null,
+            "message": "",
+            "sdk": null
+        }
+    },
+    {
+        "pk": 2,
+        "model": "jetpack.packagerevision",
+        "fields": {
+            "origin": null,
+            "contributors": "",
+            "author": 3,
+            "created_at": "2010-09-27 12:33:43",
+            "package": 2,
+            "module_main": "main",
+            "revision_number": 0,
+            "dependencies": [],
+            "version_name": "initial",
+            "message": "",
+            "sdk": 1
+        }
+    },
+    {
+        "pk": 3,
+        "model": "jetpack.packagerevision",
+        "fields": {
+            "origin": null,
+            "contributors": "",
+            "author": 3,
+            "created_at": "2010-09-27 12:34:25",
+            "package": 3,
+            "module_main": "main",
+            "revision_number": 0,
+            "dependencies": [],
+            "version_name": "initial",
+            "message": "",
+            "sdk": null
+        }
+    },
+    {
+        "pk": 5,
+        "model": "jetpack.packagerevision",
+        "fields": {
+            "origin": null,
+            "contributors": "",
+            "author": 4,
+            "created_at": "2010-09-27 12:39:39",
+            "package": 4,
+            "module_main": "main",
+            "revision_number": 0,
+            "dependencies": [],
+            "version_name": "initial",
+            "message": "",
+            "sdk": 1
+        }
+    },
+    {
+        "pk": 34,
+        "model": "jetpack.module",
+        "fields": {
+            "code": "// This is an active module of the My Add-on Add-on\nexports.main = function() {};",
+            "revisions": [
+                2
+            ],
+            "author": 3,
+            "filename": "main"
+        }
+    },
+    {
+        "pk": 36,
+        "model": "jetpack.module",
+        "fields": {
+            "code": "// This is an active module of the My Add-on Add-on\nexports.main = function() {};",
+            "revisions": [
+                5
+            ],
+            "author": 4,
+            "filename": "main"
+        }
+    },
+    {
+        "pk": 35,
+        "model": "jetpack.module",
+        "fields": {
+            "code": "// test.js - Test Library's module\n// author: John Doe",
+            "revisions": [
+                4
+            ],
+            "author": 3,
+            "filename": "test"
+        }
+    },
+    {
+        "pk": 1,
+        "model": "jetpack.sdk",
+        "fields": {
+            "version": "0.6",
+            "core_lib": 1,
+            "dir": "jetpack-sdk"
+        }
+    }
+]

@@ -1,0 +1,19 @@
+{% extends "dashboard.html" %}
+
+{% block title %}Your {% if disabled %}Disabled{% else %}Latest{% endif %} Libraries - {% endblock %}
+
+{% block head %}
+	<link rel="stylesheet" href="/media/jetpack/css/UI.Browser.css" type="text/css" media="screen" />
+	<script src="/media/jetpack/js/FlightDeck.Browser.js"></script>
+{% endblock %}
+
+{% block app_content %}
+	<h2 class="UI_Heading">Your {% if disabled %}Disabled{% else %}Latest{% endif %} Libraries</h2>
+	<ul class="UI_Browser">
+		{% for item in pager.object_list %}
+			<li class="UI_Item">
+				{% include "_package_browser_library.html" %}
+			</li>
+		{% endfor %}
+	</ul>
+{% endblock %}
