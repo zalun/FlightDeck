@@ -29,7 +29,7 @@ code, substituting your name::
 
     git clone git@github.com:{your-username}/FlightDeck.git  # if you're not a developer, just use "mozilla" for your-username
     cd FlightDeck
-    git clone --recursive git://github.com/zalun/FlightDeck-lib.git vendor
+    git clone --recursive git://github.com/mozilla/FlightDeck-lib.git vendor
 
 Install submodules::
 
@@ -98,17 +98,17 @@ An example Apache .conf::
         <Location "/adminmedia">
             SetHandler default
         </Location>
-        Alias /adminmedia /path/to/FlightDeck/flightdeck/adminmedia
+        Alias /adminmedia /path/to/FlightDeck/flightdeck/vendor/lib/python/django/contrib/admin/media
 
         <Location "/media/tutorial">
             SetHandler default
         </Location>
-        Alias /media/tutorial /path/to/FlightDeck/flightdeck/tutorial/media
+        Alias /media/tutorial /path/to/FlightDeck/flightdeck/apps/tutorial/media
 
         <Location "/media/api">
             SetHandler default
         </Location>
-        Alias /media/api /path/to/FlightDeck/flightdeck/api/media
+        Alias /media/api /path/to/FlightDeck/flightdeck/apps/api/media
 
         <Location "/media/jetpack">
             SetHandler default
