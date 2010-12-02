@@ -12,6 +12,7 @@ from jetpack.models import Module, Package, PackageRevision, SDK
 from jetpack.xpi_utils import sdk_copy, xpi_build
 from jetpack.cron import find_files, clean_tmp
 
+
 class XPIBuildTest(TestCase):
 
     fixtures = ['nozilla', 'core_sdk', 'users', 'packages']
@@ -46,6 +47,8 @@ class XPIBuildTest(TestCase):
             os.remove(self.attachment_file_name)
 
     def makeSDKDir(self):
+        if self.SDKDIR and os.path.isdir(self.SDKDIR):
+            shutil.rmtree(self.SDKDIR)
         os.mkdir(self.SDKDIR)
         os.mkdir('%s/packages' % self.SDKDIR)
 
@@ -124,8 +127,6 @@ class XPIBuildTest(TestCase):
         handle = open(self.attachment_file_name, 'w')
         handle.write('unit test file')
         handle.close()
-        addon_dir = '%s/packages/%s' % (self.SDKDIR,
-                                        self.addon.get_unique_package_name())
         self.addonrev.attachment_create(
             filename='test_filename',
             ext='txt',
@@ -229,7 +230,8 @@ class XPIBuildTest(TestCase):
         rev.save()
 
         # Clean out /tmp directory.
-        [ shutil.rmtree(full) for full in find_files() ]
+        for full in find_files():
+            shutil.rmtree(full)
         assert not find_files()
         rev.build_xpi()
 

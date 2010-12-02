@@ -1,4 +1,4 @@
-" Models definition for jetpack application "
+"""Models definition for jetpack application."""
 
 # TODO: split module and create the models package
 
@@ -710,7 +710,6 @@ class PackageRevision(models.Model):
             'There is no such library in this %s' \
             % self.package.get_type_name())
 
-
     def dependency_remove_by_id_number(self, id_number):
         " find dependency by its id_number call dependency_remove "
         for dep in self.dependencies.all():
@@ -761,7 +760,6 @@ class PackageRevision(models.Model):
 
         return self.sdk.kit_lib if self.sdk.kit_lib else self.sdk.core_lib
 
-
     def build_xpi(self):
         " prepare and build XPI "
         if self.package.type == 'l':
@@ -779,11 +777,10 @@ class PackageRevision(models.Model):
         sdk_copy(sdk_source, sdk_dir)
         self.export_keys(sdk_dir)
         self.export_files_with_dependencies('%s/packages' % sdk_dir)
-        return (xpi_build(sdk_dir,
-                          '%s/packages/%s' % (
-                              sdk_dir,
-                              self.package.get_unique_package_name()
-                          )))
+
+        from jetpack import tasks
+        tasks.xpi_build.delay(sdk_dir, '%s/packages/%s' % (
+               sdk_dir, self.package.get_unique_package_name()))
 
     def build_xpi_test(self, modules):
         " prepare and build XPI for test only (unsaved modules) "
@@ -935,6 +932,7 @@ class Module(models.Model):
             'code': self.code,
             'author': self.author.username})
 
+
 class Attachment(models.Model):
     """
     File (image, css, etc.) updated by the author of the PackageRevision
@@ -1028,9 +1026,8 @@ def _get_next_id_number():
     return str(all_packages_ids[-1] + 1) \
             if all_packages_ids else str(settings.MINIMUM_PACKAGE_ID)
 
-###############################################################################
-## Catching Signals
 
+# Catching Signals
 def set_package_id_number(instance, **kwargs):
     " sets package's id_number before creating the new one "
     if kwargs.get('raw', False) or instance.id or instance.id_number:
