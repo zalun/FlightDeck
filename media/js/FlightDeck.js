@@ -214,7 +214,15 @@ Request = Class.refactor(Request, {
 				);
 		}
 	},
-    // overloading processScripts to *not* execute JS responses
+    initialize: function(options) {
+      this.previous(options);
+      // It happened to be unnecessary
+      //if (csrfmiddlewaretoken && (this.options.method == 'post' || this.options.method == 'POST')) {
+      //  this.options.data['csrfmiddlewaretoken'] = csrfmiddlewaretoken;
+      //}
+
+    },
+  // overloading processScripts to *not* execute JS responses
 	processScripts: function(text){
 		if (this.options.evalResponse) return $exec(text);
 		return text.stripScripts(this.options.evalScripts);

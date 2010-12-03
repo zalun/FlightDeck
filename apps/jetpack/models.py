@@ -8,6 +8,9 @@ import shutil
 
 from copy import deepcopy
 
+from ecdsa import SigningKey, NIST256p
+from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
+
 from django.db.models.signals import pre_save, post_save
 from django.db import models
 from django.utils import simplejson
@@ -219,9 +222,6 @@ class Package(models.Model):
         """
         create keypair, program_id and jid
         """
-        from ecdsa import SigningKey, NIST256p
-        from cuddlefish.preflight import vk_to_jid, jid_to_programid, \
-                                         my_b32encode
 
         signingkey = SigningKey.generate(curve=NIST256p)
         sk_text = "private-jid0-%s" % my_b32encode(signingkey.to_string())
@@ -257,7 +257,6 @@ class Package(models.Model):
         """
         create copy of the package
         """
-        print self.id_number, settings.MINIMUM_PACKAGE_ID
         if self.is_singleton():
             raise SingletonCopyException("This is a singleton")
         new_p = Package(
@@ -423,7 +422,10 @@ class PackageRevision(models.Model):
 
     def get_dependencies_list(self):
         " returns a list of dependencies names extended by default core "
-        deps = ['jetpack-core']
+        if self.package.is_addon() and self.sdk.kit_lib:
+            deps = ['addon-kit']
+        else:
+            deps = ['jetpack-core']
         deps.extend([dep.package.get_unique_package_name() \
                      for dep in self.dependencies.all()])
         return deps
@@ -996,6 +998,10 @@ class SDK(models.Model):
             related_name="parent_sdk_core+")
     kit_lib = models.OneToOneField(PackageRevision,
             related_name="parent_sdk_kit+", blank=True, null=True)
+    #core_name = models.CharField(max_length=100, default='jetpack-core')
+    #core_fullname = models.CharField(max_length=100, default='Jetpack Core')
+    #kit_name = models.CharField(max_length=100, default='addon-kit')
+    #kit_fullname = models.CharField(max_length=100, default='Addon Kit')
 
     # placement in the filesystem
     dir = models.CharField(max_length=255, unique=True)
@@ -1009,6 +1015,9 @@ class SDK(models.Model):
 
     def get_source_dir(self):
         return os.path.join(settings.SDK_SOURCE_DIR, self.dir)
+
+    def is_deprecated(self):
+        return self.version < '0.9'
 
 
 def _get_next_id_number():

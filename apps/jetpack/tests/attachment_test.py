@@ -9,14 +9,19 @@ from jetpack.errors import UpdateDeniedException
 
 
 class AttachmentTest(TestCase):
-    " Testing attachment methods "
+    """Testing attachment methods."""
 
-    fixtures = ['nozilla', 'core_sdk', 'users', 'packages']
+    fixtures = ('core_sdk', 'users', 'packages')
 
     def setUp(self):
         self.author = User.objects.get(username='john')
-        " Simulating upload "
-        handle = open(os.path.join(settings.UPLOAD_DIR, 'test_filename.txt'), 'w')
+
+        if not os.path.exists(settings.UPLOAD_DIR):
+            os.mkdir(settings.UPLOAD_DIR)
+
+        # Simulating upload.
+        handle = open(os.path.join(settings.UPLOAD_DIR, 'test_filename.txt'),
+                      'w')
         handle.write('unit test file')
         handle.close()
         self.attachment = Attachment.objects.create(

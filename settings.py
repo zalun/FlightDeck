@@ -4,6 +4,7 @@ For local configuration please use settings_local.py
 """
 import os
 import logging
+import socket
 
 # Make filepaths relative to settings.
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -52,11 +53,7 @@ SYSLOG_TAG = "http_app_builder"
 # unless propagate: True is set.
 LOGGING = {
     'loggers': {
-        'amqplib': {'handlers': ['null']},
-        'caching': {'handlers': ['null']},
-        'suds': {'handlers': ['null']},
-        'z.sphinx': {'level': logging.INFO},
-        'z.task': {'level': logging.INFO},
+        'f.jetpack': {'level': logging.INFO},
     },
 }
 
@@ -74,6 +71,10 @@ LANGUAGE_CODE = 'en-us'
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
 USE_I18N = True
+
+# The host currently running the site.  Only use this in code for good reason;
+# the site is designed to run on a cluster and should continue to support that
+HOSTNAME = socket.gethostname()
 
 # Paths settings
 MEDIA_ROOT = path('media')
@@ -109,8 +110,9 @@ JETPACK_ITEMS_PER_PAGE = 10
 JETPACK_LIB_DIR = 'lib'
 JETPACK_DATA_DIR = 'data'
 
+PYTHON_EXEC = 'python'
+
 # amo defaults
-AMO_LIMITED_ACCESS = False
 AUTH_DATABASE = None
 # set it in settings_local.py if AMO auth should be used
 #AUTH_DATABASE = {

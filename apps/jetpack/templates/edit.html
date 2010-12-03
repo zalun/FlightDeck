@@ -22,6 +22,10 @@
 	<script src="/media/js/lib/sendFile.js"></script>
 {% endblock %}
 
+
+{# csrf_token for JS #}
+{% block head_jstop %}var csrfmiddlewaretoken = '{{ csrf_token }}';{% endblock %}
+
 {# switch off default menu bar #}
 {% block app_menu %}{% endblock %}
 

@@ -25,9 +25,19 @@ SDK_DIR=%s
 cd $SDK_DIR
 source $SDK_DIR/bin/activate
 cd $ADDON_DIR
-cfx $*""" % sdk_dir)
+cfx2 $*""" % (
+    sdk_dir))
     handle.close()
+
+    cfx = open('%s/bin/cfx' % sdk_dir, 'r')
+    new_cfx = open('%s/bin/cfx2' % sdk_dir, 'w')
+    for line in cfx:
+        new_cfx.write(line.replace('python', settings.PYTHON_EXEC))
+    cfx.close()
+    new_cfx.close()
+
     os.chmod('%s/bin/cfx.sh' % sdk_dir, stat.S_IXUSR | stat.S_IRUSR)
+    os.chmod('%s/bin/cfx2' % sdk_dir, stat.S_IXUSR | stat.S_IRUSR)
 
 
 def xpi_build(sdk_dir, package_dir):
