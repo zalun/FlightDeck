@@ -23,7 +23,9 @@ DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
-   # ('Your Name', 'your_email@domain.com'),
+        ('clouserw', 'clouserw@gmail.com'),
+        ('zalun', 'pzalewa@mozilla.com'),
+        ('dbuc', 'daniel@mozilla.com')
 )
 MANAGERS = ADMINS
 
