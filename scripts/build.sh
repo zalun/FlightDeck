@@ -34,7 +34,8 @@ fi
 
 cat > settings_local.py <<SETTINGS
 from settings import *
-ROOT_URLCONF = 'workspace.urls'
+ROOT_PACKAGE = os.path.basename(ROOT)
+ROOT_URLCONF = '%s.urls' % ROOT_PACKAGE
 DATABASES['default']['NAME'] = 'builder_pamo'
 DATABASES['default']['HOST'] = 'sm-hudson01'
 DATABASES['default']['USER'] = 'hudson'

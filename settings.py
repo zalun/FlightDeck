@@ -44,7 +44,7 @@ DATABASES = {
 
 # Logging (copied from zamboni)
 LOG_LEVEL = logging.DEBUG
-HAS_SYSLOG = True # syslog is used if HAS_SYSLOG and NOT DEBUG.
+HAS_SYSLOG = True  # syslog is used if HAS_SYSLOG and NOT DEBUG.
 SYSLOG_TAG = "http_app_builder"
 # See PEP 391 and log_settings.py for formatting help. Each section of LOGGING
 # will get merged into the corresponding section of log_settings.py.
@@ -83,7 +83,7 @@ FRAMEWORK_PATH = path()
 SDK_SOURCE_DIR = path('lib')  # TODO: remove this var
 APP_MEDIA_PREFIX = os.path.join(FRAMEWORK_PATH, 'apps')
 UPLOAD_DIR = path('upload')
-VIRTUAL_ENV = os.environ.get('VIRTUAL_ENV') # TODO: remove this var
+VIRTUAL_ENV = os.environ.get('VIRTUAL_ENV')  # TODO: remove this var
 
 # jetpack defaults
 PACKAGES_PER_PAGE = 10
@@ -123,10 +123,6 @@ AUTH_DATABASE = None
 #    'HOST': '',
 #    'PORT': ''
 #}
-
-# api defaults
-
-
 
 # Media section
 APP_MEDIA_SUFFIX = 'media'
@@ -258,3 +254,7 @@ DEV_MIDDLEWARE_CLASSES = (
 #     'PORT': 4444,
 #     'BROWSER': '*firefox',
 #}
+import djcelery
+djcelery.setup_loader()
+
+CELERY_ALWAYS_EAGER = True

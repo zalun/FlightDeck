@@ -29,6 +29,8 @@ from jetpack.package_helpers import get_package_revision
 from jetpack.xpi_utils import xpi_remove
 from jetpack.errors import FilenameExistException
 
+log = commonware.log.getLogger('f.jetpack')
+
 
 def package_browser(r, page_number=1, type_id=None, username=None):
     """
@@ -79,7 +81,8 @@ def package_details(r, id_number, type_id,
     library_counter = len(libraries)
     core_library = None
     if revision.package.is_addon():
-        corelibrary = Package.objects.get(id_number=settings.MINIMUM_PACKAGE_ID)
+        corelibrary = Package.objects.get(
+                id_number=settings.MINIMUM_PACKAGE_ID)
         corelibrary = corelibrary.latest
         library_counter += 1
 
@@ -92,6 +95,7 @@ def package_details(r, id_number, type_id,
             'readonly': True
         }, context_instance=RequestContext(r))
 
+
 def get_module(r, id_number, revision_number, filename):
     """
     return a JSON with all module info
@@ -103,7 +107,6 @@ def get_module(r, id_number, revision_number, filename):
         mod = revision.modules.get(filename=filename)
     except:
         log_msg = 'No such module %s' % filename
-        log = commonware.log.getLogger('f.jetpack')
         log.debug(log_msg)
         raise Http404(log_msg)
     return HttpResponse(mod.get_json())
@@ -133,14 +136,13 @@ def package_copy(r, id_number, type_id,
             context_instance=RequestContext(r),
             mimetype='application/json')
 
-    return HttpResponseForbidden(
-        'You already have a %s with that name' \
-            % escape(source.package.get_type_name())
-        )
+    return HttpResponseForbidden('You already have a %s with that name' %
+                                 escape(source.package.get_type_name()))
+
 
 @login_required
-def package_edit(r, id_number, type_id,
-                 revision_number=None, version_name=None, latest=False):
+def package_edit(r, id_number, type_id, revision_number=None,
+                 version_name=None, latest=False):
     """
     Edit package - only for the author
     """
@@ -164,7 +166,8 @@ def package_edit(r, id_number, type_id,
     core_library = None
     sdk_list = None
     if revision.package.is_addon():
-        core_library = Package.objects.get(id_number=settings.MINIMUM_PACKAGE_ID)
+        core_library = Package.objects.get(
+                id_number=settings.MINIMUM_PACKAGE_ID)
         core_library = core_library.latest
         library_counter += 1
         sdk_list = SDK.objects.all()
@@ -190,7 +193,6 @@ def package_disable(r, id_number):
     if r.user.pk != package.author.pk:
         log_msg = 'User %s wanted to disable not his own Package %s.' % (
             r.user, id_number)
-        log = commonware.log.getLogger('f.jetpack')
         log.debug(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
@@ -214,7 +216,6 @@ def package_activate(r, id_number):
     if r.user.pk != package.author.pk:
         log_msg = 'User %s wanted to activate not his own Package %s.' % (
             r.user, id_number)
-        log = commonware.log.getLogger('f.jetpack')
         log.debug(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
@@ -239,9 +240,8 @@ def package_add_module(r, id_number, type_id,
     revision = get_package_revision(id_number, type_id, revision_number,
                                     version_name)
     if r.user.pk != revision.author.pk:
-        log_msg = 'User %s wanted to add a module to not his own Package %s.' % (
-            r.user, id_number)
-        log = commonware.log.getLogger('f.jetpack')
+        log_msg = ('User %s wanted to add a module to not his own Package %s.'
+                   % (r.user, id_number))
         log.debug(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
@@ -276,9 +276,8 @@ def package_remove_module(r, id_number, type_id, revision_number):
     """
     revision = get_package_revision(id_number, type_id, revision_number)
     if r.user.pk != revision.author.pk:
-        log_msg = 'User %s wanted to remove a module from not his own Package %s.' % (
-            r.user, id_number)
-        log = commonware.log.getLogger('f.jetpack')
+        log_msg = ('User %s wanted to remove a module from not his own '
+                'Package %s.' % (r.user, id_number))
         log.debug(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -296,7 +295,6 @@ def package_remove_module(r, id_number, type_id, revision_number):
     if not module_found:
         log_msg = 'Attempt to delete a non existing module %s from %s.' % (
             filename, id_number)
-        log = commonware.log.getLogger('f.jetpack')
         log.debug(log_msg)
         return HttpResponseForbidden(
             'There is no such module in %s' % escape(
@@ -322,8 +320,6 @@ def package_switch_sdk(r, id_number, revision_number):
     sdk = SDK.objects.get(id=sdk_id)
     revision.sdk = sdk
     revision.save()
-    sdk_lib_package = sdk.kit_lib.package if sdk.kit_lib \
-        else sdk.core_lib.package
 
     return render_to_response("json/sdk_switched.json",
                 {'revision': revision, 'sdk': sdk,
@@ -343,9 +339,8 @@ def package_add_attachment(r, id_number, type_id,
     revision = get_package_revision(id_number, type_id, revision_number,
                                     version_name)
     if r.user.pk != revision.author.pk:
-        log_msg = 'Unauthorised attempt to add attachment. user: %s, package: %s.' % (
-            r.user, id_number)
-        log = commonware.log.getLogger('f.jetpack')
+        log_msg = ('Unauthorized attempt to add attachment. user: %s, '
+                   'package: %s.' % (r.user, id_number))
         log.debug(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' \
@@ -357,7 +352,6 @@ def package_add_attachment(r, id_number, type_id,
     if not path:
         log_msg = 'Path not found: %s, package: %s.' % (
             path, id_number)
-        log = commonware.log.getLogger('f.jetpack')
         log.debug(log_msg)
         return HttpResponseServerError
 
@@ -393,9 +387,8 @@ def package_remove_attachment(r, id_number, type_id, revision_number):
     """
     revision = get_package_revision(id_number, type_id, revision_number)
     if r.user.pk != revision.author.pk:
-        log_msg = 'Unauthorised attempt to remove attachment. user: %s, package: %s.' % (
-            r.user, id_number)
-        log = commonware.log.getLogger('f.jetpack')
+        log_msg = ('Unauthorized attempt to remove attachment. user: %s, '
+                   'package: %s.' % (r.user, id_number))
         log.debug(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -411,9 +404,8 @@ def package_remove_attachment(r, id_number, type_id, revision_number):
             attachment_found = True
 
     if not attachment_found:
-        log_msg = 'Attempt to remove a non existingattachment. attachment: %s, package: %s.' % (
-            filename, id_number)
-        log = commonware.log.getLogger('f.jetpack')
+        log_msg = ('Attempt to remove a non existingattachment. attachment: '
+                   '%s, package: %s.' % (filename, id_number))
         log.debug(log_msg)
         return HttpResponseForbidden(
             'There is no such attachment in %s' % escape(
@@ -448,9 +440,8 @@ def package_save(r, id_number, type_id, revision_number=None,
     revision = get_package_revision(id_number, type_id, revision_number,
                                     version_name)
     if r.user.pk != revision.author.pk:
-        log_msg = 'Unauthorised attempt to save package. user: %s, package: %s.' % (
-            r.user, id_number)
-        log = commonware.log.getLogger('f.jetpack')
+        log_msg = ('Unauthorized attempt to save package. user: %s, package: '
+                   '%s.' % (r.user, id_number))
         log.debug(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -459,7 +450,6 @@ def package_save(r, id_number, type_id, revision_number=None,
     save_package = False
     start_version_name = revision.version_name
     start_revision_message = revision.message
-    start_revision_number = revision.revision_number
 
     response_data = {}
 
@@ -479,14 +469,6 @@ def package_save(r, id_number, type_id, revision_number=None,
 
     if package_full_name and package_full_name != revision.package.full_name:
         try:
-            # it was erroring as pk=package.pk
-            # I changed it to pk=revision.package.pk
-            # TODO: Check if not redundant as it is in model as well
-            package = Package.objects.exclude(pk=revision.package.pk).get(
-                full_name=package_full_name,
-                type=revision.package.type,
-                author__username=r.user.username,
-                )
             return HttpResponseForbidden(
                 'You already have a %s with that name' % escape(
                     revision.package.get_type_name())
@@ -610,9 +592,8 @@ def package_assign_library(r, id_number, type_id,
     revision = get_package_revision(id_number, type_id, revision_number,
                                     version_name)
     if r.user.pk != revision.author.pk:
-        log_msg = 'Unauthorised attempt to assign library. user: %s, package: %s.' % (
-            r.user, id_number)
-        log = commonware.log.getLogger('f.jetpack')
+        log_msg = ('Unauthorized attempt to assign library. user: %s, '
+                   'package: %s.' % (r.user, id_number))
         log.debug(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -646,9 +627,8 @@ def package_remove_library(r, id_number, type_id, revision_number):
     " remove dependency from the library provided via POST "
     revision = get_package_revision(id_number, type_id, revision_number)
     if r.user.pk != revision.author.pk:
-        log_msg = 'Unauthorised attempt to remove a library. user: %s, package: %s.' % (
-            r.user, id_number)
-        log = commonware.log.getLogger('f.jetpack')
+        log_msg = ('Unauthorized attempt to remove a library. user: %s, '
+                   'package: %s.' % (r.user, id_number))
         log.debug(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
@@ -737,23 +717,28 @@ def package_test_xpi(r, id_number, revision_number=None):
 
 def package_download_xpi(r, id_number, revision_number=None):
     """
-    Edit package - only for the author
+    Download XPI.  This package is built asynchronously and we assume it works.
+    and let ``download_xpi`` handle the case where the file is not ready.
     """
     revision = get_object_with_related_or_404(PackageRevision,
                         package__id_number=id_number, package__type='a',
                         revision_number=revision_number)
 
-    (stdout, stderr) = revision.build_xpi()
+    # If this is a retry, we won't rebuild... we'll just wait.
+    retry = r.GET.get('retry')
+    retry_url = reverse('jp_addon_revision_xpi',
+                        args=[id_number, revision_number]) + '?retry=1'
 
-    if stderr and not settings.DEBUG:
-        # XXX: this should also log the error in file
-        xpi_remove(revision.get_sdk_dir())
+    if not retry:
+        revision.build_xpi()
 
     return download_xpi(r,
-                    revision.get_sdk_name(),
-                    revision.package.get_unique_package_name(),
-                    revision.package.name
-                    )
+                        revision.get_sdk_name(),
+                        revision.package.get_unique_package_name(),
+                        revision.package.name,
+                        retry=retry,
+                        retry_url=retry_url,
+                       )
 
 
 def test_xpi(r, sdk_name, pkg_name, filename):
@@ -768,17 +753,22 @@ def test_xpi(r, sdk_name, pkg_name, filename):
                         mimetype=mimetype)
 
 
-def download_xpi(r, sdk_name, pkg_name, filename):
-    """
-    return XPI file for testing
-    """
+def download_xpi(r, sdk_name, pkg_name, filename, retry=False, retry_url=None):
+    """Return XPI file for testing."""
     path = '%s-%s/packages/%s' % (settings.SDKDIR_PREFIX, sdk_name, pkg_name)
-    _file = '%s.xpi' % filename
-    response = serve(r, _file, path, show_indexes=False)
-    response['Content-Type'] = 'application/octet-stream'
-    response['Content-Disposition'] = 'attachment; filename="%s.xpi"' \
-            % filename
-    return response
+    f = '%s.xpi' % filename
+    # Return file if it exists?
+    if os.path.isfile(os.path.join(path, f)):
+        r = serve(r, f, path, show_indexes=False)
+        r['Content-Type'] = 'application/octet-stream'
+        r['Content-Disposition'] = 'attachment; filename="%s.xpi"' % filename
+    elif retry:
+        r = render_to_response('retry_download.html', dict(url=retry_url),
+                               RequestContext(r))
+    else:
+        r = HttpResponseRedirect(retry_url)
+
+    return r
 
 
 def remove_xpi(r, sdk_name):
