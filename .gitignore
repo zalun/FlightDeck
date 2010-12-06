@@ -12,6 +12,7 @@ flightdeck/media/tutorial
 flightdeck/media/codemirror
 flightdeck/media/api
 flightdeck/jetpack/media/media
+lib/temp-*
 upload
 sdk_versions
 settings_local.py
