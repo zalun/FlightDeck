@@ -120,11 +120,6 @@ class Package(models.Model):
         return reverse('jp_%s_latest' % self.get_type_name(),
                         args=[self.id_number])
 
-    def get_edit_latest_url(self):
-        " returns the URL to edit the latest saved Revision "
-        return reverse('jp_%s_edit_latest' % self.get_type_name(),
-                        args=[self.id_number])
-
     def get_disable_url(self):
         " returns URL to the disable package functionality "
         return reverse('jp_package_disable',
@@ -333,12 +328,6 @@ class PackageRevision(models.Model):
         return reverse(
             'jp_%s_revision_details' \
             % settings.PACKAGE_SINGULAR_NAMES[self.package.type],
-            args=[self.package.id_number, self.revision_number])
-
-    def get_edit_url(self):
-        " returns URL to edit the package revision "
-        return reverse(
-            'jp_%s_revision_edit' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
     def get_save_url(self):
@@ -725,8 +714,7 @@ class PackageRevision(models.Model):
         " returns dependencies list as JSON object "
         d_list = [{
                 'full_name': d.package.full_name,
-                'view_url': d.get_absolute_url(),
-                'edit_url': d.get_edit_url()
+                'view_url': d.get_absolute_url()
                 } for d in self.dependencies.all()
             ] if self.dependencies.count() > 0 else []
         return simplejson.dumps(d_list)

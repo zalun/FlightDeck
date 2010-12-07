@@ -305,7 +305,7 @@ Package.View = new Class({
 		new Request.JSON({
 			url: this.options.copy_url,
 			onSuccess: function(response) {
-				window.location.href = response.edit_url;
+				window.location.href = response.view_url;
 			}
 		}).send();
 	}
@@ -406,8 +406,8 @@ Package.Edit = new Class({
 					url: this.options.switch_sdk_url,
 					data: {'id': $('jetpack_core_sdk_version').get('value')},
 					onSuccess: function(response) {
-						// set the redirect data to edit_url of the new revision
-						fd.setURIRedirect(response.edit_url);
+						// set the redirect data to view_url of the new revision
+						fd.setURIRedirect(response.view_url);
 						// set data changed by save
 						this.setUrls(response);
                         // change url to the SDK lib code
@@ -454,7 +454,7 @@ Package.Edit = new Class({
 					'html': self.attachment_template.substitute(response)
 				}).inject($('attachments_ul'));
 				$(response.filename+response.ext+'_display').getElement('.File_close').addEvent('click', self.boundRemoveAttachmentAction);
-				fd.setURIRedirect(response.edit_url);
+				fd.setURIRedirect(response.view_url);
 				self.setUrls(response);
 				
 				self.attachments_counter.set('text', '('+ $('attachments').getElements('.UI_File_Listing li').length +')')
@@ -497,7 +497,7 @@ Package.Edit = new Class({
 			url: self.remove_attachment_url || self.options.remove_attachment_url,
 			data: {filename: filename},
 			onSuccess: function(response) {
-				fd.setURIRedirect(response.edit_url);
+				fd.setURIRedirect(response.view_url);
 				self.setUrls(response);
 				$(response.filename+response.ext+'_display').getParent('li').destroy();
 				self.attachments_counter.set('text', '('+ $('attachments').getElements('.UI_File_Listing li').length +')')
@@ -525,8 +525,8 @@ Package.Edit = new Class({
 			url: this.add_module_url || this.options.add_module_url,
 			data: {'filename': filename},
 			onSuccess: function(response) {
-				// set the redirect data to edit_url of the new revision
-				fd.setURIRedirect(response.edit_url);
+				// set the redirect data to view_url of the new revision
+				fd.setURIRedirect(response.view_url);
 				// set data changed by save
 				this.setUrls(response);
 				fd.message.alert(response.message_title, response.message);
@@ -567,7 +567,7 @@ Package.Edit = new Class({
 			url: this.remove_module_url || this.options.remove_module_url,
 			data: module.options,
 			onSuccess: function(response) {
-				fd.setURIRedirect(response.edit_url);
+				fd.setURIRedirect(response.view_url);
 				this.setUrls(response);
 				var mod = this.modules[response.filename];
 				mod.destroy();
@@ -590,8 +590,8 @@ Package.Edit = new Class({
                   // clear the library search field
                   $(this.options.assign_library_input).set('value','');
                   $(this.autocomplete.options.display_el).set('value','');
-                  // set the redirect data to edit_url of the new revision
-                  fd.setURIRedirect(response.edit_url);
+                  // set the redirect data to view_url of the new revision
+                  fd.setURIRedirect(response.view_url);
                   // set data changed by save
                   this.setUrls(response);
                   //fd.message.alert('Library assigned', response.message);
@@ -637,7 +637,7 @@ Package.Edit = new Class({
 			url: this.remove_library_url || this.options.remove_library_url,
 			data: {'id_number': id_number},
 			onSuccess: function(response) {
-				fd.setURIRedirect(response.edit_url);
+				fd.setURIRedirect(response.view_url);
 				this.setUrls(response);
 				$('library_{name}'.substitute(response)).getParent('li').destroy();
 				$('libraries-counter').set('text', '('+ $('libraries').getElements('.UI_File_Listing li').length +')')
@@ -718,11 +718,11 @@ Package.Edit = new Class({
 			url: this.save_url || this.options.save_url,
 			data: this.data,
 			onSuccess: function(response) {
-				// set the redirect data to edit_url of the new revision
+				// set the redirect data to view_url of the new revision
 				if (response.reload) {
-				 	window.location.href = response.edit_url;
+				 	window.location.href = response.view_url;
 				}
-				fd.setURIRedirect(response.edit_url);
+				fd.setURIRedirect(response.view_url);
 				// set data changed by save
 				this.setUrls(response);
 				fd.message.alert(response.message_title, response.message);

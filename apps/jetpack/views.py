@@ -557,7 +557,7 @@ def package_create(r, type_id):
     item.save()
 
     return HttpResponseRedirect(reverse(
-        'jp_%s_edit_latest' % item.get_type_name(), args=[item.id_number]))
+        'jp_%s_latest' % item.get_type_name(), args=[item.id_number]))
 
 
 @login_required
@@ -607,7 +607,7 @@ def package_assign_library(r, id_number, type_id,
     except Exception, err:
         return HttpResponseForbidden(escape(err.__str__()))
 
-    lib_revision_url = lib_revision.get_edit_url() \
+    lib_revision_url = lib_revision.get_absolute_url() \
         if r.user.pk == lib_revision.pk \
         else lib_revision.get_absolute_url()
 
