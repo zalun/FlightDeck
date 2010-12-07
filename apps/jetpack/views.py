@@ -766,7 +766,7 @@ def test_xpi(r, sdk_name, pkg_name, filename):
     try:
         xpi = open(os.path.join(path, _file), 'rb').read()
     except Exception, err:
-        log.error('Error creating Add-on: %s' % str(err))
+        log.critical('Error creating Add-on: %s' % str(err))
         return HttpResponseServerError
 
     return HttpResponse(xpi, mimetype=mimetype)
