@@ -70,27 +70,67 @@ def package_browser(r, page_number=1, type_id=None, username=None):
         context_instance=RequestContext(r))
 
 
-def package_details(r, id_number, type_id,
-                    revision_number=None, version_name=None, latest=False):
+def package_view_or_edit(r, id_number, type_id, revision_number=None,
+                 version_name=None, latest=False):
     """
-    Show package - read only
+    Edit if user is the author, otherwise view
     """
     revision = get_package_revision(id_number, type_id,
                                     revision_number, version_name, latest)
+    if r.user.is_authenticated() and r.user.pk == revision.author.pk:
+        return package_edit(r, revision)
+    else:
+        return package_view(r, revision)
+
+@login_required
+def package_edit(r, revision):
+    """
+    Edit package - only for the author
+    """
+    if r.user.pk != revision.author.pk:
+        # redirecting to view mode without displaying an error
+        messages.info(r,
+                      "Not sufficient priviliges to edit the source. "
+                      "You've been redirected to view mode.")
+
+        return HttpResponseRedirect(
+            reverse(
+                "jp_%s_revision_details" % revision.package.get_type_name(),
+                args=[revision.package.id_number, revision.revision_number])
+        )
+        #return HttpResponseForbidden('You are not the author of this Package')
+
     libraries = revision.dependencies.all()
     library_counter = len(libraries)
-    core_library = None
+    sdk_list = None
     if revision.package.is_addon():
-        corelibrary = Package.objects.get(
-                id_number=settings.MINIMUM_PACKAGE_ID)
-        corelibrary = corelibrary.latest
+        library_counter += 1
+        sdk_list = SDK.objects.all()
+
+    return render_to_response(
+        "%s_edit.html" % revision.package.get_type_name(), {
+            'revision': revision,
+            'libraries': libraries,
+            'library_counter': library_counter,
+            'readonly': False,
+            'edit_mode': True,
+            'sdk_list': sdk_list
+        }, context_instance=RequestContext(r))
+
+
+def package_view(r, revision):
+    """
+    Show package - read only
+    """
+    libraries = revision.dependencies.all()
+    library_counter = len(libraries)
+    if revision.package.is_addon():
         library_counter += 1
 
     return render_to_response(
         "%s_view.html" % revision.package.get_type_name(), {
             'revision': revision,
             'libraries': libraries,
-            'core_library': core_library,
             'library_counter': library_counter,
             'readonly': True
         }, context_instance=RequestContext(r))
@@ -140,48 +180,6 @@ def package_copy(r, id_number, type_id,
                                  escape(source.package.get_type_name()))
 
 
-@login_required
-def package_edit(r, id_number, type_id, revision_number=None,
-                 version_name=None, latest=False):
-    """
-    Edit package - only for the author
-    """
-    revision = get_package_revision(id_number, type_id,
-                                    revision_number, version_name, latest)
-    if r.user.pk != revision.author.pk:
-        # redirecting to view mode without displaying an error
-        messages.info(r,
-                      "Not sufficient priviliges to edit the source. "
-                      "You've been redirected to view mode.")
-
-        return HttpResponseRedirect(
-            reverse(
-                "jp_%s_revision_details" % revision.package.get_type_name(),
-                args=[id_number, revision.revision_number])
-        )
-        #return HttpResponseForbidden('You are not the author of this Package')
-
-    libraries = revision.dependencies.all()
-    library_counter = len(libraries)
-    core_library = None
-    sdk_list = None
-    if revision.package.is_addon():
-        core_library = Package.objects.get(
-                id_number=settings.MINIMUM_PACKAGE_ID)
-        core_library = core_library.latest
-        library_counter += 1
-        sdk_list = SDK.objects.all()
-
-    return render_to_response(
-        "%s_edit.html" % revision.package.get_type_name(), {
-            'revision': revision,
-            'libraries': libraries,
-            'core_library': core_library,
-            'library_counter': library_counter,
-            'readonly': False,
-            'edit_mode': True,
-            'sdk_list': sdk_list
-        }, context_instance=RequestContext(r))
 
 
 @login_required
@@ -559,7 +557,7 @@ def package_create(r, type_id):
     item.save()
 
     return HttpResponseRedirect(reverse(
-        'jp_%s_edit_latest' % item.get_type_name(), args=[item.id_number]))
+        'jp_%s_latest' % item.get_type_name(), args=[item.id_number]))
 
 
 @login_required
@@ -609,7 +607,7 @@ def package_assign_library(r, id_number, type_id,
     except Exception, err:
         return HttpResponseForbidden(escape(err.__str__()))
 
-    lib_revision_url = lib_revision.get_edit_url() \
+    lib_revision_url = lib_revision.get_absolute_url() \
         if r.user.pk == lib_revision.pk \
         else lib_revision.get_absolute_url()
 
@@ -688,7 +686,8 @@ def package_test_xpi(r, id_number, revision_number=None):
         (stdout, stderr) = revision.build_xpi_test(modules)
 
     else:
-        (stdout, stderr) = revision.build_xpi()
+        # XXX: added test as build_xpi doesn't return
+        (stdout, stderr) = revision.build_xpi_test()
 
     if stderr and not settings.DEBUG:
         # XXX: this should also log the error in file
