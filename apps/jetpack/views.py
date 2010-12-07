@@ -686,7 +686,8 @@ def package_test_xpi(r, id_number, revision_number=None):
         (stdout, stderr) = revision.build_xpi_test(modules)
 
     else:
-        (stdout, stderr) = revision.build_xpi()
+        # XXX: added test as build_xpi doesn't return
+        (stdout, stderr) = revision.build_xpi_test()
 
     if stderr and not settings.DEBUG:
         # XXX: this should also log the error in file

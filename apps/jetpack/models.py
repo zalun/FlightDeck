@@ -783,7 +783,7 @@ class PackageRevision(models.Model):
         tasks.xpi_build.delay(sdk_dir, '%s/packages/%s' % (
                sdk_dir, self.package.get_unique_package_name()))
 
-    def build_xpi_test(self, modules):
+    def build_xpi_test(self, modules=[]):
         " prepare and build XPI for test only (unsaved modules) "
         if self.package.type == 'l':
             raise Exception('only Add-ons may build a XPI')
