@@ -170,6 +170,8 @@ TEMPLATE_LOADERS = (
 )
 
 MIDDLEWARE_CLASSES = [
+    # Munging REMOTE_ADDR must come before ThreadRequest.
+    'commonware.middleware.SetRemoteAddrFromForwardedFor',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -178,6 +180,7 @@ MIDDLEWARE_CLASSES = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'utils.cookies.HttpOnlyMiddleware',
     'commonware.middleware.FrameOptionsHeader',
+    'commonware.middleware.HidePasswordOnException',
 ]
 
 TEMPLATE_CONTEXT_PROCESSORS = (
