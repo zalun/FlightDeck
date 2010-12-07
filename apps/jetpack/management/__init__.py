@@ -1,6 +1,7 @@
 " Predefined for all Jetpack commands "
 import os
 import simplejson
+import shutil
 
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
@@ -92,15 +93,16 @@ def get_or_create_core_author():
     return core_author
 
 
+def _get_code(path):
+   handle = open(path, 'r')
+   code = handle.read()
+   handle.close()
+   return code
+
+
 def add_core_modules(sdk_source, core_revision, core_author,
         core_name):
     " add all provided core modules to core_revision "
-
-    def _get_code(path):
-       handle = open(path, 'r')
-       code = handle.read()
-       handle.close()
-       return code
 
     core_lib_dir = '%s/packages/%s/lib' % (sdk_source, core_name)
     core_modules = os.listdir(core_lib_dir)
@@ -132,6 +134,36 @@ def add_core_modules(sdk_source, core_revision, core_author,
         except Exception, err:
             print ("Warning: There was a problem with importing module "
                    "from file %s/%s\n%s") % (core_lib_dir,module_file, err)
+
+
+def add_core_attachments(sdk_source, sdk_name, core_revision, core_author,
+        core_name):
+    " add attachements to the core_revision "
+
+    core_data_dir = '%s/packages/%s/data' % (sdk_source, core_name)
+    core_attachments = os.listdir(core_data_dir)
+    # @TODO: make it recurrent
+    if len(core_attachments) > 0:
+        path_dir = os.path.join(sdk_name, core_name)
+        upload_dir = os.path.join(settings.UPLOAD_DIR, path_dir)
+        if not os.path.isdir(upload_dir):
+            shutil.copytree(core_data_dir, upload_dir)
+    for att_file in core_attachments:
+        try:
+            att_path = '%s/%s' % (core_data_dir, att_file)
+            att_name, att_ext = os.path.splitext(att_file)
+            att_ext = att_ext[1:]
+            upload_path = '%s/%s.%s' % (path_dir, att_name, att_ext)
+
+            core_revision.attachment_create(
+                    filename=att_name,
+                    ext=att_ext,
+                    path=upload_path,
+                    author=core_author)
+        except Exception, err:
+            print ("Warning: Importing module failed: %s\n%s" %
+                    (att_path, str(err)))
+
 
 
 def check_SDK_dir(sdk_dir_name):
@@ -211,6 +243,8 @@ def update_SDK(sdk_dir_name):
 
     core_revision = _update_lib(core, core_author, core_manifest)
     add_core_modules(sdk_source, core_revision, core_author, core_name)
+    add_core_attachments(sdk_source, sdk_dir_name, core_revision, core_author,
+            core_name)
 
     kit_name = 'addon-kit'
     kit_manifest = get_manifest(sdk_source, core_name=kit_name)
@@ -224,7 +258,9 @@ def update_SDK(sdk_dir_name):
                 core_author, kit_manifest, 'Addon Kit', kit_name,
                 settings.MINIMUM_PACKAGE_ID-1)
 
-        add_core_modules(sdk_source, kit_revision, core_author,kit_name)
+        add_core_modules(sdk_source, kit_revision, core_author, kit_name)
+        add_core_attachments(sdk_source, sdk_dir_name, kit_revision,
+                core_author, kit_name)
 
     # create SDK
     SDK.objects.create(
@@ -249,6 +285,8 @@ def create_SDK(sdk_dir_name='jetpack-sdk'):
         core_author, core_manifest, core_fullname, core_name,
         settings.MINIMUM_PACKAGE_ID)
     add_core_modules(sdk_source, core_revision, core_author, core_name)
+    add_core_attachments(sdk_source, sdk_dir_name, core_revision, core_author,
+            core_name)
 
     kit_name = 'addon-kit'
     kit_manifest = get_manifest(sdk_source, core_name=kit_name)
@@ -257,6 +295,8 @@ def create_SDK(sdk_dir_name='jetpack-sdk'):
             core_author, kit_manifest, 'Addon Kit', 'addon-kit',
             settings.MINIMUM_PACKAGE_ID-1)
         add_core_modules(sdk_source, kit_revision, core_author,kit_name)
+        add_core_attachments(sdk_source, sdk_dir_name, kit_revision,
+                core_author, kit_name)
 
     # create SDK
     SDK.objects.create(
