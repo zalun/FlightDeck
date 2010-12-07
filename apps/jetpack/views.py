@@ -29,6 +29,7 @@ from jetpack.package_helpers import get_package_revision
 from jetpack.xpi_utils import xpi_remove
 from jetpack.errors import FilenameExistException
 
+log = commonware.log.getLogger('f.jetpack')
 
 def package_browser(r, page_number=1, type_id=None, username=None):
     """
@@ -103,8 +104,7 @@ def get_module(r, id_number, revision_number, filename):
         mod = revision.modules.get(filename=filename)
     except:
         log_msg = 'No such module %s' % filename
-        log = commonware.log.getLogger('f.jetpack')
-        log.debug(log_msg)
+        log.error(log_msg)
         raise Http404(log_msg)
     return HttpResponse(mod.get_json())
 
@@ -763,8 +763,13 @@ def test_xpi(r, sdk_name, pkg_name, filename):
     _file = '%s.xpi' % filename
     mimetype = 'text/plain; charset=x-user-defined'
 
-    return HttpResponse(open(os.path.join(path, _file), 'rb').read(),
-                        mimetype=mimetype)
+    try:
+        xpi = open(os.path.join(path, _file), 'rb').read()
+    except Exception, err:
+        log.critical('Error creating Add-on: %s' % str(err))
+        return HttpResponseServerError
+
+    return HttpResponse(xpi, mimetype=mimetype)
 
 
 def download_xpi(r, sdk_name, pkg_name, filename):
