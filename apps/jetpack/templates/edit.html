@@ -138,6 +138,13 @@
 					<span class="UI_Editor_Icon"></span>
 				</a>
 			</li>
+			{% if revision.package.public_permission != 2 %}
+				<li class="UI_Editor_Menu_Button Icon_copy">
+					<a id="package-copy" title="" href="#">Copy
+						<span class="UI_Editor_Icon"></span>
+					</a>
+				</li>
+			{% endif %}
 			{% include "_editor_app_menu_items.html" %}
 		</ul>
 	</div> <!-- /editor-menu-wrapper -->
