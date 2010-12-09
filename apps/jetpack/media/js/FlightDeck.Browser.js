@@ -18,9 +18,11 @@ FlightDeck = Class.refactor(FlightDeck,{
 				var testThisXpi = function() {
 					new Request.JSON({
 						url: el.get('href'),
+                        useSpinner: true,
+                        spinnerTarget: this.getParent('li'),
 						onSuccess: fd.testXPI.bind(fd)
 					}).send();
-				}
+				}.bind(this);
 				if (fd.alertIfNoAddOn()) {
 					if (el.getParent('li').hasClass('pressed')) {
 						fd.uninstallXPI(el.get('rel'));

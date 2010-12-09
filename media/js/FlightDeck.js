@@ -200,6 +200,13 @@ var FlightDeck = new Class({
 	}
 });
 
+/*
+ * Add delay do Spinner
+ */
+
+Spinner = Class.refactor(Spinner, {
+    options: { delay: 400 },
+});
 
 /*
  * Default onFailure in all Requests

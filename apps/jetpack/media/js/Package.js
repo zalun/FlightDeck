@@ -101,6 +101,8 @@ var Package = new Class({
 		new Request.JSON({
 			url: this.test_url,
 			data: this.data || {},
+            useSpinner: true,
+            spinnerTarget: $(this.options.test_el).getParent('li'),
 			onSuccess: fd.testXPI.bind(fd)
 		}).send();
 	},
