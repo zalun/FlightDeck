@@ -550,7 +550,8 @@ a:hover {
 }
 .spinner-msg {
   text-align: center;
-  font-weight: bold;
+  color: #999;
+  margin-bottom: 3px;
 }
 
 .spinner-img {
