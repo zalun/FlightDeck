@@ -431,6 +431,7 @@ Package.Edit = new Class({
 
 	sendMultipleFiles: function() {
 		self = this;
+        self.spinner = false;
 		sendMultipleFiles({
 			url: this.get_add_attachment_url.bind(this),
 			
@@ -444,7 +445,6 @@ Package.Edit = new Class({
               } else {
                 self.spinner = new Spinner($('attachments')).show();
               }
-			//	$log('loadstart')
 			},
 			
 			// do something during upload ...
@@ -463,7 +463,6 @@ Package.Edit = new Class({
 				$(response.filename+response.ext+'_display').getElement('.File_close').addEvent('click', self.boundRemoveAttachmentAction);
 				fd.setURIRedirect(response.view_url);
 				self.setUrls(response);
-				
 				self.attachments_counter.set('text', '('+ $('attachments').getElements('.UI_File_Listing li').length +')')
 			},
 			
