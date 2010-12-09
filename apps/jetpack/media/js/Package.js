@@ -102,7 +102,7 @@ var Package = new Class({
 			url: this.test_url,
 			data: this.data || {},
             useSpinner: true,
-            spinnerTarget: $(this.options.test_el).getParent('li'),
+            spinnerTarget: $(this.options.test_el).getParent('div'),
 			onSuccess: fd.testXPI.bind(fd)
 		}).send();
 	},
