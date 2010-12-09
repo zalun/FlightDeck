@@ -19,7 +19,7 @@ FlightDeck = Class.refactor(FlightDeck,{
 					new Request.JSON({
 						url: el.get('href'),
                         useSpinner: true,
-                        spinnerTarget: this.getParent('li'),
+                        spinnerTarget: this.getParent('li.UI_Item'),
 						onSuccess: fd.testXPI.bind(fd)
 					}).send();
 				}.bind(this);

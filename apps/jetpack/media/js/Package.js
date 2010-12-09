@@ -102,7 +102,7 @@ var Package = new Class({
 			url: this.test_url,
 			data: this.data || {},
             useSpinner: true,
-            spinnerTarget: $(this.options.test_el).getParent('li'),
+            spinnerTarget: $(this.options.test_el).getParent('div'),
 			onSuccess: fd.testXPI.bind(fd)
 		}).send();
 	},
@@ -438,9 +438,14 @@ Package.Edit = new Class({
 			files: this.add_attachment_el.files,
 			
 			// clear the container
-			//onloadstart:function(){
+			onloadstart:function(){
+              if (self.spinner) {
+                self.spinner.position();
+              } else {
+                self.spinner = new Spinner($('attachments')).show();
+              }
 			//	$log('loadstart')
-			//},
+			},
 			
 			// do something during upload ...
 			//onprogress:function(rpe){
@@ -464,6 +469,7 @@ Package.Edit = new Class({
 			
 			// fired when last file has been uploaded
 			onload:function(rpe, xhr){
+                if (self.spinner) self.spinner.destroy();
 				$log('FD: all files uploaded');
 				$(self.add_attachment_el).set('value','');
 				$('add_attachment_fake').set('value','')
@@ -471,10 +477,11 @@ Package.Edit = new Class({
 			
 			// if something is wrong ... (from native instance or because of size)
 			onerror:function(){
+                if (self.spinner) self.spinner.destroy();
 				fd.error.alert(
 					'Error {status}'.substitute(xhr), 
 					'{statusText}<br/>{responseText}'.substitute(xhr)
-					);
+                );
 			}
 		});
 	},
