@@ -30,6 +30,10 @@ urls.extend([
         {'document_root': os.path.join(
             settings.APP_MEDIA_PREFIX, 'jetpack', settings.APP_MEDIA_SUFFIX)
         }, name='jetpack_media'),
+    url(r'^media/person/(?P<path>.*)$', static.serve,
+        {'document_root': os.path.join(
+            settings.APP_MEDIA_PREFIX, 'person', settings.APP_MEDIA_SUFFIX)
+        }, name='person_media'),
     url(r'^media/api/(?P<path>.*)$', static.serve,
         {'document_root': os.path.join(
             settings.APP_MEDIA_PREFIX, 'api', settings.APP_MEDIA_SUFFIX)
