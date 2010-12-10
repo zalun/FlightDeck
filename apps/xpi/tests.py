@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 from django.conf import settings
 
 from jetpack.models import Module, Package, PackageRevision, SDK
-from utils import xpi
+from xpi import xpi_utils
 from jetpack.cron import find_files, clean_tmp
 
 
@@ -138,16 +138,16 @@ class XPIBuildTest(TestCase):
         self.failUnless(os.path.isfile(self.attachment_file_name))
 
     def test_copying_sdk(self):
-        xpi.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
+        xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
         self.failUnless(os.path.isdir(self.SDKDIR))
 
     def test_minimal_xpi_creation(self):
         " xpi build from an addon straight after creation "
-        xpi.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
+        xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        out = xpi.build(self.SDKDIR,
+        out = xpi_utils.build(self.SDKDIR,
                     '%s/packages/%s' % (
                         self.SDKDIR, self.addon.get_unique_package_name()))
         # assert no error output
@@ -163,11 +163,11 @@ class XPIBuildTest(TestCase):
             filename='test_filename',
             author=self.author
         )
-        xpi.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
+        xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        out = xpi.build(self.SDKDIR,
+        out = xpi_utils.build(self.SDKDIR,
                         '%s/packages/%s' % (
                             self.SDKDIR, self.addon.get_unique_package_name()))
         # assert no error output
@@ -188,11 +188,11 @@ class XPIBuildTest(TestCase):
         librev = PackageRevision.objects.filter(
             package__id_number=lib.id_number)[0]
         self.addonrev.dependency_add(librev)
-        xpi.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
+        xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        out = xpi.build(self.SDKDIR,
+        out = xpi_utils.build(self.SDKDIR,
                     '%s/packages/%s' % (
                         self.SDKDIR, self.addon.get_unique_package_name()))
         # assert no error output
@@ -205,11 +205,11 @@ class XPIBuildTest(TestCase):
     def test_xpi_with_dependency(self):
         " addon has one dependency with a file "
         self.addonrev.dependency_add(self.librev)
-        xpi.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
+        xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        out = xpi.build(self.SDKDIR,
+        out = xpi_utils.build(self.SDKDIR,
                     '%s/packages/%s' % (
                         self.SDKDIR, self.addon.get_unique_package_name()))
         # assert no error output

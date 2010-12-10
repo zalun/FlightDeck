@@ -3,20 +3,22 @@ import commonware.log
 
 from django.core.urlresolvers import reverse
 from django.views.static import serve
-from django.shortcuts import render_to_response, get_object_or_404
+from django.shortcuts import render_to_response
 from django.http import HttpResponseRedirect, HttpResponse, \
                         HttpResponseForbidden, HttpResponseServerError, \
-                        HttpResponseNotAllowed, Http404
+                        Http404
 from django.template import RequestContext
 from django.conf import settings
 
 from base.shortcuts import get_object_with_related_or_404
-from utils import validator, xpi
+from utils import validator
+from xpi import xpi_utils
 
-from jetpack.models import Package, PackageRevision, Module, Attachment, SDK
+from jetpack.models import PackageRevision
 
 
 log = commonware.log.getLogger('f.xpi')
+
 
 def prepare_test(r, id_number, revision_number=None):
     """
@@ -43,7 +45,7 @@ def prepare_test(r, id_number, revision_number=None):
 
     if stderr and not settings.DEBUG:
         # XXX: this should also log the error in file
-        xpi.remove(revision.get_sdk_dir())
+        xpi_utils.remove(revision.get_sdk_dir())
 
     # return XPI url and cfx command stdout and stderr
     return render_to_response('json/test_xpi_created.json', {
@@ -132,5 +134,5 @@ def clean(r, sdk_name):
     # Validate sdk_name
     if not validator.is_valid('alphanum_plus', sdk_name):
         return HttpResponseForbidden("{'error': 'Wrong name'}")
-    xpi.remove('%s-%s' % (settings.SDKDIR_PREFIX, sdk_name))
+    xpi_utils.remove('%s-%s' % (settings.SDKDIR_PREFIX, sdk_name))
     return HttpResponse('{}', mimetype='application/json')
