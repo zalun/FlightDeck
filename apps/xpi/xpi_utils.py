@@ -40,7 +40,7 @@ cfx2 $*""" % (
     os.chmod('%s/bin/cfx2' % sdk_dir, stat.S_IXUSR | stat.S_IRUSR)
 
 
-def xpi_build(sdk_dir, package_dir):
+def build(sdk_dir, package_dir):
     " build xpi from source in sdk_dir "
     # set environment
     #os.environ['CUDDLEFISH_ROOT'] = sdk_dir
@@ -74,6 +74,6 @@ def xpi_build(sdk_dir, package_dir):
     return out
 
 
-def xpi_remove(sdk_dir):
+def remove(sdk_dir):
     " clear directory "
     shutil.rmtree(sdk_dir)

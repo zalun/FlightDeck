@@ -13,3 +13,4 @@ Markdown==2.0.3
 # Celery
 python-dateutil
 django-celery
+importlib

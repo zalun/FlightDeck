@@ -133,18 +133,4 @@ urlpatterns = patterns('jetpack.views',
     url(r'^library/remove_dependency/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
         'package_remove_library',
         {'type_id': 'l'},  name='jp_library_revision_remove_library'),
-
-
-    # test Add-on's PackageRevision
-    url(r'^addon/test/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
-        'package_test_xpi', name='jp_addon_revision_test'),
-    url(r'^addon/xpi/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
-        'package_download_xpi', name='jp_addon_revision_xpi'),
-
-    # get and remove created XPI
-    url(r'^addon/test_xpi/(?P<sdk_name>.*)/(?P<pkg_name>.*)/(?P<filename>.*)/$',
-        'test_xpi', name='jp_test_xpi'),
-    url(r'^addon/download_xpi/(?P<sdk_name>.*)/(?P<pkg_name>.*)/(?P<filename>.*)/$',
-        'download_xpi', name='jp_download_xpi'),
-    url(r'^addon/rm_xpi/(?P<sdk_name>.*)/$', 'remove_xpi', name='jp_rm_xpi'),
 )

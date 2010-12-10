@@ -42,6 +42,9 @@ urls.extend([
         {'document_root': settings.MEDIA_ROOT}, name='media'),
 
     # API Browser
+    (r'^xpi/', include('xpi.urls')),
+
+    # API Browser
     (r'^api/', include('api.urls')),
 
     # Tutorial
