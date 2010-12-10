@@ -235,6 +235,7 @@ INSTALLED_APPS = [
     'person',            # user related stuff (profile etc.)
     'amo',               # currently addons.mozilla.org authentication
     'jetpack',           # Jetpack functionality
+    'xpi',               # XPI management
     'api',               # API browser
     'tutorial',          # Load tutorial templates
     'cronjobs',

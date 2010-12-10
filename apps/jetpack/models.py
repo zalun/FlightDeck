@@ -22,7 +22,8 @@ from django.conf import settings
 from jetpack.managers import PackageManager
 from jetpack.errors import SelfDependencyException, FilenameExistException, \
         UpdateDeniedException, SingletonCopyException, DependencyException
-from jetpack.xpi_utils import sdk_copy, xpi_build, xpi_remove
+from utils import xpi
+#xpi.sdk_copy, xpi.build, xpi.remove
 
 
 PERMISSION_CHOICES = (
@@ -761,9 +762,9 @@ class PackageRevision(models.Model):
 
         # TODO: consider SDK staying per PackageRevision...
         if os.path.isdir(sdk_dir):
-            xpi_remove(sdk_dir)
+            xpi.remove(sdk_dir)
 
-        sdk_copy(sdk_source, sdk_dir)
+        xpi.sdk_copy(sdk_source, sdk_dir)
         self.export_keys(sdk_dir)
         self.export_files_with_dependencies('%s/packages' % sdk_dir)
 
@@ -780,8 +781,8 @@ class PackageRevision(models.Model):
         sdk_source = self.sdk.get_source_dir()
         # This SDK is always different! - working on unsaved data
         if os.path.isdir(sdk_dir):
-            xpi_remove(sdk_dir)
-        sdk_copy(sdk_source, sdk_dir)
+            xpi.remove(sdk_dir)
+        xpi.sdk_copy(sdk_source, sdk_dir)
         self.export_keys(sdk_dir)
 
         packages_dir = '%s/packages' % sdk_dir
@@ -800,7 +801,7 @@ class PackageRevision(models.Model):
         self.export_attachments(
             '%s/%s' % (package_dir, self.package.get_data_dir()))
         self.export_dependencies(packages_dir)
-        return (xpi_build(sdk_dir,
+        return (xpi.build(sdk_dir,
                           '%s/packages/%s' % (
                               sdk_dir,
                               self.package.get_unique_package_name()
