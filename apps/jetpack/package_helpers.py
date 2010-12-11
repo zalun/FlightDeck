@@ -49,11 +49,6 @@ def create_from_archive(path, author, package_type='a'):
     # read package.json
     packed = zipfile.ZipFile(path, 'r')
     try:
-        manifest = packed.open('package.json', 'r')
-    except Exception, err:
-        raise ManifestNotValid("Problem with opening package.json.\n"
-                "Error: %s" % str(err))
-    try:
         manifest = simplejson.loads(manifest.read())
     except Exception, err:
         raise ManifestNotValid("Problem with reading manifest's data.\n"
@@ -80,7 +75,7 @@ def create_from_archive(path, author, package_type='a'):
     )
     obj.save()
     obj.latest.set_version('empty.uploaded')
-    obj.create_revision_from_archive(path, manifest)
+    obj.create_revision_from_archive(packed, manifest)
 
     return obj
 
