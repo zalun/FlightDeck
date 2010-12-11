@@ -1,4 +1,5 @@
 import time
+import os
 
 from test_utils import TestCase
 
@@ -6,6 +7,7 @@ from django.contrib.auth.models import User
 from django.conf import settings
 
 from jetpack.models import Package
+from jetpack.package_helpers import create_from_archive
 
 
 class PackageTest(TestCase):
@@ -77,3 +79,13 @@ class PackageTest(TestCase):
 
     def test_disable_activate(self):
         pass
+
+    def test_create_from_archive(self):
+        path_addon = os.path.join(
+                settings.ROOT, 'apps/jetpack/tests/sample_addon.zip')
+        path_library = os.path.join(
+                settings.ROOT, 'apps/jetpack/tests/sample_library.zip')
+        addon = create_from_archive(path_addon, self.author, 'a')
+
+        self.failUnless(addon)
+

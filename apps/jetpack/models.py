@@ -5,6 +5,7 @@
 import os
 import csv
 import shutil
+import zipfile
 
 from copy import deepcopy
 
@@ -21,7 +22,8 @@ from django.conf import settings
 
 from jetpack.managers import PackageManager
 from jetpack.errors import SelfDependencyException, FilenameExistException, \
-        UpdateDeniedException, SingletonCopyException, DependencyException
+        UpdateDeniedException, SingletonCopyException, DependencyException, \
+        ManifestNotValid
 
 from xpi import xpi_utils
 
@@ -267,6 +269,27 @@ class Package(models.Model):
         )
         new_p.save()
         return new_p
+
+    def create_revision_from_archive(self, packed, manifest):
+        """
+        Create new package revision vy reading the archive.
+
+        Args:
+            pathcked (ZipFile): archive containing Revision data
+
+        Returns:
+            PackageRevision object
+        """
+
+        revision = self.latest
+        revision.set_version(manifest['version'])
+        if 'contributors' in manifest:
+            revision.contributors = manifest['contributors']
+        super(PackageRevision, revision).save()
+
+        # create PackageRevision and set version to "upload"
+        # add Modules
+        # add Attachments
 
 
 class PackageRevision(models.Model):
