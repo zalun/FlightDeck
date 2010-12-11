@@ -270,7 +270,8 @@ class Package(models.Model):
         new_p.save()
         return new_p
 
-    def create_revision_from_archive(self, packed, manifest):
+    def create_revision_from_archive(self, packed, manifest,
+            new_revision=False):
         """
         Create new package revision vy reading the archive.
 
@@ -282,12 +283,16 @@ class Package(models.Model):
         """
 
         revision = self.latest
-        revision.set_version(manifest['version'])
         if 'contributors' in manifest:
             revision.contributors = manifest['contributors']
-        super(PackageRevision, revision).save()
 
-        # create PackageRevision and set version to "upload"
+        if new_revision:
+            revision.save()
+        else:
+            super(PackageRevision, revision).save()
+
+        revision.set_version(manifest['version'])
+
         # add Modules
         # add Attachments
 
