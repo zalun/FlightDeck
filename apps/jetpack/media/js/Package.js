@@ -32,7 +32,7 @@ var Package = new Class({
 				// revision_author: '',
 				// modules: [], // a list of module filename, author pairs
 		readonly: false,
-		package_info_el: 'package-info',
+		package_info_el: 'package-properties',
 		test_el: 'try_in_browser'
 	},
 	modules: {},
