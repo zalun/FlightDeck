@@ -29,7 +29,7 @@ class PackageTest(TestCase):
         # name is created automtically if no given
         self.failUnless(package.full_name)
         self.failUnless(package.name)
-        self.assertEqual(package.full_name, 'My Add-on')
+        self.assertEqual(package.full_name, self.author.username)
 
     def test_automatic_numbering(self):
         Package(
@@ -42,7 +42,7 @@ class PackageTest(TestCase):
             type='a'
         )
         package.save()
-        self.assertEqual(package.full_name, 'My Add-on (1)')
+        self.assertEqual(package.full_name, '%s (1)' % self.author.username)
 
     def test_ordering(self):
         " Newest is first "
@@ -55,8 +55,8 @@ class PackageTest(TestCase):
         # mutithreaded MySQL it could be different. It would be fair to assume
         # one of these will be (1) and the other not
         names = (addon1.full_name, addon2.full_name)
-        self.failUnless('My Add-on (1)' in names)
-        self.failUnless('My Add-on' in names)
+        self.failUnless('%s (1)' % self.author.username in names)
+        self.failUnless('%s' % self.author.username in names)
 
     def test_manager_filtering(self):
         Package(author=self.author, type='a').save()

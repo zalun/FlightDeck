@@ -527,4 +527,27 @@ a:hover {
 	    display: none;
 	}
 
+/* SPINNER ############################################ */
+.spinner {
+  position: absolute;
+  opacity: 0.9;
+  filter:. alpha(opacity=90);
+  /*-ms-filter: progid:DXImageTransform.Microsoft.Alpha(Opacity=90);*/
+  z-index: 999;
+  background: #fff;
+}
+.spinner-msg {
+  text-align: center;
+  color: #999;
+  margin-bottom: 3px;
+}
+
+.spinner-img {
+  background: url(../img/spinner.gif) no-repeat;
+  width: 24px;
+  height: 24px;
+  margin: 0 auto;
+}
+
+
 /* @end */

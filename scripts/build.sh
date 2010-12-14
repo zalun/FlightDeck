@@ -34,8 +34,11 @@ fi
 
 cat > settings_local.py <<SETTINGS
 from settings import *
-ROOT_URLCONF = 'workspace.urls'
+ROOT_PACKAGE = os.path.basename(ROOT)
+ROOT_URLCONF = '%s.urls' % ROOT_PACKAGE
 DATABASES['default']['NAME'] = 'builder_pamo'
+DATABASES['default']['HOST'] = 'sm-hudson01'
+DATABASES['default']['USER'] = 'hudson'
 DATABASES['default']['TEST_NAME'] = 'test_builder_pamo'
 DATABASES['default']['TEST_CHARSET'] = 'utf8'
 DATABASES['default']['TEST_COLLATION'] = 'utf8_general_ci'

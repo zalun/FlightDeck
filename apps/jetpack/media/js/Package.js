@@ -58,11 +58,9 @@ var Package = new Class({
 				var template_end = '</div><div class="UI_Modal_Actions"><ul><li><input type="reset" value="Close" class="closeModal"/></li></ul></div></div>';
 				var template_middle = 'Download <a href="'+url+'">'+filename+'</a>';
 				if (['jpg', 'gif', 'png'].contains(ext)) template_middle = '<img src="'+url+'"/>'; 
-				if (['css', 'js', 'css'].contains(ext)) {
+				if (['css', 'js', 'txt'].contains(ext)) {
 					new Request({
 						url: url,
-						evalScripts: false,
-						evalResponse: false,
 						onSuccess: function(response) {
 							template_middle = '<pre>'+response.escapeAll()+'</pre>';
 							this.attachmentWindow = fd.displayModal(template_start+template_middle+template_end);
@@ -103,6 +101,8 @@ var Package = new Class({
 		new Request.JSON({
 			url: this.test_url,
 			data: this.data || {},
+            useSpinner: true,
+            spinnerTarget: $(this.options.test_el).getParent('div'),
 			onSuccess: fd.testXPI.bind(fd)
 		}).send();
 	},
@@ -216,7 +216,7 @@ var Module = new Class({
 		this.active = true;
 	},
 	destroy: function() {
-		this.textarea.destroy();
+        if (this.textarea) this.textarea.destroy();
 		this.trigger.getParent('li').destroy();
 		$('modules-counter').set('text', '('+ $('modules').getElements('.UI_File_Listing li').length +')')
 		delete fd.getItem().modules[this.options.filename];
@@ -307,7 +307,7 @@ Package.View = new Class({
 		new Request.JSON({
 			url: this.options.copy_url,
 			onSuccess: function(response) {
-				window.location.href = response.edit_url;
+				window.location.href = response.view_url;
 			}
 		}).send();
 	}
@@ -408,8 +408,8 @@ Package.Edit = new Class({
 					url: this.options.switch_sdk_url,
 					data: {'id': $('jetpack_core_sdk_version').get('value')},
 					onSuccess: function(response) {
-						// set the redirect data to edit_url of the new revision
-						fd.setURIRedirect(response.edit_url);
+						// set the redirect data to view_url of the new revision
+						fd.setURIRedirect(response.view_url);
 						// set data changed by save
 						this.setUrls(response);
                         // change url to the SDK lib code
@@ -431,6 +431,7 @@ Package.Edit = new Class({
 
 	sendMultipleFiles: function() {
 		self = this;
+        self.spinner = false;
 		sendMultipleFiles({
 			url: this.get_add_attachment_url.bind(this),
 			
@@ -438,9 +439,13 @@ Package.Edit = new Class({
 			files: this.add_attachment_el.files,
 			
 			// clear the container
-			//onloadstart:function(){
-			//	$log('loadstart')
-			//},
+			onloadstart:function(){
+              if (self.spinner) {
+                self.spinner.position();
+              } else {
+                self.spinner = new Spinner($('attachments')).show();
+              }
+			},
 			
 			// do something during upload ...
 			//onprogress:function(rpe){
@@ -456,14 +461,14 @@ Package.Edit = new Class({
 					'html': self.attachment_template.substitute(response)
 				}).inject($('attachments_ul'));
 				$(response.filename+response.ext+'_display').getElement('.File_close').addEvent('click', self.boundRemoveAttachmentAction);
-				fd.setURIRedirect(response.edit_url);
+				fd.setURIRedirect(response.view_url);
 				self.setUrls(response);
-				
 				self.attachments_counter.set('text', '('+ $('attachments').getElements('.UI_File_Listing li').length +')')
 			},
 			
 			// fired when last file has been uploaded
 			onload:function(rpe, xhr){
+                if (self.spinner) self.spinner.destroy();
 				$log('FD: all files uploaded');
 				$(self.add_attachment_el).set('value','');
 				$('add_attachment_fake').set('value','')
@@ -471,10 +476,11 @@ Package.Edit = new Class({
 			
 			// if something is wrong ... (from native instance or because of size)
 			onerror:function(){
+                if (self.spinner) self.spinner.destroy();
 				fd.error.alert(
 					'Error {status}'.substitute(xhr), 
 					'{statusText}<br/>{responseText}'.substitute(xhr)
-					);
+                );
 			}
 		});
 	},
@@ -499,7 +505,7 @@ Package.Edit = new Class({
 			url: self.remove_attachment_url || self.options.remove_attachment_url,
 			data: {filename: filename},
 			onSuccess: function(response) {
-				fd.setURIRedirect(response.edit_url);
+				fd.setURIRedirect(response.view_url);
 				self.setUrls(response);
 				$(response.filename+response.ext+'_display').getParent('li').destroy();
 				self.attachments_counter.set('text', '('+ $('attachments').getElements('.UI_File_Listing li').length +')')
@@ -527,8 +533,8 @@ Package.Edit = new Class({
 			url: this.add_module_url || this.options.add_module_url,
 			data: {'filename': filename},
 			onSuccess: function(response) {
-				// set the redirect data to edit_url of the new revision
-				fd.setURIRedirect(response.edit_url);
+				// set the redirect data to view_url of the new revision
+				fd.setURIRedirect(response.view_url);
 				// set data changed by save
 				this.setUrls(response);
 				fd.message.alert(response.message_title, response.message);
@@ -554,7 +560,7 @@ Package.Edit = new Class({
 			return;
 		}
 		this.question = fd.showQuestion({
-			title: 'Are you sure you want to remove {filename}.js?'.substitute(module),
+			title: 'Are you sure you want to remove {filename}.js?'.substitute(module.options),
 			message: 'You may always copy it from this revision',
 			ok: 'Remove',
 			id: 'remove_module_button',
@@ -569,7 +575,7 @@ Package.Edit = new Class({
 			url: this.remove_module_url || this.options.remove_module_url,
 			data: module.options,
 			onSuccess: function(response) {
-				fd.setURIRedirect(response.edit_url);
+				fd.setURIRedirect(response.view_url);
 				this.setUrls(response);
 				var mod = this.modules[response.filename];
 				mod.destroy();
@@ -577,24 +583,32 @@ Package.Edit = new Class({
 		}).send();
 	},
 	assignLibraryAction: function(e) {
+        e.stop();
 		// get data
 		library_id = $(this.options.assign_library_input).get('value');
 		// assign Library by giving filename
 		this.assignLibrary(library_id);
 	},
 	assignLibrary: function(library_id) {
-		new Request.JSON({
-			url: this.assign_library_url || this.options.assign_library_url,
-			data: {'id_number': library_id},
-			onSuccess: function(response) {
-				// set the redirect data to edit_url of the new revision
-				fd.setURIRedirect(response.edit_url);
-				// set data changed by save
-				this.setUrls(response);
-				//fd.message.alert('Library assigned', response.message);
-				this.appendLibrary(response);
-			}.bind(this)
-		}).send();
+        if (library_id) {
+          new Request.JSON({
+              url: this.assign_library_url || this.options.assign_library_url,
+              data: {'id_number': library_id},
+              onSuccess: function(response) {
+                  // clear the library search field
+                  $(this.options.assign_library_input).set('value','');
+                  $(this.autocomplete.options.display_el).set('value','');
+                  // set the redirect data to view_url of the new revision
+                  fd.setURIRedirect(response.view_url);
+                  // set data changed by save
+                  this.setUrls(response);
+                  //fd.message.alert('Library assigned', response.message);
+                  this.appendLibrary(response);
+              }.bind(this)
+          }).send();
+        } else {
+          fd.error.alert('No such Library', 'Please choose a library from the list');
+        }
 	},
 	appendLibrary: function(lib) {
 		var html='<a title="" id="library_{library_name}" href="{library_url}" target="{id_number}" class="library_link">'+
@@ -631,7 +645,7 @@ Package.Edit = new Class({
 			url: this.remove_library_url || this.options.remove_library_url,
 			data: {'id_number': id_number},
 			onSuccess: function(response) {
-				fd.setURIRedirect(response.edit_url);
+				fd.setURIRedirect(response.view_url);
 				this.setUrls(response);
 				$('library_{name}'.substitute(response)).getParent('li').destroy();
 				$('libraries-counter').set('text', '('+ $('libraries').getElements('.UI_File_Listing li').length +')')
@@ -712,11 +726,11 @@ Package.Edit = new Class({
 			url: this.save_url || this.options.save_url,
 			data: this.data,
 			onSuccess: function(response) {
-				// set the redirect data to edit_url of the new revision
+				// set the redirect data to view_url of the new revision
 				if (response.reload) {
-				 	window.location.href = response.edit_url;
+				 	window.location.href = response.view_url;
 				}
-				fd.setURIRedirect(response.edit_url);
+				fd.setURIRedirect(response.view_url);
 				// set data changed by save
 				this.setUrls(response);
 				fd.message.alert(response.message_title, response.message);

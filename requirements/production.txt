@@ -8,4 +8,9 @@ Django==1.2.3
 
 docutils==0.7
 Markdown==2.0.3
+-e git://github.com/jsocol/commonware.git#egg=commonware
 
+# Celery
+python-dateutil
+django-celery
+importlib

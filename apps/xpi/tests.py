@@ -3,12 +3,14 @@ import shutil
 import simplejson
 
 from utils.test import TestCase
+from nose.tools import eq_
 
 from django.contrib.auth.models import User
 from django.conf import settings
 
-from jetpack.models import Package, PackageRevision, Module
-from jetpack.xpi_utils import sdk_copy, xpi_build
+from jetpack.models import Module, Package, PackageRevision, SDK
+from xpi import xpi_utils
+from jetpack.cron import find_files, clean_tmp
 
 
 class XPIBuildTest(TestCase):
@@ -45,6 +47,8 @@ class XPIBuildTest(TestCase):
             os.remove(self.attachment_file_name)
 
     def makeSDKDir(self):
+        if self.SDKDIR and os.path.isdir(self.SDKDIR):
+            shutil.rmtree(self.SDKDIR)
         os.mkdir(self.SDKDIR)
         os.mkdir('%s/packages' % self.SDKDIR)
 
@@ -123,8 +127,6 @@ class XPIBuildTest(TestCase):
         handle = open(self.attachment_file_name, 'w')
         handle.write('unit test file')
         handle.close()
-        addon_dir = '%s/packages/%s' % (self.SDKDIR,
-                                        self.addon.get_unique_package_name())
         self.addonrev.attachment_create(
             filename='test_filename',
             ext='txt',
@@ -136,16 +138,16 @@ class XPIBuildTest(TestCase):
         self.failUnless(os.path.isfile(self.attachment_file_name))
 
     def test_copying_sdk(self):
-        sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
+        xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
         self.failUnless(os.path.isdir(self.SDKDIR))
 
     def test_minimal_xpi_creation(self):
         " xpi build from an addon straight after creation "
-        sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
+        xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        out = xpi_build(self.SDKDIR,
+        out = xpi_utils.build(self.SDKDIR,
                     '%s/packages/%s' % (
                         self.SDKDIR, self.addon.get_unique_package_name()))
         # assert no error output
@@ -161,11 +163,11 @@ class XPIBuildTest(TestCase):
             filename='test_filename',
             author=self.author
         )
-        sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
+        xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        out = xpi_build(self.SDKDIR,
+        out = xpi_utils.build(self.SDKDIR,
                         '%s/packages/%s' % (
                             self.SDKDIR, self.addon.get_unique_package_name()))
         # assert no error output
@@ -186,11 +188,11 @@ class XPIBuildTest(TestCase):
         librev = PackageRevision.objects.filter(
             package__id_number=lib.id_number)[0]
         self.addonrev.dependency_add(librev)
-        sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
+        xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        out = xpi_build(self.SDKDIR,
+        out = xpi_utils.build(self.SDKDIR,
                     '%s/packages/%s' % (
                         self.SDKDIR, self.addon.get_unique_package_name()))
         # assert no error output
@@ -203,11 +205,11 @@ class XPIBuildTest(TestCase):
     def test_xpi_with_dependency(self):
         " addon has one dependency with a file "
         self.addonrev.dependency_add(self.librev)
-        sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
+        xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        out = xpi_build(self.SDKDIR,
+        out = xpi_utils.build(self.SDKDIR,
                     '%s/packages/%s' % (
                         self.SDKDIR, self.addon.get_unique_package_name()))
         # assert no error output
@@ -216,3 +218,24 @@ class XPIBuildTest(TestCase):
         self.failUnless(os.path.isfile('%s/packages/%s/%s.xpi' % (
             self.SDKDIR,
             self.addon.get_unique_package_name(), self.addon.name)))
+
+    def test_xpi_clean(self):
+        """Test that we clean up the /tmp directory correctly."""
+        rev = Package.objects.get(id=4).revisions.all()[0]
+        sdk = SDK.objects.create(version='0.8',
+                                     core_lib=rev,
+                                     dir='jetpack-sdk-0.8')
+
+        rev.sdk = sdk
+        rev.save()
+
+        # Clean out /tmp directory.
+        for full in find_files():
+            shutil.rmtree(full)
+        assert not find_files()
+        rev.build_xpi()
+
+        # There should be one directory in the /tmp directory now.
+        eq_(len(find_files()), 1)
+        clean_tmp(length=0)
+        assert not find_files()

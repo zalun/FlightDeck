@@ -3,15 +3,14 @@ import os
 import sys
 import site
 
-site.addsitedir('vendor')
-site.addsitedir('vendor/lib/python')
-
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 path = lambda *a: os.path.join(ROOT, *a)
 
 prev_sys_path = list(sys.path)
 
+site.addsitedir(path('vendor'))
+site.addsitedir(path('vendor/lib/python'))
 site.addsitedir(path('apps'))
 site.addsitedir(path('lib'))
 site.addsitedir(path('lib/jetpack-sdk-0.8/python-lib'))  # weak sauce
@@ -52,6 +51,10 @@ if settings.PRODUCTION:
 # The first thing execute_manager does is call `setup_environ`.  Logging config
 # needs to access settings, so we'll setup the environ early.
 setup_environ(settings)
+
+# Import for side-effect: configures our logging handlers.
+# pylint: disable-msg=W0611
+import log_settings
 
 if __name__ == "__main__":
     execute_manager(settings)

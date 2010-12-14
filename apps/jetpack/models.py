@@ -1,4 +1,4 @@
-" Models definition for jetpack application "
+"""Models definition for jetpack application."""
 
 # TODO: split module and create the models package
 
@@ -7,6 +7,9 @@ import csv
 import shutil
 
 from copy import deepcopy
+
+from ecdsa import SigningKey, NIST256p
+from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
 
 from django.db.models.signals import pre_save, post_save
 from django.db import models
@@ -19,7 +22,8 @@ from django.conf import settings
 from jetpack.managers import PackageManager
 from jetpack.errors import SelfDependencyException, FilenameExistException, \
         UpdateDeniedException, SingletonCopyException, DependencyException
-from jetpack.xpi_utils import sdk_copy, xpi_build, xpi_remove
+
+from xpi import xpi_utils
 
 
 PERMISSION_CHOICES = (
@@ -117,11 +121,6 @@ class Package(models.Model):
         return reverse('jp_%s_latest' % self.get_type_name(),
                         args=[self.id_number])
 
-    def get_edit_latest_url(self):
-        " returns the URL to edit the latest saved Revision "
-        return reverse('jp_%s_edit_latest' % self.get_type_name(),
-                        args=[self.id_number])
-
     def get_disable_url(self):
         " returns URL to the disable package functionality "
         return reverse('jp_package_disable',
@@ -196,15 +195,16 @@ class Package(models.Model):
             packages = Package.objects.filter(author__username=username,
                                               full_name=new_full_name,
                                               type=type_id)
-            if len(packages.all()) == 0:
+            if packages.count() == 0:
                 return new_full_name
 
             i = i + 1
             return _get_full_name(full_name, username, type_id, i)
 
-        self.full_name = _get_full_name(
-            settings.DEFAULT_PACKAGE_FULLNAME[self.type],
-            self.author.username, self.type)
+
+        name = settings.DEFAULT_PACKAGE_FULLNAME.get(self.type,
+                                                     self.author.username)
+        self.full_name = _get_full_name(name, self.author.username, self.type)
 
     def set_name(self):
         " set's the name from full_name "
@@ -218,9 +218,6 @@ class Package(models.Model):
         """
         create keypair, program_id and jid
         """
-        from ecdsa import SigningKey, NIST256p
-        from cuddlefish.preflight import vk_to_jid, jid_to_programid, \
-                                         my_b32encode
 
         signingkey = SigningKey.generate(curve=NIST256p)
         sk_text = "private-jid0-%s" % my_b32encode(signingkey.to_string())
@@ -256,7 +253,6 @@ class Package(models.Model):
         """
         create copy of the package
         """
-        print self.id_number, settings.MINIMUM_PACKAGE_ID
         if self.is_singleton():
             raise SingletonCopyException("This is a singleton")
         new_p = Package(
@@ -333,12 +329,6 @@ class PackageRevision(models.Model):
         return reverse(
             'jp_%s_revision_details' \
             % settings.PACKAGE_SINGULAR_NAMES[self.package.type],
-            args=[self.package.id_number, self.revision_number])
-
-    def get_edit_url(self):
-        " returns URL to edit the package revision "
-        return reverse(
-            'jp_%s_revision_edit' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
     def get_save_url(self):
@@ -422,7 +412,10 @@ class PackageRevision(models.Model):
 
     def get_dependencies_list(self):
         " returns a list of dependencies names extended by default core "
-        deps = ['jetpack-core']
+        if self.package.is_addon() and self.sdk.kit_lib:
+            deps = ['addon-kit']
+        else:
+            deps = ['jetpack-core']
         deps.extend([dep.package.get_unique_package_name() \
                      for dep in self.dependencies.all()])
         return deps
@@ -708,7 +701,6 @@ class PackageRevision(models.Model):
             'There is no such library in this %s' \
             % self.package.get_type_name())
 
-
     def dependency_remove_by_id_number(self, id_number):
         " find dependency by its id_number call dependency_remove "
         for dep in self.dependencies.all():
@@ -723,8 +715,7 @@ class PackageRevision(models.Model):
         " returns dependencies list as JSON object "
         d_list = [{
                 'full_name': d.package.full_name,
-                'view_url': d.get_absolute_url(),
-                'edit_url': d.get_edit_url()
+                'view_url': d.get_absolute_url()
                 } for d in self.dependencies.all()
             ] if self.dependencies.count() > 0 else []
         return simplejson.dumps(d_list)
@@ -759,7 +750,6 @@ class PackageRevision(models.Model):
 
         return self.sdk.kit_lib if self.sdk.kit_lib else self.sdk.core_lib
 
-
     def build_xpi(self):
         " prepare and build XPI "
         if self.package.type == 'l':
@@ -772,18 +762,17 @@ class PackageRevision(models.Model):
 
         # TODO: consider SDK staying per PackageRevision...
         if os.path.isdir(sdk_dir):
-            xpi_remove(sdk_dir)
+            xpi_utils.remove(sdk_dir)
 
-        sdk_copy(sdk_source, sdk_dir)
+        xpi_utils.sdk_copy(sdk_source, sdk_dir)
         self.export_keys(sdk_dir)
         self.export_files_with_dependencies('%s/packages' % sdk_dir)
-        return (xpi_build(sdk_dir,
-                          '%s/packages/%s' % (
-                              sdk_dir,
-                              self.package.get_unique_package_name()
-                          )))
 
-    def build_xpi_test(self, modules):
+        from jetpack import tasks
+        tasks.xpi_build.delay(sdk_dir, '%s/packages/%s' % (
+               sdk_dir, self.package.get_unique_package_name()))
+
+    def build_xpi_test(self, modules=[]):
         " prepare and build XPI for test only (unsaved modules) "
         if self.package.type == 'l':
             raise Exception('only Add-ons may build a XPI')
@@ -792,8 +781,8 @@ class PackageRevision(models.Model):
         sdk_source = self.sdk.get_source_dir()
         # This SDK is always different! - working on unsaved data
         if os.path.isdir(sdk_dir):
-            xpi_remove(sdk_dir)
-        sdk_copy(sdk_source, sdk_dir)
+            xpi_utils.remove(sdk_dir)
+        xpi_utils.sdk_copy(sdk_source, sdk_dir)
         self.export_keys(sdk_dir)
 
         packages_dir = '%s/packages' % sdk_dir
@@ -812,7 +801,7 @@ class PackageRevision(models.Model):
         self.export_attachments(
             '%s/%s' % (package_dir, self.package.get_data_dir()))
         self.export_dependencies(packages_dir)
-        return (xpi_build(sdk_dir,
+        return (xpi_utils.build(sdk_dir,
                           '%s/packages/%s' % (
                               sdk_dir,
                               self.package.get_unique_package_name()
@@ -933,6 +922,7 @@ class Module(models.Model):
             'code': self.code,
             'author': self.author.username})
 
+
 class Attachment(models.Model):
     """
     File (image, css, etc.) updated by the author of the PackageRevision
@@ -995,6 +985,10 @@ class SDK(models.Model):
             related_name="parent_sdk_core+")
     kit_lib = models.OneToOneField(PackageRevision,
             related_name="parent_sdk_kit+", blank=True, null=True)
+    #core_name = models.CharField(max_length=100, default='jetpack-core')
+    #core_fullname = models.CharField(max_length=100, default='Jetpack Core')
+    #kit_name = models.CharField(max_length=100, default='addon-kit')
+    #kit_fullname = models.CharField(max_length=100, default='Addon Kit')
 
     # placement in the filesystem
     dir = models.CharField(max_length=255, unique=True)
@@ -1009,6 +1003,9 @@ class SDK(models.Model):
     def get_source_dir(self):
         return os.path.join(settings.SDK_SOURCE_DIR, self.dir)
 
+    def is_deprecated(self):
+        return self.version < '0.9'
+
 
 def _get_next_id_number():
     """
@@ -1019,9 +1016,8 @@ def _get_next_id_number():
     return str(all_packages_ids[-1] + 1) \
             if all_packages_ids else str(settings.MINIMUM_PACKAGE_ID)
 
-###############################################################################
-## Catching Signals
 
+# Catching Signals
 def set_package_id_number(instance, **kwargs):
     " sets package's id_number before creating the new one "
     if kwargs.get('raw', False) or instance.id or instance.id_number:

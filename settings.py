@@ -3,6 +3,8 @@ Default settings for the FlightDeck site
 For local configuration please use settings_local.py
 """
 import os
+import logging
+import socket
 
 # Make filepaths relative to settings.
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -21,7 +23,9 @@ DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
-   # ('Your Name', 'your_email@domain.com'),
+        ('clouserw', 'clouserw@gmail.com'),
+        ('zalun', 'pzalewa@mozilla.com'),
+        ('dbuc', 'daniel@mozilla.com')
 )
 MANAGERS = ADMINS
 
@@ -36,6 +40,22 @@ DATABASES = {
         'OPTIONS': {'init_command': 'SET storage_engine=InnoDB'},
         'TEST_CHARSET': 'utf8',
         'TEST_COLLATION': 'utf8_general_ci',
+    },
+}
+
+
+# Logging (copied from zamboni)
+LOG_LEVEL = logging.DEBUG
+HAS_SYSLOG = True  # syslog is used if HAS_SYSLOG and NOT DEBUG.
+SYSLOG_TAG = "http_app_builder"
+# See PEP 391 and log_settings.py for formatting help. Each section of LOGGING
+# will get merged into the corresponding section of log_settings.py.
+# Handlers and log levels are set up automatically based on LOG_LEVEL and DEBUG
+# unless you set them here. Messages will not propagate through a logger
+# unless propagate: True is set.
+LOGGING = {
+    'loggers': {
+        'f.jetpack': {'level': logging.INFO},
     },
 }
 
@@ -54,6 +74,10 @@ LANGUAGE_CODE = 'en-us'
 # to load the internationalization machinery.
 USE_I18N = True
 
+# The host currently running the site.  Only use this in code for good reason;
+# the site is designed to run on a cluster and should continue to support that
+HOSTNAME = socket.gethostname()
+
 # Paths settings
 MEDIA_ROOT = path('media')
 
@@ -61,7 +85,7 @@ FRAMEWORK_PATH = path()
 SDK_SOURCE_DIR = path('lib')  # TODO: remove this var
 APP_MEDIA_PREFIX = os.path.join(FRAMEWORK_PATH, 'apps')
 UPLOAD_DIR = path('upload')
-VIRTUAL_ENV = os.environ.get('VIRTUAL_ENV') # TODO: remove this var
+VIRTUAL_ENV = os.environ.get('VIRTUAL_ENV')  # TODO: remove this var
 
 # jetpack defaults
 PACKAGES_PER_PAGE = 10
@@ -76,8 +100,7 @@ PACKAGE_SINGULAR_NAMES = {
     'a': 'addon'
 }
 DEFAULT_PACKAGE_FULLNAME = {
-    'l': 'My Library',
-    'a': 'My Add-on'
+    'l': 'My Library'
 }
 HOMEPAGE_PACKAGES_NUMBER = 3
 SDKDIR_PREFIX = '/tmp/SDK'
@@ -89,8 +112,9 @@ JETPACK_ITEMS_PER_PAGE = 10
 JETPACK_LIB_DIR = 'lib'
 JETPACK_DATA_DIR = 'data'
 
+PYTHON_EXEC = 'python'
+
 # amo defaults
-AMO_LIMITED_ACCESS = False
 AUTH_DATABASE = None
 # set it in settings_local.py if AMO auth should be used
 #AUTH_DATABASE = {
@@ -101,10 +125,6 @@ AUTH_DATABASE = None
 #    'HOST': '',
 #    'PORT': ''
 #}
-
-# api defaults
-
-
 
 # Media section
 APP_MEDIA_SUFFIX = 'media'
@@ -138,6 +158,10 @@ SITE_TITLE = "Add-on Builder"
 # Define in settings_local.py ake this unique, and don't share it with anybody.
 SECRET_KEY = 'somesecretkey'
 
+# Cookies which should not have the httponly set to true
+JAVASCRIPT_READABLE_COOKIES = ()
+SESSION_COOKIE_SECURE = True
+
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
     'django.template.loaders.filesystem.load_template_source',
@@ -146,12 +170,17 @@ TEMPLATE_LOADERS = (
 )
 
 MIDDLEWARE_CLASSES = [
+    # Munging REMOTE_ADDR must come before ThreadRequest.
+    'commonware.middleware.SetRemoteAddrFromForwardedFor',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
+    'utils.cookies.HttpOnlyMiddleware',
+    'commonware.middleware.FrameOptionsHeader',
+    'commonware.middleware.HidePasswordOnException',
 ]
 
 TEMPLATE_CONTEXT_PROCESSORS = (
@@ -206,8 +235,10 @@ INSTALLED_APPS = [
     'person',            # user related stuff (profile etc.)
     'amo',               # currently addons.mozilla.org authentication
     'jetpack',           # Jetpack functionality
+    'xpi',               # XPI management
     'api',               # API browser
-    'tutorial'           # Load tutorial templates
+    'tutorial',          # Load tutorial templates
+    'cronjobs',
 ]
 
 # Which from above apps should be removed if in PRODUCTION
@@ -229,3 +260,7 @@ DEV_MIDDLEWARE_CLASSES = (
 #     'PORT': 4444,
 #     'BROWSER': '*firefox',
 #}
+import djcelery
+djcelery.setup_loader()
+
+CELERY_ALWAYS_EAGER = True

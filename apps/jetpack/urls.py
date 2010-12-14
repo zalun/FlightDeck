@@ -35,24 +35,24 @@ urlpatterns = patterns('jetpack.views',
 
     # display details of the PackageRevision
     url(r'^addon/(?P<id_number>[-\w]+)/latest/$',
-        'package_details', {'type_id': 'a', 'latest': True},
+        'package_view_or_edit', {'type_id': 'a', 'latest': True},
         name='jp_addon_latest'),
     url(r'^library/(?P<id_number>[-\w]+)/latest/$',
-        'package_details', {'type_id': 'l', 'latest': True},
+        'package_view_or_edit', {'type_id': 'l', 'latest': True},
         name='jp_library_latest'),
     url(r'^addon/(?P<id_number>[-\w]+)/$',
-        'package_details', {'type_id': 'a'}, name='jp_addon_details'),
+        'package_view_or_edit', {'type_id': 'a'}, name='jp_addon_details'),
     url(r'^library/(?P<id_number>[-\w]+)/$',
-        'package_details', {'type_id': 'l'},  name='jp_library_details'),
+        'package_view_or_edit', {'type_id': 'l'},  name='jp_library_details'),
     url(r'^addon/(?P<id_number>[-\w]+)/version/(?P<version_name>.*)/$',
-        'package_details', {'type_id': 'a'}, name='jp_addon_version_details'),
+        'package_view_or_edit', {'type_id': 'a'}, name='jp_addon_version_details'),
     url(r'^library/(?P<id_number>[-\w]+)/version/(?P<version_name>.*)/$',
-        'package_details', {'type_id': 'l'},
+        'package_view_or_edit', {'type_id': 'l'},
         name='jp_library_version_details'),
     url(r'^addon/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
-        'package_details', {'type_id': 'a'}, name='jp_addon_revision_details'),
+        'package_view_or_edit', {'type_id': 'a'}, name='jp_addon_revision_details'),
     url(r'^library/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
-        'package_details', {'type_id': 'l'},
+        'package_view_or_edit', {'type_id': 'l'},
         name='jp_library_revision_details'),
     # get full module info
     url(r'^get_module/(?P<id_number>[-\w]+)/(?P<revision_number>\d+)/(?P<filename>.*)$',
@@ -64,19 +64,6 @@ urlpatterns = patterns('jetpack.views',
     url(r'^library/copy/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
         'package_copy', {'type_id': 'l'},  name='jp_library_revision_copy'),
 
-    # edit latest
-    url(r'^addon/edit/(?P<id_number>[-\w]+)/latest/$',
-        'package_edit', {'type_id': 'a', 'latest': True},
-        name='jp_addon_edit_latest'),
-    url(r'^library/edit/(?P<id_number>[-\w]+)/latest/$',
-        'package_edit', {'type_id': 'l', 'latest': True},
-        name='jp_library_edit_latest'),
-
-    # edit packagerevision
-    url(r'^addon/edit/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
-        'package_edit', {'type_id': 'a'}, name='jp_addon_revision_edit'),
-    url(r'^library/edit/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
-        'package_edit', {'type_id': 'l'},  name='jp_library_revision_edit'),
     # get Package revisions list
     url(r'^revisions_list/(?P<id_number>[-\w]+).html$',
         'get_revisions_list_html', name='jp_revisions_list_html'),
@@ -146,18 +133,4 @@ urlpatterns = patterns('jetpack.views',
     url(r'^library/remove_dependency/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
         'package_remove_library',
         {'type_id': 'l'},  name='jp_library_revision_remove_library'),
-
-
-    # test Add-on's PackageRevision
-    url(r'^addon/test/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
-        'package_test_xpi', name='jp_addon_revision_test'),
-    url(r'^addon/xpi/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
-        'package_download_xpi', name='jp_addon_revision_xpi'),
-
-    # get and remove created XPI
-    url(r'^addon/test_xpi/(?P<sdk_name>.*)/(?P<pkg_name>.*)/(?P<filename>.*)/$',
-        'test_xpi', name='jp_test_xpi'),
-    url(r'^addon/download_xpi/(?P<sdk_name>.*)/(?P<pkg_name>.*)/(?P<filename>.*)/$',
-        'download_xpi', name='jp_download_xpi'),
-    url(r'^addon/rm_xpi/(?P<sdk_name>.*)/$', 'remove_xpi', name='jp_rm_xpi'),
 )

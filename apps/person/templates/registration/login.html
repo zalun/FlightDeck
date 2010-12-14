@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load safe_csrf %}
 {# default django template for login page #}
 
 {% block title %}Sign In - {% endblock %}
@@ -30,18 +31,11 @@
 	<div class="UI_Login">
 		
 		<form class="UI_Forms" id="login_form" method="post" action="{% url django.contrib.auth.views.login %}" accept-charset="utf-8">
-			{% csrf_token %}
+			{% safe_csrf_token %}
 			<fieldset>
 				<legend>Login</legend>
 				
 				<div class="UI_Forms_info">
-					{% if settings.AMO_LIMITED_ACCESS %}
-						<p>
-							Add-ons Builder is currently limiting its userbase.<br />
-							<strong>You will not be able to sign in if you're not on the list</strong>.
-						</p>
-					{% endif %}
-					
 					<p>Sign in to Add-Ons Builder with your 
 						<a title="Go to addons.mozilla.org" href="https://addons.mozilla.org">
 							addons.mozilla.org
