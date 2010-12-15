@@ -108,7 +108,7 @@ def package_edit(r, revision):
         library_counter += 1
         sdk_list = SDK.objects.all()
 
-    # prepare the json for the Mif.Tree
+    # prepare the json for the Tree
     tree = simplejson.dumps({'Lib': revision.get_modules_tree(),
             'Data': revision.get_attachments_tree(),
             'Plugins': revision.get_dependencies_tree()})
@@ -134,12 +134,18 @@ def package_view(r, revision):
     if revision.package.is_addon():
         library_counter += 1
 
+    # prepare the json for the Tree
+    tree = simplejson.dumps({'Lib': revision.get_modules_tree(),
+            'Data': revision.get_attachments_tree(),
+            'Plugins': revision.get_dependencies_tree()})
+
     return render_to_response(
         "%s_view.html" % revision.package.get_type_name(), {
             'revision': revision,
             'libraries': libraries,
             'library_counter': library_counter,
-            'readonly': True
+            'readonly': True,
+            'tree': tree
         }, context_instance=RequestContext(r))
 
 
