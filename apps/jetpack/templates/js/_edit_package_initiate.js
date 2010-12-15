@@ -31,5 +31,5 @@ fd.item = new Package.Edit({
 		remove_attachment_url: '{{ revision.get_remove_attachment_url }}',
 		assign_library_url: '{{ revision.get_assign_library_url }}',
 		remove_library_url: '{{ revision.get_remove_library_url }}',
-		tree: '{{ tree|safe }}'
+		tree: {{ tree|safe }}
 });

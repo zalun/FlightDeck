@@ -23,5 +23,5 @@ fd.item = new Package.View({
 		modules: {{ revision.get_modules_list_json|safe }},
 		package_info: '{% escape_template "_view_package_info.html" %}',
 		copy_url: '{{ revision.get_copy_url }}',
-		tree: '{{ tree|safe }}'
+		tree: {{ tree|safe }}
 });
