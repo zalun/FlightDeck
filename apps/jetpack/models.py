@@ -82,6 +82,7 @@ class Package(models.Model):
     # Revision which is setting the version name
     version = models.ForeignKey('PackageRevision', blank=True, null=True,
                                 related_name='package_deprecated')
+
     # latest saved PackageRevision
     latest = models.ForeignKey('PackageRevision', blank=True, null=True,
                                related_name='package_deprecated2')
@@ -200,7 +201,6 @@ class Package(models.Model):
 
             i = i + 1
             return _get_full_name(full_name, username, type_id, i)
-
 
         name = settings.DEFAULT_PACKAGE_FULLNAME.get(self.type,
                                                      self.author.username)
@@ -733,6 +733,36 @@ class PackageRevision(models.Model):
                 } for m in self.modules.all()
             ] if self.modules.count() > 0 else []
         return simplejson.dumps(m_list)
+
+    def get_modules_tree(self):
+        " returns modules list as JSON object "
+        return [{
+                'path': m.filename,
+                'get_url': reverse('jp_get_module', args=[
+                    self.package.id_number,
+                    self.revision_number,
+                    m.filename])
+                } for m in self.modules.all()
+            ] if self.modules.count() > 0 else []
+
+    def get_attachments_tree(self):
+        " returns modules list as JSON object "
+        return [{
+                'path': a.filename,
+                'get_url': a.get_display_url()
+                } for a in self.attachments.all()
+            ] if self.attachments.count() > 0 else []
+
+    def get_dependencies_tree(self):
+        " returns libraries "
+        _lib_dict = lambda lib: {'path': lib.package.full_name,
+                                 'url': lib.get_absolute_url()}
+
+        libs = [_lib_dict(self.get_sdk_revision())] \
+                if self.get_sdk_revision() else []
+        if self.dependencies.count() > 0:
+            libs.extend([_lib_dict(lib) for lib in self.dependencies.all()])
+        return libs
 
     def get_sdk_name(self):
         " returns the name of the directory to which SDK should be copied "
