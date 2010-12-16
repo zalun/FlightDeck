@@ -5,12 +5,12 @@ from string import Template
 CRONS = {}
 
 COMMON = {
-    'MANAGE': '/data/virtualenvs/flightdeck/bin/python manage.py',
+    'MANAGE': '/data/amo_python/src/builder.preview/flightdeck manage.py',
     'F_CRON': '$DJANGO cron',
 }
 
 CRONS['prod'] = {
-    'FLIGHTDECK': '/data/flightdeck_python/src/prod/flightdeck',
+    'FLIGHTDECK': '/data/amo_python/src/builder/flightdeck',
     'DJANGO': 'apache cd $FLIGHTDECK; $MANAGE',
 }
 
