@@ -10,9 +10,9 @@ urlpatterns = patterns('xpi.views',
         'prepare_download', name='jp_addon_revision_xpi'),
 
     # get and remove created XPI
-    url(r'^test/(?P<sdk_name>.*)/(?P<pkg_name>.*)/(?P<filename>.*)/$',
+    url(r'^test/(?P<path>.*)/$',
         'get_test', name='jp_test_xpi'),
-    url(r'^download/(?P<sdk_name>.*)/(?P<pkg_name>.*)/(?P<filename>.*)/$',
+    url(r'^download/(?P<path>.*)/(?P<filename>.*)/$',
         'get_download', name='jp_download_xpi'),
-    url(r'^remove/(?P<sdk_name>.*)/$', 'clean', name='jp_rm_xpi'),
+    url(r'^remove/(?P<path>.*)/$', 'clean', name='jp_rm_xpi'),
 )

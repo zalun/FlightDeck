@@ -103,7 +103,10 @@ DEFAULT_PACKAGE_FULLNAME = {
     'l': 'My Library'
 }
 HOMEPAGE_PACKAGES_NUMBER = 3
-SDKDIR_PREFIX = '/tmp/SDK'
+
+SDKDIR_PREFIX = '/tmp/SDK'   # temporary data - removed after xpi is created
+XPI_TARGETDIR = '/tmp/xpi/'  # target dir - in shared directory
+
 LIBRARY_AUTOCOMPLETE_LIMIT = 20
 KEYDIR = 'keydir'
 JETPACK_NEW_IS_BASE = False
