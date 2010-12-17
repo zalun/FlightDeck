@@ -124,7 +124,7 @@ var File = Class({
 		if (this.textarea) this.textarea.destroy();
 		this.trigger.getParent('li').destroy();
 		$('attachments-counter').set('text', '('+ $(this.options.counter).getElements('.UI_File_Listing li').length +')')
-		delete fd.getItem().modules[this.options.filename];
+		this.on_destroy();
 		delete fd.editor_contents[this.get_editor_id()];
 		if (this.active) {
 			// switch editor!
@@ -252,6 +252,9 @@ var Attachment = new Class({
 	get_css_id: function() {
 		return this.options.uid;
 	},
+	on_destroy: function() {
+		delete fd.getItem().attachments[this.options.uid];
+	},
 	append: function() {
 		var html = '<a title="" href="'+ this.options.get_url + '" class="Module_file" id="' + this.get_trigger_id() + '">'+
 				'{filename}.{ext}<span class="File_status"></span>'+
@@ -367,7 +370,9 @@ var Module = new Class({
 	get_css_id: function() {
 		return this.options.filename;
 	},
-
+	on_destroy: function() {
+		delete fd.getItem().modules[this.options.filename];
+	},
 })
 
 Package.View = new Class({
