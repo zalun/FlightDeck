@@ -12,7 +12,7 @@ import commonware
 from django.http import HttpResponseServerError
 from django.conf import settings
 
-log = commonware.log.getLogger('z.xpi_utils')
+log = commonware.log.getLogger('f.xpi_utils')
 
 def sdk_copy(sdk_source, sdk_dir=None):
     shutil.copytree(sdk_source, sdk_dir)
