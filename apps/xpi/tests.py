@@ -147,15 +147,15 @@ class XPIBuildTest(TestCase):
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        out = xpi_utils.build(self.SDKDIR,
+        (xpi_target, out, err) = xpi_utils.build(self.SDKDIR,
                     '%s/packages/%s' % (
-                        self.SDKDIR, self.addon.get_unique_package_name()))
+                        self.SDKDIR, self.addon.get_unique_package_name()),
+                    self.addon.name)
         # assert no error output
-        self.assertEqual('', out[1])
+        self.assertEqual('', err)
         # assert xpi was created
-        self.failUnless(os.path.isfile('%s/packages/%s/%s.xpi' % (
-            self.SDKDIR, self.addon.get_unique_package_name(),
-            self.addon.name)))
+        self.failUnless(os.path.isfile(
+            os.path.join(settings.XPI_TARGETDIR, xpi_target)))
 
     def test_addon_with_other_modules(self):
         " addon has now more modules "
@@ -167,16 +167,16 @@ class XPIBuildTest(TestCase):
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        out = xpi_utils.build(self.SDKDIR,
+        (xpi_target, out, err) = xpi_utils.build(self.SDKDIR,
                         '%s/packages/%s' % (
-                            self.SDKDIR, self.addon.get_unique_package_name()))
+                            self.SDKDIR, self.addon.get_unique_package_name()),
+                        self.addon.name)
         # assert no error output
-        self.assertEqual('', out[1])
-        self.failUnless(out[0])
+        self.assertEqual('', err)
+        self.failUnless(out)
         # assert xpi was created
-        self.failUnless(os.path.isfile('%s/packages/%s/%s.xpi' % (
-            self.SDKDIR, self.addon.get_unique_package_name(),
-            self.addon.name)))
+        self.failUnless(os.path.isfile(
+            os.path.join(settings.XPI_TARGETDIR, xpi_target)))
 
     def test_xpi_with_empty_dependency(self):
         " empty lib is created "
@@ -192,15 +192,15 @@ class XPIBuildTest(TestCase):
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        out = xpi_utils.build(self.SDKDIR,
+        (xpi_target, out, err) = xpi_utils.build(self.SDKDIR,
                     '%s/packages/%s' % (
-                        self.SDKDIR, self.addon.get_unique_package_name()))
+                        self.SDKDIR, self.addon.get_unique_package_name()),
+                    self.addon.name)
         # assert no error output
-        self.assertEqual('', out[1])
+        self.assertEqual('', err)
         # assert xpi was created
-        self.failUnless(os.path.isfile('%s/packages/%s/%s.xpi' % (
-            self.SDKDIR,
-            self.addon.get_unique_package_name(), self.addon.name)))
+        self.failUnless(os.path.isfile(
+            os.path.join(settings.XPI_TARGETDIR, xpi_target)))
 
     def test_xpi_with_dependency(self):
         " addon has one dependency with a file "
@@ -209,15 +209,15 @@ class XPIBuildTest(TestCase):
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        out = xpi_utils.build(self.SDKDIR,
+        (xpi_target, out, err) = xpi_utils.build(self.SDKDIR,
                     '%s/packages/%s' % (
-                        self.SDKDIR, self.addon.get_unique_package_name()))
+                        self.SDKDIR, self.addon.get_unique_package_name()),
+                    self.addon.name)
         # assert no error output
-        self.assertEqual('', out[1])
+        self.assertEqual('', err)
         # assert xpi was created
-        self.failUnless(os.path.isfile('%s/packages/%s/%s.xpi' % (
-            self.SDKDIR,
-            self.addon.get_unique_package_name(), self.addon.name)))
+        self.failUnless(os.path.isfile(
+            os.path.join(settings.XPI_TARGETDIR, xpi_target)))
 
     def test_xpi_clean(self):
         """Test that we clean up the /tmp directory correctly."""
@@ -231,7 +231,7 @@ class XPIBuildTest(TestCase):
 
         # Clean out /tmp directory.
         for full in find_files():
-            shutil.rmtree(full)
+            os.remove(full)
         assert not find_files()
         rev.build_xpi()
 

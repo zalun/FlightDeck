@@ -792,7 +792,7 @@ class PackageRevision(models.Model):
 
         # TODO: consider SDK staying per PackageRevision...
         if os.path.isdir(sdk_dir):
-            xpi_utils.remove(sdk_dir)
+            shutil.rmtree(sdk_dir)
 
         xpi_utils.sdk_copy(sdk_source, sdk_dir)
         self.export_keys(sdk_dir)
@@ -800,7 +800,8 @@ class PackageRevision(models.Model):
 
         from jetpack import tasks
         tasks.xpi_build.delay(sdk_dir, '%s/packages/%s' % (
-               sdk_dir, self.package.get_unique_package_name()))
+               sdk_dir, self.package.get_unique_package_name()),
+               self.package.name)
 
     def build_xpi_test(self, modules=[]):
         " prepare and build XPI for test only (unsaved modules) "
@@ -811,7 +812,7 @@ class PackageRevision(models.Model):
         sdk_source = self.sdk.get_source_dir()
         # This SDK is always different! - working on unsaved data
         if os.path.isdir(sdk_dir):
-            xpi_utils.remove(sdk_dir)
+            shutil.rmtree(sdk_dir)
         xpi_utils.sdk_copy(sdk_source, sdk_dir)
         self.export_keys(sdk_dir)
 
@@ -831,11 +832,11 @@ class PackageRevision(models.Model):
         self.export_attachments(
             '%s/%s' % (package_dir, self.package.get_data_dir()))
         self.export_dependencies(packages_dir)
-        return (xpi_utils.build(sdk_dir,
+        return xpi_utils.build(sdk_dir,
                           '%s/packages/%s' % (
                               sdk_dir,
                               self.package.get_unique_package_name()
-                          )))
+                          ), self.package.name)
 
     def export_keys(self, sdk_dir):
         " export private and public keys "

@@ -6,16 +6,19 @@ import os
 import shutil
 import subprocess
 import stat
+import time
+import commonware
 
 from django.http import HttpResponseServerError
 from django.conf import settings
 
+log = commonware.log.getLogger('f.xpi_utils')
 
 def sdk_copy(sdk_source, sdk_dir=None):
     shutil.copytree(sdk_source, sdk_dir)
 
 
-def build(sdk_dir, package_dir):
+def build(sdk_dir, package_dir, filename):
     """Build xpi from source in sdk_dir."""
     # create XPI
     os.chdir(package_dir)
@@ -32,9 +35,22 @@ def build(sdk_dir, package_dir):
                                    stderr=subprocess.PIPE, env=env)
     except subprocess.CalledProcessError:
         return HttpResponseServerError
-    return process.communicate()
 
+    response = process.communicate()
 
-def remove(sdk_dir):
-    " clear directory "
+    # move the XPI created to the XPI_TARGETDIR
+    xpi_targetfilename = "%d-%s.xpi" % (time.time(), filename)
+    xpi_targetpath = os.path.join(settings.XPI_TARGETDIR, xpi_targetfilename)
+    xpi_path = os.path.join(package_dir, "%s.xpi" % filename)
+    shutil.copy(xpi_path, xpi_targetpath)
     shutil.rmtree(sdk_dir)
+
+    ret = [xpi_targetfilename]
+    ret.extend(response)
+    log.info('XPI %s build' % xpi_targetfilename)
+    return ret
+
+
+def remove(path):
+    " clear directory "
+    os.remove(path)
