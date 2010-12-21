@@ -22,5 +22,6 @@ fd.item = new Package.View({
 			revision_author: '{{ revision.author }}',
 		modules: {{ revision.get_modules_list_json|safe }},
 		package_info: '{% escape_template "_view_package_info.html" %}',
-		copy_url: '{{ revision.get_copy_url }}'
+		copy_url: '{{ revision.get_copy_url }}',
+		tree: {{ tree|safe }}
 });

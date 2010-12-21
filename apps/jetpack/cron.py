@@ -14,11 +14,10 @@ log = commonware.log.getLogger('z.cron')
 
 def find_files():
     files = []
-    tmp_dir = os.path.dirname(settings.SDKDIR_PREFIX)
+    tmp_dir = os.path.dirname(settings.XPI_TARGETDIR)
     for filename in os.listdir(tmp_dir):
         full = os.path.join(tmp_dir, filename)
-
-        if full.startswith(settings.SDKDIR_PREFIX):
+        if full.endswith("xpi"):
             files.append(full)
     return files
 
@@ -28,5 +27,5 @@ def clean_tmp(length=length):
     older = time.time() - length
     for filename in find_files():
         if (os.stat(filename)[stat.ST_MTIME] < older):
-            shutil.rmtree(filename)
+            os.remove(filename)
             log.info('Deleted: %s' % filename)

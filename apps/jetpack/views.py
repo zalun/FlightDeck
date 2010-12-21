@@ -20,6 +20,7 @@ from django.db.models import Q
 from django.views.decorators.http import require_POST
 from django.template.defaultfilters import slugify, escape
 from django.conf import settings
+from django.utils import simplejson
 
 from base.shortcuts import get_object_with_related_or_404
 from utils import validator
@@ -81,6 +82,7 @@ def package_view_or_edit(r, id_number, type_id, revision_number=None,
     else:
         return package_view(r, revision)
 
+
 @login_required
 def package_edit(r, revision):
     """
@@ -106,6 +108,11 @@ def package_edit(r, revision):
         library_counter += 1
         sdk_list = SDK.objects.all()
 
+    # prepare the json for the Tree
+    tree = simplejson.dumps({'Lib': revision.get_modules_tree(),
+            'Data': revision.get_attachments_tree(),
+            'Plugins': revision.get_dependencies_tree()})
+
     return render_to_response(
         "%s_edit.html" % revision.package.get_type_name(), {
             'revision': revision,
@@ -113,7 +120,8 @@ def package_edit(r, revision):
             'library_counter': library_counter,
             'readonly': False,
             'edit_mode': True,
-            'sdk_list': sdk_list
+            'sdk_list': sdk_list,
+            'tree': tree
         }, context_instance=RequestContext(r))
 
 
@@ -126,12 +134,18 @@ def package_view(r, revision):
     if revision.package.is_addon():
         library_counter += 1
 
+    # prepare the json for the Tree
+    tree = simplejson.dumps({'Lib': revision.get_modules_tree(),
+            'Data': revision.get_attachments_tree(),
+            'Plugins': revision.get_dependencies_tree()})
+
     return render_to_response(
         "%s_view.html" % revision.package.get_type_name(), {
             'revision': revision,
             'libraries': libraries,
             'library_counter': library_counter,
-            'readonly': True
+            'readonly': True,
+            'tree': tree
         }, context_instance=RequestContext(r))
 
 
@@ -177,8 +191,6 @@ def package_copy(r, id_number, type_id,
 
     return HttpResponseForbidden('You already have a %s with that name' %
                                  escape(source.package.get_type_name()))
-
-
 
 
 @login_required
@@ -574,7 +586,6 @@ def library_autocomplete(r):
     except:
         found = []
 
-
     return render_to_response('json/library_autocomplete.json',
                 {'libraries': found},
                 context_instance=RequestContext(r),
@@ -660,8 +671,3 @@ def get_revisions_list_html(r, id_number):
             'revisions': revisions
         },
         context_instance=RequestContext(r))
-
-
-# ---------------------------- XPI ---------------------------------
-
-
