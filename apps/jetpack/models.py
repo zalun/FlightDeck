@@ -1007,7 +1007,7 @@ class Attachment(models.Model):
         return ""
 
     def changed(self):
-        return not self.read() == self.data
+        return self.read() != self.data
 
     def write(self):
         """Writes the file."""
@@ -1030,8 +1030,8 @@ class Attachment(models.Model):
     def increment(self, revision):
         revision.attachments.remove(self)
         self.pk = None
-        self.write()
         self.save()
+        self.write()
         revision.attachments.add(self)
 
 

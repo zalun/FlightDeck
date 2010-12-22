@@ -14,7 +14,7 @@ from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, ObjectDoesNotExist
 from django.views.decorators.http import require_POST
 from django.template.defaultfilters import slugify, escape
 from django.conf import settings
@@ -410,6 +410,26 @@ def download_attachment(request, uid):
     return response
 
 
+def latest_by_uid(revision, uid):
+    """It could be that the client is sending an old uid,
+    not a nice shiny new one. Given we know the keys coming
+    in and the keys in the db, resolve our old uid into
+    a newer one."""
+    package = revision.package
+    try:
+        attachment = (Attachment.objects.distinct()
+                               .get(pk=uid, revisions__package=package))
+    except (ValueError, ObjectDoesNotExist):
+        return None
+    try:
+        return (Attachment.objects.filter(ext=attachment.ext,
+                                          filename=attachment.filename,
+                                          revisions__package=package)
+                                  .order_by("-pk"))[0]
+    except IndexError:
+        return attachment
+
+
 @require_POST
 @login_required
 def package_save(r, id_number, type_id, revision_number=None,
@@ -474,10 +494,10 @@ def package_save(r, id_number, type_id, revision_number=None,
                 mod.code = code
                 changes.append(mod)
 
-    for attachment in revision.attachments.all():
-        if attachment.get_uid in r.POST:
-            data = r.POST[attachment.get_uid]
-            attachment.data = data
+    for key in r.POST.keys():
+        attachment = latest_by_uid(revision, key)
+        if attachment:
+            attachment.data = r.POST[key]
             if attachment.changed():
                 changes.append(attachment)
 

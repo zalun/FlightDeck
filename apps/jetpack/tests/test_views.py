@@ -14,8 +14,9 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
-from jetpack.models import PackageRevision
+from jetpack.models import PackageRevision, Attachment
 from jetpack.errors import FilenameExistException
+from jetpack.views import latest_by_uid
 
 
 def next(revision):
@@ -70,6 +71,11 @@ class TestAttachments(TestCase):
     def test_attachment_error(self):
         res = self.client.post(self.add_url, {})
         eq_(res.status_code, 500)
+
+    def add_one(self):
+        self.post(self.add_url, 'foo', 'some.txt')
+        return PackageRevision.objects.get(package=self.package,
+                                           revision_number=1)
 
     def get_add_url(self, revision):
         args = [self.package.id_number, revision]
@@ -157,10 +163,76 @@ class TestAttachments(TestCase):
         eq_(revision.attachments.all()[0].read(), 'foo bar')
 
     def test_attachment_two_files(self):
-        self.post(self.add_url, 'foo', 'some.txt')
-        revision = PackageRevision.objects.get(package=self.package,
-                                               revision_number=1)
+        revision = self.add_one()
         assert revision.attachments.count(), 1
 
         self.post(self.add_url, 'foo', 'some-other.txt')
         assert revision.attachments.count(), 2
+
+    def test_attachment_latest(self):
+        old = self.add_one()
+        old_uid = old.attachments.all()[0].get_uid
+
+        data = {old.attachments.all()[0].get_uid: 'foo bar'}
+        self.client.post(self.get_change_url(1), data)
+
+        new = PackageRevision.objects.get(package=self.package,
+                                          revision_number=2)
+        new_uid = new.attachments.all()[0].get_uid
+
+        eq_(latest_by_uid(old, old_uid).get_uid, new_uid)
+        eq_(latest_by_uid(new, old_uid).get_uid, new_uid)
+        eq_(latest_by_uid(old, new_uid).get_uid, new_uid)
+        eq_(latest_by_uid(new, new_uid).get_uid, new_uid)
+        eq_(latest_by_uid(old, 'foofy'), None)
+
+    def test_attachment_old_uid(self):
+        revision = self.add_one()
+
+        data = {revision.attachments.all()[0].get_uid: 'foo bar'}
+        self.client.post(self.get_change_url(1), data)
+
+        revision = PackageRevision.objects.get(package=self.package,
+                                               revision_number=2)
+        eq_(revision.attachments.count(), 1)
+
+        # Note here we are still sending the old uid, insted of the
+        # newer and fancier one.
+        data = {revision.attachments.all()[0].get_uid: 'foo bar two'}
+        self.client.post(self.get_change_url(2), data)
+
+        revision = PackageRevision.objects.get(package=self.package,
+                                               revision_number=3)
+        eq_(revision.attachments.all()[0].read(), 'foo bar two')
+
+        # Check the old data.
+        revision = PackageRevision.objects.get(package=self.package,
+                                               revision_number=2)
+        eq_(revision.attachments.all()[0].read(), 'foo bar')
+
+    def test_attachment_jump_revision(self):
+        revision = self.add_one()
+
+        data = {revision.attachments.all()[0].get_uid: 'foo bar'}
+        self.client.post(self.get_change_url(1), data)
+
+        data = {revision.attachments.all()[0].get_uid: 'foo bar zero'}
+        self.client.post(self.get_change_url(0), data)
+
+        eq_(PackageRevision.objects.filter(package=self.package).count(), 4)
+        atts = Attachment.objects.filter(revisions__package=self.package)
+
+        eq_(atts[0].read(), 'foo')
+        eq_(atts[1].read(), 'foo bar')
+        eq_(atts[2].read(), 'foo bar zero')
+        eq_(atts[2].revisions.all()[0].revision_number, 3)
+
+    def test_paths(self):
+        revision = self.add_one()
+
+        data = {revision.attachments.all()[0].get_uid: 'foo bar'}
+        self.client.post(self.get_change_url(1), data)
+        atts = Attachment.objects.filter(revisions__package=self.package)
+
+        assert atts[0].get_file_path().endswith('%s-some.txt' % atts[0].pk)
+        assert atts[1].get_file_path().endswith('%s-some.txt' % atts[1].pk)
