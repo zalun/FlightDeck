@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import stat
 import time
-import commonware
+import commonware.log
 
 from django.http import HttpResponseServerError
 from django.conf import settings
