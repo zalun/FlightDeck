@@ -3,6 +3,7 @@ import os
 import commonware
 
 from test_utils import TestCase
+from nose import SkipTest
 
 from django.contrib.auth.models import User
 from django.conf import settings
@@ -80,7 +81,7 @@ class PackageTest(TestCase):
         self.assertEqual(addon.get_unique_package_name(), 'addon-1000001')
 
     def test_disable_activate(self):
-        pass
+        raise SkipTest()
 
     def test_create_adddon_from_archive(self):
         path_addon = os.path.join(
