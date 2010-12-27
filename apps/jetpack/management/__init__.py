@@ -79,7 +79,6 @@ def get_core_manifest(sdk_source):
             ', '.join(ALLOWED_CORE_NAMES.keys()))
 
 
-
 def get_or_create_core_author():
     " create or get Mozilla author "
     try:

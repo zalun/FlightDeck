@@ -39,3 +39,7 @@ class AddingModuleDenied(SimpleException):
 
 class SingletonCopyException(SimpleException):
     " Singleton may not be copied "
+
+
+class ManifestNotValid(SimpleException):
+    " Upload failed due to package.json malfunction "
