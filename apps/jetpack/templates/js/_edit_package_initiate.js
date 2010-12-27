@@ -23,6 +23,7 @@ fd.item = new Package.Edit({
 			revision_author: '{{ revision.author }}',
 			switch_sdk_url: '{{ revision.get_switch_sdk_url }}',
 			modules: {{ revision.get_modules_list_json|safe }},
+                        attachments: {{ revision.get_attachments_list_json|safe }},
 	// Actions
 		save_url: '{{ revision.get_save_url }}',
 		add_module_url: '{{ revision.get_add_module_url }}',

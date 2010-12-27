@@ -1,4 +1,9 @@
+import tempfile
+import os
+
 from test_utils import TestCase
+
+from nose.tools import eq_
 
 from django.contrib.auth.models import User
 
@@ -178,9 +183,7 @@ class PackageRevisionTest(TestCase):
         addon.save()
         first = addon.latest
         first.attachment_create(
-            filename='test',
-            ext='txt',
-            path='/tmp/testupload',
+            filename='test.txt',
             author=self.author
         )
 
@@ -189,8 +192,26 @@ class PackageRevisionTest(TestCase):
         first = revisions[1]
         second = revisions[0]
 
-        self.assertEqual(0, first.attachments.count())
-        self.assertEqual(1, second.attachments.count())
+        eq_(0, first.attachments.count())
+        eq_(1, second.attachments.count())
+
+    def test_read_write_attachment(self):
+        """Test that we can read and write to an attachment."""
+        addon = Package(author=self.author, type='a')
+        addon.save()
+        first = addon.latest
+        filename = tempfile.mkstemp()[1]
+        try:
+            attachment = first.attachment_create(
+                filename='test.txt',
+                author=self.author
+            )
+            attachment.data = 'This is a test.'
+            attachment.write()
+            assert attachment.read() == attachment.data
+            assert not attachment.changed()
+        finally:
+            os.remove(filename)
 
     def test_updating_module(self):
         " Updating module has some additional action "
@@ -202,7 +223,7 @@ class PackageRevisionTest(TestCase):
             author=self.author
         )
         mod.code = 'test'
-        first.module_update(mod)
+        first.update(mod)
 
         # create new revision on module update
         self.assertEqual(3, addon.revisions.count())
@@ -233,25 +254,19 @@ class PackageRevisionTest(TestCase):
         self.assertRaises(FilenameExistException, first.module_add, mod)
 
     def test_adding_attachment_with_existing_filename(self):
-        " filname is unique per packagerevision "
+        """Filename is unique per packagerevision."""
         first = PackageRevision.objects.filter(package__pk=self.addon.pk)[0]
         first.attachment_create(
-            filename='test_filename',
-            ext='.txt',
-            path='/tmp/upload_path',
+            filename='test_filename.txt',
             author=self.author
         )
         self.assertRaises(FilenameExistException, first.attachment_create,
-            **{'filename': 'test_filename',
-               'ext': '.txt',
-               'author': self.author,
-               'path': '/tmp/upload_path'}
+            **{'filename': 'test_filename.txt',
+               'author': self.author}
         )
-
         att = Attachment.objects.create(
             filename='test_filename',
-            ext='.txt',
-            path='/tmp/upload_path',
+            ext='txt',
             author=self.author
         )
         self.assertRaises(FilenameExistException, first.attachment_add, att)

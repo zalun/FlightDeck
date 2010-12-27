@@ -1,5 +1,5 @@
 /*
- * Extending Flightdeck with Editor functionality 
+ * Extending Flightdeck with Editor functionality
  */
 
 FlightDeck = Class.refactor(FlightDeck,{
@@ -59,7 +59,7 @@ FlightDeck = Class.refactor(FlightDeck,{
 		} else {
 			assignToEl(selector);
 		}
-		$('modules').addEvent('click:relay(.{file_listing_class} li a)'.substitute(this.options), 
+		$('modules').addEvent('click:relay(.{file_listing_class} li a)'.substitute(this.options),
 			function(e, el) {
 				var li = $(el).getParent('li');
 				// assign switch_mode_on to newly created modules
@@ -87,5 +87,5 @@ FlightDeck = Class.refactor(FlightDeck,{
 			}
 		}, this);
 	}
-	
+
 });

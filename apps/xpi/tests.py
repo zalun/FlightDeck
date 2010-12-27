@@ -121,18 +121,19 @@ class XPIBuildTest(TestCase):
                 self.addonrev.module_main)))
 
     def test_addon_export_with_attachment(self):
-        " test if attachment file is coped "
+        """Test if attachment file is copied."""
         self.makeSDKDir()
         # create attachment in upload dir
         handle = open(self.attachment_file_name, 'w')
         handle.write('unit test file')
         handle.close()
-        self.addonrev.attachment_create(
-            filename='test_filename',
-            ext='txt',
-            path='test_filename.txt',
+        attachment = self.addonrev.attachment_create(
+            filename='test_filename.txt',
             author=self.author
         )
+        attachment.create_path()
+        attachment.data = ''
+        attachment.write()
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
         self.failUnless(os.path.isfile(self.attachment_file_name))

@@ -3,7 +3,6 @@
 	"message_title": "Success",
 	"message": "Attachment {{ attachment.filename }} removed",
 	"filename": "{{ attachment.filename }}",
-	"ext": "{{ attachment.ext }}"
+	"ext": "{{ attachment.ext }}",
+	"uid": "{{ attachment.get_uid }}"
 }
-
-

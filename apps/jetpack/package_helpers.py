@@ -10,6 +10,7 @@ def get_package_revision(id_name, type_id,
     """
     Return revision of the package
     """
+
     if not (revision_number or version_name):
         # get default revision - one linked via Package:version
         package = get_object_with_related_or_404(Package, id_number=id_name,

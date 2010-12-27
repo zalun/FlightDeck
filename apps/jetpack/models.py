@@ -5,6 +5,7 @@
 import os
 import csv
 import shutil
+import time
 
 from copy import deepcopy
 
@@ -557,7 +558,7 @@ class PackageRevision(models.Model):
         returns False if the package revision contains a module with given
         filename
         """
-        if self.modules.filter(filename=filename).count() > 0:
+        if self.modules.filter(filename=filename).count():
             return False
         return True
 
@@ -566,7 +567,7 @@ class PackageRevision(models.Model):
         returns False if the package revision contains a module with given
         filename
         """
-        if self.attachments.filter(filename=filename, ext=ext).count() > 0:
+        if self.attachments.filter(filename=filename, ext=ext).count():
             return False
         return True
 
@@ -611,40 +612,44 @@ class PackageRevision(models.Model):
         self.save()
         return self.modules.remove(mod)
 
-    def module_update(self, mod, save=True):
+    def update(self, change, save=True):
         " to update a module, new package revision has to be created "
         if save:
             self.save()
-        self.modules.remove(mod)
-        mod.id = None
-        mod.save()
-        self.modules.add(mod)
 
-    def modules_update(self, modules):
-        " update more than one module "
+        change.increment(self)
+
+    def updates(self, changes):
+        """Changes from the server."""
         self.save()
-        for mod in modules:
-            self.module_update(mod, False)
+        for change in changes:
+            self.update(change, False)
 
-    def attachment_create(self, **kwargs):
+    def attachment_create(self, author, filename):
         " create attachment and add to attachments "
-        # validate if given filename is valid
-        if not self.validate_attachment_filename(kwargs['filename'],
-                                                 kwargs['ext']):
+        filename, ext = os.path.splitext(filename)
+        ext = ext.split('.')[1].lower() if ext else ''
+
+        if not self.validate_attachment_filename(filename, ext):
             raise FilenameExistException(
                 ('Sorry, there is already an attachment in your add-on with '
                  'the name "%s.%s". Each attachment in your add-on needs to '
-                 'have a unique name.') % (kwargs['filename'], kwargs['ext'])
+                 'have a unique name.') % (filename, ext)
             )
-        att = Attachment.objects.create(**kwargs)
-        self.attachment_add(att)
+
+        att = Attachment.objects.create(filename=filename,
+                                        ext=ext, author=author)
+
+        att.save()
+        self.attachment_add(att, check=False)
         return att
 
-    def attachment_add(self, att):
+    def attachment_add(self, att, check=True):
         " copy to new revision, add attachment "
         # save as new version
         # validate if given filename is valid
-        if not self.validate_attachment_filename(att.filename, att.ext):
+        if (check and
+            not self.validate_attachment_filename(att.filename, att.ext)):
             raise FilenameExistException(
                 'Attachment with filename %s.%s already exists' % (
                     att.filename, att.ext)
@@ -733,6 +738,18 @@ class PackageRevision(models.Model):
                 } for m in self.modules.all()
             ] if self.modules.count() > 0 else []
         return simplejson.dumps(m_list)
+
+    def get_attachments_list_json(self):
+        " returns attachments list as JSON object "
+        a_list = [{
+                'uid': a.get_uid,
+                'filename': a.filename,
+                'author': a.author.username,
+                'type': a.ext,
+                'get_url': reverse('jp_attachment', args=[a.get_uid])
+                } for a in self.attachments.all()
+            ] if self.attachments.count() > 0 else []
+        return simplejson.dumps(a_list)
 
     def get_modules_tree(self):
         " returns modules list as JSON object "
@@ -953,6 +970,12 @@ class Module(models.Model):
             'code': self.code,
             'author': self.author.username})
 
+    def increment(self, revision):
+        revision.modules.remove(self)
+        self.pk = None
+        self.save()
+        revision.modules.add(self)
+
 
 class Attachment(models.Model):
     """
@@ -979,6 +1002,16 @@ class Attachment(models.Model):
         " attachment ordering "
         ordering = ('filename',)
 
+    @property
+    def get_uid(self):
+        """A uid that contains, filename and extension and is suitable
+        for use in css selectors (eg: no spaces)."""
+        return str(int(self.pk))
+
+    @property
+    def is_editable(self):
+        return self.ext in ["html", "css", "js", "txt"]
+
     def get_filename(self):
         " returns human readable filename with extension "
         name = self.filename
@@ -986,21 +1019,52 @@ class Attachment(models.Model):
             name = "%s.%s" % (name, self.ext)
         return name
 
-    def save(self, **kwargs):
-        " overloaded to prevent from updating "
-        if self.id:
-            raise UpdateDeniedException(
-                'Attachment can not be updated in the same row')
-        return super(Attachment, self).save(**kwargs)
+    def get_display_url(self):
+        """Returns URL to display the attachment."""
+        return reverse('jp_attachment', args=[self.get_uid])
+
+    def create_path(self):
+        args = (self.pk, self.filename, self.ext)
+        self.path = os.path.join(time.strftime('%Y/%m/%d'), '%s-%s.%s' % args)
+
+    def get_file_path(self):
+        if self.path:
+            return os.path.join(settings.UPLOAD_DIR, self.path)
+        raise ValueError("self.path not set.")
+
+    def read(self):
+        """Reads the file, if it doesn't exist return empty."""
+        if self.path and os.path.exists(self.get_file_path()):
+            return open(self.get_file_path(), 'rb').read()
+        return ""
+
+    def changed(self):
+        return self.read() != self.data
+
+    def write(self):
+        """Writes the file."""
+        self.create_path()
+        self.save()
+
+        directory = os.path.dirname(self.get_file_path())
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        handle = open(self.get_file_path(), 'wb')
+        handle.write(self.data)
+        handle.close()
 
     def export_file(self, static_dir):
         " copies from uploads to the package's data directory "
         shutil.copy('%s/%s' % (settings.UPLOAD_DIR, self.path),
                     '%s/%s.%s' % (static_dir, self.filename, self.ext))
 
-    def get_display_url(self):
-        " returns URL to display the attachment "
-        return reverse('jp_attachment', args=[self.path])
+    def increment(self, revision):
+        revision.attachments.remove(self)
+        self.pk = None
+        self.save()
+        self.write()
+        revision.attachments.add(self)
 
 
 class SDK(models.Model):
