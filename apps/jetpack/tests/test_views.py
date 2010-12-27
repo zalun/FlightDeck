@@ -214,12 +214,14 @@ class TestAttachments(TestCase):
     def test_attachment_jump_revision(self):
         revision = self.add_one()
 
+        # This is more a hack than a fix
+        # This test was failing every third time
+        sleep(.5)
+
         data = {revision.attachments.all()[0].get_uid: 'foo bar'}
         self.client.post(self.get_change_url(1), data)
 
-        # This is more a hack than a fix
-        # This test was failing every third time
-        sleep(.1)
+        sleep(.5)
 
         data = {revision.attachments.all()[0].get_uid: 'foo bar zero'}
         self.client.post(self.get_change_url(0), data)
