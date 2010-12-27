@@ -7,6 +7,7 @@ import csv
 import shutil
 import zipfile
 import time
+import commonware
 
 from copy import deepcopy
 
@@ -27,6 +28,8 @@ from jetpack.errors import SelfDependencyException, FilenameExistException, \
         ManifestNotValid
 
 from xpi import xpi_utils
+
+log = commonware.log.getLogger('f.jetpack')
 
 
 PERMISSION_CHOICES = (
@@ -271,13 +274,16 @@ class Package(models.Model):
         new_p.save()
         return new_p
 
-    def create_revision_from_archive(self, packed, manifest,
+    def create_revision_from_archive(self, packed, manifest, author,
             new_revision=False):
         """
         Create new package revision vy reading the archive.
 
         Args:
-            pathcked (ZipFile): archive containing Revision data
+            packed (ZipFile): archive containing Revision data
+            manifest (dict): parsed package.json
+            author (auth.User): owner of PackageRevision
+            new_revision (Boolean): should new revision be created?
 
         Returns:
             PackageRevision object
@@ -287,15 +293,60 @@ class Package(models.Model):
         if 'contributors' in manifest:
             revision.contributors = manifest['contributors']
 
+        main = manifest['main'] if 'main' in manifest else 'main'
+        lib_dir = manifest['lib'] if 'lib' in manifest else 'lib'
+        att_dir = 'data'
+
+        for path in packed.namelist():
+            # add Modules
+            if path.startswith(lib_dir):
+                module_path = path.split('%s/' % lib_dir)[1]
+                if module_path and not module_path.endswith('/'):
+                    module_path = os.path.splitext(module_path)[0]
+                    code = packed.read(path)
+                    if module_path == main:
+                        main_mod = revision.modules.get(
+                                filename=revision.module_main)
+                        main_mod.code = code
+                        revision.update(main_mod, save=False)
+                    else:
+                        revision.module_create(
+                                save=False,
+                                filename=module_path,
+                                author=author,
+                                code=code)
+
+            # add Attachments
+            if path.startswith(att_dir):
+                att_path = path.split('%s/' % att_dir)[1]
+                if att_path and not att_path.endswith('/'):
+                    code = packed.read(path)
+                    basename = os.path.basename(att_path)
+                    # XXX the filename will be changed
+                    upload_name = '%f-%s' % (time.time(), basename)
+                    upload_path = os.path.join(
+                            settings.UPLOAD_DIR,
+                            upload_name)
+                    f = open(upload_path, 'w')
+                    f.write(code)
+                    f.close()
+                    filename, ext = os.path.splitext(att_path)
+                    if ext.startswith('.'):
+                        ext = ext.split('.')[1]
+                    revision.attachment_create(
+                            save=False,
+                            filename=filename,
+                            ext=ext,
+                            path=upload_name,
+                            author=author)
+
         if new_revision:
             revision.save()
         else:
             super(PackageRevision, revision).save()
 
         revision.set_version(manifest['version'])
-
-        # add Modules
-        # add Attachments
+        return revision
 
 
 class PackageRevision(models.Model):
@@ -622,14 +673,8 @@ class PackageRevision(models.Model):
                  'with the name "%s". Each module in your add-on '
                  'needs to have a unique name.') % mod.filename
             )
-        # I think it's not necessary
-        # TODO: check integration
-        #for rev in mod.revisions.all():
-        #    if rev.package.id_number != self.package.id_number:
-        #        raise AddingModuleDenied(
-        #            ('this module is already assigned to other'
-        #            'Library - %s') % rev.package.get_unique_package_name())
 
+        # should new revision be created?
         if save:
             self.save()
         return self.modules.add(mod)
@@ -653,10 +698,19 @@ class PackageRevision(models.Model):
         for change in changes:
             self.update(change, False)
 
-    def attachment_create(self, author, filename):
-        " create attachment and add to attachments "
+    def attachment_create_by_filename(self, author, filename):
+        """ find out the filename and ext and call attachment_create """
         filename, ext = os.path.splitext(filename)
         ext = ext.split('.')[1].lower() if ext else ''
+
+        return self.attachment_create(
+                author=author,
+                filename=filename,
+                ext=ext)
+
+    def attachment_create(self, save=True, **kwargs):
+        """ create attachment and add to attachments """
+        filename, ext = kwargs['filename'], kwargs.get('ext','')
 
         if not self.validate_attachment_filename(filename, ext):
             raise FilenameExistException(
@@ -664,15 +718,11 @@ class PackageRevision(models.Model):
                  'the name "%s.%s". Each attachment in your add-on needs to '
                  'have a unique name.') % (filename, ext)
             )
-
-        att = Attachment.objects.create(filename=filename,
-                                        ext=ext, author=author)
-
-        att.save()
-        self.attachment_add(att, check=False)
+        att = Attachment.objects.create(**kwargs)
+        self.attachment_add(att, save=save)
         return att
 
-    def attachment_add(self, att, check=True):
+    def attachment_add(self, att, check=True, save=True):
         " copy to new revision, add attachment "
         # save as new version
         # validate if given filename is valid
@@ -690,7 +740,8 @@ class PackageRevision(models.Model):
         #            ('this attachment is already assigned to other Library '
         #             '- %s') % rev.package.get_unique_package_name())
 
-        self.save()
+        if save:
+            self.save()
         return self.attachments.add(att)
 
     def attachment_remove(self, dep):
