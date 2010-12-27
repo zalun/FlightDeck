@@ -2,6 +2,7 @@ import os
 import json
 import StringIO
 from datetime import datetime
+from time import sleep
 
 from test_utils import TestCase
 from nose.tools import eq_
@@ -215,6 +216,10 @@ class TestAttachments(TestCase):
 
         data = {revision.attachments.all()[0].get_uid: 'foo bar'}
         self.client.post(self.get_change_url(1), data)
+
+        # This is more a hack than a fix
+        # This test was failing every third time
+        sleep(.1)
 
         data = {revision.attachments.all()[0].get_uid: 'foo bar zero'}
         self.client.post(self.get_change_url(0), data)
