@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Mozilla FlightDeck Site Status{% endblock title %}
+
+{% block app_content %}
+
+<h2 class="UI_Heading" style="padding-top: 3em">Filepaths</h2>
+<dl>
+{% for path, exists, permissions, extra in filepaths %}
+  <dt style="font-weight: bold">{{ path }}</dt>
+  <dd style="padding-bottom: 1em">
+  {% if exists %}
+    Exists...
+  {% else %}
+    <b style="color: red">Does not exist</b>
+  {% endif %}
+
+  {% if permissions %}
+    with proper permissions.
+  {% else %}
+    <b>and does not have the permissions we expect.</b>
+  {% endif %}
+  {% if extra %}
+    ({{ extra }})
+  {% endif %}
+  </dd>
+{% endfor %}
+</dl>
+
+{% endblock %}

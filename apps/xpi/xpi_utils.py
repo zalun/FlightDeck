@@ -6,74 +6,51 @@ import os
 import shutil
 import subprocess
 import stat
+import time
+import commonware.log
 
 from django.http import HttpResponseServerError
 from django.conf import settings
 
+log = commonware.log.getLogger('f.xpi_utils')
 
 def sdk_copy(sdk_source, sdk_dir=None):
-    """
-    copy the sdk_source to the sdk_dir
-    create cfx.sh which will set environment and call 'real' cfx
-    """
     shutil.copytree(sdk_source, sdk_dir)
-    # create cfx.sh
-    handle = open('%s/bin/cfx.sh' % sdk_dir, 'w')
-    handle.write("""#!/bin/bash
-ADDON_DIR=`pwd`
-SDK_DIR=%s
-cd $SDK_DIR
-source $SDK_DIR/bin/activate
-cd $ADDON_DIR
-cfx2 $*""" % (
-    sdk_dir))
-    handle.close()
-
-    cfx = open('%s/bin/cfx' % sdk_dir, 'r')
-    new_cfx = open('%s/bin/cfx2' % sdk_dir, 'w')
-    for line in cfx:
-        new_cfx.write(line.replace('python', settings.PYTHON_EXEC))
-    cfx.close()
-    new_cfx.close()
-
-    os.chmod('%s/bin/cfx.sh' % sdk_dir, stat.S_IXUSR | stat.S_IRUSR)
-    os.chmod('%s/bin/cfx2' % sdk_dir, stat.S_IXUSR | stat.S_IRUSR)
 
 
-def build(sdk_dir, package_dir):
-    " build xpi from source in sdk_dir "
-    # set environment
-    #os.environ['CUDDLEFISH_ROOT'] = sdk_dir
-    old_path = os.environ['PATH']
-    os.environ['PATH'] = '%s/bin:%s' % (sdk_dir, old_path)
-
+def build(sdk_dir, package_dir, filename):
+    """Build xpi from source in sdk_dir."""
     # create XPI
     os.chdir(package_dir)
-    cfx_command = [
-        '%s/bin/cfx.sh' % sdk_dir,
-        '--binary=/usr/bin/xulrunner',
-        '--keydir=%s/%s' % (sdk_dir, settings.KEYDIR),
-        'xpi']
+    cfx = [settings.PYTHON_EXEC, '%s/bin/cfx' % sdk_dir,
+           '--binary=/usr/bin/xulrunner',
+           '--keydir=%s/%s' % (sdk_dir, settings.KEYDIR), 'xpi']
 
+    env = dict(PATH='%s/bin:%s' % (sdk_dir, os.environ['PATH']),
+               VIRTUAL_ENV=sdk_dir,
+               CUDDLEFISH_ROOT=sdk_dir,
+               PYTHONPATH='%s/python-lib' % sdk_dir)
     try:
-        process = subprocess.Popen(
-                        cfx_command,
-                        shell=False,
-                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(cfx, shell=False, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, env=env)
     except subprocess.CalledProcessError:
         return HttpResponseServerError
 
-    out = process.communicate()
-    #if out[1] and not settings.DEBUG:
-        #xpi_remove(sdk_dir)
+    response = process.communicate()
 
-    # clean up environment
-    os.environ['PATH'] = old_path
-
-    # return cfx result
-    return out
-
-
-def remove(sdk_dir):
-    " clear directory "
+    # move the XPI created to the XPI_TARGETDIR
+    xpi_targetfilename = "%d-%s.xpi" % (time.time(), filename)
+    xpi_targetpath = os.path.join(settings.XPI_TARGETDIR, xpi_targetfilename)
+    xpi_path = os.path.join(package_dir, "%s.xpi" % filename)
+    shutil.copy(xpi_path, xpi_targetpath)
     shutil.rmtree(sdk_dir)
+
+    ret = [xpi_targetfilename]
+    ret.extend(response)
+    log.info('XPI %s build' % xpi_targetfilename)
+    return ret
+
+
+def remove(path):
+    " clear directory "
+    os.remove(path)

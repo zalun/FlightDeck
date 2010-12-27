@@ -37,11 +37,11 @@ def prepare_test(r, id_number, revision_number=None):
                 if mod.code != code:
                     mod.code = code
                     modules.append(mod)
-        (stdout, stderr) = revision.build_xpi_test(modules)
+        (xpi_path, stdout, stderr) = revision.build_xpi_test(modules)
 
     else:
         # XXX: added test as build_xpi doesn't return
-        (stdout, stderr) = revision.build_xpi_test()
+        (xpi_path, stdout, stderr) = revision.build_xpi_test()
 
     if stderr and not settings.DEBUG:
         # XXX: this should also log the error in file
@@ -52,23 +52,20 @@ def prepare_test(r, id_number, revision_number=None):
         'stdout': stdout,
         'stderr': stderr,
         'test_xpi_url': reverse('jp_test_xpi', args=[
-            revision.get_sdk_name(),
-            revision.package.get_unique_package_name(),
-            revision.package.name
+            xpi_path
         ]),
         'download_xpi_url': reverse('jp_download_xpi', args=[
-            revision.get_sdk_name(),
-            revision.package.get_unique_package_name(),
+            xpi_path,
             revision.package.name
         ]),
-        'rm_xpi_url': reverse('jp_rm_xpi', args=[revision.get_sdk_name()]),
+        'rm_xpi_url': reverse('jp_rm_xpi', args=[xpi_path]),
         'addon_name': '"%s (%s)"' % (
             revision.package.full_name, revision.get_version_name())
     }, context_instance=RequestContext(r))
     #    mimetype='application/json')
 
 
-def prepare_download(r, id_number, revision_number=None):
+def prepare_download(r, id_number, revision_number=None, xpi_path=''):
     """
     Download XPI.  This package is built asynchronously and we assume it works.
     and let ``download_xpi`` handle the case where the file is not ready.
@@ -78,32 +75,31 @@ def prepare_download(r, id_number, revision_number=None):
                         revision_number=revision_number)
 
     # If this is a retry, we won't rebuild... we'll just wait.
+    # XXX: that would need to get xpi_path somehow
     retry = r.GET.get('retry')
     retry_url = reverse('jp_addon_revision_xpi',
                         args=[id_number, revision_number]) + '?retry=1'
 
     if not retry:
-        revision.build_xpi()
+        (xpi_path, stdout, stderr) = revision.build_xpi_test()
 
     return get_download(r,
-                        revision.get_sdk_name(),
-                        revision.package.get_unique_package_name(),
+                        xpi_path,
                         revision.package.name,
                         retry=retry,
                         retry_url=retry_url,
                        )
 
 
-def get_test(r, sdk_name, pkg_name, filename):
+def get_test(r, path):
     """
     return XPI file for testing
     """
-    path = '%s-%s/packages/%s' % (settings.SDKDIR_PREFIX, sdk_name, pkg_name)
-    _file = '%s.xpi' % filename
+    path = os.path.join(settings.XPI_TARGETDIR, path)
     mimetype = 'text/plain; charset=x-user-defined'
 
     try:
-        xpi = open(os.path.join(path, _file), 'rb').read()
+        xpi = open(path, 'rb').read()
     except Exception, err:
         log.critical('Error creating Add-on: %s' % str(err))
         return HttpResponseServerError
@@ -111,13 +107,13 @@ def get_test(r, sdk_name, pkg_name, filename):
     return HttpResponse(xpi, mimetype=mimetype)
 
 
-def get_download(r, sdk_name, pkg_name, filename, retry=False, retry_url=None):
+def get_download(r, path, filename, retry=False, retry_url=None):
     """Return XPI file for testing."""
-    path = '%s-%s/packages/%s' % (settings.SDKDIR_PREFIX, sdk_name, pkg_name)
+    path = os.path.join(settings.XPI_TARGETDIR, path)
     f = '%s.xpi' % filename
-    # Return file if it exists?
-    if os.path.isfile(os.path.join(path, f)):
-        r = serve(r, f, path, show_indexes=False)
+    # Return file if it exists
+    if os.path.isfile(path):
+        r = serve(r, path, '/', show_indexes=False)
         r['Content-Type'] = 'application/octet-stream'
         r['Content-Disposition'] = 'attachment; filename="%s.xpi"' % filename
     elif retry:
@@ -129,10 +125,10 @@ def get_download(r, sdk_name, pkg_name, filename, retry=False, retry_url=None):
     return r
 
 
-def clean(r, sdk_name):
+def clean(r, path):
     " remove whole temporary SDK on request "
     # Validate sdk_name
-    if not validator.is_valid('alphanum_plus', sdk_name):
+    if not validator.is_valid('alphanum_plus', path):
         return HttpResponseForbidden("{'error': 'Wrong name'}")
-    xpi_utils.remove('%s-%s' % (settings.SDKDIR_PREFIX, sdk_name))
+    xpi_utils.remove(os.path.join(settings.XPI_TARGETDIR, path))
     return HttpResponse('{}', mimetype='application/json')

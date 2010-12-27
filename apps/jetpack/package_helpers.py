@@ -13,6 +13,7 @@ def get_package_revision(id_name, type_id,
     """
     Return revision of the package
     """
+
     if not (revision_number or version_name):
         # get default revision - one linked via Package:version
         package = get_object_with_related_or_404(Package, id_number=id_name,
@@ -48,8 +49,9 @@ def create_from_archive(path, author, package_type='a'):
     """
     # read package.json
     packed = zipfile.ZipFile(path, 'r')
+    manifest_file = packed.open('package.json')
     try:
-        manifest = simplejson.loads(manifest.read())
+        manifest = simplejson.loads(manifest_file.read())
     except Exception, err:
         raise ManifestNotValid("Problem with reading manifest's data.\n"
                 "Error: %s" % str(err))

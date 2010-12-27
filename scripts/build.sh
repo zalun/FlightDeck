@@ -32,6 +32,10 @@ if [ ! -d "/tmp/flightdeck" ]; then
     mkdir /tmp/flightdeck
 fi
 
+if [ ! -d "/tmp/xpi" ]; then
+    mkdir /tmp/xpi
+fi
+
 cat > settings_local.py <<SETTINGS
 from settings import *
 ROOT_PACKAGE = os.path.basename(ROOT)

@@ -1,8 +1,6 @@
 """
 Views for the Jetpack application
 """
-import os
-import time
 import commonware.log
 
 from django.contrib import messages
@@ -16,10 +14,11 @@ from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, ObjectDoesNotExist
 from django.views.decorators.http import require_POST
 from django.template.defaultfilters import slugify, escape
 from django.conf import settings
+from django.utils import simplejson
 
 from base.shortcuts import get_object_with_related_or_404
 from utils import validator
@@ -81,6 +80,7 @@ def package_view_or_edit(r, id_number, type_id, revision_number=None,
     else:
         return package_view(r, revision)
 
+
 @login_required
 def package_edit(r, revision):
     """
@@ -106,6 +106,11 @@ def package_edit(r, revision):
         library_counter += 1
         sdk_list = SDK.objects.all()
 
+    # prepare the json for the Tree
+    tree = simplejson.dumps({'Lib': revision.get_modules_tree(),
+            'Data': revision.get_attachments_tree(),
+            'Plugins': revision.get_dependencies_tree()})
+
     return render_to_response(
         "%s_edit.html" % revision.package.get_type_name(), {
             'revision': revision,
@@ -113,7 +118,8 @@ def package_edit(r, revision):
             'library_counter': library_counter,
             'readonly': False,
             'edit_mode': True,
-            'sdk_list': sdk_list
+            'sdk_list': sdk_list,
+            'tree': tree
         }, context_instance=RequestContext(r))
 
 
@@ -126,12 +132,18 @@ def package_view(r, revision):
     if revision.package.is_addon():
         library_counter += 1
 
+    # prepare the json for the Tree
+    tree = simplejson.dumps({'Lib': revision.get_modules_tree(),
+            'Data': revision.get_attachments_tree(),
+            'Plugins': revision.get_dependencies_tree()})
+
     return render_to_response(
         "%s_view.html" % revision.package.get_type_name(), {
             'revision': revision,
             'libraries': libraries,
             'library_counter': library_counter,
-            'readonly': True
+            'readonly': True,
+            'tree': tree
         }, context_instance=RequestContext(r))
 
 
@@ -177,8 +189,6 @@ def package_copy(r, id_number, type_id,
 
     return HttpResponseForbidden('You already have a %s with that name' %
                                  escape(source.package.get_type_name()))
-
-
 
 
 @login_required
@@ -344,31 +354,17 @@ def package_add_attachment(r, id_number, type_id,
                 % escape(revision.package.get_type_name()))
 
     content = r.raw_post_data
-    path = r.META.get('HTTP_X_FILE_NAME', False)
+    filename = r.META.get('HTTP_X_FILE_NAME')
 
-    if not path:
+    if not filename:
         log_msg = 'Path not found: %s, package: %s.' % (
-            path, id_number)
+            filename, id_number)
         log.debug(log_msg)
-        return HttpResponseServerError
+        return HttpResponseServerError('Path not found.')
 
-    filename, ext = os.path.splitext(path)
-    ext = ext.split('.')[1].lower() if ext else ''
-
-    upload_path = "%s_%s_%s.%s" % (revision.package.id_number,
-                                   time.strftime("%m-%d-%H-%M-%S"),
-                                   filename, ext)
-
-    handle = open(os.path.join(settings.UPLOAD_DIR, upload_path), 'w')
-    handle.write(content)
-    handle.close()
-
-    attachment = revision.attachment_create(
-        author=r.user,
-        filename=filename,
-        ext=ext,
-        path=upload_path
-    )
+    attachment = revision.attachment_create(r.user, filename)
+    attachment.data = content
+    attachment.write()
 
     return render_to_response("json/attachment_added.json",
                 {'revision': revision, 'attachment': attachment},
@@ -416,14 +412,35 @@ def package_remove_attachment(r, id_number, type_id, revision_number):
                 mimetype='application/json')
 
 
-def download_attachment(r, path):
+def download_attachment(request, uid):
     """
     Display attachment from PackageRevision
     """
-    get_object_or_404(Attachment, path=path)
-    response = serve(r, path, settings.UPLOAD_DIR, show_indexes=False)
-    #response['Content-Type'] = 'application/octet-stream';
+    attachment = get_object_or_404(Attachment, id=uid)
+    response = serve(request, attachment.path,
+                     settings.UPLOAD_DIR, show_indexes=False)
+    response['Content-Disposition'] = 'filename=%s' % attachment.filename
     return response
+
+
+def latest_by_uid(revision, uid):
+    """It could be that the client is sending an old uid,
+    not a nice shiny new one. Given we know the keys coming
+    in and the keys in the db, resolve our old uid into
+    a newer one."""
+    package = revision.package
+    try:
+        attachment = (Attachment.objects.distinct()
+                               .get(pk=uid, revisions__package=package))
+    except (ValueError, ObjectDoesNotExist):
+        return None
+    try:
+        return (Attachment.objects.filter(ext=attachment.ext,
+                                          filename=attachment.filename,
+                                          revisions__package=package)
+                                  .order_by("-pk"))[0]
+    except IndexError:
+        return attachment
 
 
 @require_POST
@@ -482,16 +499,23 @@ def package_save(r, id_number, type_id, revision_number=None,
         revision.package.description = package_description
         response_data['package_description'] = package_description
 
-    modules = []
+    changes = []
     for mod in revision.modules.all():
         if r.POST.get(mod.filename, False):
             code = r.POST[mod.filename]
             if mod.code != code:
                 mod.code = code
-                modules.append(mod)
+                changes.append(mod)
 
-    if modules:
-        revision.modules_update(modules)
+    for key in r.POST.keys():
+        attachment = latest_by_uid(revision, key)
+        if attachment:
+            attachment.data = r.POST[key]
+            if attachment.changed():
+                changes.append(attachment)
+
+    if changes:
+        revision.updates(changes)
         save_revision = False
 
     if save_revision:
@@ -573,7 +597,6 @@ def library_autocomplete(r):
             )[:limit]
     except:
         found = []
-
 
     return render_to_response('json/library_autocomplete.json',
                 {'libraries': found},
@@ -660,8 +683,3 @@ def get_revisions_list_html(r, id_number):
             'revisions': revisions
         },
         context_instance=RequestContext(r))
-
-
-# ---------------------------- XPI ---------------------------------
-
-
