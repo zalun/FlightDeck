@@ -203,7 +203,8 @@ class PackageRevisionTest(TestCase):
         filename = tempfile.mkstemp()[1]
         try:
             attachment = first.attachment_create(
-                filename='test.txt',
+                filename='test',
+                ext='txt',
                 author=self.author
             )
             attachment.data = 'This is a test.'
@@ -257,11 +258,13 @@ class PackageRevisionTest(TestCase):
         """Filename is unique per packagerevision."""
         first = PackageRevision.objects.filter(package__pk=self.addon.pk)[0]
         first.attachment_create(
-            filename='test_filename.txt',
+            filename='test_filename',
+            ext='txt',
             author=self.author
         )
         self.assertRaises(FilenameExistException, first.attachment_create,
-            **{'filename': 'test_filename.txt',
+            **{'filename': 'test_filename',
+               'ext': 'txt',
                'author': self.author}
         )
         att = Attachment.objects.create(

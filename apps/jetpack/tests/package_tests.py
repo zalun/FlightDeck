@@ -1,5 +1,6 @@
 import time
 import os
+import commonware
 
 from test_utils import TestCase
 
@@ -9,6 +10,7 @@ from django.conf import settings
 from jetpack.models import Package
 from jetpack.package_helpers import create_from_archive
 
+log = commonware.log.getLogger('f.jetpack')
 
 class PackageTest(TestCase):
     fixtures = ['mozilla_user', 'users', 'core_sdk']
@@ -80,12 +82,28 @@ class PackageTest(TestCase):
     def test_disable_activate(self):
         pass
 
-    def test_create_from_archive(self):
+    def test_create_adddon_from_archive(self):
         path_addon = os.path.join(
                 settings.ROOT, 'apps/jetpack/tests/sample_addon.zip')
+        addon = create_from_archive(path_addon, self.author, 'a')
+        for att in addon.latest.attachments.all():
+            self.failUnless(os.path.isfile(
+                os.path.join(settings.UPLOAD_DIR, att.path)))
+        self.failUnless(addon)
+        self.failUnless('main' in [m.filename for m in addon.latest.modules.all()])
+        self.failUnless(('attachment', 'txt') in [(a.filename, a.ext)
+            for a in addon.latest.attachments.all()])
+
+    def test_create_library_from_archive(self):
         path_library = os.path.join(
                 settings.ROOT, 'apps/jetpack/tests/sample_library.zip')
-        addon = create_from_archive(path_addon, self.author, 'a')
-
-        self.failUnless(addon)
+        library = create_from_archive(path_library, self.author, 'l')
+        self.failUnless(library)
+        for att in library.latest.attachments.all():
+            self.failUnless(os.path.isfile(
+                os.path.join(settings.UPLOAD_DIR, att.path)))
+        self.failUnless('lib' in [m.filename
+            for m in library.latest.modules.all()])
+        self.failUnless(('attachment', 'txt') in [(a.filename, a.ext)
+            for a in library.latest.attachments.all()])
 

@@ -2,6 +2,7 @@
 
 import zipfile
 import simplejson
+import os
 
 from base.shortcuts import get_object_with_related_or_404
 from jetpack.models import Package, PackageRevision
@@ -49,12 +50,21 @@ def create_from_archive(path, author, package_type='a'):
     """
     # read package.json
     packed = zipfile.ZipFile(path, 'r')
-    manifest_file = packed.open('package.json')
-    try:
-        manifest = simplejson.loads(manifest_file.read())
-    except Exception, err:
-        raise ManifestNotValid("Problem with reading manifest's data.\n"
-                "Error: %s" % str(err))
+
+    if package_type == 'a':
+        try:
+            manifest = simplejson.loads(packed.read('package.json'))
+        except Exception, err:
+            raise ManifestNotValid("Problem with reading manifest's data.\n"
+                    "Error: %s" % str(err))
+    else:
+        filename = os.path.basename(path)
+        filename = os.path.splitext(filename)[0]
+        manifest  = {
+                'name': filename,
+                'license': '',
+                'version': 'uploaded'}
+
     if not ('name' in manifest and \
             'license' in manifest and \
             'version' in manifest):
@@ -77,7 +87,7 @@ def create_from_archive(path, author, package_type='a'):
     )
     obj.save()
     obj.latest.set_version('empty.uploaded')
-    obj.create_revision_from_archive(packed, manifest)
+    obj.create_revision_from_archive(packed, manifest, author)
 
     return obj
 

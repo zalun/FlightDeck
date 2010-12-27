@@ -362,7 +362,7 @@ def package_add_attachment(r, id_number, type_id,
         log.debug(log_msg)
         return HttpResponseServerError('Path not found.')
 
-    attachment = revision.attachment_create(r.user, filename)
+    attachment = revision.attachment_create_by_filename(r.user, filename)
     attachment.data = content
     attachment.write()
 
