@@ -54,6 +54,9 @@ urls.extend([
     (r'^user/', include('person.urls')),
 
     # Jetpack
-    (r'', include('jetpack.urls'))
+    (r'', include('jetpack.urls')),
+   
+    # Monitor 
+    (r'', include('base.urls'))
 ])
 urlpatterns = patterns('', *urls)
