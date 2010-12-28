@@ -274,6 +274,43 @@ class Package(models.Model):
         new_p.save()
         return new_p
 
+
+
+    def create_revision_from_xpi(self, packed, manifest, author, jid,
+            new_revision=False):
+        """
+        Create new package revision by reading XPI
+
+        Args:
+            packed (ZipFile): XPI
+            manifest (dict): parsed package.json
+            jid (String): jid name from XPI
+            author (auth.User): owner of PackageRevision
+            new_revision (Boolean): should new revision be created?
+
+        Returns:
+            PackageRevision object
+        """
+
+        revision = self.latest
+        if 'contributors' in manifest:
+            revision.contributors = manifest['contributors']
+
+        main = manifest['main'] if 'main' in manifest else 'main'
+        lib_dir = 'resources/%s-%s-%s' % (jid.lower(), manifest['name'],
+                manifest['lib'] if 'lib' in manifest else 'lib')
+        att_dir = 'resources/%s-%s-%s' % (jid.lower(), manifest['name'], 'data')
+
+        revision.add_mods_and_atts_from_archive(packed, main, lib_dir, att_dir)
+
+        if new_revision:
+            revision.save()
+        else:
+            super(PackageRevision, revision).save()
+
+        revision.set_version(manifest['version'])
+        return revision
+
     def create_revision_from_archive(self, packed, manifest, author,
             new_revision=False):
         """
@@ -297,48 +334,7 @@ class Package(models.Model):
         lib_dir = manifest['lib'] if 'lib' in manifest else 'lib'
         att_dir = 'data'
 
-        for path in packed.namelist():
-            # add Modules
-            if path.startswith(lib_dir):
-                module_path = path.split('%s/' % lib_dir)[1]
-                if module_path and not module_path.endswith('/'):
-                    module_path = os.path.splitext(module_path)[0]
-                    code = packed.read(path)
-                    if module_path == main:
-                        main_mod = revision.modules.get(
-                                filename=revision.module_main)
-                        main_mod.code = code
-                        revision.update(main_mod, save=False)
-                    else:
-                        revision.module_create(
-                                save=False,
-                                filename=module_path,
-                                author=author,
-                                code=code)
-
-            # add Attachments
-            if path.startswith(att_dir):
-                att_path = path.split('%s/' % att_dir)[1]
-                if att_path and not att_path.endswith('/'):
-                    code = packed.read(path)
-                    basename = os.path.basename(att_path)
-                    # XXX the filename will be changed
-                    upload_name = '%f-%s' % (time.time(), basename)
-                    upload_path = os.path.join(
-                            settings.UPLOAD_DIR,
-                            upload_name)
-                    f = open(upload_path, 'w')
-                    f.write(code)
-                    f.close()
-                    filename, ext = os.path.splitext(att_path)
-                    if ext.startswith('.'):
-                        ext = ext.split('.')[1]
-                    revision.attachment_create(
-                            save=False,
-                            filename=filename,
-                            ext=ext,
-                            path=upload_name,
-                            author=author)
+        revision.add_mods_and_atts_from_archive(packed, main, lib_dir, att_dir)
 
         if new_revision:
             revision.save()
@@ -697,6 +693,54 @@ class PackageRevision(models.Model):
         self.save()
         for change in changes:
             self.update(change, False)
+
+    def add_mods_and_atts_from_archive(self, packed, main, lib_dir, att_dir):
+        """
+        Read packed archive and search for modules and attachments
+        """
+        for path in packed.namelist():
+            # add Modules
+            if path.startswith(lib_dir):
+                module_path = path.split('%s/' % lib_dir)[1]
+                if module_path and not module_path.endswith('/'):
+                    module_path = os.path.splitext(module_path)[0]
+                    code = packed.read(path)
+                    # this looks like a potential problem if library
+                    if module_path == main:
+                        main_mod = self.modules.get(
+                                filename=self.module_main)
+                        main_mod.code = code
+                        self.update(main_mod, save=False)
+                    else:
+                        self.module_create(
+                                save=False,
+                                filename=module_path,
+                                author=self.author,
+                                code=code)
+
+            # add Attachments
+            if path.startswith(att_dir):
+                att_path = path.split('%s/' % att_dir)[1]
+                if att_path and not att_path.endswith('/'):
+                    code = packed.read(path)
+                    basename = os.path.basename(att_path)
+                    # XXX the filename will be changed
+                    upload_name = '%f-%s' % (time.time(), basename)
+                    upload_path = os.path.join(
+                            settings.UPLOAD_DIR,
+                            upload_name)
+                    f = open(upload_path, 'w')
+                    f.write(code)
+                    f.close()
+                    filename, ext = os.path.splitext(att_path)
+                    if ext.startswith('.'):
+                        ext = ext.split('.')[1]
+                    self.attachment_create(
+                            save=False,
+                            filename=filename,
+                            ext=ext,
+                            path=upload_name,
+                            author=self.author)
 
     def attachment_create_by_filename(self, author, filename):
         """ find out the filename and ext and call attachment_create """

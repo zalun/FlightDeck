@@ -9,7 +9,8 @@ from django.contrib.auth.models import User
 from django.conf import settings
 
 from jetpack.models import Package
-from jetpack.package_helpers import create_from_archive
+from jetpack.package_helpers import create_from_archive, \
+        create_package_from_xpi
 
 log = commonware.log.getLogger('f.jetpack')
 
@@ -87,10 +88,10 @@ class PackageTest(TestCase):
         path_addon = os.path.join(
                 settings.ROOT, 'apps/jetpack/tests/sample_addon.zip')
         addon = create_from_archive(path_addon, self.author, 'a')
+        self.failUnless(addon)
         for att in addon.latest.attachments.all():
             self.failUnless(os.path.isfile(
                 os.path.join(settings.UPLOAD_DIR, att.path)))
-        self.failUnless(addon)
         self.failUnless('main' in [m.filename for m in addon.latest.modules.all()])
         self.failUnless(('attachment', 'txt') in [(a.filename, a.ext)
             for a in addon.latest.attachments.all()])
@@ -108,3 +109,17 @@ class PackageTest(TestCase):
         self.failUnless(('attachment', 'txt') in [(a.filename, a.ext)
             for a in library.latest.attachments.all()])
 
+    def test_create_addon_from_xpi(self):
+        path_xpi = os.path.join(
+                settings.ROOT, 'apps/jetpack/tests/sample_addon.xpi')
+        addon = create_package_from_xpi(path_xpi, self.author)
+        self.failUnless(addon)
+        for att in addon.latest.attachments.all():
+            self.failUnless(os.path.isfile(
+                os.path.join(settings.UPLOAD_DIR, att.path)))
+        self.failUnless('main' in [m.filename for m in addon.latest.modules.all()])
+        self.failUnless(('attachment', 'txt') in [(a.filename, a.ext)
+            for a in addon.latest.attachments.all()])
+
+    def test_create_addon_from_xpi_with_libs(self):
+        raise SkipTest()

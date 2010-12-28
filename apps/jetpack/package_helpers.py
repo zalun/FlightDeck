@@ -91,3 +91,59 @@ def create_from_archive(path, author, package_type='a'):
 
     return obj
 
+
+def create_package_from_xpi(path, author, libs=[]):
+    """
+    Create new package(s) from the XPI
+    Call Package.create_revision_from_xpi
+
+    Args:
+       path (str): direct, full path of the archive
+
+    Returns:
+        Package object
+
+    Raises:
+        ManifestNotValid, BadZipFile, LargeZipFile
+    """
+    packed = zipfile.ZipFile(path, 'r')
+
+    filename = os.path.basename(path)
+    filename = os.path.splitext(filename)[0]
+    # read harness-options.json
+    harness_options = simplejson.loads(packed.read('harness-options.json'))
+    manifest = harness_options['metadata'][filename]
+    manifest['version'] = 'uploaded'
+    manifest['main'] = harness_options['main']
+    if 'contributors' in manifest:
+        manifest['contributors'] = ','.join(manifest['contributors'])
+    if  'license' not in manifest:
+        manifest['license'] = ''
+
+    if 'name' not in manifest:
+        raise ManifestNotValid("Manifest is not valid.\n"
+                "name is obsolete")
+
+    if 'fullName' not in manifest:
+        manifest['fullName'] = manifest['name']
+
+    # * optional - check for jid - might be a problem with private key
+    # create Package
+    obj = Package(
+        author=author,
+        full_name=manifest['fullName'],
+        name=manifest['name'],
+        type='a',
+        license=manifest['license'],
+        description=manifest['description'] \
+                if 'description' in manifest else ''
+    )
+    obj.save()
+    obj.latest.set_version('empty.uploaded')
+    obj.create_revision_from_xpi(packed, manifest, author,
+        harness_options['jetpackID'])
+
+    # create each library
+
+    return obj
+
