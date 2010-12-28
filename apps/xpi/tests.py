@@ -1,6 +1,7 @@
 import os
 import shutil
 import simplejson
+import commonware
 
 from utils.test import TestCase
 from nose.tools import eq_
@@ -12,6 +13,7 @@ from jetpack.models import Module, Package, PackageRevision, SDK
 from xpi import xpi_utils
 from jetpack.cron import find_files, clean_tmp
 
+log = commonware.log.getLogger('f.tests')
 
 class XPIBuildTest(TestCase):
 
@@ -69,7 +71,7 @@ class XPIBuildTest(TestCase):
 
         self.failUnless(os.path.isfile('%s/packages/%s/%s/%s.js' % (
                             self.SDKDIR,
-                            self.library.get_unique_package_name(),
+                            self.library.name,
                             self.library.get_lib_dir(),
                             'test_module')))
 
@@ -88,8 +90,7 @@ class XPIBuildTest(TestCase):
         " test if all the files are in place "
         self.makeSDKDir()
         self.librev.export_files_with_dependencies('%s/packages' % self.SDKDIR)
-        package_dir = '%s/packages/%s' % (
-            self.SDKDIR, self.library.get_unique_package_name())
+        package_dir = '%s/packages/%s' % (self.SDKDIR, self.library.name)
         self.failUnless(os.path.isdir(package_dir))
         self.failUnless(os.path.isdir(
             '%s/%s' % (package_dir, self.library.get_lib_dir())))
@@ -102,14 +103,13 @@ class XPIBuildTest(TestCase):
     def test_addon_export_with_dependency(self):
         " test if lib and main.js are properly exported "
         self.makeSDKDir()
-        addon_dir = '%s/packages/%s' % (self.SDKDIR,
-                                        self.addon.get_unique_package_name())
-        lib_dir = '%s/packages/%s' % (self.SDKDIR,
-                                      self.library.get_unique_package_name())
+        addon_dir = '%s/packages/%s' % (self.SDKDIR, self.addon.name)
+        lib_dir = '%s/packages/%s' % (self.SDKDIR, self.library.name)
 
         self.addonrev.dependency_add(self.librev)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
+        print '%s/%s' % (addon_dir, self.addon.get_lib_dir())
         self.failUnless(os.path.isdir(
             '%s/%s' % (addon_dir, self.addon.get_lib_dir())))
         self.failUnless(os.path.isdir(
@@ -150,7 +150,7 @@ class XPIBuildTest(TestCase):
             '%s/packages' % self.SDKDIR)
         (xpi_target, out, err) = xpi_utils.build(self.SDKDIR,
                     '%s/packages/%s' % (
-                        self.SDKDIR, self.addon.get_unique_package_name()),
+                        self.SDKDIR, self.addon.name),
                     self.addon.name)
         # assert no error output
         self.assertEqual('', err)
@@ -170,7 +170,7 @@ class XPIBuildTest(TestCase):
             '%s/packages' % self.SDKDIR)
         (xpi_target, out, err) = xpi_utils.build(self.SDKDIR,
                         '%s/packages/%s' % (
-                            self.SDKDIR, self.addon.get_unique_package_name()),
+                            self.SDKDIR, self.addon.name),
                         self.addon.name)
         # assert no error output
         self.assertEqual('', err)
@@ -195,7 +195,7 @@ class XPIBuildTest(TestCase):
             '%s/packages' % self.SDKDIR)
         (xpi_target, out, err) = xpi_utils.build(self.SDKDIR,
                     '%s/packages/%s' % (
-                        self.SDKDIR, self.addon.get_unique_package_name()),
+                        self.SDKDIR, self.addon.name),
                     self.addon.name)
         # assert no error output
         self.assertEqual('', err)
@@ -212,7 +212,7 @@ class XPIBuildTest(TestCase):
             '%s/packages' % self.SDKDIR)
         (xpi_target, out, err) = xpi_utils.build(self.SDKDIR,
                     '%s/packages/%s' % (
-                        self.SDKDIR, self.addon.get_unique_package_name()),
+                        self.SDKDIR, self.addon.name),
                     self.addon.name)
         # assert no error output
         self.assertEqual('', err)
@@ -234,7 +234,7 @@ class XPIBuildTest(TestCase):
         for full in find_files():
             os.remove(full)
         assert not find_files()
-        rev.build_xpi()
+        rev.build_xpi(rapid=True)
 
         # There should be one directory in the /tmp directory now.
         eq_(len(find_files()), 1)

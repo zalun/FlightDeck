@@ -3,10 +3,13 @@
 import zipfile
 import simplejson
 import os
+import commonware
 
 from base.shortcuts import get_object_with_related_or_404
 from jetpack.models import Package, PackageRevision
 from jetpack.errors import FilenameExistException, ManifestNotValid
+
+log = commonware.log.getLogger('f.package_helpers')
 
 def get_package_revision(id_name, type_id,
                          revision_number=None,
@@ -99,6 +102,8 @@ def create_package_from_xpi(path, author, libs=[]):
 
     Args:
        path (str): direct, full path of the archive
+       author (auth.User): author of the package
+       libs (list of strings): libs to export from XPI
 
     Returns:
         Package object
@@ -106,44 +111,62 @@ def create_package_from_xpi(path, author, libs=[]):
     Raises:
         ManifestNotValid, BadZipFile, LargeZipFile
     """
+
+    def _save_package(packed, name, harness_options, package_type, author):
+        " create Package or add PackageRevision "
+        manifest = harness_options['metadata'][name]
+        if 'version' not in manifest:
+            manifest['version'] = 'uploaded'
+        if package_type == 'a':
+            manifest['main'] = harness_options['main']
+        if 'contributors' in manifest:
+            manifest['contributors'] = ','.join(manifest['contributors'])
+        if  'license' not in manifest:
+            manifest['license'] = ''
+        # validation
+        if 'name' not in manifest:
+            raise ManifestNotValid("Manifest is not valid.\n"
+                    "name is obsolete")
+
+        if 'fullName' not in manifest:
+            manifest['fullName'] = manifest['name']
+
+        # * optional - check for jid - might be a problem with private key
+        # create Package
+        try:
+            obj = Package.objects.get(author=author, name=name,
+                    type=package_type)
+        except:
+            obj = Package(
+                author=author,
+                full_name=manifest['fullName'],
+                name=manifest['name'],
+                type=package_type,
+                license=manifest['license'],
+                description=manifest['description'] \
+                        if 'description' in manifest else ''
+            )
+            obj.save()
+            obj.latest.set_version('empty.uploaded')
+
+        obj.create_revision_from_xpi(packed, manifest, author,
+            harness_options['jetpackID'])
+
+        return obj
+
     packed = zipfile.ZipFile(path, 'r')
 
     filename = os.path.basename(path)
     filename = os.path.splitext(filename)[0]
     # read harness-options.json
     harness_options = simplejson.loads(packed.read('harness-options.json'))
-    manifest = harness_options['metadata'][filename]
-    manifest['version'] = 'uploaded'
-    manifest['main'] = harness_options['main']
-    if 'contributors' in manifest:
-        manifest['contributors'] = ','.join(manifest['contributors'])
-    if  'license' not in manifest:
-        manifest['license'] = ''
 
-    if 'name' not in manifest:
-        raise ManifestNotValid("Manifest is not valid.\n"
-                "name is obsolete")
+    obj = _save_package(packed, filename, harness_options, 'a', author)
 
-    if 'fullName' not in manifest:
-        manifest['fullName'] = manifest['name']
-
-    # * optional - check for jid - might be a problem with private key
-    # create Package
-    obj = Package(
-        author=author,
-        full_name=manifest['fullName'],
-        name=manifest['name'],
-        type='a',
-        license=manifest['license'],
-        description=manifest['description'] \
-                if 'description' in manifest else ''
-    )
-    obj.save()
-    obj.latest.set_version('empty.uploaded')
-    obj.create_revision_from_xpi(packed, manifest, author,
-        harness_options['jetpackID'])
-
-    # create each library
+    # create each library or add new version
+    for lib_name in libs:
+        lib = _save_package(packed, lib_name, harness_options, 'l', author)
+        obj.latest.dependency_add(lib.latest, save=False)
 
     return obj
 

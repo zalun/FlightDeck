@@ -4,6 +4,7 @@ import commonware
 
 from test_utils import TestCase
 from nose import SkipTest
+from nose.tools import eq_
 
 from django.contrib.auth.models import User
 from django.conf import settings
@@ -76,11 +77,6 @@ class PackageTest(TestCase):
         Package(author=self.author, type='a').save()
         self.assertEqual(self.author.packages_originated.count(), 1)
 
-    def test_unique_package_name(self):
-        addon = Package(full_name='Addon', author=self.author, type='a')
-        addon.save()
-        self.assertEqual(addon.get_unique_package_name(), 'addon-1000001')
-
     def test_disable_activate(self):
         raise SkipTest()
 
@@ -122,4 +118,17 @@ class PackageTest(TestCase):
             for a in addon.latest.attachments.all()])
 
     def test_create_addon_from_xpi_with_libs(self):
-        raise SkipTest()
+        libs = ['sample_library']
+        path_xpi = os.path.join(
+                settings.ROOT, 'apps/jetpack/tests/sample_addon_with_libs.xpi')
+        addon = create_package_from_xpi(path_xpi, self.author, libs=libs)
+
+        eq_(len(addon.latest.dependencies.all()), 1)
+        lib = addon.latest.dependencies.all()[0]
+        self.failUnless(lib.package.name in libs)
+        eq_(len(lib.attachments.all()), 1)
+        att = lib.attachments.all()[0]
+        eq_(('attachment', 'txt'),(att.filename, att.ext))
+        self.failUnless(os.path.isfile(
+            os.path.join(settings.UPLOAD_DIR, att.path)))
+

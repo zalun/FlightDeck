@@ -174,14 +174,6 @@ class Package(models.Model):
         # TODO: YAGNI!
         return settings.JETPACK_DATA_DIR
 
-    def get_unique_package_name(self):
-        """
-        returns a unique package name
-        it's name (slugified full_name)
-        accompanied with id as name is not unique
-        """
-        return "%s-%s" % (self.name, self.id_number)
-
     def set_full_name(self):
         """
         setting automated full name of the Package item
@@ -239,7 +231,7 @@ class Package(models.Model):
         create package directories inside packages
         return package directory name
         """
-        package_dir = '%s/%s' % (packages_dir, self.get_unique_package_name())
+        package_dir = '%s/%s' % (packages_dir, self.name)
         os.mkdir(package_dir)
         os.mkdir('%s/%s' % (package_dir, self.get_lib_dir()))
         if not os.path.isdir('%s/%s' % (package_dir, self.get_data_dir())):
@@ -486,13 +478,17 @@ class PackageRevision(models.Model):
         for contributors in csv_r:
             return contributors
 
-    def get_dependencies_list(self):
+    def get_dependencies_list(self, sdk=None):
         " returns a list of dependencies names extended by default core "
         if self.package.is_addon() and self.sdk.kit_lib:
             deps = ['addon-kit']
         else:
-            deps = ['jetpack-core']
-        deps.extend([dep.package.get_unique_package_name() \
+            if sdk and sdk.kit_lib:
+                deps = ['api-utils']
+            else:
+            # jetpack-core or api-utils
+                deps = ['jetpack-core']
+        deps.extend([dep.package.name \
                      for dep in self.dependencies.all()])
         return deps
 
@@ -507,23 +503,21 @@ class PackageRevision(models.Model):
         " return description prepared for rendering "
         return "<p>%s</p>" % self.get_full_description().replace("\n", "<br/>")
 
-    def get_manifest(self, test_in_browser=False):
+    def get_manifest(self, test_in_browser=False, sdk=None):
         " returns manifest dictionary "
         version = self.get_version_name()
         if test_in_browser:
             version = "%s - test" % version
 
-        name = self.package.name if self.package.is_addon() \
-                else self.package.get_unique_package_name()
         manifest = {
             'fullName': self.package.full_name,
-            'name': name,
+            'name': self.package.name,
             'description': self.get_full_description(),
             'author': self.package.author.username,
             'id': self.package.jid if self.package.is_addon() \
                     else self.package.id_number,
             'version': version,
-            'dependencies': self.get_dependencies_list(),
+            'dependencies': self.get_dependencies_list(sdk),
             'license': self.package.license,
             'url': str(self.package.url),
             'contributors': self.get_contributors_list(),
@@ -534,9 +528,9 @@ class PackageRevision(models.Model):
 
         return manifest
 
-    def get_manifest_json(self, **kwargs):
+    def get_manifest_json(self, sdk=sdk, **kwargs):
         " returns manifest as JSOIN object "
-        return simplejson.dumps(self.get_manifest(**kwargs))
+        return simplejson.dumps(self.get_manifest(sdk=sdk, **kwargs))
 
     def get_main_module(self):
         " return executable Module for Add-ons "
@@ -615,13 +609,12 @@ class PackageRevision(models.Model):
         Set current Package:version_name and Package:version if current
         """
         # check if there isn't a version with such a name
-        revisions = PackageRevision.objects.filter(package__pk=self.package.pk)
-        for revision in revisions:
-            if revision.version_name == version_name:
-                version_name = ''
-                #raise Exception("There is already a revision with that name")
+        if PackageRevision.objects.filter(package__pk=self.package.pk,
+                version_name=version_name).count() > 0:
+            # reset version_name
+            version_name = ''
         self.version_name = version_name
-        if current:
+        if current and version_name:
             self.package.version_name = version_name
             self.package.version = self
             self.package.save()
@@ -661,7 +654,6 @@ class PackageRevision(models.Model):
 
     def module_add(self, mod, save=True):
         " copy to new revision, add module "
-        # save as new version
         # validate if given filename is valid
         if not self.validate_module_filename(mod.filename):
             raise FilenameExistException(
@@ -670,14 +662,12 @@ class PackageRevision(models.Model):
                  'needs to have a unique name.') % mod.filename
             )
 
-        # should new revision be created?
         if save:
             self.save()
         return self.modules.add(mod)
 
     def module_remove(self, mod):
         " copy to new revision, remove module "
-        # save as new version
         self.save()
         return self.modules.remove(mod)
 
@@ -777,13 +767,6 @@ class PackageRevision(models.Model):
                     att.filename, att.ext)
             )
 
-        # TODO: check integration
-        #for rev in att.revisions.all():
-        #    if rev.package.id_number != self.package.id_number:
-        #        raise AddingAttachmentDenied(
-        #            ('this attachment is already assigned to other Library '
-        #             '- %s') % rev.package.get_unique_package_name())
-
         if save:
             self.save()
         return self.attachments.add(att)
@@ -794,7 +777,7 @@ class PackageRevision(models.Model):
         self.save()
         return self.attachments.remove(dep)
 
-    def dependency_add(self, dep):
+    def dependency_add(self, dep, save=True):
         """
         copy to new revision,
         add dependency (existing Library - PackageVersion)
@@ -810,13 +793,15 @@ class PackageRevision(models.Model):
                 'A Library can not depend on itself!')
 
         # dependency have to be unique in the PackageRevision
-        if self.dependencies.filter(package__pk=dep.package.pk).count() > 0:
+        if self.dependencies.filter(
+                package__name=dep.package.name).count() > 0:
             raise DependencyException(
                 'Your add-on already depends on "%s" by %s.' % (
                     dep.package.full_name,
                     dep.package.author.get_profile()))
-        # save as new version
-        self.save()
+        if save:
+            # save as new version
+            self.save()
         return self.dependencies.add(dep)
 
     def dependency_remove(self, dep):
@@ -920,30 +905,7 @@ class PackageRevision(models.Model):
 
         return self.sdk.kit_lib if self.sdk.kit_lib else self.sdk.core_lib
 
-    def build_xpi(self):
-        " prepare and build XPI "
-        if self.package.type == 'l':
-            raise Exception('only Add-ons may build a XPI')
-        if not self.sdk:
-            raise Exception('only Add-ons with assigned SDK may build XPI')
-
-        sdk_dir = self.get_sdk_dir()
-        sdk_source = self.sdk.get_source_dir()
-
-        # TODO: consider SDK staying per PackageRevision...
-        if os.path.isdir(sdk_dir):
-            shutil.rmtree(sdk_dir)
-
-        xpi_utils.sdk_copy(sdk_source, sdk_dir)
-        self.export_keys(sdk_dir)
-        self.export_files_with_dependencies('%s/packages' % sdk_dir)
-
-        from jetpack import tasks
-        tasks.xpi_build.delay(sdk_dir, '%s/packages/%s' % (
-               sdk_dir, self.package.get_unique_package_name()),
-               self.package.name)
-
-    def build_xpi_test(self, modules=[]):
+    def build_xpi(self, modules=[], rapid=False):
         " prepare and build XPI for test only (unsaved modules) "
         if self.package.type == 'l':
             raise Exception('only Add-ons may build a XPI')
@@ -971,12 +933,18 @@ class PackageRevision(models.Model):
                 mod.export_code(lib_dir)
         self.export_attachments(
             '%s/%s' % (package_dir, self.package.get_data_dir()))
-        self.export_dependencies(packages_dir)
-        return xpi_utils.build(sdk_dir,
-                          '%s/packages/%s' % (
-                              sdk_dir,
-                              self.package.get_unique_package_name()
-                          ), self.package.name)
+        self.export_dependencies(packages_dir, sdk=self.sdk)
+
+        if rapid:
+            return xpi_utils.build(sdk_dir,
+                    '%s/packages/%s' % (sdk_dir, self.package.name),
+                    self.package.name)
+
+        from jetpack import tasks
+        tasks.xpi_build.delay(sdk_dir,
+                '%s/packages/%s' % (sdk_dir, self.package.name),
+                self.package.name)
+
 
     def export_keys(self, sdk_dir):
         " export private and public keys "
@@ -988,10 +956,10 @@ class PackageRevision(models.Model):
         handle.write('public-key:%s' % self.package.public_key)
         handle.close()
 
-    def export_manifest(self, package_dir):
+    def export_manifest(self, package_dir, sdk=None):
         " creates a file with an Add-on's manifest "
         handle = open('%s/package.json' % package_dir, 'w')
-        handle.write(self.get_manifest_json())
+        handle.write(self.get_manifest_json(sdk=sdk))
         handle.close()
 
     def export_modules(self, lib_dir):
@@ -1004,24 +972,24 @@ class PackageRevision(models.Model):
         for att in self.attachments.all():
             att.export_file(data_dir)
 
-    def export_dependencies(self, packages_dir):
+    def export_dependencies(self, packages_dir, sdk=None):
         " creates dependency package directory for each dependency "
         for lib in self.dependencies.all():
-            lib.export_files_with_dependencies(packages_dir)
+            lib.export_files_with_dependencies(packages_dir, sdk=sdk)
 
-    def export_files(self, packages_dir):
+    def export_files(self, packages_dir, sdk=None):
         " calls all export functions - creates all packages files "
         package_dir = self.package.make_dir(packages_dir)
-        self.export_manifest(package_dir)
+        self.export_manifest(package_dir, sdk=sdk)
         self.export_modules(
             '%s/%s' % (package_dir, self.package.get_lib_dir()))
         self.export_attachments(
             '%s/%s' % (package_dir, self.package.get_data_dir()))
 
-    def export_files_with_dependencies(self, packages_dir):
+    def export_files_with_dependencies(self, packages_dir, sdk=None):
         " export dependency packages "
-        self.export_files(packages_dir)
-        self.export_dependencies(packages_dir)
+        self.export_files(packages_dir, sdk=sdk)
+        self.export_dependencies(packages_dir, sdk=sdk)
 
     def get_version_name(self):
         " returns version name with revision number if needed "

@@ -9,7 +9,7 @@ import commonware
 import cronjobs
 
 length = 60 * 60 * 24 # one day
-log = commonware.log.getLogger('z.cron')
+log = commonware.log.getLogger('f.cron')
 
 
 def find_files():
