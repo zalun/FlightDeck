@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %}Mozilla FlightDeck Site Settings{% endblock title %}
+
+{% block app_content %}
+
+<h2 class="UI_Heading" style="padding-top: 3em">Settings</h2>
+<dl>
+{% for k, v in settings %}
+  <dt style="font-weight: bold">{{ k }}</dt>
+  <dd style="padding-bottom: 1em">{{ v }}</dd>
+{% endfor %}
+</dl>
+
+{% endblock %}
