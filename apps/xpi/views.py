@@ -37,11 +37,10 @@ def prepare_test(r, id_number, revision_number=None):
                 if mod.code != code:
                     mod.code = code
                     modules.append(mod)
-        (xpi_path, stdout, stderr) = revision.build_xpi_test(modules)
+        (xpi_path, stdout, stderr) = revision.build_xpi(modules, rapid=True)
 
     else:
-        # XXX: added test as build_xpi doesn't return
-        (xpi_path, stdout, stderr) = revision.build_xpi_test()
+        (xpi_path, stdout, stderr) = revision.build_xpi(rapid=True)
 
     if stderr and not settings.DEBUG:
         # XXX: this should also log the error in file
@@ -81,7 +80,7 @@ def prepare_download(r, id_number, revision_number=None, xpi_path=''):
                         args=[id_number, revision_number]) + '?retry=1'
 
     if not retry:
-        (xpi_path, stdout, stderr) = revision.build_xpi_test()
+        (xpi_path, stdout, stderr) = revision.build_xpi(rapid=True)
 
     return get_download(r,
                         xpi_path,
