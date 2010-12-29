@@ -1,6 +1,6 @@
 from django.db.models.manager import Manager
 from django.shortcuts import _get_queryset
-from django.http import Http404, HttpRequest
+from django.http import Http404
 
 
 def get_object_or_create(klass, *args, **kwargs):

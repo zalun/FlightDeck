@@ -483,6 +483,7 @@ def package_save(r, id_number, type_id, revision_number=None,
 
     if package_full_name and package_full_name != revision.package.full_name:
         try:
+            Package.objects.get(full_name=package_full_name)
             return HttpResponseForbidden(
                 'You already have a %s with that name' % escape(
                     revision.package.get_type_name())

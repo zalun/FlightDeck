@@ -2,6 +2,7 @@
 Special Exception classes
 """
 
+
 class SimpleException(Exception):
     " Exception extended with a value "
 

@@ -15,6 +15,7 @@ from jetpack.cron import find_files, clean_tmp
 
 log = commonware.log.getLogger('f.tests')
 
+
 class XPIBuildTest(TestCase):
 
     fixtures = ['nozilla', 'core_sdk', 'users', 'packages']

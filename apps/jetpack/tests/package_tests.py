@@ -1,4 +1,3 @@
-import time
 import os
 import commonware
 
@@ -15,6 +14,7 @@ from jetpack.package_helpers import create_from_archive, \
 
 log = commonware.log.getLogger('f.jetpack')
 
+
 class PackageTest(TestCase):
     fixtures = ['mozilla_user', 'users', 'core_sdk']
 
@@ -29,7 +29,8 @@ class PackageTest(TestCase):
         package.save()
         # all packages have assigned an incremental id_number
         self.failUnless(package.id_number)
-        self.assertEqual(int(package.id_number), settings.MINIMUM_PACKAGE_ID + 1)
+        self.assertEqual(int(package.id_number),
+                settings.MINIMUM_PACKAGE_ID + 1)
         # all add-ons have PackageRevision created
         self.failUnless(package.version and package.latest)
         self.assertEqual(package.version.id, package.latest.id)
@@ -88,7 +89,8 @@ class PackageTest(TestCase):
         for att in addon.latest.attachments.all():
             self.failUnless(os.path.isfile(
                 os.path.join(settings.UPLOAD_DIR, att.path)))
-        self.failUnless('main' in [m.filename for m in addon.latest.modules.all()])
+        self.failUnless(
+                'main' in [m.filename for m in addon.latest.modules.all()])
         self.failUnless(('attachment', 'txt') in [(a.filename, a.ext)
             for a in addon.latest.attachments.all()])
 
@@ -113,7 +115,8 @@ class PackageTest(TestCase):
         for att in addon.latest.attachments.all():
             self.failUnless(os.path.isfile(
                 os.path.join(settings.UPLOAD_DIR, att.path)))
-        self.failUnless('main' in [m.filename for m in addon.latest.modules.all()])
+        self.failUnless(
+                'main' in [m.filename for m in addon.latest.modules.all()])
         self.failUnless(('attachment', 'txt') in [(a.filename, a.ext)
             for a in addon.latest.attachments.all()])
 
@@ -128,7 +131,6 @@ class PackageTest(TestCase):
         self.failUnless(lib.package.name in libs)
         eq_(len(lib.attachments.all()), 1)
         att = lib.attachments.all()[0]
-        eq_(('attachment', 'txt'),(att.filename, att.ext))
+        eq_(('attachment', 'txt'), (att.filename, att.ext))
         self.failUnless(os.path.isfile(
             os.path.join(settings.UPLOAD_DIR, att.path)))
-

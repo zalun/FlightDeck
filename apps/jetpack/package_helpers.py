@@ -7,9 +7,10 @@ import commonware
 
 from base.shortcuts import get_object_with_related_or_404
 from jetpack.models import Package, PackageRevision
-from jetpack.errors import FilenameExistException, ManifestNotValid
+from jetpack.errors import ManifestNotValid
 
 log = commonware.log.getLogger('f.package_helpers')
+
 
 def get_package_revision(id_name, type_id,
                          revision_number=None,
@@ -63,7 +64,7 @@ def create_from_archive(path, author, package_type='a'):
     else:
         filename = os.path.basename(path)
         filename = os.path.splitext(filename)[0]
-        manifest  = {
+        manifest = {
                 'name': filename,
                 'license': '',
                 'version': 'uploaded'}
@@ -169,4 +170,3 @@ def create_package_from_xpi(path, author, libs=[]):
         obj.latest.dependency_add(lib.latest, save=False)
 
     return obj
-

@@ -15,4 +15,3 @@ class LibraryTest(TestCase):
         " library has no executable module "
         lib = Package.objects.get(type='l', author=self.author)
         self.assertEqual(lib.latest.get_main_module(), None)
-

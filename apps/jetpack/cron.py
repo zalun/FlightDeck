@@ -1,5 +1,4 @@
 import os
-import shutil
 import stat
 import time
 
@@ -8,7 +7,7 @@ from django.conf import settings
 import commonware
 import cronjobs
 
-length = 60 * 60 * 24 # one day
+length = 60 * 60 * 24  # one day
 log = commonware.log.getLogger('f.cron')
 
 

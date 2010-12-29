@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.utils.encoding import smart_str
 from django.conf import settings
 
-from person.models import Profile, Limit
+from person.models import Profile
 
 DEFAULT_AMO_PASSWORD = 'saved in AMO'
 
@@ -91,8 +91,8 @@ class AMOAuthentication:
             db=settings.AUTH_DATABASE['NAME']
         )
         auth_cursor = auth_conn.cursor()
-        SQL = ('SELECT %s FROM %s WHERE email="%s"'
-              ) % (','.join(columns), settings.AUTH_DATABASE['TABLE'], username)
+        SQL = ('SELECT %s FROM %s WHERE email="%s"') % (
+                ','.join(columns), settings.AUTH_DATABASE['TABLE'], username)
         auth_cursor.execute(SQL)
         data = auth_cursor.fetchone()
         user_data = {}

@@ -5,7 +5,6 @@
 import os
 import csv
 import shutil
-import zipfile
 import time
 import commonware
 
@@ -24,8 +23,8 @@ from django.conf import settings
 
 from jetpack.managers import PackageManager
 from jetpack.errors import SelfDependencyException, FilenameExistException, \
-        UpdateDeniedException, SingletonCopyException, DependencyException, \
-        ManifestNotValid
+        UpdateDeniedException, SingletonCopyException, DependencyException
+#        ManifestNotValid
 
 from xpi import xpi_utils
 
@@ -266,8 +265,6 @@ class Package(models.Model):
         new_p.save()
         return new_p
 
-
-
     def create_revision_from_xpi(self, packed, manifest, author, jid,
             new_revision=False):
         """
@@ -291,7 +288,8 @@ class Package(models.Model):
         main = manifest['main'] if 'main' in manifest else 'main'
         lib_dir = 'resources/%s-%s-%s' % (jid.lower(), manifest['name'],
                 manifest['lib'] if 'lib' in manifest else 'lib')
-        att_dir = 'resources/%s-%s-%s' % (jid.lower(), manifest['name'], 'data')
+        att_dir = 'resources/%s-%s-%s' % (
+                jid.lower(), manifest['name'], 'data')
 
         revision.add_mods_and_atts_from_archive(packed, main, lib_dir, att_dir)
 
@@ -744,7 +742,7 @@ class PackageRevision(models.Model):
 
     def attachment_create(self, save=True, **kwargs):
         """ create attachment and add to attachments """
-        filename, ext = kwargs['filename'], kwargs.get('ext','')
+        filename, ext = kwargs['filename'], kwargs.get('ext', '')
 
         if not self.validate_attachment_filename(filename, ext):
             raise FilenameExistException(
@@ -944,7 +942,6 @@ class PackageRevision(models.Model):
         tasks.xpi_build.delay(sdk_dir,
                 '%s/packages/%s' % (sdk_dir, self.package.name),
                 self.package.name)
-
 
     def export_keys(self, sdk_dir):
         " export private and public keys "

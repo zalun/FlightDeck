@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.conf import settings
 
-from jetpack.models import Package, Module, PackageRevision, SDK
+from jetpack.models import Package, PackageRevision, SDK
 from person.models import Profile
 
 
@@ -93,10 +93,10 @@ def get_or_create_core_author():
 
 
 def _get_code(path):
-   handle = open(path, 'r')
-   code = handle.read()
-   handle.close()
-   return code
+    handle = open(path, 'r')
+    code = handle.read()
+    handle.close()
+    return code
 
 
 def add_core_modules(sdk_source, core_revision, core_author,
@@ -132,7 +132,7 @@ def add_core_modules(sdk_source, core_revision, core_author,
                 )
         except Exception, err:
             print ("Warning: There was a problem with importing module "
-                   "from file %s/%s\n%s") % (core_lib_dir,module_file, err)
+                   "from file %s/%s\n%s") % (core_lib_dir, module_file, err)
 
 
 def add_core_attachments(sdk_source, sdk_name, core_revision, core_author,
@@ -162,7 +162,6 @@ def add_core_attachments(sdk_source, sdk_name, core_revision, core_author,
         except Exception, err:
             print ("Warning: Importing module failed: %s\n%s" %
                     (att_path, str(err)))
-
 
 
 def check_SDK_dir(sdk_dir_name):
@@ -201,6 +200,7 @@ def _update_lib(package, author, manifest):
     package_revision.save()
     package_revision.set_version(manifest['version'])
     return package_revision
+
 
 def _create_lib(author, manifest, full_name, name, id_number):
     check_SDK_manifest(manifest)
@@ -252,10 +252,10 @@ def update_SDK(sdk_dir_name):
             kit = Package.objects.get(
                 id_number=settings.MINIMUM_PACKAGE_ID - 1)
             kit_revision = _update_lib(kit, core_author, kit_manifest)
-        except Exception: # TODO: be precise
+        except Exception:  # TODO: be precise
             kit_revision = _create_lib(
                 core_author, kit_manifest, 'Addon Kit', kit_name,
-                settings.MINIMUM_PACKAGE_ID-1)
+                settings.MINIMUM_PACKAGE_ID - 1)
 
         add_core_modules(sdk_source, kit_revision, core_author, kit_name)
         add_core_attachments(sdk_source, sdk_dir_name, kit_revision,
@@ -292,8 +292,8 @@ def create_SDK(sdk_dir_name='jetpack-sdk'):
     if kit_manifest:
         kit_revision = _create_lib(
             core_author, kit_manifest, 'Addon Kit', 'addon-kit',
-            settings.MINIMUM_PACKAGE_ID-1)
-        add_core_modules(sdk_source, kit_revision, core_author,kit_name)
+            settings.MINIMUM_PACKAGE_ID - 1)
+        add_core_modules(sdk_source, kit_revision, core_author, kit_name)
         add_core_attachments(sdk_source, sdk_dir_name, kit_revision,
                 core_author, kit_name)
 
