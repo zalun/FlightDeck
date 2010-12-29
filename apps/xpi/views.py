@@ -5,8 +5,8 @@ from django.core.urlresolvers import reverse
 from django.views.static import serve
 from django.shortcuts import render_to_response
 from django.http import HttpResponseRedirect, HttpResponse, \
-                        HttpResponseForbidden, HttpResponseServerError, \
-                        Http404
+                        HttpResponseForbidden, HttpResponseServerError
+#                        Http404
 from django.template import RequestContext
 from django.conf import settings
 
@@ -109,7 +109,6 @@ def get_test(r, path):
 def get_download(r, path, filename, retry=False, retry_url=None):
     """Return XPI file for testing."""
     path = os.path.join(settings.XPI_TARGETDIR, path)
-    f = '%s.xpi' % filename
     # Return file if it exists
     if os.path.isfile(path):
         r = serve(r, path, '/', show_indexes=False)

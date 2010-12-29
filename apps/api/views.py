@@ -11,7 +11,8 @@ from jetpack.models import SDK
 sdks = SDK.objects.all()
 if sdks.count() > 0:
     MAIN_SDK = sdks[0]
-    SDKPACKAGESDIR = os.path.join(settings.SDK_SOURCE_DIR, MAIN_SDK.dir, 'packages')
+    SDKPACKAGESDIR = os.path.join(
+            settings.SDK_SOURCE_DIR, MAIN_SDK.dir, 'packages')
     SDKVERSION = MAIN_SDK.version
     ADDON_KIT = MAIN_SDK.kit_lib
     CORELIB_NAME = MAIN_SDK.core_lib.package.name
@@ -42,6 +43,7 @@ def _get_package_fullname(package_name):
     if package_name in special.keys():
         return special[package_name]
     return package_name
+
 
 def homepage(r, package_name=None):
     if not package_name:

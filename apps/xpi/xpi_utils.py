@@ -5,7 +5,6 @@ a set of defs used to manage xpi
 import os
 import shutil
 import subprocess
-import stat
 import time
 import commonware.log
 
@@ -13,6 +12,7 @@ from django.http import HttpResponseServerError
 from django.conf import settings
 
 log = commonware.log.getLogger('f.xpi_utils')
+
 
 def sdk_copy(sdk_source, sdk_dir=None):
     shutil.copytree(sdk_source, sdk_dir)

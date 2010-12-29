@@ -31,7 +31,8 @@ class Command(BaseCommand):
 
         script, args = args[0], args[1:]
         if script not in registered:
-            log.error("Cron called with unrecognized command: %s %s" % (script, args))
+            log.error("Cron called with unrecognized command: %s %s" % (
+                script, args))
             print 'Unrecognized name: %s' % script
             sys.exit(1)
 
