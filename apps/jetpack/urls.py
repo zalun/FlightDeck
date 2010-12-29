@@ -45,23 +45,28 @@ urlpatterns = patterns('jetpack.views',
     url(r'^library/(?P<id_number>[-\w]+)/$',
         'package_view_or_edit', {'type_id': 'l'},  name='jp_library_details'),
     url(r'^addon/(?P<id_number>[-\w]+)/version/(?P<version_name>.*)/$',
-        'package_view_or_edit', {'type_id': 'a'}, name='jp_addon_version_details'),
+        'package_view_or_edit', {'type_id': 'a'},
+        name='jp_addon_version_details'),
     url(r'^library/(?P<id_number>[-\w]+)/version/(?P<version_name>.*)/$',
         'package_view_or_edit', {'type_id': 'l'},
         name='jp_library_version_details'),
     url(r'^addon/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
-        'package_view_or_edit', {'type_id': 'a'}, name='jp_addon_revision_details'),
+        'package_view_or_edit', {'type_id': 'a'},
+        name='jp_addon_revision_details'),
     url(r'^library/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
         'package_view_or_edit', {'type_id': 'l'},
         name='jp_library_revision_details'),
     # get full module info
-    url(r'^get_module/(?P<id_number>[-\w]+)/(?P<revision_number>\d+)/(?P<filename>.*)$',
+    url(r'^get_module/(?P<id_number>[-\w]+)/(?P<revision_number>\d+)/'
+            '(?P<filename>.*)$',
         'get_module', name='jp_get_module'),
 
     # copy a PackageRevision
-    url(r'^addon/copy/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
+    url(r'^addon/copy/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
         'package_copy', {'type_id': 'a'}, name='jp_addon_revision_copy'),
-    url(r'^library/copy/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
+    url(r'^library/copy/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
         'package_copy', {'type_id': 'l'},  name='jp_library_revision_copy'),
 
     # get Package revisions list
@@ -69,9 +74,11 @@ urlpatterns = patterns('jetpack.views',
         'get_revisions_list_html', name='jp_revisions_list_html'),
 
     # save packagerevision
-    url(r'^addon/save/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
+    url(r'^addon/save/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
         'package_save', {'type_id': 'a'}, name='jp_addon_revision_save'),
-    url(r'^library/save/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
+    url(r'^library/save/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
         'package_save', {'type_id': 'l'},  name='jp_library_revision_save'),
 
     # disable/activate package
@@ -81,34 +88,43 @@ urlpatterns = patterns('jetpack.views',
         'package_activate', name='jp_package_activate'),
 
     # add/remove module
-    url(r'^addon/add_module/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
+    url(r'^addon/add_module/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
         'package_add_module',
         {'type_id': 'a'}, name='jp_addon_revision_add_module'),
-    url(r'^library/add_module/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
+    url(r'^library/add_module/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
         'package_add_module',
         {'type_id': 'l'},  name='jp_library_revision_add_module'),
-    url(r'^addon/remove_module/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
+    url(r'^addon/remove_module/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
         'package_remove_module',
         {'type_id': 'a'}, name='jp_addon_revision_remove_module'),
-    url(r'^library/remove_module/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
+    url(r'^library/remove_module/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
         'package_remove_module',
         {'type_id': 'l'},  name='jp_library_revision_remove_module'),
 
     # switch SDK version
-    url(r'^addon/switch_sdk/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
+    url(r'^addon/switch_sdk/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
         'package_switch_sdk', name='jp_addon_switch_sdk_version'),
 
     # add/remove attachment
-    url(r'^addon/add_attachment/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
+    url(r'^addon/add_attachment/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
         'package_add_attachment',
         {'type_id': 'a'}, name='jp_addon_revision_add_attachment'),
-    url(r'^library/add_attachment/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
+    url(r'^library/add_attachment/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
         'package_add_attachment',
         {'type_id': 'l'},  name='jp_library_revision_add_attachment'),
-    url(r'^addon/remove_attachment/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
+    url(r'^addon/remove_attachment/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
         'package_remove_attachment',
         {'type_id': 'a'}, name='jp_addon_revision_remove_attachment'),
-    url(r'^library/remove_attachment/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
+    url(r'^library/remove_attachment/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
         'package_remove_attachment',
         {'type_id': 'l'},  name='jp_library_revision_remove_attachment'),
 
@@ -120,17 +136,21 @@ urlpatterns = patterns('jetpack.views',
     url(r'^autocomplete/library/$',
         'library_autocomplete', name='jp_library_autocomplete'),
     # assign library
-    url(r'^addon/assign_library/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
+    url(r'^addon/assign_library/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
         'package_assign_library',
         {'type_id': 'a'}, name='jp_addon_revision_assign_library'),
-    url(r'^library/assign_library/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
+    url(r'^library/assign_library/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
         'package_assign_library',
         {'type_id': 'l'}, name='jp_library_revision_assign_library'),
     # remove library
-    url(r'^addon/remove_dependency/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
+    url(r'^addon/remove_dependency/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
         'package_remove_library',
         {'type_id': 'a'}, name='jp_addon_revision_remove_library'),
-    url(r'^library/remove_dependency/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
+    url(r'^library/remove_dependency/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
         'package_remove_library',
         {'type_id': 'l'},  name='jp_library_revision_remove_library'),
 )
