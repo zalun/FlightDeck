@@ -86,6 +86,10 @@ class TestAttachments(TestCase):
         args = [self.package.id_number, revision]
         return reverse('jp_addon_revision_save', args=args)
 
+    def get_delete_url(self, revision):
+        args = [self.package.id_number, revision]
+        return reverse('jp_addon_revision_remove_attachment', args=args)
+
     def get_revision(self):
         return PackageRevision.objects.get(pk=self.revision.pk)
 
@@ -243,3 +247,27 @@ class TestAttachments(TestCase):
 
         assert atts[0].get_file_path().endswith('%s-some.txt' % atts[0].pk)
         assert atts[1].get_file_path().endswith('%s-some.txt' % atts[1].pk)
+
+    def test_attachment_remove(self):
+        revision = self.add_one()
+
+        data = {'uid':revision.attachments.all()[0].get_uid}
+        self.client.post(self.get_delete_url(1), data)
+
+        revision = PackageRevision.objects.get(package=self.package,
+                                               revision_number=2)
+        assert not revision.attachments.all().count()
+
+    def test_attachment_remove_old(self):
+        revision = self.add_one()
+
+        data = {revision.attachments.all()[0].get_uid: 'foo bar'}
+        self.client.post(self.get_change_url(1), data)
+
+        # this is now an old uid
+        data = {'uid':revision.attachments.all()[0].get_uid}
+        self.client.post(self.get_delete_url(2), data)
+
+        revision = PackageRevision.objects.get(package=self.package,
+                                               revision_number=3)
+        assert not revision.attachments.all().count()
