@@ -385,20 +385,12 @@ def package_remove_attachment(r, id_number, type_id, revision_number):
         log.debug(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
-    filename = r.POST.get('filename', '').strip()
+    uid = r.POST.get('uid', '').strip()
+    attachment = latest_by_uid(revision, uid)
 
-    attachments = revision.attachments.all()
-
-    attachment_found = False
-
-    for att in attachments:
-        if att.get_filename() == filename:
-            attachment = att
-            attachment_found = True
-
-    if not attachment_found:
-        log_msg = ('Attempt to remove a non existingattachment. attachment: '
-                   '%s, package: %s.' % (filename, id_number))
+    if not attachment:
+        log_msg = ('Attempt to remove a non existing attachment. attachment: '
+                   '%s, package: %s.' % (uid, id_number))
         log.debug(log_msg)
         return HttpResponseForbidden(
             'There is no such attachment in %s' % escape(

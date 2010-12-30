@@ -202,19 +202,21 @@ var Attachment = new Class({
 			// connect trigger
 			this.trigger.addEvent('click', function(e) {
 				if (e) e.preventDefault();
-				if (this.is_editable()) {
-					this.switchBespin();
-					this.highlightMenu();
-				} else {
-					var target = e.target;
-					var url = target.get('href');
-					var ext = target.get('rel');
-					var filename = target.get('text').escapeAll();
-					var template_start = '<div id="attachment_view"><h3>'+filename+'</h3><div class="UI_Modal_Section">';
-					var template_end = '</div><div class="UI_Modal_Actions"><ul><li><input type="reset" value="Close" class="closeModal"/></li></ul></div></div>';
-					var template_middle = 'Download <a href="'+url+'">'+filename+'</a>';
-					if (['jpg', 'gif', 'png'].contains(ext)) template_middle += '<p><img src="'+url+'"/></p>';
-					this.attachmentWindow = fd.displayModal(template_start+template_middle+template_end);
+				if (this.trigger == e.target) {
+					if (this.is_editable()) {
+						this.switchBespin();
+						this.highlightMenu();
+					} else {
+						var target = e.target;
+						var url = target.get('href');
+						var ext = target.get('rel');
+						var filename = target.get('text').escapeAll();
+						var template_start = '<div id="attachment_view"><h3>'+filename+'</h3><div class="UI_Modal_Section">';
+						var template_end = '</div><div class="UI_Modal_Actions"><ul><li><input type="reset" value="Close" class="closeModal"/></li></ul></div></div>';
+						var template_middle = 'Download <a href="'+url+'">'+filename+'</a>';
+						if (['jpg', 'gif', 'png'].contains(ext)) template_middle += '<p><img src="'+url+'"/></p>';
+						this.attachmentWindow = fd.displayModal(template_start+template_middle+template_end);
+					}
 				}
 			}.bind(this));
 			if (this.options.active && this.is_editable()) {
@@ -592,29 +594,30 @@ Package.Edit = new Class({
 		});
 	},
 	removeAttachmentAction: function(e) {
-		e.stop();
-		var trigger = e.target.getParent('a');
-		var filename = trigger.get('text');
+		var trigger = e.target.getParent('a'),
+		    filename = trigger.get('text'),
+		    uid = trigger.get('id').split('_')[0];
 		this.question = fd.showQuestion({
 			title: 'Are you sure you want to remove "'+filename+'"?',
 			message: '',
 			ok: 'Remove',
 			id: 'remove_attachment_button',
 			callback: function() {
-				this.removeAttachment(filename);
+				this.removeAttachment(uid);
 				this.question.destroy();
 			}.bind(this)
 		});
+
 	},
-	removeAttachment: function(filename) {
+	removeAttachment: function(uid) {
 		var self = this;
 		new Request.JSON({
 			url: self.remove_attachment_url || self.options.remove_attachment_url,
-			data: {filename: filename},
+			data: {uid: uid},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				self.setUrls(response);
-				var attachment = self.attachments[response.uid];
+				var attachment = self.attachments[uid];
 				attachment.destroy();
 			}
 		}).send();
