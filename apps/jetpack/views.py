@@ -2,6 +2,9 @@
 Views for the Jetpack application
 """
 import commonware.log
+import time
+import os
+import shutil
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -24,7 +27,7 @@ from base.shortcuts import get_object_with_related_or_404
 from utils import validator
 
 from jetpack.models import Package, PackageRevision, Module, Attachment, SDK
-from jetpack.package_helpers import get_package_revision
+from jetpack.package_helpers import get_package_revision, create_package_from_xpi
 from jetpack.errors import FilenameExistException
 
 log = commonware.log.getLogger('f.jetpack')
@@ -574,6 +577,27 @@ def package_create(r, type_id):
 
     return HttpResponseRedirect(reverse(
         'jp_%s_latest' % item.get_type_name(), args=[item.id_number]))
+
+
+@require_POST
+@login_required
+def upload_xpi(request):
+    """
+    upload XPI and create Addon and eventual Libraries
+    """
+    xpi = request.FILES['xpi']
+    temp_dir = os.path.join(settings.UPLOAD_DIR, str(time.time()))
+    os.mkdir(temp_dir)
+    path = os.path.join(temp_dir, xpi.name)
+    xpi_file = open(path, 'wb+')
+    for chunk in xpi.chunks():
+        xpi_file.write(chunk)
+    xpi_file.close()
+    addon = create_package_from_xpi(path, request.user)
+    shutil.rmtree(temp_dir)
+    return HttpResponseRedirect(addon.get_absolute_url())
+    # after front-end will support interactive upload
+    return HttpResponse(simplejson.dumps({'reload': addon.get_absolute_url()}))
 
 
 @login_required
