@@ -137,6 +137,7 @@ def create_package_from_xpi(path, author, libs=[]):
         try:
             obj = Package.objects.get(author=author, name=name,
                     type=package_type)
+            new_revision = True
         except:
             obj = Package(
                 author=author,
@@ -149,9 +150,10 @@ def create_package_from_xpi(path, author, libs=[]):
             )
             obj.save()
             obj.latest.set_version('empty.uploaded')
+            new_revision=False
 
         obj.create_revision_from_xpi(packed, manifest, author,
-            harness_options['jetpackID'])
+            harness_options['jetpackID'], new_revision=new_revision)
 
         return obj
 

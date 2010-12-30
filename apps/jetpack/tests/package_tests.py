@@ -120,6 +120,14 @@ class PackageTest(TestCase):
         self.failUnless(('attachment', 'txt') in [(a.filename, a.ext)
             for a in addon.latest.attachments.all()])
 
+    def test_update_addon_from_xpi(self):
+        path_xpi = os.path.join(
+                settings.ROOT, 'apps/jetpack/tests/sample_addon.xpi')
+        addon = create_package_from_xpi(path_xpi, self.author)
+        addon = create_package_from_xpi(path_xpi, self.author)
+        self.failUnless(addon)
+        eq_(addon.revisions.count(), 2)
+
     def test_create_addon_from_xpi_with_libs(self):
         libs = ['sample_library']
         path_xpi = os.path.join(
