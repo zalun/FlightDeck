@@ -42,7 +42,9 @@
 				DEBUG: {{ settings.DEBUG|yesno:"true,false" }}
 			};
 			window.addEvent('domready', function() {
-				fd = new FlightDeck({'user': '{{ user.username }}'});
+                fd = new FlightDeck({
+                  'user': '{{ user.username }}'{% block flightdeck_options %}{% endblock %}
+                });
 				{% block create_init %}{% comment %}
 					create.init(
 						['create_addon', 'create_library'],

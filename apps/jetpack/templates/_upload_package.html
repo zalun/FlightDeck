@@ -1,0 +1,19 @@
+{% load safe_csrf %}
+<div id='upload-package-modal'>
+	<h3>Upload Package</h3>
+    <form id='upload-package-form' method='post' action='{% url jp_upload_xpi %}' enctype="multipart/form-data">
+      {% safe_csrf_token %}
+      <div class="UI_Modal_Section">
+        <p>
+          <label>Upload XPI</label>
+          <input type="file" name="xpi"/>
+        </p>
+      </div>
+      <div class="UI_Modal_Actions">
+        <ul>
+          <li><input type="submit" id="upload-package-submit" value="Upload" {#class="submitModal"#}/></li>
+          <li><input type="reset" value="Close" class="closeModal"/></li>
+        </ul>
+      </div>
+    </form>
+</div>

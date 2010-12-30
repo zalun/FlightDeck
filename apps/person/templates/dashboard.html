@@ -1,44 +1,49 @@
 {% extends "base.html" %}
+{% load base_helpers %}
+
+{% block flightdeck_options %},
+'upload_package_modal': '{% escape_template "_upload_package.html" %}'
+{% endblock %}
 
 {% block head %}
-	<script src="/media/person/js/Dashboard.js"></script>
-    {% block head_continue %}{% endblock %}
+  <script src="/media/person/js/Dashboard.js"></script>
+  {% block head_continue %}{% endblock %}
 {% endblock %}
 
 {% block app_sidebar %}
-	<h2 class="UI_Heading">
-		{{ profile.get_name }}
-	</h2>
-	
-	<div class="UI_ProfileInfo">
-		{% include '_dashboard_info.html' %}
-	</div>
+  <h2 class="UI_Heading">
+    {{ profile.get_name }}
+  </h2>
+  
+  <div class="UI_ProfileInfo">
+    {% include '_dashboard_info.html' %}
+  </div>
 
-	<ul class="UI_Action_List">
-        <li>
-            <a title="Upload Package" id="upload-package" href="#">Upload Package</a>
-        </li>
-	</ul>
+  <ul class="UI_Action_List">
+      <li>
+        <a title="Upload Package" id="upload-package" href="#">Upload Package</a>
+      </li>
+  </ul>
 
-	<ul class="UI_Action_List">
-        <li>
-            <a title="Your Add-ons" href="{% url person_addons %}">Your Add-ons</a> 
-            <strong>({{ addons|length }})</strong>
-        </li>
-        <li>
-            <a title="Your Libraries" href="{% url person_libraries %}">Your Libraries</a> 
-            <strong>({{ libraries|length }})</strong>
-        </li>
-	</ul>
+  <ul class="UI_Action_List">
+    <li>
+      <a title="Your Add-ons" href="{% url person_addons %}">Your Add-ons</a> 
+      <strong>({{ addons|length }})</strong>
+    </li>
+    <li>
+      <a title="Your Libraries" href="{% url person_libraries %}">Your Libraries</a> 
+      <strong>({{ libraries|length }})</strong>
+    </li>
+  </ul>
 
-	<ul class="UI_Action_List">
-        <li>
-            <a title="Disabled Add-ons" href="{% url person_disabled_addons %}">Disabled Add-ons</a> 
-            <strong>({{ disabled_addons|length }})</strong>
-        </li>
-        <li>
-            <a title="Disabled Libraries" href="{% url person_disabled_libraries %}">Disabled Libraries</a> 
-            <strong>({{ disabled_libraries|length }})</strong>
-        </li>
-	</ul>
+  <ul class="UI_Action_List">
+    <li>
+      <a title="Disabled Add-ons" href="{% url person_disabled_addons %}">Disabled Add-ons</a> 
+      <strong>({{ disabled_addons|length }})</strong>
+    </li>
+    <li>
+      <a title="Disabled Libraries" href="{% url person_disabled_libraries %}">Disabled Libraries</a> 
+      <strong>({{ disabled_libraries|length }})</strong>
+    </li>
+  </ul>
 {% endblock %}

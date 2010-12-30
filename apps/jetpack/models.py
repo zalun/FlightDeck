@@ -693,12 +693,10 @@ class PackageRevision(models.Model):
                 if module_path and not module_path.endswith('/'):
                     module_path = os.path.splitext(module_path)[0]
                     code = packed.read(path)
-                    # this looks like a potential problem if library
-                    if module_path == main:
-                        main_mod = self.modules.get(
-                                filename=self.module_main)
-                        main_mod.code = code
-                        self.update(main_mod, save=False)
+                    if module_path in [m.filename for m in self.modules.all()]:
+                        mod = self.modules.get(filename=module_path)
+                        mod.code = code
+                        self.update(mod, save=False)
                     else:
                         self.module_create(
                                 save=False,
@@ -712,23 +710,25 @@ class PackageRevision(models.Model):
                 if att_path and not att_path.endswith('/'):
                     code = packed.read(path)
                     basename = os.path.basename(att_path)
-                    # XXX the filename will be changed
-                    upload_name = '%f-%s' % (time.time(), basename)
-                    upload_path = os.path.join(
-                            settings.UPLOAD_DIR,
-                            upload_name)
-                    f = open(upload_path, 'w')
-                    f.write(code)
-                    f.close()
                     filename, ext = os.path.splitext(att_path)
                     if ext.startswith('.'):
                         ext = ext.split('.')[1]
-                    self.attachment_create(
-                            save=False,
-                            filename=filename,
-                            ext=ext,
-                            path=upload_name,
-                            author=self.author)
+
+                    if (filename, ext) in [(a.filename, a.ext)
+                            for a in self.attachments.all()]:
+                        att = self.attachments.get(filename=filename, ext=ext)
+                        att.data = code
+                        self.update(att, save=False)
+                    else:
+                        att = self.attachment_create(
+                                save=False,
+                                filename=filename,
+                                ext=ext,
+                                path='temp',
+                                author=self.author)
+                        att.data = code
+                        att.write()
+                        self.attachments.add(att)
 
     def attachment_create_by_filename(self, author, filename):
         """ find out the filename and ext and call attachment_create """
@@ -1135,6 +1135,7 @@ class Attachment(models.Model):
         self.save()
 
         directory = os.path.dirname(self.get_file_path())
+
         if not os.path.exists(directory):
             os.makedirs(directory)
 
