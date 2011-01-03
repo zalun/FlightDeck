@@ -528,6 +528,7 @@ Package.Edit = new Class({
 				}).send();
 			}.bind(this));
 		}
+		this.bind_keyboard();
 	},
 
 	get_add_attachment_url: function() {
@@ -865,6 +866,15 @@ Package.Edit = new Class({
 				this.saving = false;
 			}.bind(this)
 		}).send();
+	},
+	bind_keyboard: function() {
+		this.keyboard = new Keyboard({
+		    defaultEventType: 'keyup',
+		    events: {
+			'ctrl+s': this.boundSaveAction
+		    }
+		});
+		this.keyboard.activate();
 	},
 	setUrls: function(urls) {
 		this.save_url = urls.save_url;
