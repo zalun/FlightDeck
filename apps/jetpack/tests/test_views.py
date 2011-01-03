@@ -107,7 +107,7 @@ class TestAttachments(TestCase):
         att = revision.attachments.all()[0]
         bits = att.path.split(os.path.sep)
         now = datetime.now()
-        eq_(bits[-4:-1], [str(now.year), str(now.month), str(now.day)])
+        eq_(bits[-4:-1], now.strftime('%Y-%m-%d').split('-'))
 
     def test_attachment_add_read(self):
         res = self.post(self.add_url, 'foo', 'some.txt')
