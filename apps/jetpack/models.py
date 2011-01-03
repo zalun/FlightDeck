@@ -27,6 +27,7 @@ from jetpack.errors import SelfDependencyException, FilenameExistException, \
 #        ManifestNotValid
 
 from xpi import xpi_utils
+from utils.os_utils import make_path
 
 log = commonware.log.getLogger('f.jetpack')
 
@@ -1145,8 +1146,10 @@ class Attachment(models.Model):
 
     def export_file(self, static_dir):
         " copies from uploads to the package's data directory "
-        shutil.copy('%s/%s' % (settings.UPLOAD_DIR, self.path),
-                    '%s/%s.%s' % (static_dir, self.filename, self.ext))
+        path = os.path.join(static_dir, '%s.%s' % (self.filename, self.ext))
+        make_path(os.path.dirname(os.path.abspath(path)))
+        shutil.copy(os.path.join(settings.UPLOAD_DIR, self.path),
+                    path)
 
     def increment(self, revision):
         revision.attachments.remove(self)
