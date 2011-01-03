@@ -1,4 +1,7 @@
 import os
+import commonware
+
+log = commonware.log.getLogger('f.utils')
 
 
 # from http://jimmyg.org/blog/2009/working-with-python-subprocess.html
@@ -21,5 +24,7 @@ def make_path(directory):
             dir_created = True
             os.mkdir(path)
 
+    if dir_created:
+        log.debug('Directory created for %s', directory)
     return dir_created
 
