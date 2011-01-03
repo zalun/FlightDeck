@@ -362,7 +362,7 @@ def package_add_attachment(r, id_number, type_id,
     if not filename:
         log_msg = 'Path not found: %s, package: %s.' % (
             filename, id_number)
-        log.warning(log_msg)
+        log.error(log_msg)
         return HttpResponseServerError('Path not found.')
 
     attachment = revision.attachment_create_by_filename(r.user, filename)
