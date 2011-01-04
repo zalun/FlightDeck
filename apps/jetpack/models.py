@@ -710,7 +710,6 @@ class PackageRevision(models.Model):
                 att_path = path.split('%s/' % att_dir)[1]
                 if att_path and not att_path.endswith('/'):
                     code = packed.read(path)
-                    basename = os.path.basename(att_path)
                     filename, ext = os.path.splitext(att_path)
                     if ext.startswith('.'):
                         ext = ext.split('.')[1]
@@ -1089,7 +1088,7 @@ class Attachment(models.Model):
 
     class Meta:
         " attachment ordering "
-        ordering = ('filename',)
+        ordering = ('filename', 'id')
 
     @property
     def get_uid(self):
