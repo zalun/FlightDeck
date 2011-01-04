@@ -9,8 +9,8 @@
 var create = {
 	init: function(create_id, create_item, wrapper_id) {
 
-		create_id = $splat(create_id);
-		create_item = $splat(create_item);
+		create_id = Array.from(create_id);
+		create_item = Array.from(create_item);
 
 		var boundSubmit = this.submit.bind(this);
 		var self = this;

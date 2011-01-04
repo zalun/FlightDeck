@@ -231,7 +231,7 @@ Request = Class.refactor(Request, {
     },
   // overloading processScripts to *not* execute JS responses
 	processScripts: function(text){
-		if (this.options.evalResponse) return $exec(text);
+		if (this.options.evalResponse) return Browser.exec(text);
 		return text.stripScripts(this.options.evalScripts);
 	},
 });

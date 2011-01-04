@@ -153,7 +153,7 @@ var File = Class({
 			mod = null;
 			// try to switch to first element
 			first = false;
-			$each(fd.getItem().modules, function(mod) {
+			Object.each(fd.getItem().modules, function(mod) {
 				if (!first) {
 					first = true;
 					mod.switchBespin();
@@ -171,7 +171,7 @@ var File = Class({
 		}
 		fd.switchBespinEditor(this.get_editor_id(), this.options.type);
 		if (fd.getItem()) {
-			$each(fd.getItem().modules, function(mod) {
+			Object.each(fd.getItem().modules, function(mod) {
 				mod.active = false;
 			});
 		}
@@ -794,7 +794,7 @@ Package.Edit = new Class({
 		});
 
 		// XXX: hack to get the right data in the form
-		$each(this.data, function(value, key) {
+		Object.each(this.data, function(value, key) {
 			if ($(key)) $(key).value = value;
 		})
 	},
@@ -817,10 +817,10 @@ Package.Edit = new Class({
 	},
 	collectData: function() {
 		fd.saveCurrentEditor();
-		$each(this.modules, function(module, filename) {
+		Object.each(this.modules, function(module, filename) {
 			this.data[filename] = fd.editor_contents[filename + module.options.code_editor_suffix]
 		}, this);
-		$each(this.attachments, function(attachment) {
+		Object.each(this.attachments, function(attachment) {
 			this.data[attachment.options.uid] = fd.editor_contents[attachment.options.uid + attachment.options.code_editor_suffix]
 		}, this);
 	},
@@ -851,7 +851,7 @@ Package.Edit = new Class({
 				// clean data leaving package_info data
 				this.data = {};
 				this.options.package_info_form_elements.each(function(key) {
-					if ($defined(response[key])) {
+					if (response[key] != null) {
 						this.data[key] = response[key]
 					}
 				}, this);

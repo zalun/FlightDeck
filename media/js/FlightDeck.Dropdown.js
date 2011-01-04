@@ -21,7 +21,9 @@ var Dropdown = new Class({
 
 		$$(this.dropdown.trigger).each(function(trigger){
 			trigger.addEvents({
-				click: this.toggle.bindWithEvent(trigger, this)
+				click: function(e) {
+					this.toggle.apply(trigger, [e,this]);
+				}.bind(this)
 			});
 		}, this);
 
