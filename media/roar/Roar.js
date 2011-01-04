@@ -55,7 +55,7 @@ var Roar = new Class({
 		to[this.align.y] = offset;
 
 		var item = new Element('div', {
-			'class': this.options.className,
+			'class': options.className || this.options.className,
 			'opacity': 0
 		}).adopt(
 			new Element('div', {
@@ -79,12 +79,12 @@ var Roar = new Class({
 		});
 		this.items.push(item.addEvent('click', remove));
 
-		if (this.options.duration) {
+		if (options.duration || this.options.duration) {
 			var over = false;
 			var trigger = (function() {
 				trigger = null;
 				if (!over) remove();
-			}).delay(this.options.duration);
+			}).delay(options.duration || this.options.duration);
 			item.addEvents({
 				mouseover: function() {
 					over = true;

@@ -34,6 +34,7 @@ var Package = new Class({
 		attachments: [],
 		readonly: false,
 		package_info_el: 'package-properties',
+		copy_el: 'package-copy',
 		test_el: 'try_in_browser'
 	},
 	modules: {},
@@ -50,6 +51,27 @@ var Package = new Class({
 			this.test_url = $(this.options.test_el).get('href');
 			$(this.options.test_el).addEvent('click', this.boundTestAddon)
 		}
+		this.copy_el = $(this.options.copy_el)
+		if (this.copy_el) {
+			this.copy_el.addEvent('click', this.copyPackage.bind(this));
+		}
+	},
+	/*
+	 * Method: copyPackage
+	 * create a new Package with the same name for the current user
+	 */
+	copyPackage: function(e) {
+		e.stop();
+		if (!settings.user) {
+			fd.alertNotAuthenticated();
+			return;
+		}
+		new Request.JSON({
+			url: this.options.copy_url,
+			onSuccess: function(response) {
+				window.location.href = response.view_url;
+			}
+		}).send();
 	},
 	testAddon: function(e){
 		var el;
@@ -382,17 +404,12 @@ Package.View = new Class({
 	Implements: [Options, Events],
 	options: {
 		readonly: true,
-		copy_el: 'package-copy',
 		// copy_url: '',
 	},
 	initialize: function(options) {
 		this.setOptions(options);
 		this.parent(options);
 		$(this.options.package_info_el).addEvent('click', this.showInfo.bind(this));
-		this.copy_el = $(this.options.copy_el)
-		if (this.copy_el) {
-			this.copy_el.addEvent('click', this.copyPackage.bind(this));
-		}
 	},
 	/*
 	 * Method: showInfo
@@ -402,23 +419,6 @@ Package.View = new Class({
 		e.stop();
 		fd.displayModal(this.options.package_info);
 	},
-	/*
-	 * Method: copyPackage
-	 * create a new Package with the same name for the current user
-	 */
-	copyPackage: function(e) {
-		e.stop();
-		if (!settings.user) {
-			fd.alertNotAuthenticated();
-			return;
-		}
-		new Request.JSON({
-			url: this.options.copy_url,
-			onSuccess: function(response) {
-				window.location.href = response.view_url;
-			}
-		}).send();
-	}
 });
 
 
@@ -528,6 +528,7 @@ Package.Edit = new Class({
 				}).send();
 			}.bind(this));
 		}
+		this.bind_keyboard();
 	},
 
 	get_add_attachment_url: function() {
@@ -865,6 +866,15 @@ Package.Edit = new Class({
 				this.saving = false;
 			}.bind(this)
 		}).send();
+	},
+	bind_keyboard: function() {
+		this.keyboard = new Keyboard({
+		    defaultEventType: 'keyup',
+		    events: {
+			'ctrl+s': this.boundSaveAction
+		    }
+		});
+		this.keyboard.activate();
 	},
 	setUrls: function(urls) {
 		this.save_url = urls.save_url;

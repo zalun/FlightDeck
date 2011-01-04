@@ -162,7 +162,7 @@ def get_module(r, id_number, revision_number, filename):
     except:
         log_msg = 'No such module %s' % filename
         log.error(log_msg)
-        raise Http404(log_msg)
+        raise Http404()
     return HttpResponse(mod.get_json())
 
 
