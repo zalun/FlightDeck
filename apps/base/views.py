@@ -30,7 +30,8 @@ def monitor(request):
 
     if hasattr(settings, 'XPI_TARGETDIR'):
         filepaths.append((settings.XPI_TARGETDIR, os.R_OK | os.W_OK,
-                          'We want read + write.'))
+                          'We want read + write. Should be a shared directory '
+                          'on multiserver installations'))
 
     for sdk in SDK.objects.all():
         filepaths.append((sdk.get_source_dir(), os.R_OK,

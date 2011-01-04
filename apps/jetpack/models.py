@@ -895,7 +895,7 @@ class PackageRevision(models.Model):
 
     def get_sdk_dir(self):
         " returns the path to the directory where the SDK should be copied "
-        return '%s-%s' % (settings.SDKDIR_PREFIX, self.get_sdk_name())
+        return os.path.join(settings.SDKDIR_PREFIX, self.get_sdk_name())
 
     def get_sdk_revision(self):
         " return core_lib, addon_kit or None "
