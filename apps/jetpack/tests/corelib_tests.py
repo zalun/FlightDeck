@@ -13,7 +13,8 @@ class CoreLibTestCase(TestCase):
 
     def setUp(self):
         " get core lib from fixtures "
-        self.corelib = Package.objects.get(id_number=settings.MINIMUM_PACKAGE_ID)
+        self.corelib = Package.objects.get(
+                id_number=settings.MINIMUM_PACKAGE_ID)
 
     def test_findCoreLibrary(self):
         self.failUnless(self.corelib)

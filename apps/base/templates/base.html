@@ -3,13 +3,14 @@
 {% load base_helpers %}
 <html lang="en">
 	<head>
+        <link rel="icon" href="/media/img/favicon.ico"/>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 		<meta name="author" content="Mozilla Corporation" />
 		<link rel="stylesheet" href="/media/jetpack/css/UI.Base.css" type="text/css" media="screen" />
 		<link rel="stylesheet" href="/media/jetpack/css/UI.Editor_Menu.css" type="text/css" media="screen">
 		{% block head_prejs %}{% endblock %}
-		<script src="/media/js/lib/mootools-1.2.5-core-nc.js"></script>
-		<script src="/media/js/lib/mootools-1.2.4.4-more.js"></script>
+		<script src="/media/js/lib/mootools-core-1.3.js"></script>
+		<script src="/media/js/lib/mootools-more-1.3.0.1.js"></script>
 		<script src="/media/js/lib/clientcide.2.2.0.js"></script>
 		<script src="/media/roar/Roar.js"></script>
 		<script src="/media/jetpack/js/Sidebar.js"></script>
@@ -42,7 +43,9 @@
 				DEBUG: {{ settings.DEBUG|yesno:"true,false" }}
 			};
 			window.addEvent('domready', function() {
-				fd = new FlightDeck({'user': '{{ user.username }}'});
+                fd = new FlightDeck({
+                  'user': '{{ user.username }}'{% block flightdeck_options %}{% endblock %}
+                });
 				{% block create_init %}{% comment %}
 					create.init(
 						['create_addon', 'create_library'],

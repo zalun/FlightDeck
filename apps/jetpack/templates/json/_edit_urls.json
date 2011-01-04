@@ -1,5 +1,5 @@
 	"save_url": "{{ revision.get_save_url }}",
-	"edit_url": "{{ revision.package.get_edit_latest_url }}",
+	"view_url": "{{ revision.package.get_latest_url }}",
 	"add_module_url": "{{ revision.get_add_module_url }}",
 	"remove_module_url": "{{ revision.get_remove_module_url }}",
 	"add_attachment_url": "{{ revision.get_add_attachment_url }}",

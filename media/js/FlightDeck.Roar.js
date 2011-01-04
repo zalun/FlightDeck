@@ -1,9 +1,8 @@
-
-/* 
+/*
  * File: Flightdeck.Roar.js
  */
 
-/* 
+/*
  * Extending Roar possibilities
  */
 Roar = Class.refactor(Roar, {
@@ -33,7 +32,6 @@ Roar = Class.refactor(Roar, {
 			top: fromtop
 		});
 	}
-	
 });
 
 /*
@@ -44,23 +42,24 @@ FlightDeck = Class.refactor(FlightDeck,{
 	initialize: function(options) {
 		this.setOptions(options);
 		this.previous(options);
-		
-		this.warning = new Roar({
-			className: 'roar warning',
-			position: 'topCenter',
-			duration: 8000
-		});
-		this.error = new Roar({
-			position: 'topLeft',
-			className: 'roar error',
-			duration: 20000
-		});
-		this.message = new Roar({
-			position: 'topRight',
-			className: 'roar message',
-			duration: 8000
-		});
-		// compatibility with Django messages 
+
+		this.roar = new Roar({position:'topRight'});
+		this.warning = {
+		    alert: function(title, message) {
+			fd.roar.alert(title, message, {className: 'roar warning', duration: 8000});
+		    }
+		};
+		this.error = {
+		    alert: function(title, message) {
+			fd.roar.alert(title, message, {className: 'roar error', duration: 20000});
+		    }
+		};
+		this.message = {
+		    alert: function(title, message) {
+			fd.roar.alert(title, message, {className: 'roar message', duration: 8000});
+		    }
+		};
+		// compatibility with Django messages
 		// http://docs.djangoproject.com/en/dev/ref/contrib/messages/#message-tags
 		this.success = this.info = this.message;
 		this.debug = this.warning;
@@ -69,7 +68,7 @@ FlightDeck = Class.refactor(FlightDeck,{
 	},
 	/*
 	 * Method: parseMessages
-	 * Parses DOM to find elements with fd_{type_of_message} 
+	 * Parses DOM to find elements with fd_{type_of_message}
 	 * displays messages and removes elements from DOM
 	 */
 	parseMessages: function() {

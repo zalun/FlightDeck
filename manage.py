@@ -3,17 +3,17 @@ import os
 import sys
 import site
 
-site.addsitedir('vendor')
-site.addsitedir('vendor/lib/python')
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 path = lambda *a: os.path.join(ROOT, *a)
 
 prev_sys_path = list(sys.path)
 
+site.addsitedir(path('vendor'))
+site.addsitedir(path('vendor/lib/python'))
 site.addsitedir(path('apps'))
 site.addsitedir(path('lib'))
-site.addsitedir(path('lib/jetpack-sdk-0.8/python-lib'))  # weak sauce
+site.addsitedir(path('lib/addon-sdk-0.9/python-lib'))  # weak sauce
 
 # Move the new items to the front of sys.path. (via virtualenv)
 new_sys_path = []

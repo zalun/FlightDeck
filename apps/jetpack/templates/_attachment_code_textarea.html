@@ -1,0 +1,3 @@
+{% if attachment.is_editable %}
+<textarea id="{{ attachment.get_uid }}_attachment_textarea" class="UI_Editor_Area" name="{{ attachment.get_uid }}_attachment_textarea">{{ attachment.read }}</textarea>
+{% endif %}

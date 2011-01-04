@@ -30,6 +30,10 @@ urls.extend([
         {'document_root': os.path.join(
             settings.APP_MEDIA_PREFIX, 'jetpack', settings.APP_MEDIA_SUFFIX)
         }, name='jetpack_media'),
+    url(r'^media/person/(?P<path>.*)$', static.serve,
+        {'document_root': os.path.join(
+            settings.APP_MEDIA_PREFIX, 'person', settings.APP_MEDIA_SUFFIX)
+        }, name='person_media'),
     url(r'^media/api/(?P<path>.*)$', static.serve,
         {'document_root': os.path.join(
             settings.APP_MEDIA_PREFIX, 'api', settings.APP_MEDIA_SUFFIX)
@@ -42,6 +46,9 @@ urls.extend([
         {'document_root': settings.MEDIA_ROOT}, name='media'),
 
     # API Browser
+    (r'^xpi/', include('xpi.urls')),
+
+    # API Browser
     (r'^api/', include('api.urls')),
 
     # Tutorial
@@ -51,6 +58,9 @@ urls.extend([
     (r'^user/', include('person.urls')),
 
     # Jetpack
-    (r'', include('jetpack.urls'))
+    (r'', include('jetpack.urls')),
+   
+    # Monitor 
+    (r'', include('base.urls'))
 ])
 urlpatterns = patterns('', *urls)
