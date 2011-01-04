@@ -1,12 +1,16 @@
 import os
+import commonware.log
 
 from cuddlefish import apiparser
 
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.conf import settings
+from django.http import Http404
 
 from jetpack.models import SDK
+
+log = commonware.log.getLogger('f.api')
 
 sdks = SDK.objects.all()
 if sdks.count() > 0:
@@ -115,11 +119,21 @@ def module(r, package_name, module_name):
 
     sdk_version = SDKVERSION
     doc_file = '.'.join((module_name, 'md'))
-    text = open(
-        os.path.join(SDKPACKAGESDIR,
-                     package_name, 'docs', doc_file)).read()
+    doc_path = os.path.join(SDKPACKAGESDIR,
+                     package_name, 'docs', doc_file)
+    try:
+        text = open(doc_path).read()
+    except Exception, err:
+        log.error(str(err))
+        raise Http404
+
     # changing the tuples to dictionaries
-    hunks = list(apiparser.parse_hunks(text))
+    try:
+        hunks = list(apiparser.parse_hunks(text))
+    except Exception, err:
+        log.error(str(err))
+        hunks = [[None,'Sorry. Error in reading the doc']]
+
     entities = []
     for h in hunks:
         # convert JSON to a nice list
