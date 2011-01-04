@@ -132,7 +132,9 @@ def module(r, package_name, module_name):
         hunks = list(apiparser.parse_hunks(text))
     except Exception, err:
         log.error(str(err))
-        hunks = [[None,'Sorry. Error in reading the doc']]
+        hunks = [[None,'<p>Sorry. Error in reading the doc. '
+            'Please check <a href="https://jetpack.mozillalabs.com/'
+            'sdk/1.0b1/docs/#package/addon-kit">official docs</a></p>']]
 
     entities = []
     for h in hunks:
