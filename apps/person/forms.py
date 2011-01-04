@@ -1,8 +1,12 @@
+import commonware
+
 from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth.forms import AuthenticationForm \
         as ContribAuthenticationForm
 from django.utils.translation import ugettext_lazy as _
+
+log = commonware.log.getLogger('f.authentication')
 
 
 class AuthenticationForm(ContribAuthenticationForm):
@@ -17,10 +21,10 @@ class AuthenticationForm(ContribAuthenticationForm):
                 self.user_cache = authenticate(username=username,
                                                password=password)
             except Exception as err:
+                log.critical("Authentication database connection failure: %s"
+                            % str(err))
                 raise forms.ValidationError(_(
-                   ("Authentication process is broken please "
-                    "<a href=\"https://bugzilla.mozilla.org/show_bug.cgi"
-                    "?id=570360\">let us know</a><br>%s") % err.__str__()))
+                   "Sorry. Authentication process is broken"))
 
             if self.user_cache is None:
                 raise forms.ValidationError(_(

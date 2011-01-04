@@ -5,6 +5,7 @@ For local configuration please use settings_local.py
 import os
 import logging
 import socket
+import tempfile
 
 # Make filepaths relative to settings.
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -104,8 +105,8 @@ DEFAULT_PACKAGE_FULLNAME = {
 }
 HOMEPAGE_PACKAGES_NUMBER = 3
 
-SDKDIR_PREFIX = '/tmp/SDK'   # temporary data - removed after xpi is created
-XPI_TARGETDIR = '/tmp/xpi/'  # target dir - in shared directory
+SDKDIR_PREFIX = tempfile.gettempdir()   # temporary data - removed after xpi is created
+XPI_TARGETDIR = tempfile.gettempdir()   # target dir - in shared directory
 
 LIBRARY_AUTOCOMPLETE_LIMIT = 20
 KEYDIR = 'keydir'

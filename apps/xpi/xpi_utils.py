@@ -47,7 +47,7 @@ def build(sdk_dir, package_dir, filename):
 
     ret = [xpi_targetfilename]
     ret.extend(response)
-    log.info('Created: %s' % xpi_targetfilename)
+    log.info('Created: %s' % xpi_targetpath)
     return ret
 
 
