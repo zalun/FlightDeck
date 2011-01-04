@@ -593,7 +593,11 @@ def upload_xpi(request):
     for chunk in xpi.chunks():
         xpi_file.write(chunk)
     xpi_file.close()
-    addon = create_package_from_xpi(path, request.user)
+    try:
+        addon = create_package_from_xpi(path, request.user)
+    except Exception, err:
+        log.warning("Bad file %s" % str(err))
+        return HttpResponseForbidden('Wrong file')
     shutil.rmtree(temp_dir)
     return HttpResponseRedirect(addon.get_absolute_url())
     # after front-end will support interactive upload

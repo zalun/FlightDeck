@@ -69,6 +69,18 @@ def homepage(r, package_name=None):
         }, context_instance=RequestContext(r))
 
 
+def _get_hunks(text):
+    # changing the tuples to dictionaries
+    try:
+        hunks = list(apiparser.parse_hunks(text))
+    except Exception, err:
+        log.error(str(err))
+        hunks = [[None,'<p>Sorry. Error in reading the doc. '
+            'Please check <a href="https://jetpack.mozillalabs.com/'
+            'sdk/1.0b1/docs/#package/addon-kit">official docs</a></p>']]
+    return hunks
+
+
 def package(r, package_name=None):
     """
     containing a listing of all modules docs
@@ -89,9 +101,8 @@ def package(r, package_name=None):
         if not os.path.isdir(path):
             text = open(
                 os.path.join(SDKPACKAGESDIR, package_name, 'docs', d)).read()
+            hunks = _get_hunks(text)
             (doc_name, extension) = os.path.splitext(d)
-            # changing the tuples to dictionaries
-            hunks = list(apiparser.parse_hunks(text))
             data = {}
             for h in hunks:
                 data[h[0]] = h[1]
@@ -127,14 +138,7 @@ def module(r, package_name, module_name):
         log.error(str(err))
         raise Http404
 
-    # changing the tuples to dictionaries
-    try:
-        hunks = list(apiparser.parse_hunks(text))
-    except Exception, err:
-        log.error(str(err))
-        hunks = [[None,'<p>Sorry. Error in reading the doc. '
-            'Please check <a href="https://jetpack.mozillalabs.com/'
-            'sdk/1.0b1/docs/#package/addon-kit">official docs</a></p>']]
+    hunks = _get_hunks(text)
 
     entities = []
     for h in hunks:
