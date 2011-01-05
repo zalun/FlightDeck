@@ -2,7 +2,6 @@ import os
 import json
 import StringIO
 from datetime import datetime
-from time import sleep
 
 from test_utils import TestCase
 from nose.tools import eq_
@@ -218,14 +217,8 @@ class TestAttachments(TestCase):
     def test_attachment_jump_revision(self):
         revision = self.add_one()
 
-        # This is more a hack than a fix
-        # This test was failing every third time
-        sleep(.5)
-
         data = {revision.attachments.all()[0].get_uid: 'foo bar'}
         self.client.post(self.get_change_url(1), data)
-
-        sleep(.5)
 
         data = {revision.attachments.all()[0].get_uid: 'foo bar zero'}
         self.client.post(self.get_change_url(0), data)
@@ -251,7 +244,7 @@ class TestAttachments(TestCase):
     def test_attachment_remove(self):
         revision = self.add_one()
 
-        data = {'uid':revision.attachments.all()[0].get_uid}
+        data = {'uid': revision.attachments.all()[0].get_uid}
         self.client.post(self.get_delete_url(1), data)
 
         revision = PackageRevision.objects.get(package=self.package,
@@ -265,7 +258,7 @@ class TestAttachments(TestCase):
         self.client.post(self.get_change_url(1), data)
 
         # this is now an old uid
-        data = {'uid':revision.attachments.all()[0].get_uid}
+        data = {'uid': revision.attachments.all()[0].get_uid}
         self.client.post(self.get_delete_url(2), data)
 
         revision = PackageRevision.objects.get(package=self.package,

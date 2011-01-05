@@ -200,8 +200,11 @@ class Package(models.Model):
             i = i + 1
             return _get_full_name(full_name, username, type_id, i)
 
-        name = settings.DEFAULT_PACKAGE_FULLNAME.get(self.type,
-                                                     self.author.username)
+        username = self.author.username
+        if self.author.get_profile():
+            username = self.author.get_profile().nickname or username
+
+        name = settings.DEFAULT_PACKAGE_FULLNAME.get(self.type, username)
         self.full_name = _get_full_name(name, self.author.username, self.type)
 
     def set_name(self):
@@ -710,7 +713,6 @@ class PackageRevision(models.Model):
                 att_path = path.split('%s/' % att_dir)[1]
                 if att_path and not att_path.endswith('/'):
                     code = packed.read(path)
-                    basename = os.path.basename(att_path)
                     filename, ext = os.path.splitext(att_path)
                     if ext.startswith('.'):
                         ext = ext.split('.')[1]
@@ -1089,7 +1091,7 @@ class Attachment(models.Model):
 
     class Meta:
         " attachment ordering "
-        ordering = ('filename',)
+        ordering = ('filename', 'id')
 
     @property
     def get_uid(self):

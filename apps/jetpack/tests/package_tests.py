@@ -39,6 +39,22 @@ class PackageTest(TestCase):
         self.failUnless(package.name)
         self.assertEqual(package.full_name, self.author.username)
 
+    def test_addon_creation_with_nickname(self):
+        """In production if you log in with an AMO user, the username
+        is set to a number and the nickname on the profile is set to the
+        real username."""
+        profile = self.author.get_profile()
+        profile.nickname = 'Gordon'
+        profile.save()
+
+        package = Package(
+            author=self.author,
+            type='a'
+        )
+        package.save()
+
+        eq_(package.full_name, 'Gordon')
+
     def test_automatic_numbering(self):
         Package(
             author=self.author,
