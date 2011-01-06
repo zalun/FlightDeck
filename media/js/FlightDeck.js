@@ -215,6 +215,9 @@ Spinner = Class.refactor(Spinner, {
 Request = Class.refactor(Request, {
 	options: {
 		onFailure: function(xhr) {
+            if (this.options.addOnFailure) {
+              this.options.addOnFailure();
+            }
 			fd.error.alert(
 				'Error {status}'.substitute(xhr), 
 				'{statusText}<br/>{responseText}'.substitute(xhr)
