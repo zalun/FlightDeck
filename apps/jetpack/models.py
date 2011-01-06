@@ -108,6 +108,7 @@ class Package(models.Model):
     class Meta:
         " Set the ordering of objects "
         ordering = ('-last_update', '-created_at')
+        unique_together = ('author', 'name')
 
     objects = PackageManager()
 

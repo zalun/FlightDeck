@@ -183,7 +183,7 @@ class XPIBuildTest(TestCase):
     def test_xpi_with_empty_dependency(self):
         " empty lib is created "
         lib = Package.objects.create(
-            full_name='Test Library',
+            full_name='Test Library XPI',
             author=self.author,
             type='l'
         )

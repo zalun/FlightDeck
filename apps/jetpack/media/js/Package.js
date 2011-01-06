@@ -862,7 +862,7 @@ Package.Edit = new Class({
 				}
 				fd.fireEvent('save');
 			}.bind(this),
-			onFailure: function() {
+			addOnFailure: function() {
 				this.saving = false;
 			}.bind(this)
 		}).send();
