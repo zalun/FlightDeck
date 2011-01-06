@@ -41,7 +41,7 @@ var Sidebar = new Class({
 		// show site item if it was toggled open before reloading
 		if (this.sideContStatus && this.sideContStatus[index]){
 			this.slideFx[index].show();
-			this.containers[index].getParent().setStyle('height', 'auto');
+			//this.containers[index].getParent().setStyle('height', 'auto'); //removing this fixes 623353
 			this.togglers[index].getParent().removeClass('closed');
 		}
 		
