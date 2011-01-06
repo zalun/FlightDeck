@@ -89,7 +89,7 @@
 				<ul class="UI_File_Listing" id='attachments_ul'>
 					{% for attachment in attachments %}
 						<li class="UI_File_Normal">
-							<a title="" href="{{ attachment.get_display_url }}" rel="{{ attachment.ext }}" class="Module_file" id="{{ attachment.filename }}{{ attachment.ext }}_display">{{ attachment.get_filename }}<span class="File_close"></span></a>
+							<a title="" href="{{ attachment.get_display_url }}" rel="{{ attachment.ext }}" class="Module_file" id="{{ attachment.get_uid }}_attachment_switch">{{ attachment.get_filename }}<span class="File_close"></span></a>
 						</li>
 					{% endfor %}
 				</ul>
@@ -138,6 +138,13 @@
 					<span class="UI_Editor_Icon"></span>
 				</a>
 			</li>
+			{% if revision.package.public_permission != 2 %}
+				<li class="UI_Editor_Menu_Button Icon_copy">
+					<a id="package-copy" title="" href="#">Copy
+						<span class="UI_Editor_Icon"></span>
+					</a>
+				</li>
+			{% endif %}
 			{% include "_editor_app_menu_items.html" %}
 		</ul>
 	</div> <!-- /editor-menu-wrapper -->

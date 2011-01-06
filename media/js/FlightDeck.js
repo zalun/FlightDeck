@@ -200,6 +200,13 @@ var FlightDeck = new Class({
 	}
 });
 
+/*
+ * Add delay do Spinner
+ */
+
+Spinner = Class.refactor(Spinner, {
+    options: { delay: 400 },
+});
 
 /*
  * Default onFailure in all Requests
@@ -208,6 +215,9 @@ var FlightDeck = new Class({
 Request = Class.refactor(Request, {
 	options: {
 		onFailure: function(xhr) {
+            if (this.options.addOnFailure) {
+              this.options.addOnFailure();
+            }
 			fd.error.alert(
 				'Error {status}'.substitute(xhr), 
 				'{statusText}<br/>{responseText}'.substitute(xhr)

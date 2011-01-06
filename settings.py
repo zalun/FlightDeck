@@ -5,6 +5,7 @@ For local configuration please use settings_local.py
 import os
 import logging
 import socket
+import tempfile
 
 # Make filepaths relative to settings.
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -46,7 +47,7 @@ DATABASES = {
 
 # Logging (copied from zamboni)
 LOG_LEVEL = logging.DEBUG
-HAS_SYSLOG = True # syslog is used if HAS_SYSLOG and NOT DEBUG.
+HAS_SYSLOG = True  # syslog is used if HAS_SYSLOG and NOT DEBUG.
 SYSLOG_TAG = "http_app_builder"
 # See PEP 391 and log_settings.py for formatting help. Each section of LOGGING
 # will get merged into the corresponding section of log_settings.py.
@@ -85,7 +86,7 @@ FRAMEWORK_PATH = path()
 SDK_SOURCE_DIR = path('lib')  # TODO: remove this var
 APP_MEDIA_PREFIX = os.path.join(FRAMEWORK_PATH, 'apps')
 UPLOAD_DIR = path('upload')
-VIRTUAL_ENV = os.environ.get('VIRTUAL_ENV') # TODO: remove this var
+VIRTUAL_ENV = os.environ.get('VIRTUAL_ENV')  # TODO: remove this var
 
 # jetpack defaults
 PACKAGES_PER_PAGE = 10
@@ -100,11 +101,13 @@ PACKAGE_SINGULAR_NAMES = {
     'a': 'addon'
 }
 DEFAULT_PACKAGE_FULLNAME = {
-    'l': 'My Library',
-    'a': 'My Add-on'
+    'l': 'My Library'
 }
 HOMEPAGE_PACKAGES_NUMBER = 3
-SDKDIR_PREFIX = '/tmp/SDK'
+
+SDKDIR_PREFIX = tempfile.gettempdir()   # temporary data - removed after xpi is created
+XPI_TARGETDIR = tempfile.gettempdir()   # target dir - in shared directory
+
 LIBRARY_AUTOCOMPLETE_LIMIT = 20
 KEYDIR = 'keydir'
 JETPACK_NEW_IS_BASE = False
@@ -126,10 +129,6 @@ AUTH_DATABASE = None
 #    'HOST': '',
 #    'PORT': ''
 #}
-
-# api defaults
-
-
 
 # Media section
 APP_MEDIA_SUFFIX = 'media'
@@ -240,6 +239,7 @@ INSTALLED_APPS = [
     'person',            # user related stuff (profile etc.)
     'amo',               # currently addons.mozilla.org authentication
     'jetpack',           # Jetpack functionality
+    'xpi',               # XPI management
     'api',               # API browser
     'tutorial',          # Load tutorial templates
     'cronjobs',
@@ -264,3 +264,7 @@ DEV_MIDDLEWARE_CLASSES = (
 #     'PORT': 4444,
 #     'BROWSER': '*firefox',
 #}
+import djcelery
+djcelery.setup_loader()
+
+CELERY_ALWAYS_EAGER = True

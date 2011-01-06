@@ -1,17 +1,22 @@
 import os
+import commonware.log
 
 from cuddlefish import apiparser
 
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.conf import settings
+from django.http import Http404
 
 from jetpack.models import SDK
+
+log = commonware.log.getLogger('f.api')
 
 sdks = SDK.objects.all()
 if sdks.count() > 0:
     MAIN_SDK = sdks[0]
-    SDKPACKAGESDIR = os.path.join(settings.SDK_SOURCE_DIR, MAIN_SDK.dir, 'packages')
+    SDKPACKAGESDIR = os.path.join(
+            settings.SDK_SOURCE_DIR, MAIN_SDK.dir, 'packages')
     SDKVERSION = MAIN_SDK.version
     ADDON_KIT = MAIN_SDK.kit_lib
     CORELIB_NAME = MAIN_SDK.core_lib.package.name
@@ -43,6 +48,7 @@ def _get_package_fullname(package_name):
         return special[package_name]
     return package_name
 
+
 def homepage(r, package_name=None):
     if not package_name:
         package_name = DEFAULTLIB_NAME
@@ -61,6 +67,18 @@ def homepage(r, package_name=None):
          'corelib': (package_name == CORELIB_NAME),
          'addon_kit': ADDON_KIT
         }, context_instance=RequestContext(r))
+
+
+def _get_hunks(text):
+    # changing the tuples to dictionaries
+    try:
+        hunks = list(apiparser.parse_hunks(text))
+    except Exception, err:
+        log.error(str(err))
+        hunks = [[None,'<p>Sorry. Error in reading the doc. '
+            'Please check <a href="https://jetpack.mozillalabs.com/'
+            'sdk/1.0b1/docs/#package/addon-kit">official docs</a></p>']]
+    return hunks
 
 
 def package(r, package_name=None):
@@ -83,9 +101,8 @@ def package(r, package_name=None):
         if not os.path.isdir(path):
             text = open(
                 os.path.join(SDKPACKAGESDIR, package_name, 'docs', d)).read()
+            hunks = _get_hunks(text)
             (doc_name, extension) = os.path.splitext(d)
-            # changing the tuples to dictionaries
-            hunks = list(apiparser.parse_hunks(text))
             data = {}
             for h in hunks:
                 data[h[0]] = h[1]
@@ -113,11 +130,16 @@ def module(r, package_name, module_name):
 
     sdk_version = SDKVERSION
     doc_file = '.'.join((module_name, 'md'))
-    text = open(
-        os.path.join(SDKPACKAGESDIR,
-                     package_name, 'docs', doc_file)).read()
-    # changing the tuples to dictionaries
-    hunks = list(apiparser.parse_hunks(text))
+    doc_path = os.path.join(SDKPACKAGESDIR,
+                     package_name, 'docs', doc_file)
+    try:
+        text = open(doc_path).read()
+    except Exception, err:
+        log.error(str(err))
+        raise Http404
+
+    hunks = _get_hunks(text)
+
     entities = []
     for h in hunks:
         # convert JSON to a nice list

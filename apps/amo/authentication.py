@@ -1,13 +1,16 @@
 import MySQLdb
 import hashlib
+import commonware
 
 from django.contrib.auth.models import User
 from django.utils.encoding import smart_str
 from django.conf import settings
 
-from person.models import Profile, Limit
+from person.models import Profile
 
 DEFAULT_AMO_PASSWORD = 'saved in AMO'
+
+log = commonware.log.getLogger('f.authentication')
 
 
 class AMOAuthentication:
@@ -84,15 +87,19 @@ class AMOAuthentication:
         columns = ('id', 'email', 'username', 'display_name', 'password',
                    'homepage')
 
+        #try:
         auth_conn = MySQLdb.connect(
             host=settings.AUTH_DATABASE['HOST'],
             user=settings.AUTH_DATABASE['USER'],
             passwd=settings.AUTH_DATABASE['PASSWORD'],
             db=settings.AUTH_DATABASE['NAME']
         )
+        #except Exception, err:
+        #    log.critical("Authentication database connection failure: %s"
+        #            % str(err))
         auth_cursor = auth_conn.cursor()
-        SQL = ('SELECT %s FROM %s WHERE email="%s"'
-              ) % (','.join(columns), settings.AUTH_DATABASE['TABLE'], username)
+        SQL = ('SELECT %s FROM %s WHERE email="%s"') % (
+                ','.join(columns), settings.AUTH_DATABASE['TABLE'], username)
         auth_cursor.execute(SQL)
         data = auth_cursor.fetchone()
         user_data = {}

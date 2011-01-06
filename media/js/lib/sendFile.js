@@ -42,8 +42,8 @@ sendFile = (function(toString, maxSize){
             } else {
                 setTimeout(function(){
                     if(xhr.readyState === 4){
-						if(isFunction(handler.onpartialload))
-							handler.onpartialload(rpe, xhr);
+			if(isFunction(handler.onpartialload))
+				handler.onpartialload(rpe, xhr);
                         if(isFunction(handler.onload))
                             handler.onload(rpe, xhr);
                     } else
@@ -112,12 +112,12 @@ if(isset($_GET['upload']) && $_GET['upload'] === 'true'){
         $file->name = basename($headers['X-File-Name']);
         $file->size = $headers['X-File-Size'];
         $file->content = file_get_contents("php://input");
-        
+
         // if everything is ok, save the file somewhere
         if(file_put_contents('files/'.$file->name, $file->content))
             exit('OK');
     }
-    
+
     // if there is an error this will be the output instead of "OK"
     exit('Error');
 }
