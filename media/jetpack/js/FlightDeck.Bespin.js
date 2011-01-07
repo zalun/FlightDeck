@@ -25,6 +25,10 @@ var FDBespin = new Class({
 	},
 	ready: function() {
 		$log('FD: Bespin is ready');
+        if (!fd.item.options.modules.length) {
+          this.setContent('\n\n\n<-- Please create a module in the left '
+              +'sidebar to start entering code for this library.');
+        } 
 		this.fireEvent('ready');
 		var self = this;
 		this.element.textChanged.add(function() {
