@@ -26,22 +26,22 @@ if settings.DEBUG:
 urls.extend([
     # static files
     # this should be used only in development server
-    url(r'^media/jetpack/(?P<path>.*)$', static.serve,
-        {'document_root': os.path.join(
-            settings.APP_MEDIA_PREFIX, 'jetpack', settings.APP_MEDIA_SUFFIX)
-        }, name='jetpack_media'),
-    url(r'^media/person/(?P<path>.*)$', static.serve,
-        {'document_root': os.path.join(
-            settings.APP_MEDIA_PREFIX, 'person', settings.APP_MEDIA_SUFFIX)
-        }, name='person_media'),
-    url(r'^media/api/(?P<path>.*)$', static.serve,
-        {'document_root': os.path.join(
-            settings.APP_MEDIA_PREFIX, 'api', settings.APP_MEDIA_SUFFIX)
-        }, name='api_media'),
-    url(r'^media/tutorial/(?P<path>.*)$', static.serve,
-        {'document_root': os.path.join(
-            settings.APP_MEDIA_PREFIX, 'tutorial', settings.APP_MEDIA_SUFFIX)
-        }, name='tutorial_media'),
+    #url(r'^media/jetpack/(?P<path>.*)$', static.serve,
+    #    {'document_root': os.path.join(
+    #        settings.APP_MEDIA_PREFIX, 'jetpack', settings.APP_MEDIA_SUFFIX)
+    #    }, name='jetpack_media'),
+    #url(r'^media/person/(?P<path>.*)$', static.serve,
+    #    {'document_root': os.path.join(
+    #        settings.APP_MEDIA_PREFIX, 'person', settings.APP_MEDIA_SUFFIX)
+    #    }, name='person_media'),
+    #url(r'^media/api/(?P<path>.*)$', static.serve,
+    #    {'document_root': os.path.join(
+    #        settings.APP_MEDIA_PREFIX, 'api', settings.APP_MEDIA_SUFFIX)
+    #    }, name='api_media'),
+    #url(r'^media/tutorial/(?P<path>.*)$', static.serve,
+    #    {'document_root': os.path.join(
+    #        settings.APP_MEDIA_PREFIX, 'tutorial', settings.APP_MEDIA_SUFFIX)
+    #    }, name='tutorial_media'),
     url(r'^media/(?P<path>.*)$', static.serve,
         {'document_root': settings.MEDIA_ROOT}, name='media'),
 
