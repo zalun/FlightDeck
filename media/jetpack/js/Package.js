@@ -41,6 +41,7 @@ var Package = new Class({
   modules: {},
   attachments: {},
   initialize: function(options) {
+    this.revision_number = this.options.revision_number;
     this.setOptions(options);
     this.instantiate_modules();
     this.instantiate_attachments();
@@ -57,9 +58,7 @@ var Package = new Class({
       this.copy_el.addEvent('click', this.copyPackage.bind(this));
     }
     window.addEvent('focus', function() {
-      this.checkIfLatest(
-        //this.askForReload.bind(this)
-      );
+      this.checkIfLatest(this.askForReload.bind(this));
     }.bind(this));
   },
   /*
@@ -69,7 +68,18 @@ var Package = new Class({
    */ 
   checkIfLatest: function(failCallback) {
     // ask backend for the latest revision number
-
+    new Request.JSON({
+      url: this.options.check_latest_url,
+      onSuccess: function(response) {
+        if (failCallback && this.revision_number != response.revision_number) {
+          failCallback.call()
+        }
+      }.bind(this)
+    }).send();
+  },
+  askForReload: function() {
+    fd.warning.alert("New revision detected", 
+        "There is a newer revision available. You may wish to reload the page.");
   },
   /*
    * Method: copyPackage
@@ -893,6 +903,7 @@ Package.Edit = new Class({
     this.keyboard.activate();
   },
   setUrls: function(urls) {
+    this.revision_number = urls.revision_number;
     this.save_url = urls.save_url;
     this.test_url = urls.test_url;
     this.add_module_url = urls.add_module_url;
