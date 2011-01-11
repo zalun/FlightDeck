@@ -8,8 +8,8 @@ var FDBespin = new Class({
 	initialize: function(element, options) {
 		var self = this;
 		this.setOptions(options);
-		$log('FD: initializing bespin on ' + element.get('tag') + '.' + element.get('id'));
-		bespin.useBespin($(element), {
+		$log('FD: initializing bespin on ' + element.get('tag') + '#' + element.get('id'));
+		bespin.useBespin(element, {
 			stealFocus: true
 		}).then(function(env){
 				self.element = env.editor;

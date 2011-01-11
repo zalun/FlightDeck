@@ -59,5 +59,5 @@ var FDEditor = new Class({
 		this.fireEvent('show');
 		return this;
 	},
-	cleanUp: $empty
+	cleanUp: function() {}
 });

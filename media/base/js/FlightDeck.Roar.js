@@ -12,7 +12,7 @@ Roar = Class.refactor(Roar, {
 		max.right += scroll.x;
 		max.top += scroll.y;
 		max.bottom += scroll.y;
-		var rel = ($type(this.container) == 'element') ? this.container.getCoordinates() : max;
+		var rel = (typeOf(this.container) == 'element') ? this.container.getCoordinates() : max;
 		var left;
 		if (this.position.x == 'right') {
 			left = (Math.min(rel.right, max.right) - margin.x);

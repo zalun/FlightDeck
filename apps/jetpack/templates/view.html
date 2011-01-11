@@ -21,7 +21,12 @@
 {% block app_menu %}{% endblock %}
 
 {# initialize package view #}
-{% block app_domready %}{% include "js/_view_package_initiate.js" %}{% endblock %}
+{% block app_domready %}
+  fd.item = new Package.View({
+    //{% include "js/_package_initiate.js" %},
+    {% include "js/_view_package_initiate.js" %}
+  }); // Package.View
+{% endblock %}
 
 {# switch off the footer #}
 {% block footer %}{% endblock %}
