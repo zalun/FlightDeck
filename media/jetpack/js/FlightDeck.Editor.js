@@ -54,7 +54,7 @@ FlightDeck = Class.refactor(FlightDeck,{
 			file_el.switch_mode_on = switch_mode_on;
 			file_el.switch_mode_off = switch_mode_off;
 		}
-		if ($type(selector) == 'string') {
+		if (typeOf(selector) == 'string') {
 			$$(selector).each(assignToEl);
 		} else {
 			assignToEl(selector);

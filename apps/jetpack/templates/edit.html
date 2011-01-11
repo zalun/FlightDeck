@@ -30,7 +30,13 @@
 {% block app_menu %}{% endblock %}
 
 {# initialize package view #}
-{% block app_domready %}{% include "js/_edit_package_initiate.js" %}{% endblock %}
+{% block app_domready %}
+  fd.item = new Package.Edit({
+    {% include "js/_package_initiate.js" %},
+    {% include "js/_edit_package_initiate.js" %}
+  });
+{% endblock %}
+
 
 {# get package_info_form_template #}
 {% block app_settings %}

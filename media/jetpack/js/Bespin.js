@@ -78,5 +78,5 @@ Class.refactor(FDEditor, {
 		fd.switching = false;
 		return this;
 	},
-	cleanUp: $empty
+	cleanUp: function() {}
 });
