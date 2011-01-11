@@ -1,6 +1,6 @@
 // MooTools: the javascript framework.
 // Load this file's selection again by visiting: http://mootools.net/more/e2635c5f3758f6c8d9f3a9e6fa79a096 
-// Or build this file again with packager using: packager build More/More More/Events.Pseudos More/Class.Refactor More/Class.Binds More/Class.Occlude More/Chain.Wait More/Array.Extras More/Date More/Date.Extras More/Number.Format More/Object.Extras More/String.Extras More/String.QueryString More/URI More/URI.Relative More/Hash More/Hash.Extras More/Element.Forms More/Elements.From More/Element.Event.Pseudos More/Element.Event.Pseudos.Keys More/Element.Delegation More/Element.Measure More/Element.Pin More/Element.Position More/Element.Shortcuts More/Form.Request More/Form.Request.Append More/Form.Validator More/Form.Validator.Inline More/Form.Validator.Extras More/Fx.Elements More/Fx.Accordion More/Fx.Move More/Fx.Reveal More/Fx.Scroll More/Fx.Slide More/Fx.SmoothScroll More/Fx.Sort More/Drag More/Drag.Move More/Slider More/Sortables More/Request.JSONP More/Request.Queue More/Request.Periodical More/Assets More/Color More/Group More/Hash.Cookie More/IframeShim More/HtmlTable More/HtmlTable.Zebra More/HtmlTable.Sort More/HtmlTable.Select More/Keyboard More/Keyboard.Extras More/Mask More/Scroller More/Tips More/Spinner
+// Or build this file again with packager using: packager build More/More More/Events.Pseudos More/Class.Refactor More/Class.Binds More/Class.Occlude More/Chain.Wait More/Array.Extras More/Date More/Date.Extras More/Number.Format More/Object.Extras More/String.Extras More/String.QueryString More/URI More/URI.Relative More/Hash More/Hash.Extras More/Element.Forms More/Elements.From More/Element.Event.Pseudos More/Element.Event.Pseudos.Keys More/Element.Delegation More/Element.Measure More/Element.Pin More/Element.Position More/Element.Shortcuts More/Form.Request More/Form.Request.Append More/Form.Validator More/Form.Validator.Inline More/Form.Validator.Extras More/Fx.Elements More/Fx.Accordion More/Fx.Move More/Fx.Reveal More/Fx.Scroll More/Fx.Slide More/Fx.SmoothScroll More/Fx.Sort More/Drag More/Drag.Move More/Slider More/Sortables More/Request.JSONP More/Request.Queue More/Request.Periodical More/Assets More/Color More/Group More/Hash.Cookie More/IframeShim More/HtmlTable More/HtmlTable.Zebra More/HtmlTable.Sort More/HtmlTable.Select More/Keyboard More/Keyboard.Extras More/Mask More/Scroller More/Tips More/Spinner More/Locale More/Locale.en-US.Date More/Locale.en-US.Form.Validator More/Locale.en-US.Number
 /*
 ---
 
@@ -553,7 +553,9 @@ var Locale = this.Locale = {
 
 		if (set) locale.define(set, key, value);
 
-		
+		/*<1.2compat>*/
+		if (set == 'cascade') return Locale.inherit(name, key);
+		/*</1.2compat>*/
 
 		if (!current) current = locale;
 
@@ -568,7 +570,9 @@ var Locale = this.Locale = {
 
 			this.fireEvent('change', locale);
 
-			
+			/*<1.2compat>*/
+			this.fireEvent('langChange', locale.name);
+			/*</1.2compat>*/
 		}
 
 		return this;
@@ -665,7 +669,25 @@ Locale.Set = new Class({
 
 });
 
+/*<1.2compat>*/
+var lang = MooTools.lang = {};
 
+Object.append(lang, Locale, {
+	setLanguage: Locale.use,
+	getCurrentLanguage: function(){
+		var current = Locale.getCurrent();
+		return (current) ? current.name : null;
+	},
+	set: function(){
+		Locale.define.apply(this, arguments);
+		return this;
+	},
+	get: function(set, key, args){
+		if (key) set += '.' + key;
+		return Locale.get(set, args);
+	}
+});
+/*</1.2compat>*/
 
 })();
 
@@ -937,7 +959,7 @@ Date.implement({
 					case 'X': return d.format(Date.getMsg('shortTime'));
 					case 'y': return d.get('year').toString().substr(2);
 					case 'Y': return d.get('year');
-					
+					/*<1.2compat>*/case 'T': return d.get('GMTOffset');/*</1.2compat>*/
 					case 'z': return d.get('GMTOffset');
 					case 'Z': return d.get('Timezone');
 				}
@@ -1072,7 +1094,9 @@ Date.extend({
 		for (var name in formats) Date.defineFormat(name, formats[name]);
 	},
 
-
+//<1.2compat>
+	parsePatterns: parsePatterns, // this is deprecated
+//</1.2compat>
 
 	defineParser: function(pattern){
 		parsePatterns.push((pattern.re && pattern.handler) ? pattern : build(pattern));
@@ -2612,7 +2636,10 @@ Element.implement({
 	},
 
 	getComputedSize: function(options){
-		
+		//<1.2compat>
+		//legacy support for my stupid spelling error
+		if (options && options.plains) options.planes = options.plains;
+		//</1.2compat>
 
 		options = Object.merge({
 			styles: ['padding','border'],
@@ -4723,7 +4750,10 @@ Element.implement({
 	}
 
 });
-
+//<1.2compat>
+//legacy
+var FormValidator = Form.Validator;
+//</1.2compat>
 
 
 /*
@@ -5414,7 +5444,39 @@ Fx.Accordion = new Class({
 
 });
 
+/*<1.2compat>*/
+/*
+	Compatibility with 1.2.0
+*/
+var Accordion = new Class({
 
+	Extends: Fx.Accordion,
+
+	initialize: function(){
+		this.parent.apply(this, arguments);
+		var params = Array.link(arguments, {'container': Type.isElement});
+		this.container = params.container;
+	},
+
+	addSection: function(toggler, element, pos){
+		toggler = document.id(toggler);
+		element = document.id(element);
+
+		var test = this.togglers.contains(toggler);
+		var len = this.togglers.length;
+		if (len && (!test || pos)){
+			pos = pos != null ? pos : len - 1;
+			toggler.inject(this.togglers[pos], 'before');
+			element.inject(toggler, 'after');
+		} else if (this.container && !test){
+			toggler.inject(this.container);
+			element.inject(this.container);
+		}
+		return this.parent.apply(this, arguments);
+	}
+
+});
+/*</1.2compat>*/
 
 
 /*
@@ -5839,7 +5901,7 @@ provides: [Fx.SmoothScroll]
 ...
 */
 
-Fx.SmoothScroll = new Class({
+/*<1.2compat>*/var SmoothScroll = /*</1.2compat>*/Fx.SmoothScroll = new Class({
 
 	Extends: Fx.Scroll,
 
@@ -8196,7 +8258,9 @@ HtmlTable.Parsers = {
 
 };
 
-
+//<1.2compat>
+HtmlTable.Parsers = new Hash(HtmlTable.Parsers);
+//</1.2compat>
 
 HtmlTable.defineParsers = function(parsers){
 	HtmlTable.Parsers = Object.append(HtmlTable.Parsers, parsers);
