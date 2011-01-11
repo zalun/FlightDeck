@@ -129,7 +129,6 @@ var Roar = new Class({
 			this.position = position;
 		}
 		this.body = new Element('div', {'class': 'roar-body'}).inject(document.body);
-		if (Browser.Engine.trident4) this.body.addClass('roar-body-ugly');
 		this.moveTo = this.body.setStyles.bind(this.body);
 		this.reposition();
 		if (this.options.bodyFx) {
