@@ -25,6 +25,9 @@ urlpatterns = patterns('jetpack.views',
         'package_browser', {'type_id': 'l'},
         name='jp_browser_user_libraries_page'),
 
+    url(r'^get_latest_revision_number/(?P<package_id>\d+)/$',
+        'get_latest_revision_number', name='jp_get_latest_revision_number'),
+
     url(r'^addon/new/upload_xpi/$', 'upload_xpi', name='jp_upload_xpi'),
 
     # create new add-on/library

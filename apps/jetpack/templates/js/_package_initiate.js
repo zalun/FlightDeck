@@ -14,6 +14,7 @@
   license: '{{ revision.package.license }}',
   package_version_name: '{{ revision.package.version_name }}',
   version_url: '{{ revision.package.version.get_absolute_url }}',
+  check_latest_url: '{{ revision.package.get_latest_revision_number_url }}',
 
 // revision specific data
   revision_verion_name: '{{ revision.version_name }}',

@@ -704,3 +704,9 @@ def get_revisions_list_html(r, id_number):
             'revisions': revisions
         },
         context_instance=RequestContext(r))
+
+def get_latest_revision_number(request, package_id):
+    """ returns the latest revision number for given package """
+    package = get_object_or_404(Package, id_number=package_id)
+    return HttpResponse(simplejson.dumps({
+        'revision_number': package.latest.revision_number}))

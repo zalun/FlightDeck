@@ -129,6 +129,10 @@ class Package(models.Model):
         return reverse('jp_%s_latest' % self.get_type_name(),
                         args=[self.id_number])
 
+    def get_latest_revision_number_url(self):
+        " returns url to get the latest revision number "
+        return reverse('jp_get_latest_revision_number', args=[self.id_number])
+
     def get_disable_url(self):
         " returns URL to the disable package functionality "
         return reverse('jp_package_disable',
