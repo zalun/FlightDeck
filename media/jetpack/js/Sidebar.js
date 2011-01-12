@@ -1,71 +1,133 @@
-/*
- * File: jetpack/Sidebar.js
- */
-
 
 var Sidebar = new Class({
 	
 	Implements: [Options, Events],
 	
 	options: {
-		togglerTrigger: '.UI_Sidebar_Toggler a',
-		togglerContainer: '.UI_Sidebar_ItemCont'
+		file_selected_class: 'UI_File_Selected',
+		file_normal_class: 'UI_File_Normal',
+		file_listing_class: 'tree'
 	},
 	
 	initialize: function(options){
 		this.setOptions(options);
-		this.showItem = [];
-		this.checkTogglers();
+		this.element = $('app-sidebar');
+		this.buildTree();
+		this.attach();
 	},
 	
-	checkTogglers: function(){
-		this.togglers = $$(this.options.togglerTrigger);
-		this.containers = $$(this.options.togglerContainer);
-		this.slideFx = [];
-		this.sideContStatus = JSON.decode(Cookie.read('openedSidebarItems'));
+	buildTree: function() {
+		var treeOptions = {
+			checkDrag: function(el){
+				return !el.hasClass('nodrag') && this.options.editable;
+			},
+			checkDrop: function(el, drop){
+				var isFile = el.get('rel') == 'file',
+					isSibling = this.current.getSiblings().contains(el);
+					
+				return (
+						((drop.isSubnode || isSibling) && isFile)
+						|| el.hasClass('top_branch')
+						|| isSibling && !isFile && !drop.isSubnode
+						|| !isFile && drop.isSubnode && this.current.getParent().getParent() == el
+					) ? false : true;
+			},
+			onChange: function(){
+				this.updatePath(this.current);
+			},
+			onRenameComplete: function(){
+				$$('div.rename_branch').removeClass('active');
+			},
+			editable: true
+		};
 		
-		this.containers.each(this.attachActions.bind(this));
-	},
-	
-	attachActions: function(container, index){
-		var self = this,
-			currentToggler = this.togglers[index].getParent();
+		// Tree and Collapse initilizations
+		var trees = this.trees = {
+			'lib': new Tree('LibTree', treeOptions),
+			'data': new Tree('DataTree', treeOptions),
+			'plugins': new Tree('PluginsTree', treeOptions)
+		};
 		
-		this.slideFx[index] = new Fx.Slide(container);
 		
-		// hide side item if the class is 'closed'
-		if (currentToggler.hasClass('closed')){
-			this.slideFx[index].hide();
-		}
-		
-		// show site item if it was toggled open before reloading
-		if (this.sideContStatus && this.sideContStatus[index]){
-			this.slideFx[index].show();
-			//this.containers[index].getParent().setStyle('height', 'auto'); //removing this fixes 623353
-			this.togglers[index].getParent().removeClass('closed');
-		}
-		
-		this.togglers[index].addEvents({
-			click: function(e){
-				e.stop();
-				
-				this.getParent().toggleClass('closed');
-				self.slideFx[index].toggle();
-				
-				self.showItem = [];
-				
-				self.togglers.getParent().each(function(el){
-					self.showItem.push(!(el.hasClass('closed') && el.hasClass('opened')));
-				});
-				
-				Cookie.write('openedSidebarItems', JSON.encode(self.showItem));
-			}
+		trees.lib.collapse = new Collapse('LibTree');
+		trees.lib.addBranch({
+			'rel': 'directory',
+			'title': 'Lib',
+			'id': 'lib_branch',
+			'class': 'top_branch nodrag'
 		});
+		
+		trees.data.collapse = new Collapse('DataTree');
+		trees.data.addBranch({
+			'rel': 'directory',
+			'title': 'Data',
+			'id': 'data_branch',
+			'class': 'top_branch nodrag'
+		});
+		
+		trees.plugins.collapse = new Collapse('PluginsTree');
+		trees.plugins.addBranch({
+			'rel': 'directory',
+			'title': 'Plugins',
+			'id': 'plugins_branch',
+			'class': 'top_branch nodrag'
+		});
+		
+		return this;
+	},
+	
+	attach: function() {
+		var that = this;
+		$(this).addEvent('click:relay(.{file_listing_class} li .label)'.substitute(this.options), function(e) {
+			that.setSelectedFile($(e.target).getParent('li'))
+		});
+		
+		Object.each(this.trees, function(tree, name) {
+			tree.addEvent('renameComplete', function(li, span) {
+				$log('rename complete', li, span);
+			});
+		});
+		
+		return this;
+	},
+	
+	addPathToTree: function(treeName, obj) {
+		var tree = this.trees[treeName];
+		tree.addPath(obj, {
+			target:	$(tree).getElement('.top_branch'),
+			suffix: '.'+obj['type'],
+			url: obj.url
+		});	
+		tree.collapse.prepare();
+	}.protect(),
+	
+	addLib: function(lib) {
+		this.addPathToTree('lib', lib);
+	},
+	
+	addData: function(attachment) {
+		this.addPathToTree('data', attachment);
+	},
+	
+	addPlugin: function(plugin) {
+		this.addPathToTree('plugin', plugin);
+	},
+	
+	setSelectedFile: function(el) {
+		var options = this.options;
+		
+		$(this).getElements('.{file_listing_class} li'.substitute(options))
+			.removeClass(options.file_selected_class)
+			.addClass(options.file_normal_class);
+		
+		el.removeClass(options.file_normal_class)
+			.addClass(options.file_selected_class);
+			
+		return this;
+	},
+	
+	toElement: function() {
+		return this.element;
 	}
-});
-
-window.addEvents({
-	domready: function(){
-		new Sidebar();
-	}
+	
 });

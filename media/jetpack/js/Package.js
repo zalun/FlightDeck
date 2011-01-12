@@ -140,6 +140,7 @@ var Package = new Class({
     var main_module;
     this.options.modules.each(function(module) {
       module.readonly = this.options.readonly;
+	  module.append = true;
       if (!main_module) {
         module.main = true;
         main_module = module;
@@ -182,7 +183,7 @@ var File = Class({
         if (!first) {
           first = true;
           mod.switchBespin();
-          mod.trigger.getParent('li').switch_mode_on();
+          fd.sidebar.setSelectedFile(mod.trigger.getParent('li'));
         }
       });
       if (!first) {
@@ -211,7 +212,7 @@ var File = Class({
     if (!this._trigger_id)
       this._trigger_id = this.get_css_id() + this.options.code_trigger_suffix;
     return this._trigger_id;
-  },
+  }
 });
 
 var Attachment = new Class({
@@ -283,8 +284,7 @@ var Attachment = new Class({
   },
   highlightMenu: function() {
     var li = this.trigger.getParent('li')
-    fd.assignModeSwitch(li);
-    li.switch_mode_on();
+    fd.sidebar.setSelectedFile(li);
   },
   loadCode: function() {
     // load data synchronously
@@ -327,101 +327,92 @@ var Attachment = new Class({
 });
 
 var Module = new Class({
-  Extends: File,
-  Implements: [Options, Events],
-  options: {
-    // data
-      // filename: '',
-      // code: '',
-      // author: '',
-    // DOM
-      code_trigger_suffix: '_switch', // id of an element which is used to switch editors
-      code_editor_suffix: '_textarea', // id of the textarea
-    readonly: false,
-    main: false,
-    executable: false,
-    active: false,
-    type: 'js',
-    append: false,
-    counter: 'modules'
-  },
-  initialize: function(pack, options) {
-    this.setOptions(options);
-    this.pack = pack;
-    if (this.options.append) {
-      this.append();
-    }
-    // connect trigger with editor
-    if ($(this.get_trigger_id())) {
-      this.trigger = $(this.get_trigger_id());
-      this.trigger.store('Module', this);
-      this.editor = new FDEditor({
-        element: this.get_editor_id(),
-        activate: this.options.main || this.options.executable,
-        type: this.options.type,
-        readonly: this.options.readonly
-      });
-      // connect trigger
-      this.trigger.addEvent('click', function(e) {
-        if (e) e.preventDefault();
-        this.switchBespin();
-      }.bind(this));
-      if (this.options.main || this.options.executable) {
-        this.trigger.getParent('li').switch_mode_on();
-      }
-      if (this.options.active) {
-        this.switchBespin();
-        var li = this.trigger.getParent('li')
-        fd.assignModeSwitch(li);
-        li.switch_mode_on();
-      }
-            if (!this.options.readonly) {
-                 // here special functionality for edit page
-                 var rm_mod_trigger = this.trigger.getElement('span.File_close');
-                 if (rm_mod_trigger) {
-                     rm_mod_trigger.addEvent('click', function(e) {
-                         this.pack.removeModuleAction(e);
-                     }.bind(this));
-                 }
-      }
-    }
-  },
-  loadCode: function() {
-    // load data synchronously
-    new Request.JSON({
-      url: this.options.get_url,
-      async: false,
-      useSpinner: true,
-      spinnerTarget: 'editor-wrapper',
-      onSuccess: function(mod) {
-        fd.editor_contents[this.get_editor_id()] = mod.code;
-      }.bind(this)
-    }).send();
-  },
-  append: function() {
-    var html = '<a title="" href="#" class="Module_file" id="{filename}_switch">'+
-            '{filename}<span class="File_status"></span>'+
-            '<span class="File_close"></span>'+
-          '</a>';
-    var li = new Element('li',{
-      'class': 'UI_File_normal',
-      'html': html.substitute(this.options)
-    }).inject($('add_module_div').getPrevious('ul'));
-    $('modules-counter').set('text', '('+ $('modules').getElements('.UI_File_Listing li').length +')')
-
-    var textarea = new Element('textarea', {
-      'id': this.options.filename + '_textarea',
-      'class': 'UI_Editor_Area',
-      'name': this.options.filename + '_textarea',
-      'html': this.options.code
-    }).inject('editor-wrapper');
-  },
-  get_css_id: function() {
-    return this.options.filename;
-  },
-  on_destroy: function() {
-    delete fd.getItem().modules[this.options.filename];
-  },
+	Extends: File,
+	Implements: [Options, Events],
+	options: {
+	  // data
+		// filename: '',
+		// code: '',
+		// author: '',
+	  // DOM
+		code_trigger_suffix: '_switch', // id of an element which is used to switch editors
+		code_editor_suffix: '_textarea', // id of the textarea
+	  readonly: false,
+	  main: false,
+	  executable: false,
+	  active: false,
+	  type: 'js',
+	  append: false,
+	  counter: 'modules'
+	},
+	initialize: function(pack, options) {
+		this.setOptions(options);
+		this.pack = pack;
+		if (this.options.append) {
+		  this.append();
+		}
+		// connect trigger with editor
+		if ($(this.get_trigger_id())) {
+			this.trigger = $(this.get_trigger_id());
+			this.trigger.store('Module', this);
+			this.editor = new FDEditor({
+				element: this.get_editor_id(),
+				activate: this.options.main || this.options.executable,
+				type: this.options.type,
+				readonly: this.options.readonly
+			});
+			// connect trigger
+			this.trigger.addEvent('click', function(e) {
+				if (e) e.preventDefault();
+				this.switchBespin();
+			}.bind(this));
+			if (this.options.main || this.options.executable) {
+				fd.sidebar.setSelectedFile(this.trigger.getParent('li'));
+			}
+			if (this.options.active) {
+				this.switchBespin();
+				var li = this.trigger.getParent('li')
+				fd.sidebar.setSelectedFile(li);
+			}
+			if (!this.options.readonly) {
+				// here special functionality for edit page
+				var rm_mod_trigger = this.trigger.getElement('span.File_close');
+				if (rm_mod_trigger) {
+					rm_mod_trigger.addEvent('click', function(e) {
+						this.pack.removeModuleAction(e);
+					}.bind(this));
+				}
+			}
+		}
+	},
+	loadCode: function() {
+	  // load data synchronously
+	  new Request.JSON({
+		url: this.options.get_url,
+		async: false,
+		useSpinner: true,
+		spinnerTarget: 'editor-wrapper',
+		onSuccess: function(mod) {
+		  fd.editor_contents[this.get_editor_id()] = mod.code;
+		}.bind(this)
+	  }).send();
+	},
+	append: function() {
+	  fd.sidebar.addLib(this.options);
+	
+	  var textarea = new Element('textarea', {
+		  'id': this.options.filename + '_textarea',
+		  'class': 'UI_Editor_Area',
+		  'name': this.options.filename + '_textarea',
+		  'html': this.options.code
+	  }).inject('editor-wrapper');
+	},
+	get_css_id: function() {
+	  return this.options.filename;
+	},
+	on_destroy: function() {
+	  delete fd.getItem().modules[this.options.filename];
+	},
 })
 
 Package.View = new Class({
@@ -478,9 +469,9 @@ Package.Edit = new Class({
     this.assignActions();
 
     // autocomplete
-    this.autocomplete = new FlightDeck.Autocomplete({
-      'url': settings.library_autocomplete_url
-    });
+    //this.autocomplete = new FlightDeck.Autocomplete({
+    //  'url': settings.library_autocomplete_url
+    //});
   },
   assignActions: function() {
     // assign menu items
@@ -495,43 +486,43 @@ Package.Edit = new Class({
     this.boundSubmitInfo = this.submitInfo.bind(this);
 
     // add/remove module
-    this.boundAddModuleAction = this.addModuleAction.bind(this);
-    this.boundRemoveModuleAction = this.removeModuleAction.bind(this);
-    $(this.options.add_module_el).addEvent('click',
-      this.boundAddModuleAction);
-
-    // assign/remove library
-    this.boundAssignLibraryAction = this.assignLibraryAction.bind(this);
-    this.boundRemoveLibraryAction = this.removeLibraryAction.bind(this);
-    $(this.options.assign_library_el).addEvent('click',
-      this.boundAssignLibraryAction);
-    $$('#libraries .UI_File_Listing .File_close').each(function(close) {
-      close.addEvent('click', this.boundRemoveLibraryAction);
-    },this);
-
-    // add attachments
-    this.add_attachment_el = $('add_attachment');
-    this.add_attachment_el.addEvent('change', this.sendMultipleFiles.bind(this));
-    this.boundRemoveAttachmentAction = this.removeAttachmentAction.bind(this);
-    $$('#attachments .UI_File_Listing .File_close').each(function(close) {
-      close.addEvent('click', this.boundRemoveAttachmentAction);
-    },this);
-    this.attachments_counter = $('attachments-counter');
-
-    var fakeFileInput = $('add_attachment_fake'), fakeFileSubmit = $('add_attachment_action_fake');
-    this.add_attachment_el.addEvents({
-      change: function(){
-        fakeFileInput.set('value', this.get('value'));
-      },
-
-      mouseover: function(){
-        fakeFileSubmit.addClass('hover');
-      },
-
-      mouseout: function(){
-        fakeFileSubmit.removeClass('hover');
-      }
-    });
+    //this.boundAddModuleAction = this.addModuleAction.bind(this);
+    //this.boundRemoveModuleAction = this.removeModuleAction.bind(this);
+    //$(this.options.add_module_el).addEvent('click',
+    //  this.boundAddModuleAction);
+    //
+    //// assign/remove library
+    //this.boundAssignLibraryAction = this.assignLibraryAction.bind(this);
+    //this.boundRemoveLibraryAction = this.removeLibraryAction.bind(this);
+    //$(this.options.assign_library_el).addEvent('click',
+    //  this.boundAssignLibraryAction);
+    //$$('#libraries .UI_File_Listing .File_close').each(function(close) {
+    //  close.addEvent('click', this.boundRemoveLibraryAction);
+    //},this);
+    //
+    //// add attachments
+    //this.add_attachment_el = $('add_attachment');
+    //this.add_attachment_el.addEvent('change', this.sendMultipleFiles.bind(this));
+    //this.boundRemoveAttachmentAction = this.removeAttachmentAction.bind(this);
+    //$$('#attachments .UI_File_Listing .File_close').each(function(close) {
+    //  close.addEvent('click', this.boundRemoveAttachmentAction);
+    //},this);
+    //this.attachments_counter = $('attachments-counter');
+    //
+    //var fakeFileInput = $('add_attachment_fake'), fakeFileSubmit = $('add_attachment_action_fake');
+    //this.add_attachment_el.addEvents({
+    //  change: function(){
+    //    fakeFileInput.set('value', this.get('value'));
+    //  },
+    //
+    //  mouseover: function(){
+    //    fakeFileSubmit.addClass('hover');
+    //  },
+    //
+    //  mouseout: function(){
+    //    fakeFileSubmit.removeClass('hover');
+    //  }
+    //});
     if ($('jetpack_core_sdk_version')) {
       $('jetpack_core_sdk_version').addEvent('change', function() {
         new Request.JSON({
