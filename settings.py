@@ -243,6 +243,9 @@ INSTALLED_APPS = [
     'api',               # API browser
     'tutorial',          # Load tutorial templates
     'cronjobs',
+
+# 3RD PARTY APPS
+    'djcelery',
 ]
 
 # Which from above apps should be removed if in PRODUCTION
@@ -264,7 +267,19 @@ DEV_MIDDLEWARE_CLASSES = (
 #     'PORT': 4444,
 #     'BROWSER': '*firefox',
 #}
+
 import djcelery
 djcelery.setup_loader()
 
+# These settings are for if you have celeryd running
+#BROKER_HOST = 'localhost'
+#BROKER_PORT = 5672
+#BROKER_USER = 'builder'
+#BROKER_PASSWORD = 'builder'
+#BROKER_VHOST = 'builder'
+#BROKER_CONNECTION_TIMEOUT = 0.1
+#CELERY_RESULT_BACKEND = 'amqp'
+#CELERY_IGNORE_RESULT = True
+
+# Setting this to true will bypass celeryd and execute tasks in-process
 CELERY_ALWAYS_EAGER = True
