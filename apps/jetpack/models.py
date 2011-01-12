@@ -947,15 +947,13 @@ class PackageRevision(models.Model):
             '%s/%s' % (package_dir, self.package.get_data_dir()))
         self.export_dependencies(packages_dir, sdk=self.sdk)
 
+        args = [sdk_dir, '%s/packages/%s' % (sdk_dir, self.package.name),
+                self.package.name]
         if rapid:
-            return xpi_utils.build(sdk_dir,
-                    '%s/packages/%s' % (sdk_dir, self.package.name),
-                    self.package.name)
+            return xpi_utils.build(*args)
 
         from jetpack import tasks
-        tasks.xpi_build.delay(sdk_dir,
-                '%s/packages/%s' % (sdk_dir, self.package.name),
-                self.package.name)
+        tasks.xpi_build.delay(*args)
 
     def export_keys(self, sdk_dir):
         " export private and public keys "
