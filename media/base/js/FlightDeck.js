@@ -59,7 +59,7 @@ var FlightDeck = new Class({
 
 	whenXpiInstalled: function(name) {
 		this.parseTestButtons();
-		this.message.alert('Add-ons Builder', '{name} installed'.substitute({'name': (name, 'Add-on').pick()}));
+		this.message.alert('Add-ons Builder', '{name} installed'.substitute({'name': [name, 'Add-on'].pick()}));
 		// remove SDK from disk
 		if (this.rm_xpi_url) {
 			new Request.JSON({
@@ -177,9 +177,9 @@ var FlightDeck = new Class({
 	 */
 	alertIfNoAddOn: function(callback, text, title) {
 		if (this.isAddonInstalled()) return true;
-		text = (text,
-				"To test this add-on, please install the <a id='install_addon_helper' href='{addons_helper}'>Add-ons Builder Helper add-on</a>".substitute(settings)).pick();
-		title = (title, "Install Add-ons Builder Helper").pick();
+		text = [text,
+				"To test this add-on, please install the <a id='install_addon_helper' href='{addons_helper}'>Add-ons Builder Helper add-on</a>".substitute(settings)].pick();
+		title = [title, "Install Add-ons Builder Helper"].pick();
 		fd.warning.alert(title, text);
 		return false;
 	},
