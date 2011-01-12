@@ -541,7 +541,7 @@ Package.Edit = new Class({
             // set the redirect data to view_url of the new revision
             fd.setURIRedirect(response.view_url);
             // set data changed by save
-            this.setUrls(response);
+            this.registerRevision(response);
             // change url to the SDK lib code
             $('core_library_lib').getElement('a').set(
               'href', response.lib_url);
@@ -598,7 +598,7 @@ Package.Edit = new Class({
           uid: response.uid,
           type: response.ext
         });
-        self.setUrls(response);
+        self.registerRevision(response);
         self.attachments[response.uid] = attachment;
       },
 
@@ -643,7 +643,7 @@ Package.Edit = new Class({
       data: {uid: uid},
       onSuccess: function(response) {
         fd.setURIRedirect(response.view_url);
-        self.setUrls(response);
+        self.registerRevision(response);
         var attachment = self.attachments[uid];
         attachment.destroy();
       }
@@ -673,7 +673,7 @@ Package.Edit = new Class({
         // set the redirect data to view_url of the new revision
         fd.setURIRedirect(response.view_url);
         // set data changed by save
-        this.setUrls(response);
+        this.registerRevision(response);
         fd.message.alert(response.message_title, response.message);
         // initiate new Module
         var mod = new Module(this,{
@@ -713,7 +713,7 @@ Package.Edit = new Class({
       data: module.options,
       onSuccess: function(response) {
         fd.setURIRedirect(response.view_url);
-        this.setUrls(response);
+        this.registerRevision(response);
         var mod = this.modules[response.filename];
         mod.destroy();
       }.bind(this)
@@ -738,7 +738,7 @@ Package.Edit = new Class({
           // set the redirect data to view_url of the new revision
           fd.setURIRedirect(response.view_url);
           // set data changed by save
-          this.setUrls(response);
+          this.registerRevision(response);
           //fd.message.alert('Library assigned', response.message);
           this.appendLibrary(response);
         }.bind(this)
@@ -783,7 +783,7 @@ Package.Edit = new Class({
       data: {'id_number': id_number},
       onSuccess: function(response) {
         fd.setURIRedirect(response.view_url);
-        this.setUrls(response);
+        this.registerRevision(response);
         $('library_{name}'.substitute(response)).getParent('li').destroy();
         $('libraries-counter').set('text', '('+ $('libraries').getElements('.UI_File_Listing li').length +')')
       }.bind(this)
@@ -872,7 +872,7 @@ Package.Edit = new Class({
         }
         fd.setURIRedirect(response.view_url);
         // set data changed by save
-        this.setUrls(response);
+        this.registerRevision(response);
         fd.message.alert(response.message_title, response.message);
         // clean data leaving package_info data
         this.data = {};
@@ -902,7 +902,7 @@ Package.Edit = new Class({
     });
     this.keyboard.activate();
   },
-  setUrls: function(urls) {
+  registerRevision: function(urls) {
     this.revision_number = urls.revision_number;
     this.save_url = urls.save_url;
     this.test_url = urls.test_url;
