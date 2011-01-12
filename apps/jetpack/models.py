@@ -912,7 +912,13 @@ class PackageRevision(models.Model):
         return self.sdk.kit_lib if self.sdk.kit_lib else self.sdk.core_lib
 
     def build_xpi(self, modules=[], rapid=False):
-        " prepare and build XPI for test only (unsaved modules) "
+        """
+        prepare and build XPI for test only (unsaved modules)
+
+        :param modules: list of modules from editor - potentially unsaved
+        :param rapid: if True - do not use celery to produce xpi
+        :rtype: dict containin load xpi information if rapid else None
+        """
         if self.package.type == 'l':
             raise Exception('only Add-ons may build a XPI')
 
