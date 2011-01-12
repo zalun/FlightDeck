@@ -21,7 +21,9 @@
 					<div class="UI_tooltip_source" data-tooltip-for="signin" data-tooltip-title="Sign In">Sign in with your addons.mozilla.org account.</div>
 				</li>
 			{% endif %}
-            <li><span>Create [<a href="{% url jp_addon_create %}">Add-on</a>|<a href="{% url jp_library_create %}">Library]</span></li>
+            <li><span>&nbsp;</span></li>
+            <li><span>Create:</span></li>
+            <li class="active"><span><a href="{% url jp_addon_create %}">Add-on</a> | <a href="{% url jp_library_create %}">Library</span></li>
 		</ul>
 	</nav>
 </div> <!-- /UI_middleWrapper -->
