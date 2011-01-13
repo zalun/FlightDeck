@@ -14,7 +14,7 @@ from ecdsa import SigningKey, NIST256p
 from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
 
 from django.db.models.signals import pre_save, post_save
-from django.db import models
+from django.db import models, IntegrityError
 from django.utils import simplejson
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
@@ -26,6 +26,7 @@ from jetpack.errors import SelfDependencyException, FilenameExistException, \
         UpdateDeniedException, SingletonCopyException, DependencyException
 #        ManifestNotValid
 
+from jetpack import tasks
 from xpi import xpi_utils
 from utils.os_utils import make_path
 
@@ -911,16 +912,19 @@ class PackageRevision(models.Model):
 
         return self.sdk.kit_lib if self.sdk.kit_lib else self.sdk.core_lib
 
-    def build_xpi(self, modules=[], rapid=False):
+    def build_xpi(self, modules=[], hashtag=None, rapid=False):
         """
         prepare and build XPI for test only (unsaved modules)
 
         :param modules: list of modules from editor - potentially unsaved
         :param rapid: if True - do not use celery to produce xpi
-        :rtype: dict containin load xpi information if rapid else None
+        :rtype: dict containing load xpi information if rapid else AsyncResult
         """
         if self.package.type == 'l':
             raise Exception('only Add-ons may build a XPI')
+
+        if not hashtag:
+            raise IntegrityError('hashtag is required to create xpi')
 
         sdk_dir = self.get_sdk_dir()
         sdk_source = self.sdk.get_source_dir()
@@ -948,12 +952,11 @@ class PackageRevision(models.Model):
         self.export_dependencies(packages_dir, sdk=self.sdk)
 
         args = [sdk_dir, '%s/packages/%s' % (sdk_dir, self.package.name),
-                self.package.name]
+                self.package.name, hashtag]
         if rapid:
             return xpi_utils.build(*args)
 
-        from jetpack import tasks
-        tasks.xpi_build.delay(*args)
+        return tasks.xpi_build.delay(*args)
 
     def export_keys(self, sdk_dir):
         " export private and public keys "

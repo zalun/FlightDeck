@@ -44,7 +44,8 @@
 			};
 			window.addEvent('domready', function() {
                 fd = new FlightDeck({
-                  'user': '{{ user.username }}'{% block flightdeck_options %}{% endblock %}
+                    'xpi_hashtag': '{% hashtag %}',
+                    'user': '{{ user.username }}'{% block flightdeck_options %}{% endblock %}
                 });
 				{% block create_init %}{% comment %}
 					create.init(

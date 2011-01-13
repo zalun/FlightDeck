@@ -1,5 +1,6 @@
 from django.template import Library, loader, TemplateSyntaxError, Node
 from django.template.defaultfilters import escapejs
+from utils.helpers import get_random_string
 
 register = Library()
 
@@ -30,3 +31,9 @@ class EscapeTemplate(Node):
 
     def render(self, context):
         return escapejs(self.t.render(context))
+
+
+@register.simple_tag
+def hashtag(length=10):
+    """ return random string """
+    return get_random_string(length)

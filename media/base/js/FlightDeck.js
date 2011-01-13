@@ -7,7 +7,8 @@ var FlightDeck = new Class({
 	Implements: [Options, Events],
 	options: {
 		menu_el: 'UI_Editor_Menu',
-		try_in_browser_class: 'XPI_test'
+		try_in_browser_class: 'XPI_test',
+        xpi_hashtag: '',  // hashtag for the XPI creation
 		//user: ''
 	},
 	initialize: function() {
@@ -110,12 +111,18 @@ var FlightDeck = new Class({
 	 * Method: testXPI
 	 */
 	testXPI: function(response) {
-		if (response.stderr) {
-			fd.error.alert('Error in building Add-on XPI', response.stderr);
-			return;
-		}
-		this.rm_xpi_url = response.rm_xpi_url;
-		this.installXPI(response.test_xpi_url, response.name);
+        if (!response.delayed) {
+          $log('FD: XPI created');
+          if (response.stderr) {
+              fd.error.alert('Error in building Add-on XPI', response.stderr);
+              return;
+          }
+          this.rm_xpi_url = response.rm_xpi_url;
+          this.installXPI(response.test_xpi_url, response.name);
+        } else {
+          $log('FD: DEBUG: XPI delayed ...');
+          this.install_ID = this.tryInstallXPI.periodical(1000, this);
+        }
 	},
 
 	isXpiInstalled: function() {
@@ -127,6 +134,34 @@ var FlightDeck = new Class({
 	 */
 	hideEditors: function() {
 		this.editors.each(function(ed){ ed.hide(); });
+	},
+	/*
+	 * Method: tryInstallXPI
+	 */
+	tryInstallXPI: function() {
+		if (fd.alertIfNoAddOn()) {
+            url = '/xpi/test/'+this.options.xpi_hashtag+'/';
+			$log('FD: installing from ' + url);
+			new Request({
+				url: url,
+				headers: {'Content-Type': 'text/plain; charset=x-user-defined'},
+				onSuccess: function(responseText) {
+                    if (responseText) {
+                        clearInterval(this.install_ID);
+                        var result = window.mozFlightDeck.send({cmd: "install", contents: responseText});
+                        if (result && result.success) {
+                            this.fireEvent('xpi_installed', 'someName');
+                        } else {
+                            if (result) $log(result);
+                            this.warning.alert(
+                                'Add-ons Builder', 
+                                'Wrong response from Add-ons Helper. Please <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=573778">let us know</a>'
+                            );
+                        }
+                    }
+				}.bind(this)
+			}).send();
+		}
 	},
 	/*
 	 * Method: installXPI

@@ -18,7 +18,7 @@ def sdk_copy(sdk_source, sdk_dir=None):
     shutil.copytree(sdk_source, sdk_dir)
 
 
-def build(sdk_dir, package_dir, filename):
+def build(sdk_dir, package_dir, filename, hashtag):
     """Build xpi from source in sdk_dir."""
     # create XPI
     os.chdir(package_dir)
@@ -39,7 +39,7 @@ def build(sdk_dir, package_dir, filename):
     response = process.communicate()
 
     # move the XPI created to the XPI_TARGETDIR
-    xpi_targetfilename = "%d-%s.xpi" % (time.time(), filename)
+    xpi_targetfilename = "%s.xpi" % hashtag
     xpi_targetpath = os.path.join(settings.XPI_TARGETDIR, xpi_targetfilename)
     xpi_path = os.path.join(package_dir, "%s.xpi" % filename)
     shutil.copy(xpi_path, xpi_targetpath)

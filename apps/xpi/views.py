@@ -28,6 +28,10 @@ def prepare_test(r, id_number, revision_number=None):
                         package__id_number=id_number, package__type='a',
                         revision_number=revision_number)
 
+    hashtag = r.POST.get('hashtag')
+    if not hashtag:
+        return HttpResponseForbidden('{"error": "No hashtag"}')
+
     # support temporary data
     if r.POST.get('live_data_testing', False):
         modules = []
@@ -37,11 +41,14 @@ def prepare_test(r, id_number, revision_number=None):
                 if mod.code != code:
                     mod.code = code
                     modules.append(mod)
-        (xpi_path, stdout, stderr) = revision.build_xpi(modules, rapid=True)
+        #(xpi_path, stdout, stderr) = revision.build_xpi(modules, rapid=True)
+        response = revision.build_xpi(modules, hashtag=hashtag)
 
     else:
-        (xpi_path, stdout, stderr) = revision.build_xpi(rapid=True)
+        #(xpi_path, stdout, stderr) = revision.build_xpi(rapid=True)
+        response = revision.build_xpi(hashtag=hashtag)
 
+    return HttpResponse('{"delayed": true}')
     if stderr and not settings.DEBUG:
         # XXX: this should also log the error in file
         xpi_utils.remove(revision.get_sdk_dir())
@@ -80,7 +87,7 @@ def prepare_download(r, id_number, revision_number=None, xpi_path=''):
                         args=[id_number, revision_number]) + '?retry=1'
 
     if not retry:
-        (xpi_path, stdout, stderr) = revision.build_xpi(rapid=True)
+        response = revision.build_xpi(hashtag)
 
     return get_download(r,
                         xpi_path,
@@ -90,19 +97,20 @@ def prepare_download(r, id_number, revision_number=None, xpi_path=''):
                        )
 
 
-def get_test(r, path):
+def get_test(r, hashtag):
     """
     return XPI file for testing
     """
-    path = os.path.join(settings.XPI_TARGETDIR, path)
+    path = os.path.join(settings.XPI_TARGETDIR, '%s.xpi' % hashtag)
     mimetype = 'text/plain; charset=x-user-defined'
 
     try:
         xpi = open(path, 'rb').read()
     except Exception, err:
-        log.critical('Error creating Add-on: %s' % str(err))
-        return HttpResponseServerError
+        log.debug('Add-on not yet created: %s' % str(err))
+        return HttpResponse('')
 
+    log.info('Downloading Add-on: %s' % hashtag)
     return HttpResponse(xpi, mimetype=mimetype)
 
 

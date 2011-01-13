@@ -124,9 +124,11 @@ var Package = new Class({
     }
   },
   installAddon: function() {
+    var data = this.data || {};
+    data['hashtag'] = fd.options.xpi_hashtag,
     new Request.JSON({
       url: this.test_url,
-      data: this.data || {},
+      data: data,
       useSpinner: true,
       spinnerTarget: $(this.options.test_el).getParent('div'),
       onSuccess: fd.testXPI.bind(fd)

@@ -18,6 +18,7 @@ FlightDeck = Class.refactor(FlightDeck,{
 				var testThisXpi = function() {
 					new Request.JSON({
 						url: el.get('href'),
+                        data: {'hashtag': fd.options.xpi_hashtag},
                         useSpinner: true,
                         spinnerTarget: this.getParent('li.UI_Item'),
 						onSuccess: fd.testXPI.bind(fd)
