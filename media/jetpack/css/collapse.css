@@ -1,0 +1,156 @@
+ul.collapse {
+	margin: 0;
+	padding:0;
+}
+
+ul.licollapsest ul {
+	margin: 0;
+	padding: 0 0 0 10px;
+}
+
+ul.collapse li {
+	list-style-type: none;
+	padding: 0;
+	line-height: 18px;
+	margin: 4px 0;
+	background: none;
+	clear: both;
+	overflow: hidden;
+}
+
+ul.collapse .label {
+	padding: 2px 0 2px 24px;
+	cursor: pointer;
+	color: #5e5e5e;
+	text-decoration: none;
+}
+
+ul.collapse a.expand {
+	outline: 0;
+	float: left;
+	width: 16px;
+	height: 19px;
+	padding: 0;
+	margin: 0;
+	background: url(/media/jetpack/img/expand.png) no-repeat bottom center;
+}
+
+ul.collapse a.collapse {
+	background: url(/media/jetpack/img/collapse.png) no-repeat bottom center;
+}
+
+ul.collapse a.collapse + .holder > .icon
+{
+	background-image: url(/media/jetpack/img/folder-open.png);
+}
+
+ul li.top_branch > a
+{
+	position:absolute;
+	top:8px;
+	left:10px;
+}
+
+ul li.top_branch > .holder > .label
+{
+	background-color: #efefef;
+	padding: 8px 6px 8px 60px;
+	border-width: 1px 0;
+	border-style: solid;
+	border-color: #dadada #d0d0d0 #cacaca;
+	display:block;
+	float:none;
+}
+
+ul li.top_branch > .holder > .icon {
+	background:no-repeat left top ;
+	background-image: url(/media/jetpack/img/toggle-icons.png) !important;
+	position:absolute;
+	height:27px;
+	left:26px;
+	top:5px;
+	width:26px;
+}
+
+#lib_branch > .holder > .icon
+{
+	background-position:0 0;
+}
+
+#data_branch > .holder > .icon
+{
+	background-position:0 -81px;
+}
+
+#plugins_branch > .holder > .icon
+{
+	background-position:0 -110px;
+}
+
+li[title$=".html"] > .holder > .icon
+{
+	background-image: url(/media/jetpack/img/html.png) !important;
+}
+
+li[title$=".js"] > .holder > .icon
+{
+	background-image: url(/media/jetpack/img/js.png) !important;
+}
+
+li[title$=".css"] > .holder > .icon
+{
+	background-image: url(/media/jetpack/img/css.png) !important;
+}
+
+li[title$=".png"] > .holder > .icon, li[title$=".jpg"] > .holder > .icon, li[title$=".gif"] > .holder > .icon
+{
+	background-image: url(/media/jetpack/img/image.png) !important;
+}
+
+li[title$=".json"] > .holder > .icon
+{
+	background-image: url(/media/jetpack/img/json.png) !important;
+}
+
+li[title$=".md"] > .holder > .icon
+{
+	background-image: url(/media/jetpack/img/md.png) !important;
+}
+
+
+div.branch_actions div.body div
+{
+	float: left;
+	height: 12px;
+	width: 12px;
+	margin-right: 4px;
+	background: no-repeat center center;
+	cursor: pointer;
+}
+
+	div.add_branch
+	{
+		display: none;
+	}
+		
+		div.add_branch.active
+		{
+			display: block;
+			background-image: url(/media/jetpack/img/plus.png) !important;
+		}
+		
+	div.rename_branch
+	{
+		background-image: url(/media/jetpack/img/pencil.png) !important;
+	}
+		
+		div.rename_branch.active
+		{
+			background-image: url(/media/jetpack/img/pencil-minus.png) !important;
+		}
+		
+	div.delete_branch
+	{
+		background-image: url(/media/jetpack/img/minus.png) !important;
+	}
+	
