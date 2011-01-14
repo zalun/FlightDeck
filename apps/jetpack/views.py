@@ -5,6 +5,7 @@ import commonware.log
 import time
 import os
 import shutil
+import re
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -257,7 +258,7 @@ def package_add_module(r, id_number, type_id,
             'You are not the author of this %s' % escape(
                 revision.package.get_type_name()))
 
-    filename = slugify(r.POST.get('filename'))
+    filename = re.sub('[^a-zA-Z0-9_\-\/]+', '-', r.POST.get('filename').strip())
 
     mod = Module(
         filename=filename,
