@@ -7,6 +7,11 @@ FlightDeck = Class.refactor(FlightDeck,{
 		modalWrap: {
 			start: '<div class="UI_Modal_Wrapper"><div class="UI_Modal">',
 			end: '</div></div>'
+		},
+		question: {
+			ok: 'OK',
+			id: '',
+			cancel: 'Cancel'
 		}
 	},
 	initialize: function(options) {
@@ -45,9 +50,7 @@ FlightDeck = Class.refactor(FlightDeck,{
 		this.modals[key].destroy();
 	},
 	showQuestion: function(data) {
-		if (!data.cancel) data.cancel = 'Cancel';
-		if (!data.ok) data.ok = 'OK';
-		if (!data.id) data.id = '';
+		data = Object.merge({}, this.options.question, data);
 		var template = '<div id="display-package-info">'+
 							'<h3>{title}</h3>'+
 							'<div class="UI_Modal_Section">'+
