@@ -14,6 +14,11 @@ CRONS['prod'] = {
     'DJANGO': 'apache cd $FLIGHTDECK; $MANAGE',
 }
 
+CRONS['preview'] = {
+    'FLIGHTDECK': '/data/amo_python/src/builder.preview/flightdeck',
+    'DJANGO': 'apache cd $FLIGHTDECK; $MANAGE',
+}
+
 # Update each dict with the values from common.
 for key, dict_ in CRONS.items():
     dict_.update(COMMON)

@@ -1,0 +1,6 @@
+#
+# !!AUTO-GENERATED!!  Edit scripts/crontab/make-crons.py instead.
+#
+
+#once per day
+30 1 * * * apache cd /data/amo_python/src/builder.preview/flightdeck; /data/amo_python/src/builder.preview/flightdeck manage.py cron clean_tmp
