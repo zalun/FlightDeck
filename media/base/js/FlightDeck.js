@@ -113,16 +113,7 @@ var FlightDeck = new Class({
      * Method: testXPI
      */
     testXPI: function(response) {
-        //if (!response.delayed) {
-        //  $log('FD: XPI created');
-        //  if (response.stderr) {
-        //      fd.error.alert('Error in building Add-on XPI', response.stderr);
-        //      return;
-        //  }
-        //  this.rm_xpi_url = response.rm_xpi_url;
-        //  this.installXPI(response.test_xpi_url, response.name);
-        //} else {
-        $log('FD: DEBUG: XPI delayed ...');
+        $log('FD: DEBUG: XPI delayed ... try to load every ' + this.options.request_interval/1000 + ' seconds' );
         this.request_number = 0;
         this.install_ID = this.tryInstallXPI.periodical(
                 this.options.requestInterval, this);
@@ -147,30 +138,34 @@ var FlightDeck = new Class({
      */
     tryInstallXPI: function() {
         if (fd.alertIfNoAddOn()) {
-            this.request_number += 1;
-            url = '/xpi/test/'+this.options.xpi_hashtag+'/';
-            $log('FD: installing from ' + url);
-            new Request({
-                url: url,
-                headers: {'Content-Type': 'text/plain; charset=x-user-defined'},
-                onSuccess: function(responseText) {
-                    if (responseText || this.request_number > 50) {
-                        clearInterval(this.install_ID);
-                    }
-                    if (responseText) {
-                        var result = window.mozFlightDeck.send({cmd: "install", contents: responseText});
-                        if (result && result.success) {
-                            this.fireEvent('xpi_installed', 'someName');
-                        } else {
-                            if (result) $log(result);
-                            this.warning.alert(
-                                'Add-ons Builder', 
-                                'Wrong response from Add-ons Helper. Please <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=573778">let us know</a>'
-                            );
+            if (!this.install_xpi_request || (this.install_xpi_request && !this.install_xpi_request.isRunning())) {
+                this.request_number += 1;
+                url = '/xpi/test/'+this.options.xpi_hashtag+'/';
+                $log('FD: installing from ' + url);
+                this.install_xpi_request = new Request({
+                    url: url,
+                    headers: {'Content-Type': 'text/plain; charset=x-user-defined'},
+                    onSuccess: function(responseText) {
+                        if (responseText || this.request_number > 50) {
+                            clearInterval(this.install_ID);
                         }
-                    } 
-                }.bind(this)
-            }).send();
+                        if (responseText) {
+                            var result = window.mozFlightDeck.send({cmd: "install", contents: responseText});
+                            if (result && result.success) {
+                                this.fireEvent('xpi_installed', '');
+                            } else {
+                                if (result) $log(result);
+                                this.warning.alert(
+                                    'Add-ons Builder', 
+                                    'Wrong response from Add-ons Helper. Please <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=573778">let us know</a>'
+                                );
+                            }
+                        } 
+                    }.bind(this)
+                }).send();
+            } else {
+                $log('FD: DEBUG request is running');
+            }
         }
     },
     /*

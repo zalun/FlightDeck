@@ -37,6 +37,7 @@ def build(sdk_dir, package_dir, filename, hashtag):
         return HttpResponseServerError
 
     response = process.communicate()
+    # This process is now run in celery - find a way to display errors
 
     # move the XPI created to the XPI_TARGETDIR
     xpi_targetfilename = "%s.xpi" % hashtag
