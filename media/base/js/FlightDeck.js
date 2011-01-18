@@ -115,6 +115,7 @@ var FlightDeck = new Class({
     testXPI: function(response) {
         $log('FD: DEBUG: XPI delayed ... try to load every ' + this.options.request_interval/1000 + ' seconds' );
         this.request_number = 0;
+        this.install_ID = this.tryInstallXPI.delay(1000, this);
         this.install_ID = this.tryInstallXPI.periodical(
                 this.options.request_interval, this);
         //}
