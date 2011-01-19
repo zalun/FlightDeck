@@ -9,7 +9,8 @@ FileTree = new Class({
 			'id': null,
 			'class': ''
 		},
-		editable: true
+		editable: true,
+		snap: 3
 		//onAddBranch: function(el, attributes, target){}
 		//onRenameStart: function(li, span){}
 		//onRenameComplete: function(li, span){}
@@ -28,6 +29,21 @@ FileTree = new Class({
 			}
 		});
 		return this;
+	},
+	
+	mousedown: function(element, event) {
+		this.parent(element, event);
+		if (this.clone) {
+			this.clone.setStyle('display', 'none');
+		}
+		return this;
+	},
+	
+	onDrag: function(el, event) {
+		this.parent(el, event);
+		if (this.clone) {
+			this.clone.setStyle('display', null); //default snap is already 6px
+		}
 	},
 	
 	addBranch: function(attr, target, options){
