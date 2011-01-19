@@ -621,7 +621,7 @@ def package_save(r, id_number, type_id, revision_number=None,
     if should_reload:
         response_data['reload'] = "yes"
 
-    return render_to_response("package_saved.json", locals(),
+    return render_to_response("json/package_saved.json", locals(),
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
