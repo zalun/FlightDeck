@@ -6,20 +6,20 @@ var Sidebar = new Class({
 	options: {
 		file_selected_class: 'UI_File_Selected',
 		file_normal_class: 'UI_File_Normal',
-		file_listing_class: 'tree'
+		file_listing_class: 'tree',
+		editable: false
 	},
 	
 	initialize: function(options){
 		this.setOptions(options);
 		this.element = $('app-sidebar');
-		this.buildTree();
-		this.attach();
 	},
 	
 	buildTree: function() {
+		var that = this;
 		var treeOptions = {
 			checkDrag: function(el){
-				return !el.hasClass('nodrag') && this.options.editable;
+				return !el.hasClass('nodrag') && that.options.editable;
 			},
 			checkDrop: function(el, drop){
 				var isFile = el.get('rel') == 'file',
@@ -37,8 +37,7 @@ var Sidebar = new Class({
 			},
 			onRenameComplete: function(){
 				$$('div.rename_branch').removeClass('active');
-			},
-			editable: true
+			}
 		};
 		
 		// Tree and Collapse initilizations
@@ -78,6 +77,8 @@ var Sidebar = new Class({
 			'id': 'plugins_branch',
 			'class': 'top_branch nodrag'
 		}, null, topBranchOptions);
+		
+		this.attach();
 		
 		return this;
 	},
@@ -138,6 +139,11 @@ var Sidebar = new Class({
 	addFileToTree: function(treeName, file) {
 		var tree = this.trees[treeName],
 			that = this;
+			
+		if (!tree) {
+			this.buildTree();
+			tree = this.trees[treeName];
+		}
 		
 		tree.addPath(file, {
 			target:	$(tree).getElement('.top_branch'),

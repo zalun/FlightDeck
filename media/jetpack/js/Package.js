@@ -43,6 +43,8 @@ var Package = new Class({
 	initialize: function(options) {
 		this.revision_number = this.options.revision_number;
 		this.setOptions(options);
+		this.revision_number = this.options.revision_number;
+		fd.sidebar.options.editable = !this.options.readonly;
 		this.instantiate_modules();
 		this.instantiate_attachments();
 		$('revisions_list').addEvent('click', this.show_revision_list);
