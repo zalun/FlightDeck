@@ -9,13 +9,18 @@ ul.licollapsest ul {
 }
 
 ul.collapse li {
+	background: url(/media/jetpack/img/t.gif) no-repeat top left;
 	list-style-type: none;
-	padding: 0;
+	padding: 0 0 0 20px;
 	line-height: 18px;
-	margin: 4px 0;
-	background: none;
+	margin: 0;
 	clear: both;
 	overflow: hidden;
+}
+
+ul.collapse li:last-child {
+	background-image:url(/media/jetpack/img/t-bottom.gif);
+	
 }
 
 ul.collapse .label {
@@ -27,7 +32,9 @@ ul.collapse .label {
 
 ul.collapse a.expand {
 	outline: 0;
-	float: left;
+	position:absolute;
+	left:0;
+	top:0;
 	width: 16px;
 	height: 19px;
 	padding: 0;
@@ -44,6 +51,10 @@ ul.collapse a.collapse + .holder > .icon
 	background-image: url(/media/jetpack/img/folder-open.png);
 }
 
+ul.collapse li.top_branch {
+	background:none;
+}
+
 ul li.top_branch > a
 {
 	position:absolute;
@@ -51,15 +62,20 @@ ul li.top_branch > a
 	left:10px;
 }
 
+li.top_branch > .holder {
+	overflow:hidden;
+}
+
 ul li.top_branch > .holder > .label
 {
 	background-color: #efefef;
-	padding: 8px 6px 8px 60px;
-	border-width: 1px 0;
+	padding: 8px 6px 8px 40px;
+	border-width: 1px;
 	border-style: solid;
 	border-color: #dadada #d0d0d0 #cacaca;
+	-moz-border-radius:3px;
 	display:block;
-	float:none;
+	float:left;
 }
 
 ul li.top_branch > .holder > .icon {
@@ -67,9 +83,13 @@ ul li.top_branch > .holder > .icon {
 	background-image: url(/media/jetpack/img/toggle-icons.png) !important;
 	position:absolute;
 	height:27px;
-	left:26px;
+	left:5px;
 	top:5px;
 	width:26px;
+}
+
+ul li.top_branch > a.expand {
+	top:5px;
 }
 
 #lib_branch > .holder > .icon

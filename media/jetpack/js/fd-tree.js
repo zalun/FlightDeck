@@ -1,6 +1,6 @@
-Tree = Class.refactor(Tree, {
+FileTree = new Class({
 	
-	Implements: [Options, Events, Class.Singleton],
+	Extends: Tree,
 	
 	options: {
 		branch: {
@@ -17,14 +17,10 @@ Tree = Class.refactor(Tree, {
 	},
 	
 	attach: function(){
-		this.previous();
+		this.parent();
 		var that = this;
 		this.element.addEvents({
-			/*'click:relay(.actions .delete)': function(e) {
-				that.deleteBranch($(e.target).getParent('li'));
-			},*/
 			'click:relay(.actions .edit)': function(e) {
-				$log('edit click');
 				that.renameBranch($(e.target).getParent('li'));
 			},
 			'keypress:relay(span)': function(e){
@@ -71,7 +67,10 @@ Tree = Class.refactor(Tree, {
 		if(label.get('contenteditable') == 'true'){
 			label.set('contenteditable', false).blur();
 			window.getSelection().removeAllRanges();
-			this.fireEvent('renameComplete', [li, label]);
+			label.set('title', label.get('text'));
+			li.set('title', label.get('text'));
+			
+			this.fireEvent('renameComplete', [li, this.getFullPath(li)]);
 			return false;
 		}
 		
@@ -99,22 +98,25 @@ Tree = Class.refactor(Tree, {
 	addPath: function(obj, options){
 		options = options || {};
 		var	suffix = options.suffix || '',
-			splitted = obj.options.filename.split('/'),
+			splitted = obj.options.path.split('/'),
 			elements = Array.clone(splitted),
 			end = splitted.length - 1,
-			selector = '';
+			selector = '',
+			el;
 			
 		elements.each(function(name, i, a){
 			var path = splitted.slice(0, i + 1).join('/');
 			if(i == end){
 				var previous = a[i - 1] ? a[i - 1].getElement('ul') : options.target;
-				a[i] = previous.getChildren(selector += 'li[title='+ name + suffix +'] ')[0] || this.addBranch({
+				el = a[i] = previous.getChildren(selector += 'li[title='+ name + suffix +'] ')[0] || this.addBranch({
 					'title': name + suffix,
 					'name': name,
 					'path': path,
 					'url': obj.options.url,
 					'class': 'UI_File_Normal'
 				}, previous, options);
+				
+				a[i].store('file', obj);
 			}
 			else{
 				a[i] = options.target.getElement(selector += 'li[title='+ name +'] ') || this.addBranch({
@@ -124,13 +126,24 @@ Tree = Class.refactor(Tree, {
 					'path': path
 				}, options.target, options);
 			}
-			a[i].store('file', obj);
 			
 		}, this);
+		
+		return el;
+	},
+	
+	getFullPath: function(branch) {
+		var name = branch.get('title'),
+			parentEl = branch.getParent('li');
+			
+		if (!parentEl.hasClass('top_branch')) {
+			name = this.getFullPath(parentEl) + '/' + name;
+		}
+		return name;
 	},
 	
 	updateElement: function(element){
-		this.previous(element);
+		this.parent(element);
 		this.updatePath(element);
 	},
 	

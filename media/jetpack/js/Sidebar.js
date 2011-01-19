@@ -10,6 +10,8 @@ var Sidebar = new Class({
 		editable: false
 	},
 	
+	trees: {},
+	
 	initialize: function(options){
 		this.setOptions(options);
 		this.element = $('app-sidebar');
@@ -42,13 +44,13 @@ var Sidebar = new Class({
 		
 		// Tree and Collapse initilizations
 		var trees = this.trees = {
-			'lib': new Tree('LibTree', treeOptions),
-			'data': new Tree('DataTree', treeOptions),
-			'plugins': new Tree('PluginsTree', treeOptions)
+			'lib': new FileTree('LibTree', treeOptions),
+			'data': new FileTree('DataTree', treeOptions),
+			'plugins': new FileTree('PluginsTree', treeOptions)
 		};
 		
 		var topBranchOptions = {
-			add: true,
+			add: this.options.editable,
 			edit: false,
 			remove: false
 		};
@@ -89,17 +91,25 @@ var Sidebar = new Class({
 			
 		// highlight branch on click
 		sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .label)'.substitute(this.options), function(e) {
-			that.setSelectedFile($(e.target).getParent('li'))
+			var li = $(e.target).getParent('li'),
+				file = li.retrieve('file');
+			that.setSelectedFile(li);
+			file.onSelect();
 		});
 		
 		//adding modules to Lib
-		$(this.trees.lib).addEvent('click:relay(li.top_branch > .holder .add)'.substitute(this.options), function(e) {
+		$(this.trees.lib).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
 			that.promptNewFile();
 		});
 		
 		//adding attachments to Data
-		$(this.trees.data).addEvent('click:relay(li.top_branch > .holder .add)'.substitute(this.options), function(e) {
+		$(this.trees.data).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
 			that.promptAttachment();
+		});
+		
+		//adding User Libraries to Plugins
+		$(this.trees.plugins).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
+			that.promptPlugin();
 		});
 		
 		// delete
@@ -112,8 +122,16 @@ var Sidebar = new Class({
 		
 		Object.each(this.trees, function(tree, name) {
 			tree.addEvents({
-				'renameComplete': function(li, span) {
-					//li.retrieve('file')
+				'renameComplete': function(li, fullpath) {
+					var file = li.retrieve('file'),
+						pack = fd.getItem();
+						
+					if (name == 'lib') {
+						pack.renameModule(file.options.filename, fullpath.replace('.'+file.options.type, ''));
+					} else if (name == 'data') {
+						pack.renameAttachment(file.options.uid, fullpath.replace('.'+file.options.type, ''));
+					}
+					
 				},
 				'deleteBranch': function(li) {
 					
@@ -145,15 +163,26 @@ var Sidebar = new Class({
 			tree = this.trees[treeName];
 		}
 		
-		tree.addPath(file, {
+		var options = {
 			target:	$(tree).getElement('.top_branch'),
-			suffix: '.'+file.options['type'],
 			url: file.options.url
-		});	
+		};
+	
+		if (!this.options.editable) {
+			options.edit = false;
+			options.remove = false;
+		}
+		
+		
+		var element = tree.addPath(file, options);	
 		tree.collapse.prepare();
 		file.addEvent('destroy', function() {
 			that.removeFileFromTree(treeName, file);
 		});
+
+		if(file.options.active || file.options.main) {
+			this.setSelectedFile(element);
+		}
 	}.protect(),
 	
 	addLib: function(lib) {
@@ -165,7 +194,7 @@ var Sidebar = new Class({
 	},
 	
 	addPlugin: function(plugin) {
-		this.addFileToTree('plugin', plugin);
+		this.addFileToTree('plugins', plugin);
 	},
 	
 	setSelectedFile: function(el) {
@@ -177,13 +206,15 @@ var Sidebar = new Class({
 		
 		el.removeClass(options.file_normal_class)
 			.addClass(options.file_selected_class);
-			
+		
+		
+		
 		return this;
 	},
 	
 	promptRemoval: function(file) {
 		var question = fd.showQuestion({
-			title: 'Are you sure you want to remove {filename}.js?'.substitute(file.options),
+			title: 'Are you sure you want to remove {name}?'.substitute({ name: file.options.path }),
 			message: 'You may always copy it from this revision',
 			ok: 'Remove',
 			id: 'remove_module_button',
@@ -235,6 +266,32 @@ var Sidebar = new Class({
 				fd.getItem().sendMultipleFiles(fileInput.files);
 				prompt.destroy();
 			}
+		});
+	},
+	
+	promptPlugin: function() {
+		var prompt = fd.showQuestion({
+			title: 'Add a User Library',
+			message: '<input type="text" name="new_library" id="new_library" placeholder="Search for libraries to include" />' +
+					 '<input type="hidden" name="library_id_number" id="library_id_number" />',
+			ok: 'Add Library',
+			id: 'new_library_button',
+			callback: function() {
+				var lib_id = $('library_id_number').value;
+				if(!lib_id) {
+					fd.error.alert('No User Library selected', 'Please enter the name of an existing User Library');
+					return;
+				}
+				
+				fd.getItem().assignLibrary(lib_id)
+				prompt.destroy();
+			}
+		});
+		
+		//setup Library autocomplete
+		// autocomplete
+		var autocomplete = new FlightDeck.Autocomplete({
+			'url': settings.library_autocomplete_url
 		});
 	},
 	

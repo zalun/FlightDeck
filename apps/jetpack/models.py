@@ -417,6 +417,12 @@ class PackageRevision(models.Model):
         return reverse(
             'jp_%s_revision_add_module' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
+    
+    def get_rename_module_url(self):
+        " returns URL to rename module in the package revision "
+        return reverse(
+            'jp_%s_revision_rename_module' % self.package.get_type_name(),
+            args=[self.package.id_number, self.revision_number])
 
     def get_remove_module_url(self):
         " returns URL to remove module from the package revision "
@@ -428,6 +434,12 @@ class PackageRevision(models.Model):
         " returns URL to add attachment to the package revision "
         return reverse(
             'jp_%s_revision_add_attachment' % self.package.get_type_name(),
+            args=[self.package.id_number, self.revision_number])
+    
+    def get_rename_attachment_url(self):
+        " returns URL to rename module in the package revision "
+        return reverse(
+            'jp_%s_revision_rename_attachment' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
     def get_remove_attachment_url(self):
@@ -1141,15 +1153,17 @@ class Attachment(models.Model):
         """Writes the file."""
         self.create_path()
         self.save()
+        
+        if hasattr(self, 'data'):
 
-        directory = os.path.dirname(self.get_file_path())
-
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-
-        handle = open(self.get_file_path(), 'wb')
-        handle.write(self.data)
-        handle.close()
+            directory = os.path.dirname(self.get_file_path())
+    
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+    
+            handle = open(self.get_file_path(), 'wb')
+            handle.write(self.data)
+            handle.close()
 
     def export_file(self, static_dir):
         " copies from uploads to the package's data directory "

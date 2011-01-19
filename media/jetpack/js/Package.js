@@ -40,13 +40,15 @@ var Package = new Class({
 	},
 	modules: {},
 	attachments: {},
+	plugins: {},
 	initialize: function(options) {
-		this.revision_number = this.options.revision_number;
 		this.setOptions(options);
 		this.revision_number = this.options.revision_number;
 		fd.sidebar.options.editable = !this.options.readonly;
 		this.instantiate_modules();
 		this.instantiate_attachments();
+		this.instantiate_dependencies();
+		
 		$('revisions_list').addEvent('click', this.show_revision_list);
 
 		// testing
@@ -158,6 +160,14 @@ var Package = new Class({
 			this.attachments[attachment.uid] = new Attachment(this,attachment);
 		}, this);
 	},
+	instantiate_dependencies: function() {
+		// iterate through attachments
+		this.options.dependencies.each(function(plugin) {
+			plugin.readonly = this.options.readonly;
+			plugin.append = true;
+			this.plugins[plugin.full_name] = new Library(this,plugin);
+		}, this);
+	},
 	show_revision_list: function(e) {
 		if (e) e.stop();
 		new Request({
@@ -170,11 +180,20 @@ var Package = new Class({
 });
 
 var File = new Class({
+	
 	Implements: [Options, Events],
+	
 	options: {
+		path: null
 		//events
 			//onDestroy: function() {}
 	},
+	
+	initialize: function(pack, options) {
+		this.pack = pack;
+		this.setOptions(options);
+	},
+	
 	destroy: function() {
 		// refactor me
 		if (this.textarea) this.textarea.destroy();
@@ -214,12 +233,33 @@ var File = new Class({
 		if (!this._editor_id)
 			this._editor_id = this.get_css_id() + this.options.code_editor_suffix;
 		return this._editor_id;
-	},
-	get_trigger_id: function() {
-		if (!this._trigger_id)
-			this._trigger_id = this.get_css_id() + this.options.code_trigger_suffix;
-		return this._trigger_id;
 	}
+});
+
+var Library = new Class({
+	
+	Extends: File,
+	
+	options: {
+		append: true
+	},
+	
+	initialize: function(pack, options) {
+		options.path = options.full_name;
+		this.parent(pack, options);
+		if(this.options.append) {
+			this.append();
+		}
+	},
+	
+	append: function() {
+		fd.sidebar.addPlugin(this);
+	},
+	
+	onSelect: function() {
+		//do what?
+	}
+	
 });
 
 var Attachment = new Class({
@@ -236,52 +276,39 @@ var Attachment = new Class({
 	is_editable: function() {
 		return ['css', 'txt', 'js', 'html'].contains(this.options.type);
 	},
+	is_image: function() {
+		return ['jpg', 'gif', 'png'].contains(this.options.type);
+	},
 	initialize: function(pack, options) {
-		this.setOptions(options);
-		this.pack = pack;
+		this.parent(pack, options);
+		this.options.path = options.filename + '.' + options.type;
+
 		if (this.options.append) {
 			this.append();
 		}
 
-		// connect trigger with editor
-		if ($(this.get_trigger_id())) {
-			this.trigger = $(this.get_trigger_id());
-			this.trigger.store('Attachment', this);
-			this.editor = new FDEditor({
-				element: this.get_editor_id(),
-				activate: this.options.main || this.options.executable,
-				type: this.options.type,
-				readonly: this.options.readonly
-			});
-			// connect trigger
-			this.trigger.addEvent('click', function(e) {
-				if (e) e.preventDefault();
-				if (this.trigger == e.target) {
-					if (this.is_editable()) {
-						this.switchBespin();
-						this.highlightMenu();
-					} else {
-						var target = e.target;
-						var url = target.get('href');
-						var ext = target.get('rel');
-						var filename = target.get('text').escapeAll();
-						var template_start = '<div id="attachment_view"><h3>'+filename+'</h3><div class="UI_Modal_Section">';
-						var template_end = '</div><div class="UI_Modal_Actions"><ul><li><input type="reset" value="Close" class="closeModal"/></li></ul></div></div>';
-						var template_middle = 'Download <a href="'+url+'">'+filename+'</a>';
-						if (['jpg', 'gif', 'png'].contains(ext)) template_middle += '<p><img src="'+url+'"/></p>';
-						this.attachmentWindow = fd.displayModal(template_start+template_middle+template_end);
-					}
-				}
-			}.bind(this));
-			if (this.options.active && this.is_editable()) {
-				this.switchBespin();
-				this.highlightMenu();
-			}
+		// create editor
+		this.editor = new FDEditor({
+			element: this.get_editor_id(),
+			activate: this.options.main || this.options.executable,
+			type: this.options.type,
+			readonly: this.options.readonly
+		});
+		if (this.options.active && this.is_editable()) {
+			this.switchBespin();
+			//this.highlightMenu();
 		}
 	},
-	highlightMenu: function() {
-		var li = this.trigger.getParent('li')
-		fd.sidebar.setSelectedFile(li);
+	onSelect: function() {
+		if (this.is_editable()) {
+			this.switchBespin();
+		} else {
+			var template_start = '<div id="attachment_view"><h3>'+this.options.filename+'</h3><div class="UI_Modal_Section">';
+			var template_end = '</div><div class="UI_Modal_Actions"><ul><li><input type="reset" value="Close" class="closeModal"/></li></ul></div></div>';
+			var template_middle = 'Download <a href="'+this.options.get_url+'">'+this.options.filename+'</a>';
+			if (this.is_image()) template_middle += '<p><img src="'+this.options.get_url+'"/></p>';
+			this.attachmentWindow = fd.displayModal(template_start+template_middle+template_end);
+		}
 	},
 	loadCode: function() {
 		// load data synchronously
@@ -334,44 +361,29 @@ var Module = new Class({
 		counter: 'modules'
 	},
 	initialize: function(pack, options) {
-		this.setOptions(options);
-		this.pack = pack;
+		this.parent(pack, options);
+		this.options.path = this.options.filename + '.' + this.options.type;
+		
 		if (this.options.append) {
 			this.append();
 		}
-		// connect trigger with editor
-		if ($(this.get_trigger_id())) {
-			this.trigger = $(this.get_trigger_id());
-			this.trigger.store('Module', this);
-			this.editor = new FDEditor({
-				element: this.get_editor_id(),
-				activate: this.options.main || this.options.executable,
-				type: this.options.type,
-				readonly: this.options.readonly
-			});
-			// connect trigger
-			this.trigger.addEvent('click', function(e) {
-				if (e) e.preventDefault();
-				this.switchBespin();
-			}.bind(this));
-			if (this.options.main || this.options.executable) {
-				fd.sidebar.setSelectedFile(this.trigger.getParent('li'));
-			}
-			if (this.options.active) {
-				this.switchBespin();
-				var li = this.trigger.getParent('li')
-				fd.sidebar.setSelectedFile(li);
-			}
-			if (!this.options.readonly) {
-				// here special functionality for edit page
-				var rm_mod_trigger = this.trigger.getElement('span.File_close');
-				if (rm_mod_trigger) {
-					rm_mod_trigger.addEvent('click', function(e) {
-						this.pack.removeModuleAction(e);
-					}.bind(this));
-				}
-			}
+		// create editor
+		this.editor = new FDEditor({
+			element: this.get_editor_id(),
+			activate: this.options.main || this.options.executable,
+			type: this.options.type,
+			readonly: this.options.readonly
+		});
+		
+		if (this.options.main || this.options.executable) {
+			//fd.sidebar.setSelectedFile(this.trigger.getParent('li'));
 		}
+		if (this.options.active) {
+			this.switchBespin();
+		}
+	},
+	onSelect: function() {
+		this.switchBespin();
 	},
 	loadCode: function() {
 		// load data synchronously
@@ -401,7 +413,7 @@ var Module = new Class({
 	on_destroy: function() {
 		delete fd.getItem().modules[this.options.filename];
 	},
-})
+});
 
 Package.View = new Class({
 	Extends: Package,
@@ -448,6 +460,7 @@ Package.Edit = new Class({
 	},
 	initialize: function(options) {
 		this.setOptions(options);
+		$log(this.options);
 		// this.data is a temporary holder of the data for the submit
 		this.data = {};
 		this.parent(options);
@@ -470,31 +483,7 @@ Package.Edit = new Class({
 
 		// submit Info
 		this.boundSubmitInfo = this.submitInfo.bind(this);
-
-		// add/remove module
-		//this.boundAddModuleAction = this.addModuleAction.bind(this);
-		//this.boundRemoveModuleAction = this.removeModuleAction.bind(this);
-		//$(this.options.add_module_el).addEvent('click',
-		//	this.boundAddModuleAction);
-		//
-		//// assign/remove library
-		//this.boundAssignLibraryAction = this.assignLibraryAction.bind(this);
-		//this.boundRemoveLibraryAction = this.removeLibraryAction.bind(this);
-		//$(this.options.assign_library_el).addEvent('click',
-		//	this.boundAssignLibraryAction);
-		//$$('#libraries .UI_File_Listing .File_close').each(function(close) {
-		//	close.addEvent('click', this.boundRemoveLibraryAction);
-		//},this);
-		//
-		//// add attachments
-		//this.add_attachment_el = $('add_attachment');
-		//this.add_attachment_el.addEvent('change', this.sendMultipleFiles.bind(this));
-		//this.boundRemoveAttachmentAction = this.removeAttachmentAction.bind(this);
-		//$$('#attachments .UI_File_Listing .File_close').each(function(close) {
-		//	close.addEvent('click', this.boundRemoveAttachmentAction);
-		//},this);
-		//this.attachments_counter = $('attachments-counter');
-		//
+		
 		//var fakeFileInput = $('add_attachment_fake'), fakeFileSubmit = $('add_attachment_action_fake');
 		//this.add_attachment_el.addEvents({
 		//	change: function(){
@@ -538,7 +527,7 @@ Package.Edit = new Class({
 	},
 
 	sendMultipleFiles: function(files) {
-		self = this;
+		var self = this;
 		self.spinner = false;
 		sendMultipleFiles({
 			url: this.get_add_attachment_url.bind(this),
@@ -597,6 +586,24 @@ Package.Edit = new Class({
 			}
 		});
 	},
+	renameAttachment: function(uid, newName) {
+		var that = this;
+		new Request.JSON({
+			url: that.rename_attachment_url || that.options.rename_attachment_url,
+			data: {
+				uid: uid,
+				new_filename: newName
+			},
+			onSuccess: function(response) {
+				fd.setURIRedirect(response.view_url);
+				that.registerRevision(response);
+				var attachment = that.attachments[uid];
+				attachment.setOptions({
+					filename: response.filename
+				});
+			}
+		}).send();
+	},
 	removeAttachmentAction: function(e) {
 		var trigger = e.target.getParent('a'),
 			filename = trigger.get('text'),
@@ -649,24 +656,28 @@ Package.Edit = new Class({
 			}.bind(this)
 		}).send();
 	},
-	removeModuleAction: function(module) {
-		//e.stop();
-		//var trigger = e.target.getParent('a');
-		//var module = trigger.retrieve('Module');
-		if (!module) {
-			fd.error.alert('Application error', 'Can not associate module to the trigger');
-			return;
-		}
-		this.question = fd.showQuestion({
-			title: 'Are you sure you want to remove {filename}.js?'.substitute(module.options),
-			message: 'You may always copy it from this revision',
-			ok: 'Remove',
-			id: 'remove_module_button',
-			callback: function() {
-				this.removeModule(module);
-				this.question.destroy();
+	renameModule: function(oldName, newName) {
+		new Request.JSON({
+			url: this.rename_module_url || this.options.rename_module_url,
+			data: {
+				old_filename: oldName,
+				new_filename: newName
+			},
+			onSuccess: function(response) {
+				$log(response);
+				fd.setURIRedirect(response.view_url);
+				this.registerRevision(response);
+				fd.message.alert(response.message_title, response.message);
+				
+				var mod = this.modules[oldName];
+				mod.setOptions({
+					filename: response.filename,
+					get_url: response.get_url
+				});
+				this.modules[response.filename] = mod;
+				delete this.modules[oldName];
 			}.bind(this)
-		});
+		}).send();
 	},
 	removeModule: function(module) {
 		new Request.JSON({
@@ -680,27 +691,18 @@ Package.Edit = new Class({
 			}.bind(this)
 		}).send();
 	},
-	assignLibraryAction: function(e) {
-		e.stop();
-		// get data
-		library_id = $(this.options.assign_library_input).get('value');
-		// assign Library by giving filename
-		this.assignLibrary(library_id);
-	},
 	assignLibrary: function(library_id) {
 		if (library_id) {
 			new Request.JSON({
 				url: this.assign_library_url || this.options.assign_library_url,
 				data: {'id_number': library_id},
 				onSuccess: function(response) {
-					// clear the library search field
-					$(this.options.assign_library_input).set('value','');
-					$(this.autocomplete.options.display_el).set('value','');
 					// set the redirect data to view_url of the new revision
 					fd.setURIRedirect(response.view_url);
 					// set data changed by save
 					this.registerRevision(response);
 					//fd.message.alert('Library assigned', response.message);
+					new Library(this, response);
 					this.appendLibrary(response);
 				}.bind(this)
 			}).send();
@@ -717,10 +719,6 @@ Package.Edit = new Class({
 			'class': 'UI_File_Normal',
 			'html': html.substitute(lib)
 		}).inject($('assign_library_div').getPrevious('ul'));
-		$$('#library_{library_name} .File_close'.substitute(lib)).each(function(close) {
-			close.addEvent('click', this.boundRemoveLibraryAction);
-		},this);
-		$('libraries-counter').set('text', '('+ $('libraries').getElements('.UI_File_Listing li').length +')')
 	},
 	removeLibraryAction: function(e) {
 		if (e) e.stop();
@@ -746,7 +744,7 @@ Package.Edit = new Class({
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
 				$('library_{name}'.substitute(response)).getParent('li').destroy();
-				$('libraries-counter').set('text', '('+ $('libraries').getElements('.UI_File_Listing li').length +')')
+				//$('libraries-counter').set('text', '('+ $('libraries').getElements('.UI_File_Listing li').length +')')
 			}.bind(this)
 		}).send();
 	},
