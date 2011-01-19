@@ -118,7 +118,6 @@ var FlightDeck = new Class({
         this.install_ID = this.tryInstallXPI.delay(1000, this);
         this.install_ID = this.tryInstallXPI.periodical(
                 this.options.request_interval, this);
-        //}
     },
 
     isXpiInstalled: function() {
