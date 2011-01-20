@@ -102,8 +102,13 @@ var Sidebar = new Class({
 		sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .label)'.substitute(this.options), function(e) {
 			var li = $(e.target).getParent('li'),
 				file = li.retrieve('file');
-			that.setSelectedFile(li);
-			file.onSelect();
+			if(file) {
+				if(file.is_editable()) {
+					that.setSelectedFile(li);
+				}
+				
+				file.onSelect();
+			}
 		});
 		
 		//adding modules to Lib
@@ -154,9 +159,16 @@ var Sidebar = new Class({
 	
 	removeFileFromTree: function(treeName, file) {
 		var tree = this.trees[treeName],
-			that = this;
+			that = this,
+			title;
+			
+		if(file instanceof Library) {
+			title = file.options.full_name;
+		} else {
+			title = file.options.filename + '.' + file.options.type;
+		}
 		
-		$(tree).getElements('li[title="{filename}.{type}"]'.substitute(file.options)).some(function(el) {
+		$(tree).getElements('li[title="{title}"]'.substitute({title:title})).some(function(el) {
 			if(el.retrieve('file') == file) {
 				el.dispose();
 				return true;
@@ -190,7 +202,7 @@ var Sidebar = new Class({
 			that.removeFileFromTree(treeName, file);
 		});
 
-		if(file.options.active || file.options.main) {
+		if((file.options.active || file.options.main) && file.is_editable()) {
 			this.setSelectedFile(element);
 		}
 	}.protect(),
@@ -225,11 +237,19 @@ var Sidebar = new Class({
 	promptRemoval: function(file) {
 		var question = fd.showQuestion({
 			title: 'Are you sure you want to remove {name}?'.substitute({ name: file.options.path }),
-			message: 'You may always copy it from this revision',
+			message: file instanceof Module ? 'You may always copy it from this revision' : '',
 			ok: 'Remove',
-			id: 'remove_module_button',
+			id: 'remove_file_button',
 			callback: function() {
-				fd.getItem().removeModule(file);
+				if (file instanceof Module) {
+					fd.getItem().removeModule(file);
+				} else if (file instanceof Attachment) {
+					fd.getItem().removeAttachment(file);
+				} else if (file instanceof Library) {
+					fd.getItem().removeLibrary(file);
+				}
+				
+				
 				question.destroy();
 			}
 		});
