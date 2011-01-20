@@ -14,6 +14,7 @@ var FlightDeck = new Class({
         //user: ''
     },
     initialize: function() {
+        this.tests = {}; // placeholder for testing spinners
         this.uri = new URI();
         if (this.uri.getData('redirect','fragment')) {
             window.location.href = this.uri.getData('redirect', 'fragment');
@@ -110,14 +111,15 @@ var FlightDeck = new Class({
     },
 
     /*
-     * Method: testXPI
+     * Method: testXPI it's running in Request's scope
      */
     testXPI: function(response) {
-        $log('FD: DEBUG: XPI delayed ... try to load every ' + this.options.request_interval/1000 + ' seconds' );
-        this.request_number = 0;
-        this.install_ID = this.tryInstallXPI.delay(1000, this);
-        this.install_ID = this.tryInstallXPI.periodical(
-                this.options.request_interval, this);
+        $log('FD: DEBUG: XPI delayed ... try to load every ' + fd.options.request_interval/1000 + ' seconds' );
+        var hashtag = this.options.data.hashtag;
+        fd.tests[hashtag].request_number = 0;
+        fd.tryInstallXPI.delay(1000, fd, hashtag);
+        fd.tests[hashtag].install_ID = fd.tryInstallXPI.periodical(
+                fd.options.request_interval, fd, hashtag);
     },
 
     isXpiInstalled: function() {
@@ -136,18 +138,22 @@ var FlightDeck = new Class({
      * Try to download XPI 
      * if successful - stop periodical
      */
-    tryInstallXPI: function() {
-        if (fd.alertIfNoAddOn()) {
-            if (!this.install_xpi_request || (this.install_xpi_request && !this.install_xpi_request.isRunning())) {
-                this.request_number += 1;
-                url = '/xpi/test/'+this.options.xpi_hashtag+'/';
+    tryInstallXPI: function(hashtag) {
+        if (this.alertIfNoAddOn()) {
+            test_request = this.tests[hashtag];
+            if (!test_request.install_xpi_request || (
+                        test_request.install_xpi_request && 
+                        !test_request.install_xpi_request.isRunning())) {
+                test_request.request_number++;
+                url = '/xpi/test/'+hashtag+'/';
                 $log('FD: installing from ' + url);
-                this.install_xpi_request = new Request({
+                test_request.install_xpi_request = new Request({
                     url: url,
                     headers: {'Content-Type': 'text/plain; charset=x-user-defined'},
                     onSuccess: function(responseText) {
-                        if (responseText || this.request_number > 50) {
-                            clearInterval(this.install_ID);
+                        if (responseText || test_request.request_number > 50) {
+                            clearInterval(test_request.install_ID);
+                            test_request.spinner.destroy();
                         }
                         if (responseText) {
                             var result = window.mozFlightDeck.send({cmd: "install", contents: responseText});
@@ -162,7 +168,7 @@ var FlightDeck = new Class({
                             }
                         } 
                     }.bind(this)
-                }).send();
+                }).send(this);
             } else {
                 $log('FD: DEBUG request is running');
             }

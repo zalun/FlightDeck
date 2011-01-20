@@ -12,6 +12,7 @@ var Package = new Class({
   options: {
     // data
       // package specific
+        // hasthag: '', // hashtag used to create XPI
         // id_number: '',
         // full_name: '',
         // name: '',
@@ -124,14 +125,16 @@ var Package = new Class({
     }
   },
   installAddon: function() {
+    var hashtag = this.options.hashtag;
+    fd.tests[hashtag] = {
+        spinner: new Spinner($(this.options.test_el).getParent('div')).show()
+    };
     var data = this.data || {};
-    data['hashtag'] = fd.options.xpi_hashtag,
+    data['hashtag'] = hashtag;
     new Request.JSON({
       url: this.test_url,
       data: data,
-      useSpinner: true,
-      spinnerTarget: $(this.options.test_el).getParent('div'),
-      onSuccess: fd.testXPI.bind(fd)
+      onSuccess: fd.testXPI
     }).send();
   },
   isAddon: function() {
