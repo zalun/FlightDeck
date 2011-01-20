@@ -36,6 +36,7 @@ var Sidebar = new Class({
 			},
 			onChange: function(){
 				this.updatePath(this.current);
+				that.renameFile(this.current.retrieve('file'), this.getFullPath(this.current));
 			},
 			onRenameComplete: function(){
 				$$('div.rename_branch').removeClass('active');
@@ -126,15 +127,7 @@ var Sidebar = new Class({
 		Object.each(this.trees, function(tree, name) {
 			tree.addEvents({
 				'renameComplete': function(li, fullpath) {
-					var file = li.retrieve('file'),
-						pack = fd.getItem();
-						
-					if (name == 'lib') {
-						pack.renameModule(file.options.filename, fullpath.replace('.'+file.options.type, ''));
-					} else if (name == 'data') {
-						pack.renameAttachment(file.options.uid, fullpath.replace('.'+file.options.type, ''));
-					}
-					
+					that.renameFile(li.retrieve('file'), fullpath);
 				},
 				'deleteBranch': function(li) {
 					
@@ -143,6 +136,15 @@ var Sidebar = new Class({
 		});
 		
 		return this;
+	},
+	
+	renameFile: function(file, fullpath) {
+		var pack = fd.getItem();
+		if (file instanceof Module) {
+			pack.renameModule(file.options.filename, fullpath.replace('.'+file.options.type, ''));
+		} else if (file instanceof Attachment) {
+			pack.renameAttachment(file.options.uid, fullpath.replace('.'+file.options.type, ''));
+		}
 	},
 	
 	removeFileFromTree: function(treeName, file) {
