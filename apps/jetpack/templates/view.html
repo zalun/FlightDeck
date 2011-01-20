@@ -70,7 +70,7 @@
 	{% if libraries or revision.package.is_addon %}
 	<section id="libraries">
 		<ul id="PluginsTree" class="tree collapse">
-			
+			{% block core_library %}{% endblock %}
 		</ul>
 	</section>
 	{% endif %}

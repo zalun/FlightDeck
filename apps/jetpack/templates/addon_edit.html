@@ -13,20 +13,23 @@
 
 {% block core_library %}
   {% if revision.sdk %}
-  <li class="UI_File_Normal Core_library" id="core_library_lib">
-    <a title="" href="{{ revision.get_sdk_revision.get_absolute_url }}"
-      target="{{ revision.get_sdk_revision.package.name }}"
-      class="library_link">
-        <span>{{ revision.get_sdk_revision.package.full_name }}</span>
-      </a>
-      <select id="jetpack_core_sdk_version">
-          {% for s in sdk_list %}
-          <option value="{{ s.id }}" {% if s.is_deprecated %}disabled{% endif %}
-              {% if revision.sdk.id == s.id %} selected{% endif %}>
-              {{ s.version }}
-            </option>
-          {% endfor %}
-      </select>
+  <li class="UI_File_Normal Core_library"
+	  id="core_library_lib"
+	  title="{{ revision.get_sdk_revision.package.full_name }}"
+      data-id-number="{{ revision.get_sdk_revision.package.name }}">
+      <a class="expand" href="#"></a>
+	  <div class="holder">
+		<span class="label">{{ revision.get_sdk_revision.package.full_name }}</span>
+		<span class="icon"></span>
+		<select id="jetpack_core_sdk_version">
+			{% for s in sdk_list %}
+			<option value="{{ s.id }}" {% if s.is_deprecated %}disabled{% endif %}
+				{% if revision.sdk.id == s.id %} selected{% endif %}>
+				{{ s.version }}
+			  </option>
+			{% endfor %}
+		</select>
+	  </div>
   </li>
   {% endif %}
 {% endblock %}

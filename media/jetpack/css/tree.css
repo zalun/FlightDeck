@@ -144,3 +144,7 @@ li .actions .delete {
 	background-image: url(/media/jetpack/img/UI_File_Listing/minus_alt_12x12.png);
 	
 }
+
+#core_library_lib .label {
+	float:left;
+}

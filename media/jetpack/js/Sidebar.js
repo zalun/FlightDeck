@@ -77,12 +77,17 @@ var Sidebar = new Class({
 		}, null, topBranchOptions);
 		
 		trees.plugins.collapse = new Collapse('PluginsTree');
-		trees.plugins.addBranch({
+		var pluginsBranch = trees.plugins.addBranch({
 			'rel': 'directory',
 			'title': 'Plugins',
 			'id': 'plugins_branch',
 			'class': 'top_branch nodrag'
 		}, null, topBranchOptions);
+		
+		var sdkBranch = $('core_library_lib');
+		if(sdkBranch) {
+			pluginsBranch.getElement('ul').grab(sdkBranch);
+		}
 		
 		this.attach();
 		
