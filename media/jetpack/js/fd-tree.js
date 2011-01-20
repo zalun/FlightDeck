@@ -10,6 +10,11 @@ FileTree = new Class({
 			'class': ''
 		},
 		editable: true,
+		actions: {
+			//add: false,
+			//edit: false,
+			//remove: false
+		},
 		snap: 3
 		//onAddBranch: function(el, attributes, target){}
 		//onRenameStart: function(li, span){}
@@ -54,9 +59,9 @@ FileTree = new Class({
 		}
 		options = Object.merge({}, {
 			add: false,
-			edit: true,
-			remove: true
-		}, options);
+			edit: attr.rel == 'directory' ? false : true,
+			remove: attr.rel == 'directory' ? false : true
+		}, this.options.actions, options);
 		attr.html = ('<a class="expand" href="#"></a>' +
 			'<div class="holder">' +
 				'<span id="{id}" class="label" title="{title}">{title}</span><span class="icon"></span>' +
@@ -129,6 +134,7 @@ FileTree = new Class({
 					'name': name,
 					'path': path,
 					'url': obj.options.url,
+					'rel': obj.options.type ? 'file' : 'directory',
 					'class': 'UI_File_Normal'
 				}, previous, options);
 				

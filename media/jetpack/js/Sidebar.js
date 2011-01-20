@@ -46,7 +46,10 @@ var Sidebar = new Class({
 		var trees = this.trees = {
 			'lib': new FileTree('LibTree', treeOptions),
 			'data': new FileTree('DataTree', treeOptions),
-			'plugins': new FileTree('PluginsTree', treeOptions)
+			'plugins': new FileTree('PluginsTree', Object.merge({}, treeOptions, { actions: {
+				edit: false,
+				remove: true
+			}}))
 		};
 		
 		var topBranchOptions = {
