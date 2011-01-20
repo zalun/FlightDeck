@@ -36,7 +36,8 @@ var Package = new Class({
 		readonly: false,
 		package_info_el: 'package-properties',
 		copy_el: 'package-copy',
-		test_el: 'try_in_browser'
+		test_el: 'try_in_browser',
+		download_el: 'download'
 	},
 	modules: {},
 	attachments: {},
@@ -102,6 +103,27 @@ var Package = new Class({
 			}
 		}).send();
 	},
+	downloadAddon: function(e){
+		if (e) {
+		  e.stop();
+		  el = e.target;
+		} else {
+		  el = $(this.options.download_el);
+		}
+		var hashtag = this.options.hashtag;
+		fd.tests[hashtag] = {
+			spinner: new Spinner(el.getParent('div')).show()
+		};
+		data = {
+			hashtag: hashtag, 
+			filename: this.options.name
+		};
+		new Request.JSON({
+		  url: this.download_url,
+		  data: data,
+		  onSuccess: fd.downloadXPI
+		}).send();
+	},
 	testAddon: function(e){
 		var el;
 		if (e) e.stop();
@@ -128,12 +150,16 @@ var Package = new Class({
 		}
 	},
 	installAddon: function() {
+		var hashtag = this.options.hashtag;
+		fd.tests[hashtag] = {
+			spinner: new Spinner($(this.options.test_el).getParent('div')).show()
+		};
+		var data = this.data || {};
+		data['hashtag'] = hashtag;
 		new Request.JSON({
-			url: this.test_url,
-			data: this.data || {},
-			useSpinner: true,
-			spinnerTarget: $(this.options.test_el).getParent('div'),
-			onSuccess: fd.testXPI.bind(fd)
+		  url: this.test_url,
+		  data: data,
+		  onSuccess: fd.testXPI
 		}).send();
 	},
 	isAddon: function() {

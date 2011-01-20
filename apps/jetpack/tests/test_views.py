@@ -17,7 +17,7 @@ from django.core.urlresolvers import reverse
 from jetpack.models import PackageRevision, Attachment
 from jetpack.errors import FilenameExistException
 from jetpack.views import latest_by_uid
-
+from base.templatetags.base_helpers import hashtag
 
 def next(revision):
     number = revision.revision_number
@@ -29,25 +29,23 @@ class TestViews(TestCase):
     fixtures = ('mozilla_user', 'core_sdk', 'users', 'packages')
 
     def setUp(self):
-        self.url = reverse('jp_addon_revision_xpi', args=[1000001, 0])
-
-    def test_package_download_xpi(self):
-        r = self.client.get(self.url)
-        eq_(r.status_code, 200)
+        self.hashtag = hashtag()
+        self.check_download_url = reverse('jp_check_download_xpi',
+                args=[self.hashtag])
 
     @patch('os.path.isfile')
-    def test_package_download_xpi_async(self, isfile):
+    def test_package_check_download(self, isfile):
         """
         If we are waiting for the XPI, we'll need to test the redirecty stuff.
         """
         isfile.return_value = False
-        r = self.client.get(self.url)
-        eq_(r.status_code, 302)
-        next = r.get('Location', '')
-        assert next.endswith(self.url + '?retry=1')
-        r = self.client.get(next)
-        doc = pq(r.content)
-        eq_(doc('#app-content h2').text(), 'XPI Not Ready')
+        r = self.client.get(self.check_download_url)
+        eq_(r.status_code, 200)
+        eq_(r.content, '{"ready": false}')
+        isfile.return_value = True
+        r = self.client.get(self.check_download_url)
+        eq_(r.status_code, 200)
+        eq_(r.content, '{"ready": true}')
 
 
 class TestAttachments(TestCase):

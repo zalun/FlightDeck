@@ -15,12 +15,19 @@ FlightDeck = Class.refactor(FlightDeck,{
 		$$('.{try_in_browser_class} a'.substitute(this.options)).each(function(el) {
 			el.addEvent('click', function(e){
 				e.stop();
+                var hashtag = this.get('data-hashtag');
 				var testThisXpi = function() {
+                    fd.tests[hashtag] = {
+                        'spinner': new Spinner(
+                                    this.getParent('li.UI_Item')).show()
+                    };
 					new Request.JSON({
 						url: el.get('href'),
-                        useSpinner: true,
-                        spinnerTarget: this.getParent('li.UI_Item'),
-						onSuccess: fd.testXPI.bind(fd)
+                        data: {'hashtag': hashtag},
+						onSuccess: fd.testXPI,
+                        addOnFailure: function() {
+                            fd[hashtag].spinner.destroy();
+                        }
 					}).send();
 				}.bind(this);
 				if (fd.alertIfNoAddOn()) {
