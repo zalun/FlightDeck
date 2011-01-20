@@ -1,6 +1,6 @@
 ul.collapse {
 	margin: 0;
-	padding:0;
+	padding:5px;
 }
 
 ul.licollapsest ul {
@@ -48,7 +48,7 @@ ul.collapse a.collapse {
 
 ul.collapse a.collapse + .holder > .icon
 {
-	background-image: url(/media/jetpack/img/folder-open.png);
+	background-image: url(/media/jetpack/img/UI_File_Listing/folder_stroke_16x16.png);
 }
 
 ul.collapse li.top_branch {
@@ -107,7 +107,20 @@ ul li.top_branch > a.expand {
 	background-position:0 -110px;
 }
 
-li[title$=".html"] > .holder > .icon
+li[rel="file"] > .holder > .icon {
+	background-image: url(/media/jetpack/img/UI_File_Listing/document_fill_16x16.png) !important;
+}
+
+li[rel="file"].UI_File_Selected > .holder  >.icon {
+	background-image: url(/media/jetpack/img/UI_File_Listing/document_stroke_16x16.png) !important;
+}
+
+li[title$=".png"] > .holder > .icon, li[title$=".jpg"] > .holder > .icon, li[title$=".gif"] > .holder > .icon
+{
+	background-image: url(/media/jetpack/img/UI_File_Listing/image_16x16.png) !important;
+}
+
+/*li[title$=".html"] > .holder > .icon
 {
 	background-image: url(/media/jetpack/img/html.png) !important;
 }
@@ -122,11 +135,6 @@ li[title$=".css"] > .holder > .icon
 	background-image: url(/media/jetpack/img/css.png) !important;
 }
 
-li[title$=".png"] > .holder > .icon, li[title$=".jpg"] > .holder > .icon, li[title$=".gif"] > .holder > .icon
-{
-	background-image: url(/media/jetpack/img/image.png) !important;
-}
-
 li[title$=".json"] > .holder > .icon
 {
 	background-image: url(/media/jetpack/img/json.png) !important;
@@ -135,42 +143,5 @@ li[title$=".json"] > .holder > .icon
 li[title$=".md"] > .holder > .icon
 {
 	background-image: url(/media/jetpack/img/md.png) !important;
-}
-
-
-div.branch_actions div.body div
-{
-	float: left;
-	height: 12px;
-	width: 12px;
-	margin-right: 4px;
-	background: no-repeat center center;
-	cursor: pointer;
-}
-
-	div.add_branch
-	{
-		display: none;
-	}
-		
-		div.add_branch.active
-		{
-			display: block;
-			background-image: url(/media/jetpack/img/plus.png) !important;
-		}
-		
-	div.rename_branch
-	{
-		background-image: url(/media/jetpack/img/pencil.png) !important;
-	}
-		
-		div.rename_branch.active
-		{
-			background-image: url(/media/jetpack/img/pencil-minus.png) !important;
-		}
-		
-	div.delete_branch
-	{
-		background-image: url(/media/jetpack/img/minus.png) !important;
-	}
+}*/
 	

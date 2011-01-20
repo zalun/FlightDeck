@@ -25,7 +25,7 @@ ul.tree li .label, li.drag .label {
 ul.tree li .icon, li.drag .icon {
 	background-repeat: no-repeat;
 	background-position: left center;
-	background-image: url(/media/jetpack/img/folder-closed.png);
+	background-image: url(/media/jetpack/img/UI_File_Listing/folder_fill_16x16.png);
 	display:block;
 	height:20px;
 	left:0;
@@ -34,10 +34,10 @@ ul.tree li .icon, li.drag .icon {
 	width:20px;
 }
 
-	li[rel="directory"]  > .icon
+	/*li[rel="directory"]  > .icon
 	{
 		background-image: url(/media/jetpack/img/file.png);
-	}
+	}*/
 
 ul.tree li {
 	list-style-type: none;
@@ -94,10 +94,12 @@ li.drag .label.dispose {
 }
 
 li .actions {
+	background:#fff;
+	box-shadow:-10px 0 2px #fff;
 	display:none;
 	right:5px;
 	position:absolute;
-	top: 8px;
+	top: 6px;
 }
 .holder {
 	position:relative;
@@ -119,15 +121,26 @@ li .actions > span:hover {
 	opacity:1;
 }
 
+li.top_branch > .holder .actions {
+	position:static;
+	margin-top:5px;
+}
+li.top_branch > .holder .actions .add {
+	background-image:url(/media/jetpack/img/UI_File_Listing/plus_alt_24x24.png);
+	height:24px;
+	margin-left:5px;
+	width:24px;
+}
+
 li .actions .add {
-	background-image:url(/media/jetpack/img/plus.png);
+	background-image:url(/media/jetpack/img/UI_File_Listing/plus_alt_12x12.png);
 }
 
 li .actions .edit {
-	background-image:url(/media/jetpack/img/pencil.png);
+	background-image:url(/media/jetpack/img/UI_File_Listing/pen_12x12.png);
 }
 
 li .actions .delete {
-	background: url(../img/UI_File_Listing/ico-close.png) 0 2px no-repeat;
+	background-image: url(/media/jetpack/img/UI_File_Listing/minus_alt_12x12.png);
 	
 }
