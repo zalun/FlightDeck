@@ -37,7 +37,8 @@ var Package = new Class({
     readonly: false,
     package_info_el: 'package-properties',
     copy_el: 'package-copy',
-    test_el: 'try_in_browser'
+    test_el: 'try_in_browser',
+    download_el: 'download'
   },
   modules: {},
   attachments: {},
@@ -49,10 +50,14 @@ var Package = new Class({
     $('revisions_list').addEvent('click', this.show_revision_list);
 
     // testing
-    this.boundTestAddon = this.testAddon.bind(this);
     if (this.isAddon()) {
+      this.boundTestAddon = this.testAddon.bind(this);
       this.test_url = $(this.options.test_el).get('href');
-      $(this.options.test_el).addEvent('click', this.boundTestAddon)
+      $(this.options.test_el).addEvent('click', this.boundTestAddon);
+      
+      this.boundDownloadAddon = this.downloadAddon.bind(this);
+      this.download_url = $(this.options.download_el).get('href');
+      $(this.options.download_el).addEvent('click', this.boundDownloadAddon);
     }
     this.copy_el = $(this.options.copy_el)
     if (this.copy_el) {
@@ -97,6 +102,27 @@ var Package = new Class({
       onSuccess: function(response) {
         window.location.href = response.view_url;
       }
+    }).send();
+  },
+  downloadAddon: function(e){
+    if (e) {
+      e.stop();
+      el = e.target;
+    } else {
+      el = $(this.options.download_el);
+    }
+    var hashtag = this.options.hashtag;
+    fd.tests[hashtag] = {
+        spinner: new Spinner(el.getParent('div')).show()
+    };
+    data = {
+        hashtag: hashtag, 
+        filename: this.options.name
+    };
+    new Request.JSON({
+      url: this.download_url,
+      data: data,
+      onSuccess: fd.downloadXPI
     }).send();
   },
   testAddon: function(e){
@@ -263,11 +289,16 @@ var Attachment = new Class({
             var url = target.get('href');
             var ext = target.get('rel');
             var filename = target.get('text').escapeAll();
-            var template_start = '<div id="attachment_view"><h3>'+filename+'</h3><div class="UI_Modal_Section">';
-            var template_end = '</div><div class="UI_Modal_Actions"><ul><li><input type="reset" value="Close" class="closeModal"/></li></ul></div></div>';
+            var template_start = '<div id="attachment_view"><h3>'+filename+
+                '</h3><div class="UI_Modal_Section">';
+            var template_end = '</div><div class="UI_Modal_Actions"><ul><li>'+
+                '<input type="reset" value="Close" class="closeModal"/>'+
+                '</li></ul></div></div>';
             var template_middle = 'Download <a href="'+url+'">'+filename+'</a>';
-            if (['jpg', 'gif', 'png'].contains(ext)) template_middle += '<p><img src="'+url+'"/></p>';
-            this.attachmentWindow = fd.displayModal(template_start+template_middle+template_end);
+            if (['jpg', 'gif', 'png'].contains(ext)) 
+                template_middle += '<p><img src="'+url+'"/></p>';
+            this.attachmentWindow = fd.displayModal(
+                template_start + template_middle + template_end);
           }
         }
       }.bind(this));

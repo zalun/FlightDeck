@@ -111,6 +111,52 @@ var FlightDeck = new Class({
     },
 
     /*
+     * Method: downloadXPI it's running in Request's scope
+     */
+    downloadXPI: function(response) {
+        $log('FD: DEBUG: XPI delayed ... try to load every ' + fd.options.request_interval/1000 + ' seconds' );
+        var hashtag = this.options.data.hashtag;
+        var filename = this.options.data.filename;
+        fd.tests[hashtag].download_request_number = 0;
+        fd.tryDownloadXPI.delay(1000, fd, [hashtag, filename]);
+        fd.tests[hashtag].download_ID = fd.tryDownloadXPI.periodical(
+                fd.options.request_interval, fd, [hashtag, filename]);
+    },
+    /*
+     * Method: tryDownloadXPI
+     *
+     * Try to download XPI 
+     * if finished - stop periodical, stop spinner
+     */
+    tryDownloadXPI: function(hashtag, filename) {
+        var test_request = this.tests[hashtag];
+        if (!test_request.download_xpi_request || (
+                    test_request.download_xpi_request && 
+                    !test_request.download_xpi_request.isRunning())) {
+            test_request.download_request_number++;
+            var url = '/xpi/check_download/'+hashtag+'/';
+            $log('FD: DEBUG: checking if ' + url + ' is prepared');
+            test_request.download_xpi_request = new Request.JSON({
+                url: url,
+                onSuccess: function(response) {
+                    if (response.ready || test_request.download_request_number > 50) {
+                        clearInterval(test_request.download_ID);
+                        test_request.spinner.destroy();
+                    }
+                    if (response.ready) {
+                        var url = '/xpi/download/'+hashtag+'/'+filename+'/';
+                        $log('FD: downloading ' + filename + '.xpi from ' + url );
+                        window.open(url, 'dl');
+                    }
+                },
+                addOnFailure: function() {
+                    clearInterval(test_request.download_ID);
+                    test_request.spinner.destroy();
+                }
+            }).send();
+        }
+    },
+    /*
      * Method: testXPI it's running in Request's scope
      */
     testXPI: function(response) {
@@ -140,7 +186,7 @@ var FlightDeck = new Class({
      */
     tryInstallXPI: function(hashtag) {
         if (this.alertIfNoAddOn()) {
-            test_request = this.tests[hashtag];
+            var test_request = this.tests[hashtag];
             if (!test_request.install_xpi_request || (
                         test_request.install_xpi_request && 
                         !test_request.install_xpi_request.isRunning())) {

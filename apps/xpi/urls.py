@@ -14,7 +14,9 @@ urlpatterns = patterns('xpi.views',
     # get and remove created XPI
     url(r'^test/(?P<hashtag>.*)/$',
         'get_test', name='jp_test_xpi'),
-    url(r'^download/(?P<path>.*)/(?P<filename>.*)/$',
+    url(r'^check_download/(?P<hashtag>.*)/$',
+        'check_download', name='jp_download_xpi'),
+    url(r'^download/(?P<hashtag>.*)/(?P<filename>.*)/$',
         'get_download', name='jp_download_xpi'),
     url(r'^remove/(?P<path>.*)/$', 'clean', name='jp_rm_xpi'),
 )
