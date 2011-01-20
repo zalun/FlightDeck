@@ -4,8 +4,6 @@ from celery.decorators import task
 
 from xpi import xpi_utils
 
-log = commonware.log.getLogger('f.tasks')
-
 
 @task(rate_limit='10/s')
 def xpi_build(sdk_dir, package_dir, filename, hashtag):

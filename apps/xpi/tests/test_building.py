@@ -12,6 +12,7 @@ from django.conf import settings
 from jetpack.models import Module, Package, PackageRevision, SDK
 from xpi import xpi_utils
 from jetpack.cron import find_files, clean_tmp
+from base.templatetags.base_helpers import hashtag
 
 log = commonware.log.getLogger('f.tests')
 
@@ -21,6 +22,7 @@ class XPIBuildTest(TestCase):
     fixtures = ['nozilla', 'core_sdk', 'users', 'packages']
 
     def setUp(self):
+        self.hashtag = hashtag()
         self.author = User.objects.get(username='john')
         self.addon = Package.objects.get(name='test-addon',
                                          author__username='john')
@@ -149,10 +151,10 @@ class XPIBuildTest(TestCase):
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        (xpi_target, out, err) = xpi_utils.build(self.SDKDIR,
-                    '%s/packages/%s' % (
-                        self.SDKDIR, self.addon.name),
-                    self.addon.name)
+        (xpi_target, out, err) = xpi_utils.build(
+                self.SDKDIR,
+                '%s/packages/%s' % (self.SDKDIR, self.addon.name),
+                self.addon.name, self.hashtag)
         # assert no error output
         self.assertEqual('', err)
         # assert xpi was created
@@ -169,10 +171,10 @@ class XPIBuildTest(TestCase):
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        (xpi_target, out, err) = xpi_utils.build(self.SDKDIR,
-                        '%s/packages/%s' % (
-                            self.SDKDIR, self.addon.name),
-                        self.addon.name)
+        (xpi_target, out, err) = xpi_utils.build(
+                self.SDKDIR,
+                '%s/packages/%s' % (self.SDKDIR, self.addon.name),
+                self.addon.name, self.hashtag)
         # assert no error output
         self.assertEqual('', err)
         self.failUnless(out)
@@ -194,10 +196,10 @@ class XPIBuildTest(TestCase):
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        (xpi_target, out, err) = xpi_utils.build(self.SDKDIR,
-                    '%s/packages/%s' % (
-                        self.SDKDIR, self.addon.name),
-                    self.addon.name)
+        (xpi_target, out, err) = xpi_utils.build(
+                self.SDKDIR,
+                '%s/packages/%s' % (self.SDKDIR, self.addon.name),
+                self.addon.name, self.hashtag)
         # assert no error output
         self.assertEqual('', err)
         # assert xpi was created
@@ -211,10 +213,10 @@ class XPIBuildTest(TestCase):
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        (xpi_target, out, err) = xpi_utils.build(self.SDKDIR,
-                    '%s/packages/%s' % (
-                        self.SDKDIR, self.addon.name),
-                    self.addon.name)
+        (xpi_target, out, err) = xpi_utils.build(
+                self.SDKDIR,
+                '%s/packages/%s' % (self.SDKDIR, self.addon.name),
+                self.addon.name, self.hashtag)
         # assert no error output
         self.assertEqual('', err)
         # assert xpi was created
@@ -235,9 +237,10 @@ class XPIBuildTest(TestCase):
         for full in find_files():
             os.remove(full)
         assert not find_files()
-        rev.build_xpi(rapid=True)
+        rev.build_xpi(hashtag=self.hashtag, rapid=True)
 
         # There should be one directory in the /tmp directory now.
         eq_(len(find_files()), 1)
         clean_tmp(length=0)
         assert not find_files()
+

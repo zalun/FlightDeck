@@ -59,7 +59,7 @@ def get_test(r, hashtag):
     return HttpResponse(xpi, mimetype=mimetype)
 
 
-def prepare_download(r, id_number, revision_number=None, xpi_path=''):
+def prepare_download(r, id_number, revision_number=None):
     """
     Prepare download XPI.  This package is built asynchronously and we assume
     it works. It will be downloaded in ``get_download``
@@ -76,11 +76,9 @@ def check_download(r, hashtag):
     """Check if XPI file is prepared."""
     path = os.path.join(settings.XPI_TARGETDIR, '%s.xpi' % hashtag)
     # Check file if it exists
-    try:
-        xpi = open(path, 'rb').read()
-    except Exception, err:
-        return HttpResponse('{"ready": false}')
-    return HttpResponse('{"ready": true}')
+    if os.path.isfile(path):
+        return HttpResponse('{"ready": true}')
+    return HttpResponse('{"ready": false}')
 
 
 def get_download(r, hashtag, filename):
