@@ -97,7 +97,7 @@ a:hover {
 		padding-top:10px;
 		position:absolute;
 		left:0;
-		top:100%;
+		top:95%;
 		z-index:10;
 	}
 	
@@ -106,10 +106,10 @@ a:hover {
 		}
 		
 		#app-header nav li .pointytip ul {
-			background:rgba(0,0,0, 0.5);
+			background:rgba(0,0,0, 0.7);
 			-moz-border-radius:5px;
 			overflow:hidden;
-			padding:5px;
+			padding:10px;
 		}
 		
 		#app-header nav li .pointytip .pointer {
@@ -121,7 +121,7 @@ a:hover {
 			position:absolute;
 			top:-10px;
 			left:40px;
-			opacity:0.5;
+			opacity:0.7;
 		}
 /*
  =========================================================================== */
