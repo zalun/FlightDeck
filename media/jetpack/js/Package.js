@@ -194,10 +194,13 @@ var File = new Class({
 		this.setOptions(options);
 	},
 	
+	is_editable: function() {
+		return ['css', 'txt', 'js', 'html'].contains(this.options.type);
+	},
+	
 	destroy: function() {
 		// refactor me
 		if (this.textarea) this.textarea.destroy();
-		this.on_destroy();
 		delete fd.editor_contents[this.get_editor_id()];
 		if (this.active) {
 			// switch editor!
@@ -247,6 +250,17 @@ var Library = new Class({
 	initialize: function(pack, options) {
 		options.path = options.full_name;
 		this.parent(pack, options);
+		
+		if(!this.options.id_number) {
+			// hacky... maybe we should just always pass this with
+			// the new Package.Edit() data on page load?
+			this.options.id_number = this.options.view_url.split('/')[2];
+		}
+		
+		this.addEvent('destroy', function(){
+			delete fd.getItem().plugins[this.options.full_name];
+		})
+		
 		if(this.options.append) {
 			this.append();
 		}
@@ -258,6 +272,10 @@ var Library = new Class({
 	
 	onSelect: function() {
 		//do what?
+	},
+	
+	get_css_id: function() {
+		return this.options.full_name;
 	}
 	
 });
@@ -273,9 +291,6 @@ var Attachment = new Class({
 		readonly: false,
 		counter: 'attachments'
 	},
-	is_editable: function() {
-		return ['css', 'txt', 'js', 'html'].contains(this.options.type);
-	},
 	is_image: function() {
 		return ['jpg', 'gif', 'png'].contains(this.options.type);
 	},
@@ -286,6 +301,10 @@ var Attachment = new Class({
 		if (this.options.append) {
 			this.append();
 		}
+		
+		this.addEvent('destroy', function(){
+			delete fd.getItem().attachments[this.options.uid];
+		});
 
 		// create editor
 		this.editor = new FDEditor({
@@ -325,9 +344,6 @@ var Attachment = new Class({
 	get_css_id: function() {
 		return this.options.uid;
 	},
-	on_destroy: function() {
-	  delete fd.getItem().attachments[this.options.uid];
-	},
 	append: function() {
 		fd.sidebar.addData(this);
 
@@ -363,6 +379,10 @@ var Module = new Class({
 	initialize: function(pack, options) {
 		this.parent(pack, options);
 		this.options.path = this.options.filename + '.' + this.options.type;
+		
+		this.addEvent('destroy', function(){
+			delete fd.getItem().modules[this.options.filename];
+		});
 		
 		if (this.options.append) {
 			this.append();
@@ -604,31 +624,15 @@ Package.Edit = new Class({
 			}
 		}).send();
 	},
-	removeAttachmentAction: function(e) {
-		var trigger = e.target.getParent('a'),
-			filename = trigger.get('text'),
-			uid = trigger.get('id').split('_')[0];
-		this.question = fd.showQuestion({
-			title: 'Are you sure you want to remove "'+filename+'"?',
-			message: '',
-			ok: 'Remove',
-			id: 'remove_attachment_button',
-			callback: function() {
-				this.removeAttachment(uid);
-				this.question.destroy();
-			}.bind(this)
-		});
-
-	},
-	removeAttachment: function(uid) {
+	removeAttachment: function(attachment) {
 		var self = this;
 		new Request.JSON({
 			url: self.remove_attachment_url || self.options.remove_attachment_url,
-			data: {uid: uid},
+			data: {uid: attachment.options.uid},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				self.registerRevision(response);
-				var attachment = self.attachments[uid];
+				delete self.attachments[attachment.options.uid];
 				attachment.destroy();
 			}
 		}).send();
@@ -686,8 +690,7 @@ Package.Edit = new Class({
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
-				var mod = this.modules[response.filename];
-				mod.destroy();
+				module.destroy();
 			}.bind(this)
 		}).send();
 	},
@@ -703,48 +706,20 @@ Package.Edit = new Class({
 					this.registerRevision(response);
 					//fd.message.alert('Library assigned', response.message);
 					new Library(this, response);
-					this.appendLibrary(response);
 				}.bind(this)
 			}).send();
 		} else {
 			fd.error.alert('No such Library', 'Please choose a library from the list');
 		}
 	},
-	appendLibrary: function(lib) {
-		var html='<a title="" id="library_{library_name}" href="{library_url}" target="{id_number}" class="library_link">'+
-					'{full_name}'+
-					'<span class="File_close"></span>'+
-				'</a>';
-		new Element('li', {
-			'class': 'UI_File_Normal',
-			'html': html.substitute(lib)
-		}).inject($('assign_library_div').getPrevious('ul'));
-	},
-	removeLibraryAction: function(e) {
-		if (e) e.stop();
-		var id_number = e.target.getParent('a').get('target');
-		var name = e.target.getParent('a').get('text');
-
-		this.question = fd.showQuestion({
-			title: 'Are you sure you want to remove "'+name+'"?',
-			message: '',
-			ok: 'Remove',
-			id: 'remove_library_button',
-			callback: function() {
-				this.removeLibrary(id_number);
-				this.question.destroy();
-			}.bind(this)
-		});
-	},
-	removeLibrary: function(id_number) {
+	removeLibrary: function(lib) {
 		new Request.JSON({
 			url: this.remove_library_url || this.options.remove_library_url,
-			data: {'id_number': id_number},
+			data: {'id_number': lib.options.id_number},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
-				$('library_{name}'.substitute(response)).getParent('li').destroy();
-				//$('libraries-counter').set('text', '('+ $('libraries').getElements('.UI_File_Listing li').length +')')
+				lib.destroy();
 			}.bind(this)
 		}).send();
 	},
