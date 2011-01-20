@@ -27,8 +27,9 @@ def prepare_test(r, id_number, revision_number=None):
     revision = get_object_with_related_or_404(PackageRevision,
                         package__id_number=id_number, package__type='a',
                         revision_number=revision_number)
-
-    # support temporary data
+    hashtag = r.POST.get('hashtag')
+    if not hashtag:
+        return HttpResponseForbidden('{"error": "No hashtag"}')
     if r.POST.get('live_data_testing', False):
         modules = []
         for mod in revision.modules.all():
@@ -37,90 +38,59 @@ def prepare_test(r, id_number, revision_number=None):
                 if mod.code != code:
                     mod.code = code
                     modules.append(mod)
-        (xpi_path, stdout, stderr) = revision.build_xpi(modules, rapid=True)
-
+        revision.build_xpi(modules, hashtag=hashtag)
     else:
-        (xpi_path, stdout, stderr) = revision.build_xpi(rapid=True)
-
-    if stderr and not settings.DEBUG:
-        # XXX: this should also log the error in file
-        xpi_utils.remove(revision.get_sdk_dir())
-
-    # return XPI url and cfx command stdout and stderr
-    return render_to_response('json/test_xpi_created.json', {
-        'stdout': stdout,
-        'stderr': stderr,
-        'test_xpi_url': reverse('jp_test_xpi', args=[
-            xpi_path
-        ]),
-        'download_xpi_url': reverse('jp_download_xpi', args=[
-            xpi_path,
-            revision.package.name
-        ]),
-        'rm_xpi_url': reverse('jp_rm_xpi', args=[xpi_path]),
-        'addon_name': '"%s (%s)"' % (
-            revision.package.full_name, revision.get_version_name())
-    }, context_instance=RequestContext(r))
-    #    mimetype='application/json')
+        revision.build_xpi(hashtag=hashtag)
+    return HttpResponse('{"delayed": true}')
 
 
-def prepare_download(r, id_number, revision_number=None, xpi_path=''):
+def get_test(r, hashtag):
     """
-    Download XPI.  This package is built asynchronously and we assume it works.
-    and let ``download_xpi`` handle the case where the file is not ready.
+    return XPI file for testing
+    """
+    path = os.path.join(settings.XPI_TARGETDIR, '%s.xpi' % hashtag)
+    mimetype = 'text/plain; charset=x-user-defined'
+    try:
+        xpi = open(path, 'rb').read()
+    except Exception, err:
+        log.debug('Add-on not yet created: %s' % str(err))
+        return HttpResponse('')
+    log.info('Downloading Add-on: %s' % hashtag)
+    return HttpResponse(xpi, mimetype=mimetype)
+
+
+def prepare_download(r, id_number, revision_number=None):
+    """
+    Prepare download XPI.  This package is built asynchronously and we assume
+    it works. It will be downloaded in ``get_download``
     """
     revision = get_object_with_related_or_404(PackageRevision,
                         package__id_number=id_number, package__type='a',
                         revision_number=revision_number)
-
-    # If this is a retry, we won't rebuild... we'll just wait.
-    # XXX: that would need to get xpi_path somehow
-    retry = r.GET.get('retry')
-    retry_url = reverse('jp_addon_revision_xpi',
-                        args=[id_number, revision_number]) + '?retry=1'
-
-    if not retry:
-        (xpi_path, stdout, stderr) = revision.build_xpi(rapid=True)
-
-    return get_download(r,
-                        xpi_path,
-                        revision.package.name,
-                        retry=retry,
-                        retry_url=retry_url,
-                       )
+    hashtag = r.POST.get('hashtag')
+    revision.build_xpi(hashtag=hashtag)
+    return HttpResponse('{"delayed": true}')
 
 
-def get_test(r, path):
-    """
-    return XPI file for testing
-    """
-    path = os.path.join(settings.XPI_TARGETDIR, path)
-    mimetype = 'text/plain; charset=x-user-defined'
-
-    try:
-        xpi = open(path, 'rb').read()
-    except Exception, err:
-        log.critical('Error creating Add-on: %s' % str(err))
-        return HttpResponseServerError
-
-    return HttpResponse(xpi, mimetype=mimetype)
-
-
-def get_download(r, path, filename, retry=False, retry_url=None):
-    """Return XPI file for testing."""
-    path = os.path.join(settings.XPI_TARGETDIR, path)
-    # Return file if it exists
+def check_download(r, hashtag):
+    """Check if XPI file is prepared."""
+    path = os.path.join(settings.XPI_TARGETDIR, '%s.xpi' % hashtag)
+    # Check file if it exists
     if os.path.isfile(path):
-        r = serve(r, path, '/', show_indexes=False)
-        r['Content-Type'] = 'application/octet-stream'
-        r['Content-Disposition'] = 'attachment; filename="%s.xpi"' % filename
-    elif retry:
-        r = render_to_response('retry_download.html', dict(url=retry_url),
-                               RequestContext(r))
-    else:
-        r = HttpResponseRedirect(retry_url)
+        return HttpResponse('{"ready": true}')
+    return HttpResponse('{"ready": false}')
 
-    return r
+
+def get_download(r, hashtag, filename):
+    """
+    Download XPI (it has to be ready)
+    """
+    path = os.path.join(settings.XPI_TARGETDIR, '%s.xpi' % hashtag)
+    log.info('Downloading %s.xpi from %s' % (filename, path))
+    response = serve(r, path, '/', show_indexes=False)
+    response['Content-Disposition'] = ('attachment; '
+            'filename="%s.xpi"' % filename)
+    return response
 
 
 def clean(r, path):
