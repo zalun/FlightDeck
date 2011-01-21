@@ -52,6 +52,7 @@ a:hover {
 	#app-header nav li {
 		float: left;
 		color: #B3B3B3;
+		cursor:default;
 		padding: 5px 2px;
 		margin: 0 4px;
 		position:relative;
