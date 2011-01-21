@@ -55,24 +55,26 @@
 	<section id="package-info" class="UI_Sidebar_Item">
 		{% include "_package_info.html" %}
 	</section>
-	<section id="modules">
-		<ul id="LibTree" class="tree collapse">
-			
-		</ul>
-	</section>
-	{% with revision.attachments.all as attachments %}{% if attachments %}
-	<section id="attachments">
-		<ul id="DataTree" class="tree collapse">
-			
-		</ul>
-	</section>
-	{% endif %}{% endwith %}
-	{% if libraries or revision.package.is_addon %}
-	<section id="libraries">
-		<ul id="PluginsTree" class="tree collapse">
-			{% block core_library %}{% endblock %}
-		</ul>
-	</section>
+	<div class="trees-container">
+		<section id="modules">
+			<ul id="LibTree" class="tree collapse">
+				
+			</ul>
+		</section>
+		{% with revision.attachments.all as attachments %}{% if attachments %}
+		<section id="attachments">
+			<ul id="DataTree" class="tree collapse">
+				
+			</ul>
+		</section>
+		{% endif %}{% endwith %}
+		{% if libraries or revision.package.is_addon %}
+		<section id="libraries">
+			<ul id="PluginsTree" class="tree collapse">
+				{% block core_library %}{% endblock %}
+			</ul>
+		</section>
+	</div>
 	{% endif %}
 {% endblock %}
 

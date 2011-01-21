@@ -15,6 +15,17 @@ var Sidebar = new Class({
 	initialize: function(options){
 		this.setOptions(options);
 		this.element = $('app-sidebar');
+		
+		this.resizeTreeContainer();
+		window.addEvent('resize', this.resizeTreeContainer.bind(this));
+	},
+	
+	resizeTreeContainer: function() {
+		// set height on tree container, to allow for overflow:auto
+		var container = this.element.getElement('.trees-container');
+		if(container) {
+			container.setStyle('height', window.getHeight() - container.getTop());
+		}
 	},
 	
 	buildTree: function() {

@@ -66,22 +66,23 @@
 	<section id="package-info" class="UI_Sidebar_Item">
 		{% include "_package_info.html" %}
 	</section>
-
-	<section id="modules">
-		<ul id="LibTree" class="tree collapse">
-			
-		</ul>
-	</section>
-	<section id="attachments">
-		<ul id="DataTree" class="tree collapse">
-			
-		</ul>
-	</section>
-	<section id="libraries">
-		<ul id="PluginsTree" class="tree collapse">
-			{% block core_library %}{% endblock %}
-		</ul>
-	</section>
+	<div class="trees-container">
+		<section id="modules">
+			<ul id="LibTree" class="tree collapse">
+				
+			</ul>
+		</section>
+		<section id="attachments">
+			<ul id="DataTree" class="tree collapse">
+				
+			</ul>
+		</section>
+		<section id="libraries">
+			<ul id="PluginsTree" class="tree collapse">
+				{% block core_library %}{% endblock %}
+			</ul>
+		</section>
+	</div>
 </form>{% endblock %}
 
 {% block app_content %}
