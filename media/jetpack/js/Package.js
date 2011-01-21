@@ -297,7 +297,8 @@ var Library = new Class({
 	},
 	
 	onSelect: function() {
-		//do what?
+		//open in a new tab, of course
+		window.open(this.options.view_url);
 	},
 	
 	get_css_id: function() {
@@ -731,7 +732,14 @@ Package.Edit = new Class({
 					// set data changed by save
 					this.registerRevision(response);
 					//fd.message.alert('Library assigned', response.message);
-					new Library(this, response);
+					this.plugins[response.full_name] = new Library(this, {
+						full_name: response.full_name,
+						id_number: response.id_number,
+						library_name: response.library_name,
+						library_url: response.library_url,
+						view_url: response.view_url,
+						path: response.path
+					});
 				}.bind(this)
 			}).send();
 		} else {

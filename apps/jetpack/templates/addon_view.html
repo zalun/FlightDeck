@@ -30,7 +30,9 @@
       data-id-number="{{ revision.get_sdk_revision.package.name }}">
       <a class="expand" href="#"></a>
 	  <div class="holder">
-		<span class="label">{{ revision.get_sdk_revision.package.full_name }}</span>
+		<a href="{{ revision.get_sdk_revision.get_absolute_url }}" target="_blank">
+		  <span class="label">{{ revision.get_sdk_revision.package.full_name }}</span>
+		</a>
 		<span class="icon"></span>
 	  </div>
 	</li>
