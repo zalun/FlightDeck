@@ -6,6 +6,16 @@
 	<h1 id="flightdeck-logo"><a title="Mozilla Labs &minus; Add-ons Builder" href="{% url home %}">Mozilla Labs &minus; Add-ons Builder</a></h1>
 	<nav>
 		<ul>
+			<li>
+				<span>Create &#9662;</span>
+				<div class="pointytip">
+					<span class="pointer"></span>
+					<ul>
+						<li><a href="{% url jp_addon_create %}">Add-on</a></li>
+						<li><a href="{% url jp_library_create %}">Library</a></li>
+					</ul>
+				</div>
+			</li>
 			{#<li {% ifequal page "packages" %}class="active"{% endifequal %}><span><a title="Package Browser" href="{% url jp_browser_addons %}">Package Browser</a></span></li>#}
 			<li class="{% ifequal page "apibrowser" %}active{% endifequal %}"><span><a title="Documentation" href="{% url api_home %}" target="new">Documentation</a></span></li>
 			{% if user.is_authenticated %}
@@ -21,8 +31,6 @@
 					<div class="UI_tooltip_source" data-tooltip-for="signin" data-tooltip-title="Sign In">Sign in with your addons.mozilla.org account.</div>
 				</li>
 			{% endif %}
-            <li><span>&nbsp;</span></li>
-            <li><span>Create: <a href="{% url jp_addon_create %}">Add-on</a> | <a href="{% url jp_library_create %}">Library</a></span></li>
 		</ul>
 	</nav>
 </div> <!-- /UI_middleWrapper -->

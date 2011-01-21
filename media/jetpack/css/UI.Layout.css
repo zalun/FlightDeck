@@ -54,6 +54,7 @@ a:hover {
 		color: #B3B3B3;
 		padding: 5px 2px;
 		margin: 0 4px;
+		position:relative;
 	}
    
 		#app-header nav li a {
@@ -90,7 +91,38 @@ a:hover {
 		#app-header nav li.active a {
 			color: #fff;
 		}
+	
+	#app-header nav li .pointytip {
+		display: none;
+		padding-top:10px;
+		position:absolute;
+		left:0;
+		top:95%;
+		z-index:10;
+	}
+	
+		#app-header nav li:hover .pointytip {
+			display:block;
+		}
 		
+		#app-header nav li .pointytip ul {
+			background:rgba(0,0,0, 0.7);
+			-moz-border-radius:5px;
+			overflow:hidden;
+			padding:10px;
+		}
+		
+		#app-header nav li .pointytip .pointer {
+			border-color:transparent transparent #000 transparent;
+			border-style:solid;
+			border-width:10px;
+			height:0;
+			width:0;
+			position:absolute;
+			top:-10px;
+			left:40px;
+			opacity:0.7;
+		}
 /*
  =========================================================================== */
 #flightdeck-logo {
