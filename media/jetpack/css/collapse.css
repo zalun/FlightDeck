@@ -48,7 +48,7 @@ ul.collapse a.collapse {
 
 ul.collapse a.collapse + .holder > .icon
 {
-	background-image: url(/media/jetpack/img/UI_File_Listing/folder_stroke_16x16.png);
+	background-image: url(/media/jetpack/img/UI_File_Listing/folder_fill_16x16.png);
 }
 
 ul.collapse li.top_branch {
@@ -108,11 +108,11 @@ ul li.top_branch > a.expand {
 }
 
 li[rel="file"] > .holder > .icon {
-	background-image: url(/media/jetpack/img/UI_File_Listing/document_fill_16x16.png) !important;
+	background-image: url(/media/jetpack/img/UI_File_Listing/document_stroke_16x16.png) !important;
 }
 
 li[rel="file"].UI_File_Selected > .holder  >.icon {
-	background-image: url(/media/jetpack/img/UI_File_Listing/document_stroke_16x16.png) !important;
+	background-image: url(/media/jetpack/img/UI_File_Listing/document_fill_16x16.png) !important;
 }
 
 li[title$=".png"] > .holder > .icon, li[title$=".jpg"] > .holder > .icon, li[title$=".gif"] > .holder > .icon
