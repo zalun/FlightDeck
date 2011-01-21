@@ -288,6 +288,11 @@ def package_rename_module(r, id_number, type_id, revision_number):
     old_name = r.POST.get('old_filename')
     new_name = r.POST.get('new_filename')
     
+    if old_name == 'main':
+        return HttpResponseForbidden(
+            'Sorry, you cannot change the name of the main module.'
+        )
+    
     if not revision.validate_module_filename(new_name):
         return HttpResponseForbidden(
             ('Sorry, there is already a module in your add-on '
@@ -296,6 +301,7 @@ def package_rename_module(r, id_number, type_id, revision_number):
         )
     
     modules = revision.modules.all()
+    module = None
     
     for mod in modules:
         if mod.filename == old_name:

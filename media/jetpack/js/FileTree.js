@@ -136,7 +136,7 @@ FileTree = new Class({
 					'path': path,
 					'url': obj.options.url,
 					'rel': obj.options.type ? 'file' : 'directory',
-					'class': 'UI_File_Normal'
+					'class': 'UI_File_Normal' + (options.nodrag ? ' nodrag' : '')
 				}, previous, options);
 				
 				a[i].store('file', obj);

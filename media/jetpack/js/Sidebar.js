@@ -215,6 +215,7 @@ var Sidebar = new Class({
 		if (!this.options.editable || file.options.main) {
 			options.edit = false;
 			options.remove = false;
+			options.nodrag = true;
 		}
 		
 		
