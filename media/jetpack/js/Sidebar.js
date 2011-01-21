@@ -44,51 +44,54 @@ var Sidebar = new Class({
 		};
 		
 		// Tree and Collapse initilizations
-		var trees = this.trees = {
-			'lib': new FileTree('LibTree', treeOptions),
-			'data': new FileTree('DataTree', treeOptions),
-			'plugins': new FileTree('PluginsTree', Object.merge({}, treeOptions, { actions: {
-				edit: false,
-				remove: true
-			}}))
-		};
-		
+		var trees = this.trees = {};
 		var topBranchOptions = {
 			add: this.options.editable,
 			edit: false,
 			remove: false
 		};
 		
-		
-		trees.lib.collapse = new Collapse('LibTree');
-		trees.lib.addBranch({
-			'rel': 'directory',
-			'title': 'Lib',
-			'id': 'lib_branch',
-			'class': 'top_branch nodrag'
-		}, null, topBranchOptions);
-		
-		trees.data.collapse = new Collapse('DataTree');
-		trees.data.addBranch({
-			'rel': 'directory',
-			'title': 'Data',
-			'id': 'data_branch',
-			'class': 'top_branch nodrag'
-		}, null, topBranchOptions);
-		
-		trees.plugins.collapse = new Collapse('PluginsTree');
-		var pluginsBranch = trees.plugins.addBranch({
-			'rel': 'directory',
-			'title': 'Plugins',
-			'id': 'plugins_branch',
-			'class': 'top_branch nodrag'
-		}, null, topBranchOptions);
-		
-		var sdkBranch = $('core_library_lib');
-		if(sdkBranch) {
-			pluginsBranch.getElement('ul').grab(sdkBranch);
+		if($('LibTree')) {
+			trees.lib = new FileTree('LibTree', treeOptions);
+			trees.lib.collapse = new Collapse('LibTree');
+			trees.lib.addBranch({
+				'rel': 'directory',
+				'title': 'Lib',
+				'id': 'lib_branch',
+				'class': 'top_branch nodrag'
+			}, null, topBranchOptions);
 		}
 		
+		if($('DataTree')) {
+			trees.data = new FileTree('DataTree', treeOptions);
+			trees.data.collapse = new Collapse('DataTree');
+			trees.data.addBranch({
+				'rel': 'directory',
+				'title': 'Data',
+				'id': 'data_branch',
+				'class': 'top_branch nodrag'
+			}, null, topBranchOptions);
+		}
+			
+		if($('PluginsTree')) {	
+			trees.plugins = new FileTree('PluginsTree', Object.merge({}, treeOptions, { actions: {
+				edit: false,
+				remove: true
+			}}));
+			trees.plugins.collapse = new Collapse('PluginsTree');
+			var pluginsBranch = trees.plugins.addBranch({
+				'rel': 'directory',
+				'title': 'Plugins',
+				'id': 'plugins_branch',
+				'class': 'top_branch nodrag'
+			}, null, topBranchOptions);
+			
+			var sdkBranch = $('core_library_lib');
+			if(sdkBranch) {
+				pluginsBranch.getElement('ul').grab(sdkBranch);
+			}
+		}
+
 		this.attach();
 		
 		return this;
@@ -112,19 +115,25 @@ var Sidebar = new Class({
 		});
 		
 		//adding modules to Lib
-		$(this.trees.lib).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
-			that.promptNewFile();
-		});
+		if(this.trees.lib) {
+			$(this.trees.lib).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
+				that.promptNewFile();
+			});
+		}
 		
 		//adding attachments to Data
-		$(this.trees.data).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
-			that.promptAttachment();
-		});
+		if(this.trees.data) {
+			$(this.trees.data).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
+				that.promptAttachment();
+			});
+		}
 		
 		//adding User Libraries to Plugins
-		$(this.trees.plugins).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
-			that.promptPlugin();
-		});
+		if(this.trees.plugins) {
+			$(this.trees.plugins).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
+				that.promptPlugin();
+			});
+		}
 		
 		// delete
 		sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .actions .delete)'.substitute(this.options), function(e) {
