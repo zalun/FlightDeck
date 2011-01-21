@@ -171,7 +171,7 @@ var Package = new Class({
 		this.options.modules.each(function(module) {
 			module.readonly = this.options.readonly;
 			module.append = true;
-			if (!main_module) {
+			if (!main_module && module.filename == 'main') {
 				module.main = true;
 				main_module = module;
 			}
@@ -456,10 +456,7 @@ var Module = new Class({
 	},
 	get_css_id: function() {
 		return this.options.filename;
-	},
-	on_destroy: function() {
-		delete fd.getItem().modules[this.options.filename];
-	},
+	}
 });
 
 Package.View = new Class({
