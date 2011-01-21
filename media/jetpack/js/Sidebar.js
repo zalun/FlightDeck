@@ -71,7 +71,7 @@ var Sidebar = new Class({
 				'title': 'Lib',
 				'id': 'lib_branch',
 				'class': 'top_branch nodrag'
-			}, null, topBranchOptions);
+			}, null, Object.merge({}, topBranchOptions, { collapsed: false }));
 		}
 		
 		if($('DataTree')) {

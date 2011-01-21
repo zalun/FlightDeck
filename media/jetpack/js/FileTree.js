@@ -60,7 +60,8 @@ FileTree = new Class({
 		options = Object.merge({}, {
 			add: false,
 			edit: attr.rel == 'directory' ? false : true,
-			remove: attr.rel == 'directory' ? false : true
+			remove: attr.rel == 'directory' ? false : true,
+			collapsed: true
 		}, this.options.actions, options);
 		attr.html = ('<a class="expand" href="#"></a>' +
 			'<div class="holder">' +
@@ -69,7 +70,7 @@ FileTree = new Class({
 			'</div>{dir}').substitute({
 			title: attr.title,
 			id: attr.name ? attr.name + '_switch' : attr.title + '_folder',
-			dir: attr.rel == 'directory' ? '<ul style="display:none;"></ul>' : '',
+			dir: attr.rel == 'directory' ? '<ul' + (options.collapsed ? ' style="display:none;"' : '') + '></ul>' : '',
 			add: options.add ? '<span class="add" title="Add"></span>' : '',
 			edit: options.edit ? '<span class="edit" title="Rename"></span>' : '',
 			remove: options.remove ? '<span class="delete" title="Delete"></span>' : ''
