@@ -59,7 +59,8 @@ var Sidebar = new Class({
 		var topBranchOptions = {
 			add: this.options.editable,
 			edit: false,
-			remove: false
+			remove: false,
+			collapsed: false
 		};
 		
 		var addon_or_lib_url = window.location.pathname.match(/\/[a-z]+\/\d+\//g)[0]
@@ -82,7 +83,7 @@ var Sidebar = new Class({
 				'title': 'Lib',
 				'id': 'lib_branch',
 				'class': 'top_branch nodrag'
-			}, null, Object.merge({}, topBranchOptions, { collapsed: false }));
+			}, null, topBranchOptions);
 		}
 		
 		if($('DataTree')) {

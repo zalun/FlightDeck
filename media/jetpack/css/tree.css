@@ -123,13 +123,13 @@ li .actions > span:hover {
 
 li.top_branch > .holder .actions {
 	position:static;
-	margin-top:5px;
+	margin-top:10px;
 }
 li.top_branch > .holder .actions .add {
-	background-image:url(/media/jetpack/img/UI_File_Listing/plus_alt_24x24.png);
-	height:24px;
+	background-image:url(/media/jetpack/img/UI_File_Listing/plus_alt_16x16.png);
+	height:16px;
 	margin-left:5px;
-	width:24px;
+	width:16px;
 }
 
 li .actions .add {
