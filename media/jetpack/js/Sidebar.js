@@ -212,7 +212,7 @@ var Sidebar = new Class({
 			url: file.options.url
 		};
 	
-		if (!this.options.editable) {
+		if (!this.options.editable || file.options.main) {
 			options.edit = false;
 			options.remove = false;
 		}
