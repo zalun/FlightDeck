@@ -51,9 +51,21 @@ var Sidebar = new Class({
 			remove: false
 		};
 		
+		var addon_or_lib_url = window.location.pathname.match(/\/[a-z]+\/\d+\//g)[0]
+				.replace(/\//g, '_');
+		
+		var collapseOptions = {
+			getAttribute: function(element) {
+				return element.get('path') || element.get('id');
+			},
+			getIdentifier: function(element) {
+				return addon_or_lib_url + '_collapse_' + element.get('id')
+			}
+		};
+		
 		if($('LibTree')) {
 			trees.lib = new FileTree('LibTree', treeOptions);
-			trees.lib.collapse = new Collapse('LibTree');
+			trees.lib.collapse = new Collapse.Cookie('LibTree', collapseOptions);
 			trees.lib.addBranch({
 				'rel': 'directory',
 				'title': 'Lib',
@@ -64,7 +76,7 @@ var Sidebar = new Class({
 		
 		if($('DataTree')) {
 			trees.data = new FileTree('DataTree', treeOptions);
-			trees.data.collapse = new Collapse('DataTree');
+			trees.data.collapse = new Collapse.Cookie('DataTree', collapseOptions);
 			trees.data.addBranch({
 				'rel': 'directory',
 				'title': 'Data',
@@ -78,7 +90,7 @@ var Sidebar = new Class({
 				edit: false,
 				remove: true
 			}}));
-			trees.plugins.collapse = new Collapse('PluginsTree');
+			trees.plugins.collapse = new Collapse.Cookie('PluginsTree', collapseOptions);
 			var pluginsBranch = trees.plugins.addBranch({
 				'rel': 'directory',
 				'title': 'Plugins',
@@ -89,6 +101,7 @@ var Sidebar = new Class({
 			var sdkBranch = $('core_library_lib');
 			if(sdkBranch) {
 				pluginsBranch.getElement('ul').grab(sdkBranch);
+				trees.plugins.collapse.prepare();
 			}
 		}
 

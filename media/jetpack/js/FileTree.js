@@ -69,7 +69,7 @@ FileTree = new Class({
 			'</div>{dir}').substitute({
 			title: attr.title,
 			id: attr.name ? attr.name + '_switch' : attr.title + '_folder',
-			dir: attr.rel == 'directory' ? '<ul></ul>' : '',
+			dir: attr.rel == 'directory' ? '<ul style="display:none;"></ul>' : '',
 			add: options.add ? '<span class="add" title="Add"></span>' : '',
 			edit: options.edit ? '<span class="edit" title="Rename"></span>' : '',
 			remove: options.remove ? '<span class="delete" title="Delete"></span>' : ''
