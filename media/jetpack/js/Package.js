@@ -46,6 +46,7 @@ var Package = new Class({
 		this.setOptions(options);
 		this.revision_number = this.options.revision_number;
 		fd.sidebar.options.editable = !this.options.readonly;
+		fd.sidebar.buildTree();
 		this.instantiate_modules();
 		this.instantiate_attachments();
 		this.instantiate_dependencies();
