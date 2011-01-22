@@ -35,7 +35,7 @@ class XPIBuildTest(TestCase):
             author=self.author
         )
         self.librev.module_add(mod)
-        self.SDKDIR = self.addon.latest.get_sdk_dir()
+        self.SDKDIR = self.addon.latest.get_sdk_dir(self.hashtag)
         self.attachment_file_name = os.path.join(
                 settings.UPLOAD_DIR, 'test_filename.txt')
         handle = open(self.attachment_file_name, 'w')
