@@ -1,7 +1,7 @@
 {% extends "view.html" %}
 
 {% block editor_wrapper %}
-	{% with revision.modules.all|first as module %}
+	{% for module in revision.modules.all %}
 		{% include "_module_code_textarea.html" %}
-	{% endwith %}
+	{% endfor %}
 {% endblock %}
