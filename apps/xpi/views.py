@@ -38,10 +38,10 @@ def prepare_test(r, id_number, revision_number=None):
                 if mod.code != code:
                     mod.code = code
                     modules.append(mod)
-        revision.build_xpi(modules, hashtag=hashtag)
+        response, rm_xpi_url = revision.build_xpi(modules, hashtag=hashtag)
     else:
-        revision.build_xpi(hashtag=hashtag)
-    return HttpResponse('{"delayed": true}')
+        response, rm_xpi_url = revision.build_xpi(hashtag=hashtag)
+    return HttpResponse('{"delayed": true, "rm_xpi_url": "%s"}' % rm_xpi_url)
 
 
 def get_test(r, hashtag):
@@ -98,5 +98,5 @@ def clean(r, path):
     # Validate sdk_name
     if not validator.is_valid('alphanum_plus', path):
         return HttpResponseForbidden("{'error': 'Wrong name'}")
-    xpi_utils.remove(os.path.join(settings.XPI_TARGETDIR, path))
-    return HttpResponse('{}', mimetype='application/json')
+    xpi_utils.remove(os.path.join(settings.XPI_TARGETDIR, '%s.xpi' % path))
+    return HttpResponse('{"success": true}', mimetype='application/json')

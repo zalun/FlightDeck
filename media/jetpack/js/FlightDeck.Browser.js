@@ -26,7 +26,7 @@ FlightDeck = Class.refactor(FlightDeck,{
                         data: {'hashtag': hashtag},
 						onSuccess: fd.testXPI,
                         addOnFailure: function() {
-                            fd[hashtag].spinner.destroy();
+                            fd.tests[hashtag].spinner.destroy();
                         }
 					}).send();
 				}.bind(this);

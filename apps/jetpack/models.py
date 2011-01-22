@@ -901,9 +901,11 @@ class PackageRevision(models.Model):
         return '%s-%s-%s' % (self.sdk.version,
                              self.package.id_number, self.revision_number)
 
-    def get_sdk_dir(self):
+    def get_sdk_dir(self, hashtag):
         " returns the path to the directory where the SDK should be copied "
-        return os.path.join(settings.SDKDIR_PREFIX, self.get_sdk_name())
+        return os.path.join(
+                settings.SDKDIR_PREFIX,
+                "%s-%s" % (hashtag, self.get_sdk_name()))
 
     def get_sdk_revision(self):
         " return core_lib, addon_kit or None "
@@ -926,7 +928,7 @@ class PackageRevision(models.Model):
         if not hashtag:
             raise IntegrityError('hashtag is required to create xpi')
 
-        sdk_dir = self.get_sdk_dir()
+        sdk_dir = self.get_sdk_dir(hashtag)
         sdk_source = self.sdk.get_source_dir()
         # This SDK is always different! - working on unsaved data
         if os.path.isdir(sdk_dir):
@@ -956,7 +958,8 @@ class PackageRevision(models.Model):
         if rapid:
             return xpi_utils.build(*args)
 
-        return tasks.xpi_build.delay(*args)
+        return (tasks.xpi_build.delay(*args),
+                reverse('jp_rm_xpi', args=[hashtag]))
 
     def export_keys(self, sdk_dir):
         " export private and public keys "

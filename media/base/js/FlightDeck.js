@@ -28,6 +28,7 @@ var FlightDeck = new Class({
         this.parseTooltips();
         this.createActionSections();
         this.parseTestButtons.bind(this).delay(10);
+        this.addEvent('xpi_downloaded', this.whenXpiDownloaded);
         this.addEvent('xpi_installed', this.whenXpiInstalled);
         this.addEvent('xpi_uninstalled', this.whenXpiUninstalled);
         if (!this.isAddonInstalled()) $log('FD: No Addon Builder Helper')
@@ -63,11 +64,14 @@ var FlightDeck = new Class({
 
     whenXpiInstalled: function(name) {
         this.parseTestButtons();
-        this.message.alert('Add-ons Builder', '{name} installed'.substitute({'name': [name, 'Add-on'].pick()}));
+        this.message.alert('Add-ons Builder', 'Add-on installed');
+        $log('FD: INFO: Add-on installed');
+    },
+    whenXpiDownloaded: function(hashtag) {
         // remove SDK from disk
-        if (this.rm_xpi_url) {
+        if (this.tests[hashtag].rm_xpi_url) {
             new Request.JSON({
-                url: this.rm_xpi_url,
+                url: this.tests[hashtag].rm_xpi_url,
                 onSuccess: function() {
                     this.fireEvent('sdk_removed');
                 }.bind(this)
@@ -163,6 +167,7 @@ var FlightDeck = new Class({
         $log('FD: DEBUG: XPI delayed ... try to load every ' + fd.options.request_interval/1000 + ' seconds' );
         var hashtag = this.options.data.hashtag;
         fd.tests[hashtag].request_number = 0;
+        fd.tests[hashtag].rm_xpi_url = response.rm_xpi_url;
         fd.tryInstallXPI.delay(1000, fd, hashtag);
         fd.tests[hashtag].install_ID = fd.tryInstallXPI.periodical(
                 fd.options.request_interval, fd, hashtag);
@@ -202,6 +207,7 @@ var FlightDeck = new Class({
                             test_request.spinner.destroy();
                         }
                         if (responseText) {
+                            this.fireEvent('xpi_downloaded', hashtag);
                             var result = window.mozFlightDeck.send({cmd: "install", contents: responseText});
                             if (result && result.success) {
                                 this.fireEvent('xpi_installed', '');
