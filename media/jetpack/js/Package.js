@@ -375,7 +375,7 @@ var Attachment = new Class({
 	append: function() {
 		fd.sidebar.addData(this);
 
-		if (this.is_editable()) {
+		if (this.is_editable() && !$(this.get_editor_id())) {
 			var textarea = new Element('textarea', {
 				'id': this.get_editor_id(),
 				'class': 'UI_Editor_Area',
@@ -448,12 +448,14 @@ var Module = new Class({
 	append: function() {
 		fd.sidebar.addLib(this);
 	
-		var textarea = new Element('textarea', {
-			'id': this.options.filename + '_textarea',
-			'class': 'UI_Editor_Area',
-			'name': this.options.filename + '_textarea',
-			'html': this.options.code
-		}).inject('editor-wrapper');
+		if(!$(this.get_editor_id())) {
+			var textarea = new Element('textarea', {
+				'id': this.options.filename + '_textarea',
+				'class': 'UI_Editor_Area',
+				'name': this.options.filename + '_textarea',
+				'html': this.options.code
+			}).inject('editor-wrapper');
+		}
 	},
 	get_css_id: function() {
 		return this.options.filename;
