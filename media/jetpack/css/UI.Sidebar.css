@@ -217,3 +217,11 @@
 		left: -58px;
 		font-size: 1.3em;
 	}
+	
+.UI_Sidebar .trees-container {
+	overflow:auto;
+	
+}
+.UI_Sidebar #modules {
+	padding-top:10px;
+}

@@ -5,6 +5,7 @@ import commonware.log
 import time
 import os
 import shutil
+import re
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -109,11 +110,6 @@ def package_edit(r, revision):
         library_counter += 1
         sdk_list = SDK.objects.all()
 
-    # prepare the json for the Tree
-    tree = simplejson.dumps({'Lib': revision.get_modules_tree(),
-            'Data': revision.get_attachments_tree(),
-            'Plugins': revision.get_dependencies_tree()})
-
     return render_to_response(
         "%s_edit.html" % revision.package.get_type_name(), {
             'revision': revision,
@@ -122,7 +118,6 @@ def package_edit(r, revision):
             'readonly': False,
             'edit_mode': True,
             'sdk_list': sdk_list,
-            'tree': tree
         }, context_instance=RequestContext(r))
 
 
@@ -257,7 +252,7 @@ def package_add_module(r, id_number, type_id,
             'You are not the author of this %s' % escape(
                 revision.package.get_type_name()))
 
-    filename = slugify(r.POST.get('filename'))
+    filename = re.sub('[^a-zA-Z0-9_\-\/]+', '-', r.POST.get('filename').strip())
 
     mod = Module(
         filename=filename,
@@ -277,6 +272,57 @@ def package_add_module(r, id_number, type_id,
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
+@require_POST
+@login_required
+def package_rename_module(r, id_number, type_id, revision_number):
+    """
+    Rename a module in a PackageRevision
+    """
+    revision = get_package_revision(id_number, type_id, revision_number)
+    if r.user.pk != revision.author.pk:
+        log_msg = ('User %s wanted to rename a module from not his own '
+                'Package %s.' % (r.user, id_number))
+        log.warning(log_msg)
+        return HttpResponseForbidden('You are not the author of this Package')
+
+    old_name = r.POST.get('old_filename')
+    new_name = r.POST.get('new_filename')
+    
+    if old_name == 'main':
+        return HttpResponseForbidden(
+            'Sorry, you cannot change the name of the main module.'
+        )
+    
+    if not revision.validate_module_filename(new_name):
+        return HttpResponseForbidden(
+            ('Sorry, there is already a module in your add-on '
+             'with the name "%s". Each module in your add-on '
+             'needs to have a unique name.') % new_name
+        )
+    
+    modules = revision.modules.all()
+    module = None
+    
+    for mod in modules:
+        if mod.filename == old_name:
+            module = mod
+    
+    if not module:
+        log_msg = 'Attempt to delete a non existing module %s from %s.' % (
+            filename, id_number)
+        log.warning(log_msg)
+        return HttpResponseForbidden(
+            'There is no such module in %s' % escape(
+                revision.package.full_name))
+    
+    module.filename = new_name
+    revision.update(module)
+    
+    return render_to_response("json/module_renamed.json",
+                {'revision': revision, 'module': module},
+                context_instance=RequestContext(r),
+                mimetype='application/json')
+    
 
 @require_POST
 @login_required
@@ -374,6 +420,46 @@ def package_add_attachment(r, id_number, type_id,
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
+@require_POST
+@login_required
+def package_rename_attachment(r, id_number, type_id, revision_number):
+    """
+    Rename an attachment in a PackageRevision
+    """
+    revision = get_package_revision(id_number, type_id, revision_number)
+    if r.user.pk != revision.author.pk:
+        log_msg = ('User %s wanted to rename an attachment from not his own '
+                'Package %s.' % (r.user, id_number))
+        log.warning(log_msg)
+        return HttpResponseForbidden('You are not the author of this Package')
+
+    uid = r.POST.get('uid', '').strip()
+    new_name = r.POST.get('new_filename')
+    attachment = latest_by_uid(revision, uid)
+    
+    if not attachment:
+        log_msg = ('Attempt to rename a non existing attachment. attachment: '
+                   '%s, package: %s.' % (uid, id_number))
+        log.warning(log_msg)
+        return HttpResponseForbidden(
+            'There is no such attachment in %s' % escape(
+                revision.package.full_name))
+
+    if not revision.validate_attachment_filename(new_name, attachment.ext):
+        return HttpResponseForbidden(
+            ('Sorry, there is already an attachment in your add-on '
+             'with the name "%s.%s". Each attachment in your add-on '
+             'needs to have a unique name.') % (new_name, attachment.ext)
+        )
+    
+    
+    attachment.filename = new_name
+    revision.update(attachment)
+    
+    return render_to_response("json/attachment_renamed.json",
+                {'revision': revision, 'module': attachment},
+                context_instance=RequestContext(r),
+                mimetype='application/json')
 
 @require_POST
 @login_required

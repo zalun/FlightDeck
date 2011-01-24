@@ -20,7 +20,7 @@
       }
       
       .UI_File_Listing li:hover {
-         background: #EFEFEF;
+         background-color: #EFEFEF;
       }
       
          .UI_File_Listing li:hover a,
@@ -79,19 +79,19 @@
          
          /* Modification indicator of a modified file */
          .UI_File_Listing li.UI_File_Modified a span.File_status {
-            background: -moz-linear-gradient(270deg, #5AA2F3, #3E81D2);
+            background-color: -moz-linear-gradient(270deg, #5AA2F3, #3E81D2);
          }
       
       /* Selected file */
-      .UI_File_Listing li.UI_File_Selected a {
-         background: -moz-linear-gradient(270deg, #5AA2F3, #3E81D2);
+      .tree li.UI_File_Selected {
+        
          color: #fff;
          text-shadow: 0 1px 0 #011E4F;
       }
       
          /* Modification indicator of a modified & selected file */
-         .UI_File_Listing li.UI_File_Selected.UI_File_Modified a span.File_status {
-            background: #fff;
+         .tree li.UI_File_Selected.UI_File_Modified a span.File_status {
+            background-color: #fff;
             -moz-box-shadow: 0 1px 0 #011E4F;
          }
    
