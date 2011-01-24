@@ -49,7 +49,15 @@ authors:
 	.UI_Modal .UI_Modal_Section {
 		padding: 14px;
 		min-width: 350px;
+        max-height: 350px;
+        overflow: auto;
+
 	}
+		.UI_Modal .UI_Modal_Section img {
+            max-width: 330px;
+            max-height: 300px;
+            margin: 5px;
+		}
 	
 		.UI_Modal .UI_Modal_Section a {
 			color: #478CDE;
