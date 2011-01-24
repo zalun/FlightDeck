@@ -49,6 +49,9 @@ authors:
 	.UI_Modal .UI_Modal_Section {
 		padding: 14px;
 		min-width: 350px;
+        max-height: 350px;
+        overflow: auto;
+
 	}
 	
 		.UI_Modal .UI_Modal_Section a {
