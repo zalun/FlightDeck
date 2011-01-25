@@ -348,7 +348,7 @@ var Attachment = new Class({
 		if (this.options.active && this.is_editable()) {
 			pack.editor.switchTo(this);
 		} else {
-            pack.editor.regiterItem(this);
+            pack.editor.registerItem(this);
         }
 	},
 
