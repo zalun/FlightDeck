@@ -21,6 +21,9 @@ var FDEditor = new Class({
             'text': '',
             'class': 'UI_Editor_Area'
         });
+        if (this.options.readonly) {
+            this.element.set('readonly', 'readonly');
+        }
         this.element.inject(wrapper);
 		this.setOptions(options);
 		this.changed = false;
