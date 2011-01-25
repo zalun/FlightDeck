@@ -29,32 +29,44 @@ var FDEditor = new Class({
         this.element.inject(wrapper);
 		this.changed = false;
         // prepare change events
-        this.boundChanged = this.changed.bind(this);
+        this.boundWhenItemChanged = this.whenItemChanged.bind(this);
+        this.boundSetContent = this.setContent.bind(this);
     },
 
     registerItem: function(item){
         this.items[item.uid] = item; 
     },
 
-    switchTo: function(uid){
-        if (this.items[uid]) {
+    switchTo: function(item){
+        $log('switching to ' + item.uid);
+        var self = this;
+        if (!this.items[item.uid]) {
+            this.registerItem(item);
+        }
+        if (this.current) {
             // deactivate
             this.current.active = false;
             // store changes
-            this.current.content = this.getContent();
-            this.current = this.items[uid];
-            this.current.active = true;
-            if (!this.current.content) {
-                this.current.retrieveContent(this);
-            } else {
-                this.setContent(this.current.content);
-            }
-            if (this.current.readonly) {
-                this.setReadOnly();
-            } else if (this.element.get('readonly')) {
-                this.setEditable();
-            }
+            this.dumpCurrent();
         }
+        this.current = item;
+        this.current.active = true;
+        if (!this.current.content) {
+            this.current.addEvent('loadcontent', this.boundSetContent);
+            this.current.loadContent();
+        } else {
+            this.setContent(this.current.content);
+        }
+        if (this.current.options.readonly) {
+            this.setReadOnly();
+        } else {
+            this.setEditable();
+        }
+        this.setSyntax(item.options.type);
+    },
+
+    dumpCurrent: function() {
+        this.current.content = this.getContent();
     },
 
     setReadOnly: function() {
@@ -65,26 +77,29 @@ var FDEditor = new Class({
     },
 
     setEditable: function() {
-        this.element.erase('readonly');
+        if (this.element.get('readonly')) { 
+            this.element.erase('readonly');
+        }
         if (!this.change_hooked) {
             this.hookChange();
         }
     },
 
     hookChange: function(){
-        this.element.addEvent('keyup', this.boundChanged);
+        this.element.addEvent('keyup', this.boundWhenItemChanged);
         this.change_hooked = true;
 	},
 
     unhookChange: function(){
-        this.element.removeEvent('keyup', this.boundChanged);
+        this.element.removeEvent('keyup', this.boundWhenItemChanged);
         this.change_hooked = false;
     },
 
-    changed: function() {
+    whenItemChanged: function() {
         this.fireEvent('modification');
         this.current.changed = true;
-    }
+        $log('touched');
+    },
 
 	getContent: function() {
 		return this.element.value;
@@ -98,6 +113,7 @@ var FDEditor = new Class({
     onModification: function() {
         if (this.getValue() != this.current.original_content) {
             this.fireEvent('change');
+            $log('changed');
         } else if (this.current.changed) {
             this.current.changed = false;
         }
@@ -107,6 +123,8 @@ var FDEditor = new Class({
         return this.items.some(function(item) {
             return item.changed;
         });
-    }
+    },
+
+    setSyntax: function(){}
 
 });

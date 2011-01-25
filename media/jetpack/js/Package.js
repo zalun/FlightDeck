@@ -38,7 +38,8 @@ var Package = new Class({
 		package_info_el: 'package-properties',
 		copy_el: 'package-copy',
 		test_el: 'try_in_browser',
-		download_el: 'download'
+		download_el: 'download',
+        check_if_latest: true  // switch to false if displaying revisions
 	},
 
 	modules: {},
@@ -50,7 +51,7 @@ var Package = new Class({
 	initialize: function(options) {
 		this.setOptions(options);
         // create empty editor
-        this.editor = new FDEditor();
+        this.editor = new FDEditor('editor-wrapper');
         // initiate the sidebar 
 		fd.sidebar.options.editable = !this.options.readonly;
 		fd.sidebar.buildTree();
@@ -68,9 +69,11 @@ var Package = new Class({
 		if (this.copy_el) {
 			this.copy_el.addEvent('click', this.copyPackage.bind(this));
 		}
-		window.addEvent('focus', function() {
-			this.checkIfLatest(this.askForReload.bind(this));
-		}.bind(this));
+        if (this.options.check_if_latest) {
+            window.addEvent('focus', function() {
+                this.checkIfLatest(this.askForReload.bind(this));
+            }.bind(this));
+        }
 	},
 
 	/*
@@ -120,12 +123,11 @@ var Package = new Class({
 		} else {
 		  el = $(this.options.download_el);
 		}
-		var hashtag = this.options.hashtag;
-		fd.tests[hashtag] = {
+		fd.tests[this.options.hashtag] = {
 			spinner: new Spinner(el.getParent('div')).show()
 		};
 		data = {
-			hashtag: hashtag, 
+			hashtag: this.options.hashtag, 
 			filename: this.options.name
 		};
 		new Request.JSON({
@@ -157,21 +159,20 @@ var Package = new Class({
 				);
 				this.testAddon();
 			}.bind(this));
-
 		}
 	},
 
 	installAddon: function() {
-		var hashtag = this.options.hashtag;
-		fd.tests[hashtag] = {
-			spinner: new Spinner($(this.options.test_el).getParent('div')).show()
+		fd.tests[this.options.hashtag] = {
+			spinner: new Spinner(
+                             $(this.options.test_el).getParent('div')).show()
 		};
 		var data = this.data || {};
-		data['hashtag'] = hashtag;
+		data['hashtag'] = this.options.hashtag;
 		new Request.JSON({
-		  url: this.options.test_url,
-		  data: data,
-		  onSuccess: fd.testXPI
+            url: this.options.test_url,
+            data: data,
+            onSuccess: fd.testXPI
 		}).send();
 	},
 
@@ -181,6 +182,8 @@ var Package = new Class({
 
 	instantiate_modules: function() {
 		// iterate by modules and instantiate Module
+        // XXX: this is quite hacky - it should be determnined in the
+        //      back-end
 		var main_module;
 		this.options.modules.each(function(module) {
 			module.readonly = this.options.readonly;
@@ -253,34 +256,19 @@ var File = new Class({
 			Object.each(fd.getItem().modules, function(mod) {
 				if (!first) {
 					first = true;
-					mod.switchBespin();
+					mod.switchTo();
 					fd.sidebar.setSelectedFile(mod.trigger.getParent('li'));
 				}
 			});
 			if (!first) {
-				fd.cleanBespin();
+				fd.item.editor.setContent('');
 			}
 		}
 		this.fireEvent('destroy');
 	},
 
-	switchBespin: function() {
-		if (!fd.editor_contents[this.get_editor_id()]) {
-			this.loadCode();
-		}
-		fd.switchBespinEditor(this.get_editor_id(), this.options.type);
-		if (fd.getItem()) {
-			Object.each(fd.getItem().modules, function(mod) {
-				mod.active = false;
-			});
-		}
-		this.active = true;
-	},
-
-	get_editor_id: function() {
-		if (!this._editor_id)
-			this._editor_id = this.get_css_id() + this.options.code_editor_suffix;
-		return this._editor_id;
+	switchTo: function() {
+		fd.item.editor.switchTo(this);
 	}
 });
 
@@ -347,31 +335,26 @@ var Attachment = new Class({
 	initialize: function(pack, options) {
 		this.parent(pack, options);
 		this.options.path = options.filename + '.' + options.type;
+        // uid for editor items
+        this.uid = this.options.uid + this.options.code_editor_suffix;
 
 		if (this.options.append) {
 			this.append();
 		}
-		
 		this.addEvent('destroy', function(){
-			delete fd.getItem().attachments[this.options.uid];
+			delete pack.attachments[this.options.uid];
 		});
-
 		// create editor
-		this.editor = new FDEditor({
-			element: this.get_editor_id(),
-			activate: this.options.main || this.options.executable,
-			type: this.options.type,
-			readonly: this.options.readonly
-		});
 		if (this.options.active && this.is_editable()) {
-			this.switchBespin();
-			//this.highlightMenu();
-		}
+			pack.editor.switchTo(this);
+		} else {
+            pack.editor.regiterItem(this);
+        }
 	},
 
 	onSelect: function() {
 		if (this.is_editable()) {
-			this.switchBespin();
+			this.switchTo();
 		} else {
 			var template_start = '<div id="attachment_view"><h3>'+this.options.filename+'</h3><div class="UI_Modal_Section">';
 			var template_end = '</div><div class="UI_Modal_Actions"><ul><li><input type="reset" value="Close" class="closeModal"/></li></ul></div></div>';
@@ -381,15 +364,17 @@ var Attachment = new Class({
 		}
 	},
 
-	loadCode: function() {
+	loadContent: function() {
 		// load data synchronously
 		new Request({
 			url: this.options.get_url,
 			async: false,
 			useSpinner: true,
 			spinnerTarget: 'editor-wrapper',
-			onSuccess: function(text, html) {
-				fd.editor_contents[this.get_editor_id()] = text;
+			onSuccess: function(text) {
+                this.content = text;
+                this.original_content = text;
+				this.fireEvent('load_content', text);
 			}.bind(this)
 		}).send();
 	},
@@ -400,15 +385,6 @@ var Attachment = new Class({
 
 	append: function() {
 		fd.sidebar.addData(this);
-
-		if (this.is_editable() && !$(this.get_editor_id())) {
-			var textarea = new Element('textarea', {
-				'id': this.get_editor_id(),
-				'class': 'UI_Editor_Area',
-				'name': this.get_editor_id(),
-				'html': ''
-			}).inject('editor-wrapper');
-		}
 	}
 });
 
@@ -424,7 +400,7 @@ var Module = new Class({
 		// author: '',
 		// DOM
 		code_trigger_suffix: '_switch', // id of an element which is used to switch editors
-		code_editor_suffix: '_textarea', // id of the textarea
+        suffix: '_module',
 		readonly: false,
 		main: false,
 		executable: false,
@@ -445,54 +421,37 @@ var Module = new Class({
 		if (this.options.append) {
 			this.append();
 		}
+        // an uid for the editor
+        this.uid = this.options.filename + this.options.suffix;
 		// create editor
-		this.editor = new FDEditor({
-			element: this.get_editor_id(),
-			activate: this.options.main || this.options.executable,
-			type: this.options.type,
-			readonly: this.options.readonly
-		});
-		
-		if (this.options.main || this.options.executable) {
-			//fd.sidebar.setSelectedFile(this.trigger.getParent('li'));
-		}
-		if (this.options.active) {
-			this.switchBespin();
-		}
+        if (this.options.main || this.options.executable) {
+            pack.editor.switchTo(this);
+        } else {
+            pack.editor.registerItem(this);
+        }
 	},
 
 	onSelect: function() {
-		this.switchBespin();
-	},
-
-	loadCode: function() {
-		// load data synchronously
-		new Request.JSON({
-		url: this.options.get_url,
-		async: false,
-		useSpinner: true,
-		spinnerTarget: 'editor-wrapper',
-		onSuccess: function(mod) {
-			fd.editor_contents[this.get_editor_id()] = mod.code;
-		}.bind(this)
-		}).send();
+		this.switchTo();
 	},
 
 	append: function() {
 		fd.sidebar.addLib(this);
+    },
 	
-		if(!$(this.get_editor_id())) {
-			var textarea = new Element('textarea', {
-				'id': this.options.filename + '_textarea',
-				'class': 'UI_Editor_Area',
-				'name': this.options.filename + '_textarea',
-				'html': this.options.code
-			}).inject('editor-wrapper');
-		}
-	},
-
-	get_css_id: function() {
-		return this.options.filename;
+	loadContent: function() {
+		// load data synchronously
+		new Request.JSON({
+            url: this.options.get_url,
+            async: false,
+            useSpinner: true,
+            spinnerTarget: 'editor-wrapper',
+            onSuccess: function(mod) {
+                this.original_content = mod.code;
+                this.content = mod.code;
+                this.fireEvent('loadcontent', mod.code);
+            }.bind(this)
+		}).send();
 	}
 });
 
@@ -550,9 +509,7 @@ Package.Edit = new Class({
 
 	initialize: function(options) {
 		this.setOptions(options);
-		$log(this.options);
-		// this.data is a temporary holder of the data for the submit
-		this.data = {};
+        this.data = {};
 		this.parent(options);
 		this.assignActions();
 		// autocomplete
@@ -612,7 +569,7 @@ Package.Edit = new Class({
 	},
 
 	get_add_attachment_url: function() {
-		return this.options.add_attachment_url || this.options.add_attachment_url;
+		return this.options.add_attachment_url;
 	},
 
 	sendMultipleFiles: function(files) {
@@ -671,7 +628,7 @@ Package.Edit = new Class({
 				fd.error.alert(
 					'Error {status}'.substitute(xhr),
 					'{statusText}<br/>{responseText}'.substitute(xhr)
-						);
+                );
 			}
 		});
 	},
@@ -679,7 +636,7 @@ Package.Edit = new Class({
 	renameAttachment: function(uid, newName) {
 		var that = this;
 		new Request.JSON({
-			url: that.rename_attachment_url || that.options.rename_attachment_url,
+			url: that.options.rename_attachment_url,
 			data: {
 				uid: uid,
 				new_filename: newName
@@ -698,7 +655,7 @@ Package.Edit = new Class({
 	removeAttachment: function(attachment) {
 		var self = this;
 		new Request.JSON({
-			url: self.remove_attachment_url || self.options.remove_attachment_url,
+			url: self.options.remove_attachment_url,
 			data: {uid: attachment.options.uid},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
@@ -711,7 +668,7 @@ Package.Edit = new Class({
 
 	addModule: function(filename) {
 		new Request.JSON({
-			url: this.options.add_module_url || this.options.add_module_url,
+			url: this.options.add_module_url,
 			data: {'filename': filename},
 			onSuccess: function(response) {
 				// set the redirect data to view_url of the new revision
@@ -735,7 +692,7 @@ Package.Edit = new Class({
 
 	renameModule: function(oldName, newName) {
 		new Request.JSON({
-			url: this.options.rename_module_url || this.options.rename_module_url,
+			url: this.options.rename_module_url,
 			data: {
 				old_filename: oldName,
 				new_filename: newName
@@ -759,7 +716,7 @@ Package.Edit = new Class({
 
 	removeModule: function(module) {
 		new Request.JSON({
-			url: this.options.remove_module_url || this.options.remove_module_url,
+			url: this.options.remove_module_url,
 			data: module.options,
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
@@ -772,7 +729,7 @@ Package.Edit = new Class({
 	assignLibrary: function(library_id) {
 		if (library_id) {
 			new Request.JSON({
-				url: this.options.assign_library_url || this.options.assign_library_url,
+				url: this.options.assign_library_url,
 				data: {'id_number': library_id},
 				onSuccess: function(response) {
 					// set the redirect data to view_url of the new revision
@@ -797,7 +754,7 @@ Package.Edit = new Class({
 
 	removeLibrary: function(lib) {
 		new Request.JSON({
-			url: this.options.remove_library_url || this.options.remove_library_url,
+			url: this.options.remove_library_url,
 			data: {'id_number': lib.options.id_number},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
@@ -816,12 +773,10 @@ Package.Edit = new Class({
 		this.savenow = false;
 		fd.editPackageInfoModal = fd.displayModal(settings.edit_package_info_template.substitute(this.data || this.options));
 		$('package-info_form').addEvent('submit', this.boundSubmitInfo);
-
 		// XXX: this will change after moving the content to other forms
 		$('version_name').addEvent('change', function() { fd.fireEvent('change'); });
 		$('full_name').addEvent('change', function() { fd.fireEvent('change'); });
 		$('package_description').addEvent('change', function() { fd.fireEvent('change'); });
-
 		if ($('savenow')) {
 			$('savenow').addEvent('click', function() {
 				this.savenow = true;
@@ -836,7 +791,6 @@ Package.Edit = new Class({
 				}
 			});
 		});
-
 		// XXX: hack to get the right data in the form
 		Object.each(this.data, function(value, key) {
 			if ($(key)) $(key).value = value;
@@ -862,12 +816,20 @@ Package.Edit = new Class({
 	},
 
 	collectData: function() {
-		fd.saveCurrentEditor();
+		this.editor.dumpCurrent();
 		Object.each(this.modules, function(module, filename) {
-			this.data[filename] = fd.editor_contents[filename + module.options.code_editor_suffix]
+            var content = this.editor.items[module.uid].content;
+            if (content) {
+    			this.data[filename] = content;
+            }
 		}, this);
 		Object.each(this.attachments, function(attachment) {
-			this.data[attachment.options.uid] = fd.editor_contents[attachment.options.uid + attachment.options.code_editor_suffix]
+            var content = this.editor.items[
+                attachment.options.uid + attachment.options.code_editor_suffix]
+                .content;
+            if (content) {
+    			this.data[attachment.options.uid] = content;
+            }
 		}, this);
 	},
 
