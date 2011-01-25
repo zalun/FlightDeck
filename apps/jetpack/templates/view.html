@@ -2,25 +2,16 @@
 
 {% block title %}{{ revision }} - {% endblock %}
 
-{% block head_prejs %}
-	<link id="bespin_base" href="/media/lib/bespin"/>
-	<script src="/media/lib/bespin/BespinEmbedded.js"></script>
-{% endblock %}
-
 {% block head %}
 	<link rel="stylesheet" href="/media/jetpack/css/UI.Editor.css" type="text/css" media="screen" />
 	<link rel="stylesheet" href="/media/jetpack/css/FlightDeck.Autocomplete.css" type="text/css" media="screen" />
 	<link rel="stylesheet" href="/media/jetpack/css/tree.css" type="text/css" media="screen" />
 	<link rel="stylesheet" href="/media/jetpack/css/collapse.css" type="text/css" media="screen" />
-	<link rel="stylesheet" href="/media/lib/bespin/BespinEmbedded.css" type="text/css" media="screen" />
 	<script src="/media/jetpack/js/FlightDeck.Editor.js"></script>
-	<script src="/media/jetpack/js/Editor.js"></script>
-	<script src="/media/jetpack/js/Bespin.js"></script>
+	<script src="/media/jetpack/js/FDEditor.js"></script>
 	<script src="/media/lib/meio/Meio.Autocomplete.HTML-1.3.js"></script>
 	<script src="/media/base/js/FlightDeck.Autocomplete.js"></script>
-	<script src="/media/jetpack/js/FlightDeck.Bespin.js"></script>
 	<script src="/media/jetpack/js/Package.js"></script>
-	<script src="/media/lib/sendFile.js"></script>
 	<script src="/media/lib/tree.js"></script>
 	<script src="/media/jetpack/js/FileTree.js"></script>
 {% endblock %}
@@ -94,6 +85,5 @@
 		</ul>
 	</div> <!-- /editor-menu-wrapper -->
 	<div id="editor-wrapper">
-		{% block editor_wrapper %}{% endblock %}
 	</div>
 {% endblock %}

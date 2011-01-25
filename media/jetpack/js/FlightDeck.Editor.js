@@ -16,12 +16,7 @@ FlightDeck = Class.refactor(FlightDeck,{
 			} else {
 			}
 		});
-		
-		
-
-		
 		this.enableMenuButtons();
-
 		this.addEvent('change', this.onChanged);
 		this.addEvent('save', this.onSaved);
 	},

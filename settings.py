@@ -166,6 +166,8 @@ SECRET_KEY = 'somesecretkey'
 JAVASCRIPT_READABLE_COOKIES = ()
 SESSION_COOKIE_SECURE = True
 
+SESSION_COOKIE_NAME = "bamo_sessionid"
+
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
     'django.template.loaders.filesystem.load_template_source',
