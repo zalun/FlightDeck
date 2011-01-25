@@ -7,8 +7,9 @@
  */
 
 var Package = new Class({
-	// this Class should be always extended
+
 	Implements: [Options, Events],
+
 	options: {
 		// data
 			// package specific
@@ -39,24 +40,28 @@ var Package = new Class({
 		test_el: 'try_in_browser',
 		download_el: 'download'
 	},
+
 	modules: {},
+
 	attachments: {},
+
 	plugins: {},
+
 	initialize: function(options) {
 		this.setOptions(options);
-		this.revision_number = this.options.revision_number;
+        // create empty editor
+        this.editor = new FDEditor();
+        // initiate the sidebar 
 		fd.sidebar.options.editable = !this.options.readonly;
 		fd.sidebar.buildTree();
 		this.instantiate_modules();
 		this.instantiate_attachments();
 		this.instantiate_dependencies();
-		
+		// hook event to menu items
 		$('revisions_list').addEvent('click', this.show_revision_list);
-
-		// testing
-		this.boundTestAddon = this.testAddon.bind(this);
 		if (this.isAddon()) {
-			this.test_url = $(this.options.test_el).get('href');
+            this.boundTestAddon = this.testAddon.bind(this);
+			this.options.test_url = $(this.options.test_el).get('href');
 			$(this.options.test_el).addEvent('click', this.boundTestAddon)
 		}
 		this.copy_el = $(this.options.copy_el)
@@ -67,6 +72,7 @@ var Package = new Class({
 			this.checkIfLatest(this.askForReload.bind(this));
 		}.bind(this));
 	},
+
 	/*
 	 * Method: checkIfLatest
 	 * check if currently displayed revision is the latest one
@@ -77,16 +83,18 @@ var Package = new Class({
 		new Request.JSON({
 			url: this.options.check_latest_url,
 			onSuccess: function(response) {
-				if (failCallback && this.revision_number != response.revision_number) {
+				if (failCallback && this.options.revision_number != response.revision_number) {
 					failCallback.call()
 				}
 			}.bind(this)
 		}).send();
 	},
+
 	askForReload: function() {
 		fd.warning.alert("New revision detected", 
 				"There is a newer revision available. You may wish to reload the page.");
 	},
+
 	/*
 	 * Method: copyPackage
 	 * create a new Package with the same name for the current user
@@ -104,6 +112,7 @@ var Package = new Class({
 			}
 		}).send();
 	},
+
 	downloadAddon: function(e){
 		if (e) {
 		  e.stop();
@@ -125,6 +134,7 @@ var Package = new Class({
 		  onSuccess: fd.downloadXPI
 		}).send();
 	},
+
 	testAddon: function(e){
 		var el;
 		if (e) e.stop();
@@ -150,6 +160,7 @@ var Package = new Class({
 
 		}
 	},
+
 	installAddon: function() {
 		var hashtag = this.options.hashtag;
 		fd.tests[hashtag] = {
@@ -158,14 +169,16 @@ var Package = new Class({
 		var data = this.data || {};
 		data['hashtag'] = hashtag;
 		new Request.JSON({
-		  url: this.test_url,
+		  url: this.options.test_url,
 		  data: data,
 		  onSuccess: fd.testXPI
 		}).send();
 	},
+
 	isAddon: function() {
 		return (this.options.type == 'a');
 	},
+
 	instantiate_modules: function() {
 		// iterate by modules and instantiate Module
 		var main_module;
@@ -179,6 +192,7 @@ var Package = new Class({
 			this.modules[module.filename] = new Module(this,module);
 		}, this);
 	},
+
 	instantiate_attachments: function() {
 		// iterate through attachments
 		this.options.attachments.each(function(attachment) {
@@ -187,6 +201,7 @@ var Package = new Class({
 			this.attachments[attachment.uid] = new Attachment(this,attachment);
 		}, this);
 	},
+
 	instantiate_dependencies: function() {
 		// iterate through attachments
 		this.options.dependencies.each(function(plugin) {
@@ -195,6 +210,7 @@ var Package = new Class({
 			this.plugins[plugin.full_name] = new Library(this,plugin);
 		}, this);
 	},
+
 	show_revision_list: function(e) {
 		if (e) e.stop();
 		new Request({
@@ -247,6 +263,7 @@ var File = new Class({
 		}
 		this.fireEvent('destroy');
 	},
+
 	switchBespin: function() {
 		if (!fd.editor_contents[this.get_editor_id()]) {
 			this.loadCode();
@@ -259,6 +276,7 @@ var File = new Class({
 		}
 		this.active = true;
 	},
+
 	get_editor_id: function() {
 		if (!this._editor_id)
 			this._editor_id = this.get_css_id() + this.options.code_editor_suffix;
@@ -309,7 +327,9 @@ var Library = new Class({
 });
 
 var Attachment = new Class({
+
 	Extends: File,
+
 	options: {
 		code_trigger_suffix: '_attachment_switch', // id of an element which is used to switch editors
 		code_editor_suffix: '_attachment_textarea', // id of the textarea
@@ -319,9 +339,11 @@ var Attachment = new Class({
 		readonly: false,
 		counter: 'attachments'
 	},
+
 	is_image: function() {
 		return ['jpg', 'gif', 'png'].contains(this.options.type);
 	},
+
 	initialize: function(pack, options) {
 		this.parent(pack, options);
 		this.options.path = options.filename + '.' + options.type;
@@ -346,6 +368,7 @@ var Attachment = new Class({
 			//this.highlightMenu();
 		}
 	},
+
 	onSelect: function() {
 		if (this.is_editable()) {
 			this.switchBespin();
@@ -357,6 +380,7 @@ var Attachment = new Class({
 			this.attachmentWindow = fd.displayModal(template_start+template_middle+template_end);
 		}
 	},
+
 	loadCode: function() {
 		// load data synchronously
 		new Request({
@@ -369,9 +393,11 @@ var Attachment = new Class({
 			}.bind(this)
 		}).send();
 	},
+
 	get_css_id: function() {
 		return this.options.uid;
 	},
+
 	append: function() {
 		fd.sidebar.addData(this);
 
@@ -386,8 +412,11 @@ var Attachment = new Class({
 	}
 });
 
+
 var Module = new Class({
+
 	Extends: File,
+
 	options: {
 		// data
 		// filename: '',
@@ -404,6 +433,7 @@ var Module = new Class({
 		append: false,
 		counter: 'modules'
 	},
+
 	initialize: function(pack, options) {
 		this.parent(pack, options);
 		this.options.path = this.options.filename + '.' + this.options.type;
@@ -430,9 +460,11 @@ var Module = new Class({
 			this.switchBespin();
 		}
 	},
+
 	onSelect: function() {
 		this.switchBespin();
 	},
+
 	loadCode: function() {
 		// load data synchronously
 		new Request.JSON({
@@ -445,6 +477,7 @@ var Module = new Class({
 		}.bind(this)
 		}).send();
 	},
+
 	append: function() {
 		fd.sidebar.addLib(this);
 	
@@ -457,26 +490,33 @@ var Module = new Class({
 			}).inject('editor-wrapper');
 		}
 	},
+
 	get_css_id: function() {
 		return this.options.filename;
 	}
 });
 
+
 Package.View = new Class({
+
 	Extends: Package,
+
 	options: {
 		readonly: true,
 		// copy_url: '',
 	},
+
 	initialize: function(options) {
 		this.setOptions(options);
 		this.parent(options);
 		$(this.options.package_info_el).addEvent('click', this.showInfo.bind(this));
 	},
+
 	/*
 	 * Method: showInfo
 		 display a window with info about current Package
 	 */
+
 	showInfo: function(e) {
 		e.stop();
 		fd.displayModal(this.options.package_info);
@@ -485,7 +525,9 @@ Package.View = new Class({
 
 
 Package.Edit = new Class({
+
 	Extends: Package,
+
 	options: {
 		// DOM elements
 			save_el: 'package-save',
@@ -505,20 +547,20 @@ Package.Edit = new Class({
 			'full_name', 'version_name', 'package_description', 'revision_message'
 			]
 	},
+
 	initialize: function(options) {
 		this.setOptions(options);
 		$log(this.options);
 		// this.data is a temporary holder of the data for the submit
 		this.data = {};
 		this.parent(options);
-
 		this.assignActions();
-
 		// autocomplete
 		//this.autocomplete = new FlightDeck.Autocomplete({
 		//	'url': settings.library_autocomplete_url
 		//});
 	},
+
 	assignActions: function() {
 		// assign menu items
 		this.appSidebarValidator = new Form.Validator.Inline('app-sidebar-form');
@@ -570,7 +612,7 @@ Package.Edit = new Class({
 	},
 
 	get_add_attachment_url: function() {
-		return this.add_attachment_url || this.options.add_attachment_url;
+		return this.options.add_attachment_url || this.options.add_attachment_url;
 	},
 
 	sendMultipleFiles: function(files) {
@@ -633,6 +675,7 @@ Package.Edit = new Class({
 			}
 		});
 	},
+
 	renameAttachment: function(uid, newName) {
 		var that = this;
 		new Request.JSON({
@@ -651,6 +694,7 @@ Package.Edit = new Class({
 			}
 		}).send();
 	},
+
 	removeAttachment: function(attachment) {
 		var self = this;
 		new Request.JSON({
@@ -664,9 +708,10 @@ Package.Edit = new Class({
 			}
 		}).send();
 	},
+
 	addModule: function(filename) {
 		new Request.JSON({
-			url: this.add_module_url || this.options.add_module_url,
+			url: this.options.add_module_url || this.options.add_module_url,
 			data: {'filename': filename},
 			onSuccess: function(response) {
 				// set the redirect data to view_url of the new revision
@@ -687,9 +732,10 @@ Package.Edit = new Class({
 			}.bind(this)
 		}).send();
 	},
+
 	renameModule: function(oldName, newName) {
 		new Request.JSON({
-			url: this.rename_module_url || this.options.rename_module_url,
+			url: this.options.rename_module_url || this.options.rename_module_url,
 			data: {
 				old_filename: oldName,
 				new_filename: newName
@@ -710,9 +756,10 @@ Package.Edit = new Class({
 			}.bind(this)
 		}).send();
 	},
+
 	removeModule: function(module) {
 		new Request.JSON({
-			url: this.remove_module_url || this.options.remove_module_url,
+			url: this.options.remove_module_url || this.options.remove_module_url,
 			data: module.options,
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
@@ -721,10 +768,11 @@ Package.Edit = new Class({
 			}.bind(this)
 		}).send();
 	},
+
 	assignLibrary: function(library_id) {
 		if (library_id) {
 			new Request.JSON({
-				url: this.assign_library_url || this.options.assign_library_url,
+				url: this.options.assign_library_url || this.options.assign_library_url,
 				data: {'id_number': library_id},
 				onSuccess: function(response) {
 					// set the redirect data to view_url of the new revision
@@ -746,9 +794,10 @@ Package.Edit = new Class({
 			fd.error.alert('No such Library', 'Please choose a library from the list');
 		}
 	},
+
 	removeLibrary: function(lib) {
 		new Request.JSON({
-			url: this.remove_library_url || this.options.remove_library_url,
+			url: this.options.remove_library_url || this.options.remove_library_url,
 			data: {'id_number': lib.options.id_number},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
@@ -757,6 +806,7 @@ Package.Edit = new Class({
 			}.bind(this)
 		}).send();
 	},
+
 	/*
 	 * Method: editInfo
 	 * display the EditInfoModalWindow
@@ -792,6 +842,7 @@ Package.Edit = new Class({
 			if ($(key)) $(key).value = value;
 		})
 	},
+
 	/*
 	 * Method: submitInfo
 	 * submit info from EditInfoModalWindow
@@ -809,6 +860,7 @@ Package.Edit = new Class({
 		}
 		fd.editPackageInfoModal.destroy();
 	},
+
 	collectData: function() {
 		fd.saveCurrentEditor();
 		Object.each(this.modules, function(module, filename) {
@@ -818,20 +870,23 @@ Package.Edit = new Class({
 			this.data[attachment.options.uid] = fd.editor_contents[attachment.options.uid + attachment.options.code_editor_suffix]
 		}, this);
 	},
+
 	testAddon: function(e){
 		this.collectData();
 		this.data.live_data_testing = true;
 		this.parent(e);
 	},
+
 	saveAction: function(e) {
 		if (e) e.stop();
 		this.save();
 	},
+
 	save: function() {
 		this.collectData();
 		this.saving = true;
 		new Request.JSON({
-			url: this.save_url || this.options.save_url,
+			url: this.options.save_url || this.options.save_url,
 			data: this.data,
 			onSuccess: function(response) {
 				// set the redirect data to view_url of the new revision
@@ -861,6 +916,7 @@ Package.Edit = new Class({
 			}.bind(this)
 		}).send();
 	},
+
 	bind_keyboard: function() {
 		this.keyboard = new Keyboard({
 			defaultEventType: 'keyup',
@@ -870,17 +926,19 @@ Package.Edit = new Class({
 		});
 		this.keyboard.activate();
 	},
+
 	registerRevision: function(urls) {
-		this.revision_number = urls.revision_number;
-		this.save_url = urls.save_url;
-		this.test_url = urls.test_url;
-		this.add_module_url = urls.add_module_url;
-		this.rename_module_url = urls.rename_module_url;
-		this.remove_module_url = urls.remove_module_url;
-		this.add_attachment_url = urls.add_attachment_url;
-		this.rename_attachment_url = urls.rename_attachment_url;
-		this.remove_attachment_url = urls.remove_attachment_url;
-		this.assign_library_url = urls.assign_library_url;
-		this.remove_library_url = urls.remove_library_url;
+        this.setOptions(urls);
+		//this.options.revision_number = urls.revision_number;
+		//this.options.save_url = urls.save_url;
+		//this.options.test_url = urls.test_url;
+		//this.options.add_module_url = urls.add_module_url;
+		//this.options.rename_module_url = urls.rename_module_url;
+		//this.options.remove_module_url = urls.remove_module_url;
+		//this.options.add_attachment_url = urls.add_attachment_url;
+		//this.options.rename_attachment_url = urls.rename_attachment_url;
+		//this.options.remove_attachment_url = urls.remove_attachment_url;
+		//this.options.assign_library_url = urls.assign_library_url;
+		//this.options.remove_library_url = urls.remove_library_url;
 	}
 });
