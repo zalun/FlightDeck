@@ -292,9 +292,11 @@ var Sidebar = new Class({
 	
 	promptNewFile: function() {
 		var prompt = fd.showQuestion({
-			title: 'Create a new file',
-			message: '<input type="text" name="new_file" id="new_file" placeholder="File name..." />',
-			ok: 'Create File',
+			title: 'Create a new file or folder',
+			message: '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>' +
+				'<a href="#" id="new_type_folder" class="radio_btn"><span>Folder</span></a>' +
+				'<input type="text" name="new_file" id="new_file" placeholder="Enter name..." />',
+			ok: 'Create',
 			id: 'create_new_file',
 			callback: function() {
 				// get data
@@ -312,6 +314,25 @@ var Sidebar = new Class({
 				pack.addModule(filename);				
 				prompt.destroy();
 			}
+		});
+		
+		//hookup File / Folder buttons
+		var fileBtn = $('new_type_file'),
+			folderBtn = $('new_type_folder'),
+			isFolder = false;
+			
+		fileBtn.addEvent('click', function(e) {
+			e.stop();
+			folderBtn.removeClass('selected');
+			this.addClass('selected');
+			isFolder = false;
+		});
+		
+		folderBtn.addEvent('click', function(e) {
+			e.stop();
+			fileBtn.removeClass('selected');
+			this.addClass('selected');
+			isFolder = true;
 		});
 	},
 	
