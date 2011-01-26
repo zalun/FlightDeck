@@ -291,6 +291,23 @@ var Sidebar = new Class({
 	},
 	
 	promptNewFile: function() {
+		function callback() {
+			// get data
+			var filename = $('new_file').value,
+				pack = fd.getItem();
+			if (!filename) {
+				fd.error.alert('Filename can\'t be empty', 'Please provide the name of the module');
+				return;
+			}
+			if (pack.options.modules.some(function(mod) { return mod.filename == filename; })) {
+				fd.error.alert('Filename has to be unique', 'You already have the module with that name');
+				return;
+			}
+			
+				pack.addModule(filename);
+			prompt.destroy();
+		}
+		
 		var prompt = fd.showQuestion({
 			title: 'Create a new file or folder',
 			message: '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>' +
@@ -298,23 +315,17 @@ var Sidebar = new Class({
 				'<input type="text" name="new_file" id="new_file" placeholder="Enter name..." />',
 			ok: 'Create',
 			id: 'create_new_file',
-			callback: function() {
-				// get data
-				var filename = $('new_file').value,
-					pack = fd.getItem();
-				if (!filename) {
-					fd.error.alert('Filename can\'t be empty', 'Please provide the name of the module');
-					return;
-				}
-				if (pack.options.modules.some(function(mod) { return mod.filename == filename; })) {
-					fd.error.alert('Filename has to be unique', 'You already have the module with that name');
-					return;
-				}
-				
-				pack.addModule(filename);				
-				prompt.destroy();
-			}
+			callback: callback
 		});
+		
+		var textbox = $('new_file').addEvent('keyup:keys(enter)', function(e) {
+			e.preventDefault();
+			callback();
+		});
+		setTimeout(function() {
+			textbox.focus();
+		}, 5);
+		
 		
 		//hookup File / Folder buttons
 		var fileBtn = $('new_type_file'),
