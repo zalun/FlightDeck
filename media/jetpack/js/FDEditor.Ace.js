@@ -17,6 +17,7 @@ Class.refactor(FDEditor, {
         this.element.inject(wrapper);
         ace.edit(this.element);
         this.ace = this.element.env;
+        $log(this.ace.document);
 		this.changed = false;
         // prepare change events
         this.boundWhenItemChanged = this.whenItemChanged.bind(this);
@@ -39,15 +40,15 @@ Class.refactor(FDEditor, {
     
     hookChange: function(){
         // hook to onChange Event
-        $log('FD: WARNING: FDEditor.Ace.hookChange - No action!');
         this.ace.document.addEventListener('change', this.boundWhenItemChanged);
         this.change_hooked = true;
 	},
 
     unhookChange: function(){
         // unhook the onChange Event
-        $log('FD: WARNING: FDEditor.Ace.unhookChange - No action!');
+        this.ace.document.removeEventListener('change', this.boundWhenItemChanged);
         this.change_hooked = false;
+        $log('FD: INFO: No longer following changes');
     },
 
     getContent: function(){

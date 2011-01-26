@@ -100,7 +100,8 @@ var FDEditor = new Class({
         if (this.getContent() != this.current.original_content) {
             this.current.changed = true;
             this.fireEvent('change');
-            $log('FD: DEBUG: changed');
+            $log('FD: DEBUG: changed, code is considered dirty and will remain'
+                    +'be treated as such even if changes are reverted');
             // fire the fd event
             fd.fireEvent('change');
             this.unhookChange();

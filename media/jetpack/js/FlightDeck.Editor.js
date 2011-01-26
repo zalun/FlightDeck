@@ -21,6 +21,7 @@ FlightDeck = Class.refactor(FlightDeck,{
 		this.addEvent('save', this.onSaved);
 	},
 	onChanged: function() {
+        $log('FD: INFO: document changed - onbeforeunload warning is on');
 		this.edited = true;
 	},
 	onSaved: function() {
