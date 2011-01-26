@@ -3,6 +3,7 @@
  */
 
 FlightDeck = Class.refactor(FlightDeck,{
+
 	initialize: function(options) {
 		this.setOptions(options);
 		this.sidebar = new Sidebar();
@@ -20,19 +21,23 @@ FlightDeck = Class.refactor(FlightDeck,{
 		this.addEvent('change', this.onChanged);
 		this.addEvent('save', this.onSaved);
 	},
+
 	onChanged: function() {
         $log('FD: INFO: document changed - onbeforeunload warning is on');
 		this.edited = true;
 	},
+
 	onSaved: function() {
 		this.edited = false;
 	},
+
 	/*
 	 * Method: getItem
 	 */
 	getItem: function() {
 		return this.item;
 	},
+
 	/*
 	 * Method: enableMenuButtons
 	 * Switch on menu buttons, check if possible
@@ -45,5 +50,4 @@ FlightDeck = Class.refactor(FlightDeck,{
 			}
 		}, this);
 	}
-
 });

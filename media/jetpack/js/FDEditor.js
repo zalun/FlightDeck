@@ -111,7 +111,9 @@ var FDEditor = new Class({
             $log('FD: DEBUG: changed, code is considered dirty and will remain'
                     +'be treated as such even if changes are reverted');
             // fire the fd event
-            fd.fireEvent('change');
+            if (!fd.edited) {
+                fd.fireEvent('change');
+            }
             this.unhookChange();
         } else if (!this.switching && this.current.changed) {
             this.current.changed = false;
@@ -134,5 +136,4 @@ var FDEditor = new Class({
     },
 
     setSyntax: function(){}
-
 });

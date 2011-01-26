@@ -58,5 +58,3 @@ Class.refactor(FDEditor, {
     setSyntax: function(){
     }
 });
-
-
