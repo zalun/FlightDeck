@@ -104,6 +104,13 @@ FileTree = new Class({
 		if(label.get('contenteditable') == 'true'){
 			label.set('contenteditable', false).blur();
 			window.getSelection().removeAllRanges();
+			
+			//fire a renameCancel if the name didnt change
+			if (label.get('text').trim() == label.get('title').trim()) {
+				this.fireEvent('renameCancel', li);
+				return this;
+			}
+			
 			label.set('title', label.get('text'));
 			li.set('title', label.get('text'));
 			
