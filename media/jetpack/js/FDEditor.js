@@ -93,12 +93,20 @@ var FDEditor = new Class({
     unhookChange: function(){
         this.element.removeEvent('keyup', this.boundWhenItemChanged);
         this.change_hooked = false;
+        $log('FD: INFO: No longer following changes');
     },
 
     whenItemChanged: function() {
-        this.fireEvent('modification');
-        this.current.changed = true;
-        $log('touched');
+        if (this.getContent() != this.current.original_content) {
+            this.current.changed = true;
+            this.fireEvent('change');
+            $log('FD: DEBUG: changed');
+            // fire the fd event
+            fd.fireEvent('change');
+            this.unhookChange();
+        } else if (this.current.changed) {
+            this.current.changed = false;
+        }
     },
 
 	getContent: function() {
@@ -109,15 +117,6 @@ var FDEditor = new Class({
 		this.element.set('value', value);
 		return this;
 	},
-
-    onModification: function() {
-        if (this.getValue() != this.current.original_content) {
-            this.fireEvent('change');
-            $log('changed');
-        } else if (this.current.changed) {
-            this.current.changed = false;
-        }
-    },
 
     isChanged: function() {
         return this.items.some(function(item) {

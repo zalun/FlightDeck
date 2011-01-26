@@ -40,6 +40,7 @@ Class.refactor(FDEditor, {
     hookChange: function(){
         // hook to onChange Event
         $log('FD: WARNING: FDEditor.Ace.hookChange - No action!');
+        this.ace.document.addEventListener('change', this.boundWhenItemChanged);
         this.change_hooked = true;
 	},
 
