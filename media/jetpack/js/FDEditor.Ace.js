@@ -34,7 +34,7 @@ Class.refactor(FDEditor, {
     setReadOnly: function() {
         $log('FD: WARNING: FDEditor.Ace.setReadOnly - No action!')
         if (this.change_hooked) {
-            this.unookChange();
+            this.unhookChange();
         }
     },
     
