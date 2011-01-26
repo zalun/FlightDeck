@@ -291,27 +291,59 @@ var Sidebar = new Class({
 	},
 	
 	promptNewFile: function() {
-		var prompt = fd.showQuestion({
-			title: 'Create a new file',
-			message: '<input type="text" name="new_file" id="new_file" placeholder="File name..." />',
-			ok: 'Create File',
-			id: 'create_new_file',
-			callback: function() {
-				// get data
-				var filename = $('new_file').value,
-					pack = fd.getItem();
-				if (!filename) {
-					fd.error.alert('Filename can\'t be empty', 'Please provide the name of the module');
-					return;
-				}
-				if (pack.options.modules.some(function(mod) { return mod.filename == filename; })) {
-					fd.error.alert('Filename has to be unique', 'You already have the module with that name');
-					return;
-				}
-				
-				pack.addModule(filename);				
-				prompt.destroy();
+		function callback() {
+			// get data
+			var filename = $('new_file').value,
+				pack = fd.getItem();
+			if (!filename) {
+				fd.error.alert('Filename can\'t be empty', 'Please provide the name of the module');
+				return;
 			}
+			if (pack.options.modules.some(function(mod) { return mod.filename == filename; })) {
+				fd.error.alert('Filename has to be unique', 'You already have the module with that name');
+				return;
+			}
+			
+				pack.addModule(filename);
+			prompt.destroy();
+		}
+		
+		var prompt = fd.showQuestion({
+			title: 'Create a new file or folder',
+			message: '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>' +
+				'<a href="#" id="new_type_folder" class="radio_btn"><span>Folder</span></a>' +
+				'<input type="text" name="new_file" id="new_file" placeholder="Enter name..." />',
+			ok: 'Create',
+			id: 'create_new_file',
+			callback: callback
+		});
+		
+		var textbox = $('new_file').addEvent('keyup:keys(enter)', function(e) {
+			e.preventDefault();
+			callback();
+		});
+		setTimeout(function() {
+			textbox.focus();
+		}, 5);
+		
+		
+		//hookup File / Folder buttons
+		var fileBtn = $('new_type_file'),
+			folderBtn = $('new_type_folder'),
+			isFolder = false;
+			
+		fileBtn.addEvent('click', function(e) {
+			e.stop();
+			folderBtn.removeClass('selected');
+			this.addClass('selected');
+			isFolder = false;
+		});
+		
+		folderBtn.addEvent('click', function(e) {
+			e.stop();
+			fileBtn.removeClass('selected');
+			this.addClass('selected');
+			isFolder = true;
 		});
 	},
 	
@@ -322,13 +354,29 @@ var Sidebar = new Class({
 			ok: 'Create File',
 			id: 'new_attachment_button',
 			callback: function() {
-				var fileInput = $('new_attachment');
-				if(!(fileInput.files && fileInput.files.length)) {
+				var fileInput = $('new_attachment'),
+					files = fileInput.files,
+					pack = fd.getItem();
+				
+				//validation
+				if(!(files && files.length)) {
 					fd.error.alert('No file was selected.', 'Please select a file to upload.');
 					return;
 				}
 				
-				fd.getItem().sendMultipleFiles(fileInput.files);
+				for (var f = 0; f < files.length; f++){
+					var filename = files[f].fileName.replace(/\.[^\.]+$/g, ''),
+						ext = files[f].fileName.match(/\.([^\.]+)$/)[1];
+						
+					if (Object.some(pack.attachments, function(att) { return (att.options.filename == filename) && (att.options.type == ext); })) {
+						fd.error.alert('Filename has to be unique', 'You already have an attachment with that name.');
+						return;
+					}
+				}
+				
+				
+				
+				pack.sendMultipleFiles(fileInput.files);
 				prompt.destroy();
 			}
 		});
