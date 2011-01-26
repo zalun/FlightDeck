@@ -343,13 +343,29 @@ var Sidebar = new Class({
 			ok: 'Create File',
 			id: 'new_attachment_button',
 			callback: function() {
-				var fileInput = $('new_attachment');
-				if(!(fileInput.files && fileInput.files.length)) {
+				var fileInput = $('new_attachment'),
+					files = fileInput.files,
+					pack = fd.getItem();
+				
+				//validation
+				if(!(files && files.length)) {
 					fd.error.alert('No file was selected.', 'Please select a file to upload.');
 					return;
 				}
 				
-				fd.getItem().sendMultipleFiles(fileInput.files);
+				for (var f = 0; f < files.length; f++){
+					var filename = files[f].fileName.replace(/\.[^\.]+$/g, ''),
+						ext = files[f].fileName.match(/\.([^\.]+)$/)[1];
+						
+					if (Object.some(pack.attachments, function(att) { return (att.options.filename == filename) && (att.options.type == ext); })) {
+						fd.error.alert('Filename has to be unique', 'You already have an attachment with that name.');
+						return;
+					}
+				}
+				
+				
+				
+				pack.sendMultipleFiles(fileInput.files);
 				prompt.destroy();
 			}
 		});
