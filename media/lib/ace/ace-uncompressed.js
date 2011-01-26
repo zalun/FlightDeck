@@ -14,7 +14,7 @@
  * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
+ * Ajax.org B.V.
  * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
@@ -88,7 +88,7 @@ function define(module, payload) {
         return;
     }
 
-    console.log('defining module: ' + module + ' as a ' + typeof payload);
+    // console.log('defining module: ' + module + ' as a ' + typeof payload);
     require.modules[module] = payload;
 }
 /* ***** BEGIN LICENSE BLOCK *****
@@ -112,7 +112,7 @@ function define(module, payload) {
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *   Joe Walker (jwalker@mozilla.com)
+ *      Kevin Dangoor (kdangoor@mozilla.com)
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -128,306 +128,781 @@ function define(module, payload) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/canon', function(require, exports, module) {
+define('pilot/index', function(require, exports, module) {
 
-var console = require('pilot/console');
-var Trace = require('pilot/stacktrace').Trace;
-var oop = require('pilot/oop');
-var EventEmitter = require('pilot/event_emitter').EventEmitter;
-var catalog = require('pilot/catalog');
-var Status = require('pilot/types').Status;
-var types = require('pilot/types');
-var lang = require('pilot/lang');
-
-/*
-// TODO: this doesn't belong here - or maybe anywhere?
-var dimensionsChangedExtensionSpec = {
-    name: 'dimensionsChanged',
-    description: 'A dimensionsChanged is a way to be notified of ' +
-            'changes to the dimension of Skywriter'
-};
 exports.startup = function(data, reason) {
-    catalog.addExtensionSpec(commandExtensionSpec);
+    require('pilot/fixoldbrowsers');
+
+    require('pilot/types/basic').startup(data, reason);
+    require('pilot/types/command').startup(data, reason);
+    require('pilot/types/settings').startup(data, reason);
+    require('pilot/commands/settings').startup(data, reason);
+    require('pilot/commands/basic').startup(data, reason);
+    // require('pilot/commands/history').startup(data, reason);
+    require('pilot/settings/canon').startup(data, reason);
+    require('pilot/canon').startup(data, reason);
 };
+
 exports.shutdown = function(data, reason) {
-    catalog.removeExtensionSpec(commandExtensionSpec);
-};
-*/
-
-var commandExtensionSpec = {
-    name: 'command',
-    description: 'A command is a bit of functionality with optional ' +
-            'typed arguments which can do something small like moving ' +
-            'the cursor around the screen, or large like cloning a ' +
-            'project from VCS.',
-    indexOn: 'name'
+    require('pilot/types/basic').shutdown(data, reason);
+    require('pilot/types/command').shutdown(data, reason);
+    require('pilot/types/settings').shutdown(data, reason);
+    require('pilot/commands/settings').shutdown(data, reason);
+    require('pilot/commands/basic').shutdown(data, reason);
+    // require('pilot/commands/history').shutdown(data, reason);
+    require('pilot/settings/canon').shutdown(data, reason);
+    require('pilot/canon').shutdown(data, reason);
 };
 
+
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Skywriter.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Joe Walker (jwalker@mozilla.com)
+ *      Kevin Dangoor (kdangoor@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('pilot/types/basic', function(require, exports, module) {
+
+var types = require("pilot/types");
+var Type = types.Type;
+var Conversion = types.Conversion;
+var Status = types.Status;
+
+/**
+ * These are the basic types that we accept. They are vaguely based on the
+ * Jetpack settings system (https://wiki.mozilla.org/Labs/Jetpack/JEP/24)
+ * although clearly more restricted.
+ *
+ * <p>In addition to these types, Jetpack also accepts range, member, password
+ * that we are thinking of adding.
+ *
+ * <p>This module probably should not be accessed directly, but instead used
+ * through types.js
+ */
+
+/**
+ * 'text' is the default if no type is given.
+ */
+var text = new Type();
+
+text.stringify = function(value) {
+    return value;
+};
+
+text.parse = function(value) {
+    if (typeof value != 'string') {
+        throw new Error('non-string passed to text.parse()');
+    }
+    return new Conversion(value);
+};
+
+text.name = 'text';
+
+/**
+ * We don't currently plan to distinguish between integers and floats
+ */
+var number = new Type();
+
+number.stringify = function(value) {
+    if (!value) {
+        return null;
+    }
+    return '' + value;
+};
+
+number.parse = function(value) {
+    if (typeof value != 'string') {
+        throw new Error('non-string passed to number.parse()');
+    }
+
+    if (value.replace(/\s/g, '').length === 0) {
+        return new Conversion(null, Status.INCOMPLETE, '');
+    }
+
+    var reply = new Conversion(parseInt(value, 10));
+    if (isNaN(reply.value)) {
+        reply.status = Status.INVALID;
+        reply.message = 'Can\'t convert "' + value + '" to a number.';
+    }
+
+    return reply;
+};
+
+number.decrement = function(value) {
+    return value - 1;
+};
+
+number.increment = function(value) {
+    return value + 1;
+};
+
+number.name = 'number';
+
+/**
+ * One of a known set of options
+ */
+function SelectionType(typeSpec) {
+    if (!Array.isArray(typeSpec.data) && typeof typeSpec.data !== 'function') {
+        throw new Error('instances of SelectionType need typeSpec.data to be an array or function that returns an array:' + JSON.stringify(typeSpec));
+    }
+    Object.keys(typeSpec).forEach(function(key) {
+        this[key] = typeSpec[key];
+    }, this);
+};
+
+SelectionType.prototype = new Type();
+
+SelectionType.prototype.stringify = function(value) {
+    return value;
+};
+
+SelectionType.prototype.parse = function(str) {
+    if (typeof str != 'string') {
+        throw new Error('non-string passed to parse()');
+    }
+    if (!this.data) {
+        throw new Error('Missing data on selection type extension.');
+    }
+    var data = (typeof(this.data) === 'function') ? this.data() : this.data;
+
+    // The matchedValue could be the boolean value false
+    var hasMatched = false;
+    var matchedValue;
+    var completions = [];
+    data.forEach(function(option) {
+        if (str == option) {
+            matchedValue = this.fromString(option);
+            hasMatched = true;
+        }
+        else if (option.indexOf(str) === 0) {
+            completions.push(this.fromString(option));
+        }
+    }, this);
+
+    if (hasMatched) {
+        return new Conversion(matchedValue);
+    }
+    else {
+        // This is something of a hack it basically allows us to tell the
+        // setting type to forget its last setting hack.
+        if (this.noMatch) {
+            this.noMatch();
+        }
+
+        if (completions.length > 0) {
+            var msg = 'Possibilities' +
+                (str.length === 0 ? '' : ' for \'' + str + '\'');
+            return new Conversion(null, Status.INCOMPLETE, msg, completions);
+        }
+        else {
+            var msg = 'Can\'t use \'' + str + '\'.';
+            return new Conversion(null, Status.INVALID, msg, completions);
+        }
+    }
+};
+
+SelectionType.prototype.fromString = function(str) {
+    return str;
+};
+
+SelectionType.prototype.decrement = function(value) {
+    var data = (typeof this.data === 'function') ? this.data() : this.data;
+    var index;
+    if (value == null) {
+        index = data.length - 1;
+    }
+    else {
+        var name = this.stringify(value);
+        var index = data.indexOf(name);
+        index = (index === 0 ? data.length - 1 : index - 1);
+    }
+    return this.fromString(data[index]);
+};
+
+SelectionType.prototype.increment = function(value) {
+    var data = (typeof this.data === 'function') ? this.data() : this.data;
+    var index;
+    if (value == null) {
+        index = 0;
+    }
+    else {
+        var name = this.stringify(value);
+        var index = data.indexOf(name);
+        index = (index === data.length - 1 ? 0 : index + 1);
+    }
+    return this.fromString(data[index]);
+};
+
+SelectionType.prototype.name = 'selection';
+
+/**
+ * SelectionType is a base class for other types
+ */
+exports.SelectionType = SelectionType;
+
+/**
+ * true/false values
+ */
+var bool = new SelectionType({
+    name: 'bool',
+    data: [ 'true', 'false' ],
+    stringify: function(value) {
+        return '' + value;
+    },
+    fromString: function(str) {
+        return str === 'true' ? true : false;
+    }
+});
+
+
+/**
+ * A we don't know right now, but hope to soon.
+ */
+function DeferredType(typeSpec) {
+    if (typeof typeSpec.defer !== 'function') {
+        throw new Error('Instances of DeferredType need typeSpec.defer to be a function that returns a type');
+    }
+    Object.keys(typeSpec).forEach(function(key) {
+        this[key] = typeSpec[key];
+    }, this);
+};
+
+DeferredType.prototype = new Type();
+
+DeferredType.prototype.stringify = function(value) {
+    return this.defer().stringify(value);
+};
+
+DeferredType.prototype.parse = function(value) {
+    return this.defer().parse(value);
+};
+
+DeferredType.prototype.decrement = function(value) {
+    var deferred = this.defer();
+    return (deferred.decrement ? deferred.decrement(value) : undefined);
+};
+
+DeferredType.prototype.increment = function(value) {
+    var deferred = this.defer();
+    return (deferred.increment ? deferred.increment(value) : undefined);
+};
+
+DeferredType.prototype.name = 'deferred';
+
+/**
+ * DeferredType is a base class for other types
+ */
+exports.DeferredType = DeferredType;
+
+
+/**
+ * A set of objects of the same type
+ */
+function ArrayType(typeSpec) {
+    if (typeSpec instanceof Type) {
+        this.subtype = typeSpec;
+    }
+    else if (typeof typeSpec === 'string') {
+        this.subtype = types.getType(typeSpec);
+        if (this.subtype == null) {
+            throw new Error('Unknown array subtype: ' + typeSpec);
+        }
+    }
+    else {
+        throw new Error('Can\' handle array subtype');
+    }
+};
+
+ArrayType.prototype = new Type();
+
+ArrayType.prototype.stringify = function(values) {
+    // TODO: Check for strings with spaces and add quotes
+    return values.join(' ');
+};
+
+ArrayType.prototype.parse = function(value) {
+    return this.defer().parse(value);
+};
+
+ArrayType.prototype.name = 'array';
+
+/**
+ * Registration and de-registration.
+ */
+exports.startup = function() {
+    types.registerType(text);
+    types.registerType(number);
+    types.registerType(bool);
+    types.registerType(SelectionType);
+    types.registerType(DeferredType);
+    types.registerType(ArrayType);
+};
+
+exports.shutdown = function() {
+    types.unregisterType(text);
+    types.unregisterType(number);
+    types.unregisterType(bool);
+    types.unregisterType(SelectionType);
+    types.unregisterType(DeferredType);
+    types.unregisterType(ArrayType);
+};
+
+
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Skywriter.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Joe Walker (jwalker@mozilla.com)
+ *      Kevin Dangoor (kdangoor@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('pilot/types/settings', function(require, exports, module) {
+
+var SelectionType = require('pilot/types/basic').SelectionType;
+var DeferredType = require('pilot/types/basic').DeferredType;
+var types = require('pilot/types');
+var settings = require('pilot/settings').settings;
+
+
+/**
+ * EVIL: This relies on us using settingValue in the same event as setting
+ * The alternative is to have some central place where we store the current
+ * command line, but this might be a lesser evil for now.
+ */
+var lastSetting;
+
+/**
+ * Select from the available settings
+ */
+var setting = new SelectionType({
+    name: 'setting',
+    data: function() {
+        return env.settings.getSettingNames();
+    },
+    stringify: function(setting) {
+        lastSetting = setting;
+        return setting.name;
+    },
+    fromString: function(str) {
+        lastSetting = settings.getSetting(str);
+        return lastSetting;
+    },
+    noMatch: function() {
+        lastSetting = null;
+    }
+});
+
+/**
+ * Something of a hack to allow the set command to give a clearer definition
+ * of the type to the command line.
+ */
+var settingValue = new DeferredType({
+    name: 'settingValue',
+    defer: function() {
+        if (lastSetting) {
+            return lastSetting.type;
+        }
+        else {
+            return types.getType('text');
+        }
+    },
+    /**
+     * Promote the current value in any list of predictions, and add it if
+     * there are none.
+     */
+    getDefault: function() {
+        var conversion = this.parse('');
+        if (lastSetting) {
+            var current = lastSetting.get();
+            if (conversion.predictions.length === 0) {
+                conversion.predictions.push(current);
+            }
+            else {
+                // Remove current from predictions
+                var removed = false;
+                while (true) {
+                    var index = conversion.predictions.indexOf(current);
+                    if (index === -1) {
+                        break;
+                    }
+                    conversion.predictions.splice(index, 1);
+                    removed = true;
+                }
+                // If the current value wasn't something we would predict, leave it
+                if (removed) {
+                    conversion.predictions.push(current);
+                }
+            }
+        }
+        return conversion;
+    }
+});
+
+var env;
+
+/**
+ * Registration and de-registration.
+ */
 exports.startup = function(data, reason) {
     // TODO: this is probably all kinds of evil, but we need something working
-    catalog.addExtensionSpec(commandExtensionSpec);
+    env = data.env;
+    types.registerType(setting);
+    types.registerType(settingValue);
 };
 
 exports.shutdown = function(data, reason) {
-    catalog.removeExtensionSpec(commandExtensionSpec);
+    types.unregisterType(setting);
+    types.unregisterType(settingValue);
+};
+
+
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Skywriter.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Joe Walker (jwalker@mozilla.com)
+ *      Kevin Dangoor (kdangoor@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('pilot/types/command', function(require, exports, module) {
+
+var canon = require("pilot/canon");
+var SelectionType = require("pilot/types/basic").SelectionType;
+var types = require("pilot/types");
+
+
+/**
+ * Select from the available commands
+ */
+var command = new SelectionType({
+    name: 'command',
+    data: function() {
+        return canon.getCommandNames();
+    },
+    stringify: function(command) {
+        return command.name;
+    },
+    fromString: function(str) {
+        return canon.getCommand(str);
+    }
+});
+
+
+/**
+ * Registration and de-registration.
+ */
+exports.startup = function() {
+    types.registerType(command);
+};
+
+exports.shutdown = function() {
+    types.unregisterType(command);
+};
+
+
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('pilot/useragent', function(require, exports, module) {
+
+var os = (navigator.platform.match(/mac|win|linux/i) || ["other"])[0].toLowerCase();
+var ua = navigator.userAgent;
+var av = navigator.appVersion;
+
+/** Is the user using a browser that identifies itself as Windows */
+exports.isWin = (os == "win");
+
+/** Is the user using a browser that identifies itself as Mac OS */
+exports.isMac = (os == "mac");
+
+/** Is the user using a browser that identifies itself as Linux */
+exports.isLinux = (os == "linux");
+
+exports.isIE = ! + "\v1";
+
+/** Is this Firefox or related? */
+exports.isGecko = exports.isMozilla = window.controllers && window.navigator.product === "Gecko";
+
+/** oldGecko == rev < 2.0 **/
+exports.isOldGecko = exports.isGecko && /rv\:1/.test(navigator.userAgent);
+
+/** Is this Opera */
+exports.isOpera = window.opera && Object.prototype.toString.call(window.opera) == "[object Opera]";
+
+/** Is the user using a browser that identifies itself as WebKit */
+exports.isWebKit = parseFloat(ua.split("WebKit/")[1]) || undefined;
+
+exports.isAIR = ua.indexOf("AdobeAIR") >= 0;
+
+/**
+ * I hate doing this, but we need some way to determine if the user is on a Mac
+ * The reason is that users have different expectations of their key combinations.
+ *
+ * Take copy as an example, Mac people expect to use CMD or APPLE + C
+ * Windows folks expect to use CTRL + C
+ */
+exports.OS = {
+    LINUX: 'LINUX',
+    MAC: 'MAC',
+    WINDOWS: 'WINDOWS'
 };
 
 /**
- * Manage a list of commands in the current canon
+ * Return an exports.OS constant
  */
-
-/**
- * A Command is a discrete action optionally with a set of ways to customize
- * how it happens. This is here for documentation purposes.
- * TODO: Document better
- */
-var thingCommand = {
-    name: 'thing',
-    description: 'thing is an example command',
-    params: [{
-        name: 'param1',
-        description: 'an example parameter',
-        type: 'text',
-        defaultValue: null
-    }],
-    exec: function(env, args, request) {
-        thing();
+exports.getOS = function() {
+    if (exports.isMac) {
+        return exports.OS['MAC'];
+    } else if (exports.isLinux) {
+        return exports.OS['LINUX'];
+    } else {
+        return exports.OS['WINDOWS'];
     }
 };
 
-/**
- * A lookup hash of our registered commands
- */
-var commands = {};
+});
+/*! @license
+==========================================================================
+SproutCore -- JavaScript Application Framework
+copyright 2006-2009, Sprout Systems Inc., Apple Inc. and contributors.
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+SproutCore and the SproutCore logo are trademarks of Sprout Systems, Inc.
+
+For more information about SproutCore, visit http://www.sproutcore.com
+
+
+==========================================================================
+@license */
+
+// Most of the following code is taken from SproutCore with a few changes.
+
+define('pilot/keys', function(require, exports, module) {
+
+var oop = require("pilot/oop");
 
 /**
- * A sorted list of command names, we regularly want them in order, so pre-sort
+ * Helper functions and hashes for key handling.
  */
-var commandNames = [];
+var Keys = (function() {
+    var ret = {
+        MODIFIER_KEYS: {
+            16: 'Shift', 17: 'Ctrl', 18: 'Alt', 224: 'Meta'
+        },
 
-/**
- * This registration method isn't like other Ace registration methods because
- * it doesn't return a decorated command because there is no functional
- * decoration to be done.
- * TODO: Are we sure that in the future there will be no such decoration?
- */
-function addCommand(command) {
-    if (!command.name) {
-        throw new Error('All registered commands must have a name');
-    }
-    if (command.params == null) {
-        command.params = [];
-    }
-    if (!Array.isArray(command.params)) {
-        throw new Error('command.params must be an array in ' + command.name);
-    }
-    // Replace the type
-    command.params.forEach(function(param) {
-        if (!param.name) {
-            throw new Error('In ' + command.name + ': all params must have a name');
+        KEY_MODS: {
+            "ctrl": 1, "alt": 2, "option" : 2,
+            "shift": 4, "meta": 8, "command": 8
+        },
+
+        FUNCTION_KEYS : {
+            8  : "Backspace",
+            9  : "Tab",
+            13 : "Return",
+            19 : "Pause",
+            27 : "Esc",
+            32 : "Space",
+            33 : "PageUp",
+            34 : "PageDown",
+            35 : "End",
+            36 : "Home",
+            37 : "Left",
+            38 : "Up",
+            39 : "Right",
+            40 : "Down",
+            44 : "Print",
+            45 : "Insert",
+            46 : "Delete",
+            112: "F1",
+            113: "F2",
+            114: "F3",
+            115: "F4",
+            116: "F5",
+            117: "F6",
+            118: "F7",
+            119: "F8",
+            120: "F9",
+            121: "F10",
+            122: "F11",
+            123: "F12",
+            144: "Numlock",
+            145: "Scrolllock"
+        },
+
+        PRINTABLE_KEYS: {
+           32: ' ',  48: '0',  49: '1',  50: '2',  51: '3',  52: '4', 53:  '5',
+           54: '6',  55: '7',  56: '8',  57: '9',  59: ';',  61: '=', 65:  'a',
+           66: 'b',  67: 'c',  68: 'd',  69: 'e',  70: 'f',  71: 'g', 72:  'h',
+           73: 'i',  74: 'j',  75: 'k',  76: 'l',  77: 'm',  78: 'n', 79:  'o',
+           80: 'p',  81: 'q',  82: 'r',  83: 's',  84: 't',  85: 'u', 86:  'v',
+           87: 'w',  88: 'x',  89: 'y',  90: 'z', 107: '+', 109: '-', 110: '.',
+          188: ',', 190: '.', 191: '/', 192: '`', 219: '[', 220: '\\',
+          221: ']', 222: '\"'
         }
-        upgradeType(command.name, param);
-    }, this);
-    commands[command.name] = command;
+    };
 
-    commandNames.push(command.name);
-    commandNames.sort();
-};
-
-function upgradeType(name, param) {
-    var lookup = param.type;
-    param.type = types.getType(lookup);
-    if (param.type == null) {
-        throw new Error('In ' + name + '/' + param.name +
-            ': can\'t find type for: ' + JSON.stringify(lookup));
-    }
-}
-
-function removeCommand(command) {
-    var name = (typeof command === 'string' ? command : command.name);
-    delete commands[name];
-    lang.arrayRemove(commandNames, name);
-};
-
-function getCommand(name) {
-    return commands[name];
-};
-
-function getCommandNames() {
-    return commandNames;
-};
-
-/**
- * Entry point for keyboard accelerators or anything else that knows
- * everything it needs to about the command params
- * @param command Either a command, or the name of one
- */
-function exec(command, env, args, typed) {
-    if (typeof command === 'string') {
-        command = commands[command];
-    }
-    if (!command) {
-        // TODO: Should we complain more than returning false?
-        return false;
+    // A reverse map of FUNCTION_KEYS
+    for (i in ret.FUNCTION_KEYS) {
+        var name = ret.FUNCTION_KEYS[i].toUpperCase();
+        ret[name] = parseInt(i, 10);
     }
 
-    var request = new Request({
-        command: command,
-        args: args,
-        typed: typed
-    });
-    command.exec(env, args || {}, request);
-    return true;
-};
+    // Add the MODIFIER_KEYS, FUNCTION_KEYS and PRINTABLE_KEYS to the KEY
+    // variables as well.
+    oop.mixin(ret, ret.MODIFIER_KEYS);
+    oop.mixin(ret, ret.PRINTABLE_KEYS);
+    oop.mixin(ret, ret.FUNCTION_KEYS);
 
-exports.removeCommand = removeCommand;
-exports.addCommand = addCommand;
-exports.getCommand = getCommand;
-exports.getCommandNames = getCommandNames;
-exports.exec = exec;
-exports.upgradeType = upgradeType;
-
-
-/**
- * We publish a 'output' event whenever new command begins output
- * TODO: make this more obvious
- */
-oop.implement(exports, EventEmitter);
-
-
-/**
- * Current requirements are around displaying the command line, and provision
- * of a 'history' command and cursor up|down navigation of history.
- * <p>Future requirements could include:
- * <ul>
- * <li>Multiple command lines
- * <li>The ability to recall key presses (i.e. requests with no output) which
- * will likely be needed for macro recording or similar
- * <li>The ability to store the command history either on the server or in the
- * browser local storage.
- * </ul>
- * <p>The execute() command doesn't really live here, except as part of that
- * last future requirement, and because it doesn't really have anywhere else to
- * live.
- */
-
-/**
- * The array of requests that wish to announce their presence
- */
-var requests = [];
-
-/**
- * How many requests do we store?
- */
-var maxRequestLength = 100;
-
-/**
- * To create an invocation, you need to do something like this (all the ctor
- * args are optional):
- * <pre>
- * var request = new Request({
- *     command: command,
- *     args: args,
- *     typed: typed
- * });
- * </pre>
- * @constructor
- */
-function Request(options) {
-    options = options || {};
-
-    // Will be used in the keyboard case and the cli case
-    this.command = options.command;
-
-    // Will be used only in the cli case
-    this.args = options.args;
-    this.typed = options.typed;
-
-    // Have we been initialized?
-    this._begunOutput = false;
-
-    this.start = new Date();
-    this.end = null;
-    this.completed = false;
-    this.error = false;
-};
-
-oop.implement(Request.prototype, EventEmitter);
-
-/**
- * Lazy init to register with the history should only be done on output.
- * init() is expensive, and won't be used in the majority of cases
- */
-Request.prototype._beginOutput = function() {
-    this._begunOutput = true;
-    this.outputs = [];
-
-    requests.push(this);
-    // This could probably be optimized with some maths, but 99.99% of the
-    // time we will only be off by one, and I'm feeling lazy.
-    while (requests.length > maxRequestLength) {
-        requests.shiftObject();
-    }
-
-    exports._dispatchEvent('output', { requests: requests, request: this });
-};
-
-/**
- * Sugar for:
- * <pre>request.error = true; request.done(output);</pre>
- */
-Request.prototype.doneWithError = function(content) {
-    this.error = true;
-    this.done(content);
-};
-
-/**
- * Declares that this function will not be automatically done when
- * the command exits
- */
-Request.prototype.async = function() {
-    if (!this._begunOutput) {
-        this._beginOutput();
-    }
-};
-
-/**
- * Complete the currently executing command with successful output.
- * @param output Either DOM node, an SproutCore element or something that
- * can be used in the content of a DIV to create a DOM node.
- */
-Request.prototype.output = function(content) {
-    if (!this._begunOutput) {
-        this._beginOutput();
-    }
-
-    if (typeof content !== 'string' && !(content instanceof Node)) {
-        content = content.toString();
-    }
-
-    this.outputs.push(content);
-    this._dispatchEvent('output', {});
-
-    return this;
-};
-
-/**
- * All commands that do output must call this to indicate that the command
- * has finished execution.
- */
-Request.prototype.done = function(content) {
-    this.completed = true;
-    this.end = new Date();
-    this.duration = this.end.getTime() - this.start.getTime();
-
-    if (content) {
-        this.output(content);
-    }
-
-    this._dispatchEvent('output', {});
-};
-exports.Request = Request;
-
+    return ret;
+})();
+oop.mixin(exports, Keys);
 
 });
 /* ***** BEGIN LICENSE BLOCK *****
@@ -467,32 +942,293 @@ exports.Request = Request;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/catalog', function(require, exports, module) {
+define('pilot/proxy', function(require, exports, module) {
 
+var Promise = require('pilot/promise').Promise;
 
-var extensionSpecs = {};
+exports.xhr = function(method, url, async, beforeSendCallback) {
+    var pr = new Promise();
 
-exports.addExtensionSpec = function(extensionSpec) {
-    extensionSpecs[extensionSpec.name] = extensionSpec;
-};
+    if (!skywriter.proxy || !skywriter.proxy.xhr) {
+        var req = new XMLHttpRequest();
+        req.onreadystatechange = function() {
+            if (req.readyState !== 4) {
+                return;
+            }
 
-exports.removeExtensionSpec = function(extensionSpec) {
-    if (typeof extensionSpec === "string") {
-        delete extensionSpecs[extensionSpec];
+            var status = req.status;
+            if (status !== 0 && status !== 200) {
+                var error = new Error(req.responseText + ' (Status ' + req.status + ")");
+                error.xhr = req;
+                pr.reject(error);
+                return;
+            }
+
+            pr.resolve(req.responseText);
+        }.bind(this);
+
+        req.open("GET", url, async);
+        if (beforeSendCallback) {
+            beforeSendCallback(req);
+        }
+        req.send();
+    } else {
+        skywriter.proxy.xhr.call(this, method, url, async, beforeSendCallback, pr);
     }
-    else {
-        delete extensionSpecs[extensionSpec.name];
+
+    return pr;
+};
+
+exports.Worker = function(url) {
+    if (!skywriter.proxy || !skywriter.proxy.worker) {
+        return new Worker(url);
+    } else {
+        return new skywriter.proxy.worker(url);
     }
 };
 
-exports.getExtensionSpec = function(name) {
-    return extensionSpecs[name];
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('pilot/event_emitter', function(require, exports, module) {
+
+var EventEmitter = {};
+
+EventEmitter._dispatchEvent = function(eventName, e) {
+    this._eventRegistry = this._eventRegistry || {};
+
+    var listeners = this._eventRegistry[eventName];
+    if (!listeners || !listeners.length) return;
+
+    var e = e || {};
+    e.type = eventName;
+
+    for (var i=0; i<listeners.length; i++) {
+        listeners[i](e);
+    }
 };
 
-exports.getExtensionSpecs = function() {
-    return Object.keys(extensionSpecs);
+EventEmitter.on =
+EventEmitter.addEventListener = function(eventName, callback) {
+    this._eventRegistry = this._eventRegistry || {};
+
+    var listeners = this._eventRegistry[eventName];
+    if (!listeners) {
+      var listeners = this._eventRegistry[eventName] = [];
+    }
+    if (listeners.indexOf(callback) == -1) {
+        listeners.push(callback);
+    }
 };
 
+EventEmitter.removeEventListener = function(eventName, callback) {
+    this._eventRegistry = this._eventRegistry || {};
+
+    var listeners = this._eventRegistry[eventName];
+    if (!listeners) {
+      return;
+    }
+    var index = listeners.indexOf(callback);
+    if (index !== -1) {
+        listeners.splice(index, 1);
+    }
+};
+
+exports.EventEmitter = EventEmitter;
+
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Skywriter.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Kevin Dangoor (kdangoor@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('pilot/plugin_manager', function(require, exports, module) {
+
+var Promise = require("pilot/promise").Promise;
+
+exports.REASONS = {
+    APP_STARTUP: 1,
+    APP_SHUTDOWN: 2,
+    PLUGIN_ENABLE: 3,
+    PLUGIN_DISABLE: 4,
+    PLUGIN_INSTALL: 5,
+    PLUGIN_UNINSTALL: 6,
+    PLUGIN_UPGRADE: 7,
+    PLUGIN_DOWNGRADE: 8
+};
+
+exports.Plugin = function(name) {
+    this.name = name;
+    this.status = this.INSTALLED;
+};
+
+exports.Plugin.prototype = {
+    /**
+     * constants for the state
+     */
+    NEW: 0,
+    INSTALLED: 1,
+    REGISTERED: 2,
+    STARTED: 3,
+    UNREGISTERED: 4,
+    SHUTDOWN: 5,
+
+    install: function(data, reason) {
+        var pr = new Promise();
+        if (this.status > this.NEW) {
+            pr.resolve(this);
+            return pr;
+        }
+        require([this.name], function(pluginModule) {
+            if (pluginModule.install) {
+                pluginModule.install(data, reason);
+            }
+            this.status = this.INSTALLED;
+            pr.resolve(this);
+        }.bind(this));
+        return pr;
+    },
+
+    register: function(data, reason) {
+        var pr = new Promise();
+        if (this.status != this.INSTALLED) {
+            pr.resolve(this);
+            return pr;
+        }
+        require([this.name], function(pluginModule) {
+            if (pluginModule.register) {
+                pluginModule.register(data, reason);
+            }
+            this.status = this.REGISTERED;
+            pr.resolve(this);
+        }.bind(this));
+        return pr;
+    },
+
+    startup: function(data, reason) {
+        reason = reason || exports.REASONS.APP_STARTUP;
+        var pr = new Promise();
+        if (this.status != this.REGISTERED) {
+            pr.resolve(this);
+            return pr;
+        }
+        require([this.name], function(pluginModule) {
+            if (pluginModule.startup) {
+                pluginModule.startup(data, reason);
+            }
+            this.status = this.STARTED;
+            pr.resolve(this);
+        }.bind(this));
+        return pr;
+    },
+
+    shutdown: function(data, reason) {
+        if (this.status != this.STARTED) {
+            return;
+        }
+        pluginModule = require(this.name);
+        if (pluginModule.shutdown) {
+            pluginModule.shutdown(data, reason);
+        }
+    }
+};
+
+exports.PluginCatalog = function() {
+    this.plugins = {};
+};
+
+exports.PluginCatalog.prototype = {
+    registerPlugins: function(pluginList, data, reason) {
+        var registrationPromises = [];
+        pluginList.forEach(function(pluginName) {
+            var plugin = this.plugins[pluginName];
+            if (plugin === undefined) {
+                plugin = new exports.Plugin(pluginName);
+                this.plugins[pluginName] = plugin;
+                registrationPromises.push(plugin.register(data, reason));
+            }
+        }.bind(this));
+        return Promise.group(registrationPromises);
+    },
+
+    startupPlugins: function(data, reason) {
+        var startupPromises = [];
+        for (var pluginName in this.plugins) {
+            var plugin = this.plugins[pluginName];
+            startupPromises.push(plugin.startup(data, reason));
+        }
+        return Promise.group(startupPromises);
+    }
+};
+
+exports.catalog = new exports.PluginCatalog();
 
 });
 /* ***** BEGIN LICENSE BLOCK *****
@@ -806,123 +1542,6 @@ exports.shutdown = function(data, reason) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/commands/history', function(require, exports, module) {
-
-
-/**
- * CLI 'up'
- * Decrement the 'current entry' pointer
- */
-var historyPreviousCommandSpec = {
-    name: "historyPrevious",
-    predicates: { isCommandLine: true, isKeyUp: true },
-    key: "up",
-    exec: function(args, request) {
-        if (pointer > 0) {
-            pointer--;
-        }
-
-        var display = history.requests[pointer].typed;
-        env.commandLine.setInput(display);
-    }
-};
-
-/**
- * CLI 'down'
- * Increment the 'current entry' pointer
- */
-var historyNextCommandSpec = {
-    name: "historyNext",
-    predicates: { isCommandLine: true, isKeyUp: true },
-    key: "down",
-    exec: function(args, request) {
-        if (pointer < history.requests.length) {
-            pointer++;
-        }
-
-        var display = (pointer === history.requests.length)
-            ? ''
-            : history.requests[pointer].typed;
-
-        env.commandLine.setInput(display);
-    }
-};
-
-/**
- * 'history' command
- */
-var historyCommandSpec = {
-    name: "history",
-    description: "Show history of the commands",
-    exec: function(args, request) {
-        var output = [];
-        output.push('<table>');
-        var count = 1;
-
-        history.requests.forEach(function(request) {
-            output.push('<tr>');
-            output.push('<th>' + count + '</th>');
-            output.push('<td>' + request.typed + '</td>');
-            output.push('</tr>');
-            count++;
-        });
-        output.push('</table>');
-
-        request.done(output.join(''));
-    }
-};
-
-/**
- * The pointer to the command that we show on up|down
- */
-var pointer = 0;
-
-/**
- * Reset the pointer to the latest command execution
- */
-exports.addedRequestOutput = function() {
-    pointer = history.requests.length;
-};
-
-
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Skywriter.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Skywriter Team (skywriter@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
 define('pilot/commands/settings', function(require, exports, module) {
 
 
@@ -1034,7 +1653,7 @@ exports.shutdown = function(data, reason) {
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Mozilla Skywriter.
+ * The Original Code is Skywriter.
  *
  * The Initial Developer of the Original Code is
  * Mozilla.
@@ -1042,9 +1661,7 @@ exports.shutdown = function(data, reason) {
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *   Joe Walker (jwalker@mozilla.com)
- *   Patrick Walton (pwalton@mozilla.com)
- *   Julian Viereck (jviereck@mozilla.com)
+ *   Skywriter Team (skywriter@mozilla.com)
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -1059,195 +1676,416 @@ exports.shutdown = function(data, reason) {
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
-define('pilot/console', function(require, exports, module) {
-    
+
+define('pilot/commands/history', function(require, exports, module) {
+
+
 /**
- * This object represents a "safe console" object that forwards debugging
- * messages appropriately without creating a dependency on Firebug in Firefox.
+ * CLI 'up'
+ * Decrement the 'current entry' pointer
  */
-
-var noop = function() {};
-
-// These are the functions that are available in Chrome 4/5, Safari 4
-// and Firefox 3.6. Don't add to this list without checking browser support
-var NAMES = [
-    "assert", "count", "debug", "dir", "dirxml", "error", "group", "groupEnd",
-    "info", "log", "profile", "profileEnd", "time", "timeEnd", "trace", "warn"
-];
-
-if (typeof(window) === 'undefined') {
-    // We're in a web worker. Forward to the main thread so the messages
-    // will show up.
-    NAMES.forEach(function(name) {
-        exports[name] = function() {
-            var args = Array.prototype.slice.call(arguments);
-            var msg = { op: 'log', method: name, args: args };
-            postMessage(JSON.stringify(msg));
-        };
-    });
-} else {
-    // For each of the console functions, copy them if they exist, stub if not
-    NAMES.forEach(function(name) {
-        if (window.console && window.console[name]) {
-            exports[name] = Function.prototype.bind.call(window.console[name], window.console);
-        } else {
-            exports[name] = noop;
+var historyPreviousCommandSpec = {
+    name: "historyPrevious",
+    predicates: { isCommandLine: true, isKeyUp: true },
+    key: "up",
+    exec: function(args, request) {
+        if (pointer > 0) {
+            pointer--;
         }
-    });
-}
+
+        var display = history.requests[pointer].typed;
+        env.commandLine.setInput(display);
+    }
+};
+
+/**
+ * CLI 'down'
+ * Increment the 'current entry' pointer
+ */
+var historyNextCommandSpec = {
+    name: "historyNext",
+    predicates: { isCommandLine: true, isKeyUp: true },
+    key: "down",
+    exec: function(args, request) {
+        if (pointer < history.requests.length) {
+            pointer++;
+        }
+
+        var display = (pointer === history.requests.length)
+            ? ''
+            : history.requests[pointer].typed;
+
+        env.commandLine.setInput(display);
+    }
+};
+
+/**
+ * 'history' command
+ */
+var historyCommandSpec = {
+    name: "history",
+    description: "Show history of the commands",
+    exec: function(args, request) {
+        var output = [];
+        output.push('<table>');
+        var count = 1;
+
+        history.requests.forEach(function(request) {
+            output.push('<tr>');
+            output.push('<th>' + count + '</th>');
+            output.push('<td>' + request.typed + '</td>');
+            output.push('</tr>');
+            count++;
+        });
+        output.push('</table>');
+
+        request.done(output.join(''));
+    }
+};
+
+/**
+ * The pointer to the command that we show on up|down
+ */
+var pointer = 0;
+
+/**
+ * Reset the pointer to the latest command execution
+ */
+exports.addedRequestOutput = function() {
+    pointer = history.requests.length;
+};
+
 
 });
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+define('pilot/stacktrace', function(require, exports, module) {
+    
+var ua = require("pilot/useragent");
+var console = require('pilot/console');
 
-define('pilot/dom', function(require, exports, module) {
+// Changed to suit the specific needs of running within Skywriter
 
-exports.setText = function(elem, text) {
-    if (elem.innerText !== undefined) {
-        elem.innerText = text;
-    }
-    if (elem.textContent !== undefined) {
-        elem.textContent = text;
-    }
-};
+// Domain Public by Eric Wendelin http://eriwen.com/ (2008)
+//                  Luke Smith http://lucassmith.name/ (2008)
+//                  Loic Dachary <loic@dachary.org> (2008)
+//                  Johan Euphrosine <proppy@aminche.com> (2008)
+//                  Øyvind Sean Kinsey http://kinsey.no/blog
+//
+// Information and discussions
+// http://jspoker.pokersource.info/skin/test-printstacktrace.html
+// http://eriwen.com/javascript/js-stack-trace/
+// http://eriwen.com/javascript/stacktrace-update/
+// http://pastie.org/253058
+// http://browsershots.org/http://jspoker.pokersource.info/skin/test-printstacktrace.html
+//
 
-exports.hasCssClass = function(el, name) {
-    var classes = el.className.split(/\s+/g);
-    return classes.indexOf(name) !== -1;
-};
+//
+// guessFunctionNameFromLines comes from firebug
+//
+// Software License Agreement (BSD License)
+//
+// Copyright (c) 2007, Parakey Inc.
+// All rights reserved.
+//
+// Redistribution and use of this software in source and binary forms, with or without modification,
+// are permitted provided that the following conditions are met:
+//
+// * Redistributions of source code must retain the above
+//   copyright notice, this list of conditions and the
+//   following disclaimer.
+//
+// * Redistributions in binary form must reproduce the above
+//   copyright notice, this list of conditions and the
+//   following disclaimer in the documentation and/or other
+//   materials provided with the distribution.
+//
+// * Neither the name of Parakey Inc. nor the names of its
+//   contributors may be used to endorse or promote products
+//   derived from this software without specific prior
+//   written permission of Parakey Inc.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+// IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+// FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+// IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+// OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-/**
-* Add a CSS class to the list of classes on the given node
-*/
-exports.addCssClass = function(el, name) {
-    if (!exports.hasCssClass(el, name)) {
-        el.className += " " + name;
-    }
-};
+
 
 /**
- * Add or remove a CSS class from the list of classes on the given node
- * depending on the value of <tt>include</tt>
+ * Different browsers create stack traces in different ways.
+ * <strike>Feature</strike> Browser detection baby ;).
  */
-exports.setCssClass = function(node, className, include) {
-    if (include) {
-        exports.addCssClass(node, className);
+var mode = (function() {
+
+    // We use SC's browser detection here to avoid the "break on error"
+    // functionality provided by Firebug. Firebug tries to do the right
+    // thing here and break, but it happens every time you load the page.
+    // bug 554105
+    if (ua.isGecko) {
+        return 'firefox';
+    } else if (ua.isOpera) {
+        return 'opera';
     } else {
-        exports.removeCssClass(node, className);
+        return 'other';
+    }
+
+    // SC doesn't do any detection of Chrome at this time.
+
+    // this is the original feature detection code that is used as a
+    // fallback.
+    try {
+        (0)();
+    } catch (e) {
+        if (e.arguments) {
+            return 'chrome';
+        }
+        if (e.stack) {
+            return 'firefox';
+        }
+        if (window.opera && !('stacktrace' in e)) { //Opera 9-
+            return 'opera';
+        }
+    }
+    return 'other';
+})();
+
+/**
+ *
+ */
+function stringifyArguments(args) {
+    for (var i = 0; i < args.length; ++i) {
+        var argument = args[i];
+        if (typeof argument == 'object') {
+            args[i] = '#object';
+        } else if (typeof argument == 'function') {
+            args[i] = '#function';
+        } else if (typeof argument == 'string') {
+            args[i] = '"' + argument + '"';
+        }
+    }
+    return args.join(',');
+}
+
+/**
+ * Extract a stack trace from the format emitted by each browser.
+ */
+var decoders = {
+    chrome: function(e) {
+        var stack = e.stack;
+        if (!stack) {
+            console.log(e);
+            return [];
+        }
+        return stack.replace(/^.*?\n/, '').
+                replace(/^.*?\n/, '').
+                replace(/^.*?\n/, '').
+                replace(/^[^\(]+?[\n$]/gm, '').
+                replace(/^\s+at\s+/gm, '').
+                replace(/^Object.<anonymous>\s*\(/gm, '{anonymous}()@').
+                split('\n');
+    },
+
+    firefox: function(e) {
+        var stack = e.stack;
+        if (!stack) {
+            console.log(e);
+            return [];
+        }
+        // stack = stack.replace(/^.*?\n/, '');
+        stack = stack.replace(/(?:\n@:0)?\s+$/m, '');
+        stack = stack.replace(/^\(/gm, '{anonymous}(');
+        return stack.split('\n');
+    },
+
+    // Opera 7.x and 8.x only!
+    opera: function(e) {
+        var lines = e.message.split('\n'), ANON = '{anonymous}',
+            lineRE = /Line\s+(\d+).*?script\s+(http\S+)(?:.*?in\s+function\s+(\S+))?/i, i, j, len;
+
+        for (i = 4, j = 0, len = lines.length; i < len; i += 2) {
+            if (lineRE.test(lines[i])) {
+                lines[j++] = (RegExp.$3 ? RegExp.$3 + '()@' + RegExp.$2 + RegExp.$1 : ANON + '()@' + RegExp.$2 + ':' + RegExp.$1) +
+                ' -- ' +
+                lines[i + 1].replace(/^\s+/, '');
+            }
+        }
+
+        lines.splice(j, lines.length - j);
+        return lines;
+    },
+
+    // Safari, Opera 9+, IE, and others
+    other: function(curr) {
+        var ANON = '{anonymous}', fnRE = /function\s*([\w\-$]+)?\s*\(/i, stack = [], j = 0, fn, args;
+
+        var maxStackSize = 10;
+        while (curr && stack.length < maxStackSize) {
+            fn = fnRE.test(curr.toString()) ? RegExp.$1 || ANON : ANON;
+            args = Array.prototype.slice.call(curr['arguments']);
+            stack[j++] = fn + '(' + stringifyArguments(args) + ')';
+
+            //Opera bug: if curr.caller does not exist, Opera returns curr (WTF)
+            if (curr === curr.caller && window.opera) {
+                //TODO: check for same arguments if possible
+                break;
+            }
+            curr = curr.caller;
+        }
+        return stack;
     }
 };
 
 /**
-* Remove a CSS class from the list of classes on the given node
-*/
-exports.removeCssClass = function(el, name) {
-    var classes = el.className.split(/\s+/g);
-    while (true) {
-        var index = classes.indexOf(name);
-        if (index == -1) {
-            break;
+ *
+ */
+function NameGuesser() {
+}
+
+NameGuesser.prototype = {
+
+    sourceCache: {},
+
+    ajax: function(url) {
+        var req = this.createXMLHTTPObject();
+        if (!req) {
+            return;
         }
-        classes.splice(index, 1);
+        req.open('GET', url, false);
+        req.setRequestHeader('User-Agent', 'XMLHTTP/1.0');
+        req.send('');
+        return req.responseText;
+    },
+
+    createXMLHTTPObject: function() {
+	    // Try XHR methods in order and store XHR factory
+        var xmlhttp, XMLHttpFactories = [
+            function() {
+                return new XMLHttpRequest();
+            }, function() {
+                return new ActiveXObject('Msxml2.XMLHTTP');
+            }, function() {
+                return new ActiveXObject('Msxml3.XMLHTTP');
+            }, function() {
+                return new ActiveXObject('Microsoft.XMLHTTP');
+            }
+        ];
+        for (var i = 0; i < XMLHttpFactories.length; i++) {
+            try {
+                xmlhttp = XMLHttpFactories[i]();
+                // Use memoization to cache the factory
+                this.createXMLHTTPObject = XMLHttpFactories[i];
+                return xmlhttp;
+            } catch (e) {}
+        }
+    },
+
+    getSource: function(url) {
+        if (!(url in this.sourceCache)) {
+            this.sourceCache[url] = this.ajax(url).split('\n');
+        }
+        return this.sourceCache[url];
+    },
+
+    guessFunctions: function(stack) {
+        for (var i = 0; i < stack.length; ++i) {
+            var reStack = /{anonymous}\(.*\)@(\w+:\/\/([-\w\.]+)+(:\d+)?[^:]+):(\d+):?(\d+)?/;
+            var frame = stack[i], m = reStack.exec(frame);
+            if (m) {
+                var file = m[1], lineno = m[4]; //m[7] is character position in Chrome
+                if (file && lineno) {
+                    var functionName = this.guessFunctionName(file, lineno);
+                    stack[i] = frame.replace('{anonymous}', functionName);
+                }
+            }
+        }
+        return stack;
+    },
+
+    guessFunctionName: function(url, lineNo) {
+        try {
+            return this.guessFunctionNameFromLines(lineNo, this.getSource(url));
+        } catch (e) {
+            return 'getSource failed with url: ' + url + ', exception: ' + e.toString();
+        }
+    },
+
+    guessFunctionNameFromLines: function(lineNo, source) {
+        var reFunctionArgNames = /function ([^(]*)\(([^)]*)\)/;
+        var reGuessFunction = /['"]?([0-9A-Za-z_]+)['"]?\s*[:=]\s*(function|eval|new Function)/;
+        // Walk backwards from the first line in the function until we find the line which
+        // matches the pattern above, which is the function definition
+        var line = '', maxLines = 10;
+        for (var i = 0; i < maxLines; ++i) {
+            line = source[lineNo - i] + line;
+            if (line !== undefined) {
+                var m = reGuessFunction.exec(line);
+                if (m) {
+                    return m[1];
+                }
+                else {
+                    m = reFunctionArgNames.exec(line);
+                }
+                if (m && m[1]) {
+                    return m[1];
+                }
+            }
+        }
+        return '(?)';
     }
-    el.className = classes.join(" ");
 };
 
-exports.importCssString = function(cssText, doc){
-    doc = doc || document;        
+var guesser = new NameGuesser();
 
-    if (doc.createStyleSheet) {
-        var sheet = doc.createStyleSheet();
-        sheet.cssText = cssText;
-    }
-    else {
-        var style = doc.createElement("style");
-        style.appendChild(doc.createTextNode(cssText));
-        doc.getElementsByTagName("head")[0].appendChild(style);
-    }            
+var frameIgnorePatterns = [
+    /http:\/\/localhost:4020\/sproutcore.js:/
+];
+
+exports.ignoreFramesMatching = function(regex) {
+    frameIgnorePatterns.push(regex);
 };
 
-exports.getInnerWidth = function(element) {
-    return (parseInt(exports.computedStyle(element, "paddingLeft"))
-            + parseInt(exports.computedStyle(element, "paddingRight")) + element.clientWidth);
-};
+/**
+ * Create a stack trace from an exception
+ * @param ex {Error} The error to create a stacktrace from (optional)
+ * @param guess {Boolean} If we should try to resolve the names of anonymous functions
+ */
+exports.Trace = function Trace(ex, guess) {
+    this._ex = ex;
+    this._stack = decoders[mode](ex);
 
-exports.getInnerHeight = function(element) {
-    return (parseInt(exports.computedStyle(element, "paddingTop"))
-            + parseInt(exports.computedStyle(element, "paddingBottom")) + element.clientHeight);
-};
-
-exports.computedStyle = function(element, style) {
-    if (window.getComputedStyle) {
-        return (window.getComputedStyle(element, "") || {})[style] || "";
-    }
-    else {
-        return element.currentStyle[style];
+    if (guess) {
+        this._stack = guesser.guessFunctions(this._stack);
     }
 };
 
-exports.scrollbarWidth = function() {
-
-    var inner = document.createElement('p');
-    inner.style.width = "100%";
-    inner.style.height = "200px";
-
-    var outer = document.createElement("div");
-    var style = outer.style;
-
-    style.position = "absolute";
-    style.left = "-10000px";
-    style.overflow = "hidden";
-    style.width = "200px";
-    style.height = "150px";
-
-    outer.appendChild(inner);
-    document.body.appendChild(outer);
-    var noScrollbar = inner.offsetWidth;
-
-    style.overflow = "scroll";
-    var withScrollbar = inner.offsetWidth;
-
-    if (noScrollbar == withScrollbar) {
-        withScrollbar = outer.clientWidth;
+/**
+ * Log to the console a number of lines (default all of them)
+ * @param lines {number} Maximum number of lines to wrote to console
+ */
+exports.Trace.prototype.log = function(lines) {
+    if (lines <= 0) {
+        // You aren't going to have more lines in your stack trace than this
+        // and it still fits in a 32bit integer
+        lines = 999999999;
     }
 
-    document.body.removeChild(outer);
-
-    return noScrollbar-withScrollbar;
+    var printed = 0;
+    for (var i = 0; i < this._stack.length && printed < lines; i++) {
+        var frame = this._stack[i];
+        var display = true;
+        frameIgnorePatterns.forEach(function(regex) {
+            if (regex.test(frame)) {
+                display = false;
+            }
+        });
+        if (display) {
+            console.debug(frame);
+            printed++;
+        }
+    }
 };
 
 });
@@ -1648,2023 +2486,11 @@ Templater.prototype.handleError = function(message, ex) {
  * @param message the error message to report.
  */
 Templater.prototype.logError = function(message) {
-  console.log(message);
+  window.console && window.console.log && console.log(message);
 };
 
 exports.Templater = Templater;
 
-
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is DomTemplate.
- *
- * The Initial Developer of the Original Code is Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Joe Walker (jwalker@mozilla.com) (original author)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('pilot/environment', function(require, exports, module) {
-
-
-var settings = require("pilot/settings").settings;
-
-/**
- * Create an environment object
- */
-function create() {
-    return {
-        settings: settings
-    };
-};
-
-exports.create = create;
-
-
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('pilot/event', function(require, exports, module) {
-
-var useragent = require("pilot/useragent");
-
-exports.addListener = function(elem, type, callback) {
-    if (elem.addEventListener) {
-        return elem.addEventListener(type, callback, false);
-    }
-    if (elem.attachEvent) {
-        var wrapper = function() {
-            callback(window.event);
-        };
-        callback._wrapper = wrapper;
-        elem.attachEvent("on" + type, wrapper);
-    }
-};
-
-exports.removeListener = function(elem, type, callback) {
-    if (elem.removeEventListener) {
-        return elem.removeEventListener(type, callback, false);
-    }
-    if (elem.detachEvent) {
-        elem.detachEvent("on" + type, callback._wrapper || callback);
-    }
-};
-
-/**
-* Prevents propagation and clobbers the default action of the passed event
-*/
-exports.stopEvent = function(e) {
-    exports.stopPropagation(e);
-    exports.preventDefault(e);
-    return false;
-};
-
-exports.stopPropagation = function(e) {
-    if (e.stopPropagation)
-        e.stopPropagation();
-    else
-        e.cancelBubble = true;
-};
-
-exports.preventDefault = function(e) {
-    if (e.preventDefault)
-        e.preventDefault();
-    else
-        e.returnValue = false;
-};
-
-exports.getDocumentX = function(e) {
-    if (e.clientX) {
-        var scrollLeft = document.documentElement.scrollLeft || document.body.scrollLeft;
-        return e.clientX + scrollLeft;
-    } else {
-        return e.pageX;
-    }
-};
-
-exports.getDocumentY = function(e) {
-    if (e.clientY) {
-        var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-        return e.clientY + scrollTop;
-    } else {
-        return e.pageX;
-    }
-};
-
-/**
- * @return {Number} 0 for left button, 1 for middle button, 2 for right button
- */
-exports.getButton = function(e) {
-    // DOM Event
-    if (e.preventDefault) {
-        return e.button;
-    }
-    // old IE
-    else {
-        return Math.max(e.button - 1, 2);
-    }
-};
-
-if (document.documentElement.setCapture) {
-    exports.capture = function(el, eventHandler, releaseCaptureHandler) {
-        function onMouseMove(e) {
-            eventHandler(e);
-            return exports.stopPropagation(e);
-        }
-
-        function onReleaseCapture(e) {
-            eventHandler && eventHandler(e);
-            releaseCaptureHandler && releaseCaptureHandler();
-
-            exports.removeListener(el, "mousemove", eventHandler);
-            exports.removeListener(el, "mouseup", onReleaseCapture);
-            exports.removeListener(el, "losecapture", onReleaseCapture);
-
-            el.releaseCapture();
-        }
-
-        exports.addListener(el, "mousemove", eventHandler);
-        exports.addListener(el, "mouseup", onReleaseCapture);
-        exports.addListener(el, "losecapture", onReleaseCapture);
-        el.setCapture();
-    };
-}
-else {
-    exports.capture = function(el, eventHandler, releaseCaptureHandler) {
-        function onMouseMove(e) {
-            eventHandler(e);
-            e.stopPropagation();
-        }
-
-        function onMouseUp(e) {
-            eventHandler && eventHandler(e);
-            releaseCaptureHandler && releaseCaptureHandler();
-
-            document.removeEventListener("mousemove", onMouseMove, true);
-            document.removeEventListener("mouseup", onMouseUp, true);
-
-            e.stopPropagation();
-        }
-
-        document.addEventListener("mousemove", onMouseMove, true);
-        document.addEventListener("mouseup", onMouseUp, true);
-    };
-}
-
-exports.addMouseWheelListener = function(el, callback) {
-    var listener = function(e) {
-        if (e.wheelDelta !== undefined) {
-            if (e.wheelDeltaX !== undefined) {
-                e.wheelX = -e.wheelDeltaX / 8;
-                e.wheelY = -e.wheelDeltaY / 8;
-            } else {
-                e.wheelX = 0;
-                e.wheelY = -e.wheelDelta / 8;
-            }
-        }
-        else {
-            if (e.axis && e.axis == e.HORIZONTAL_AXIS) {
-                e.wheelX = (e.detail || 0) * 5;
-                e.wheelY = 0;
-            } else {
-                e.wheelX = 0;
-                e.wheelY = (e.detail || 0) * 5;
-            }
-        }
-        callback(e);
-    };
-    exports.addListener(el, "DOMMouseScroll", listener);
-    exports.addListener(el, "mousewheel", listener);
-};
-
-exports.addMultiMouseDownListener = function(el, button, count, timeout, callback) {
-    var clicks = 0;
-    var startX, startY;
-
-    var listener = function(e) {
-        clicks += 1;
-        if (clicks == 1) {
-            startX = e.clientX;
-            startY = e.clientY;
-
-            setTimeout(function() {
-                clicks = 0;
-            }, timeout || 600);
-        }
-
-        if (exports.getButton(e) != button
-          || Math.abs(e.clientX - startX) > 5 || Math.abs(e.clientY - startY) > 5)
-            clicks = 0;
-
-        if (clicks == count) {
-            clicks = 0;
-            callback(e);
-        }
-        return exports.preventDefault(e);
-    };
-
-    exports.addListener(el, "mousedown", listener);
-    useragent.isIE && exports.addListener(el, "dblclick", listener);
-};
-
-exports.addKeyListener = function(el, callback) {
-    var lastDown = null;
-
-    exports.addListener(el, "keydown", function(e) {
-        lastDown = e.keyIdentifier || e.keyCode;
-        return callback(e);
-    });
-
-    // repeated keys are fired as keypress and not keydown events
-    if (useragent.isMac && (useragent.isGecko || useragent.isOpera)) {
-        exports.addListener(el, "keypress", function(e) {
-            var keyId = e.keyIdentifier || e.keyCode;
-            if (lastDown !== keyId) {
-                return callback(e);
-            } else {
-                lastDown = null;
-            }
-        });
-    }
-};
-
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('pilot/event_emitter', function(require, exports, module) {
-
-var EventEmitter = {};
-
-EventEmitter._dispatchEvent = function(eventName, e) {
-    this._eventRegistry = this._eventRegistry || {};
-
-    var listeners = this._eventRegistry[eventName];
-    if (!listeners || !listeners.length) return;
-
-    var e = e || {};
-    e.type = eventName;
-
-    for (var i=0; i<listeners.length; i++) {
-        listeners[i](e);
-    }
-};
-
-EventEmitter.on =
-EventEmitter.addEventListener = function(eventName, callback) {
-    this._eventRegistry = this._eventRegistry || {};
-
-    var listeners = this._eventRegistry[eventName];
-    if (!listeners) {
-      var listeners = this._eventRegistry[eventName] = [];
-    }
-    if (listeners.indexOf(callback) == -1) {
-        listeners.push(callback);
-    }
-};
-
-EventEmitter.removeEventListener = function(eventName, callback) {
-    this._eventRegistry = this._eventRegistry || {};
-
-    var listeners = this._eventRegistry[eventName];
-    if (!listeners) {
-      return;
-    }
-    var index = listeners.indexOf(callback);
-    if (index !== -1) {
-        listeners.splice(index, 1);
-    }
-};
-
-exports.EventEmitter = EventEmitter;
-
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Skywriter.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Kevin Dangoor (kdangoor@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('pilot/fixoldbrowsers', function(require, exports, module) {
-
-/**
- * Array detector.
- * Firefox 3.5 and Safari 4 have this already. Chrome 4 however ...
- * Note to Dojo - your isArray is still broken: instanceof doesn't work with
- * Arrays taken from a different frame/window.
- */
-if (!Array.isArray) {
-    Array.isArray = function(data) {
-        return data && Object.prototype.toString.call(data) === "[object Array]";
-    };
-}
-
-// from MDC
-// https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/indexOf
-if (!Array.prototype.indexOf)
-{
-	Array.prototype.indexOf = function(searchElement /*, fromIndex */)
-	{
-		if (this === void 0 || this === null)
-	    	throw new TypeError();
-		
-		var t = Object(this);
-		var len = t.length >>> 0;
-		if (len === 0)
-		    return -1;
-		
-		var n = 0;
-		if (arguments.length > 0) {
-		    n = Number(arguments[1]);
-		    if (n !== n)
-		        n = 0;
-		    else if (n !== 0 && n !== (1 / 0) && n !== -(1 / 0))
-		        n = (n > 0 || -1) * Math.floor(Math.abs(n));
-		}
-		
-		if (n >= len)
-		    return -1;
-		
-		var k = n >= 0
-		    ? n
-		    : Math.max(len - Math.abs(n), 0);
-		
-		for (; k < len; k++) {
-			if (k in t && t[k] === searchElement)
-			    return k;
-		}
-		return -1;
-	};
-}
-
-// from MDC
-// https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/forEach
-if (!Array.prototype.forEach) {
-    Array.prototype.forEach = function(fun /*, thisp */) {
-		if (this === void 0 || this === null)
-		    throw new TypeError();
-		
-		var t = Object(this);
-		var len = t.length >>> 0;
-		if (typeof fun !== "function")
-		    throw new TypeError();
-		
-		var thisp = arguments[1];
-		for (var i = 0; i < len; i++) {
-			if (i in t)
-			    fun.call(thisp, t[i], i, t);
-		}
-	};
-}
-
-/**
- * Retrieves the list of keys on an object.
- */
-if (!Object.keys) {
-    Object.keys = function(obj) {
-        var k, ret = [];
-        for (k in obj) {
-            if (obj.hasOwnProperty(k)) {
-                ret.push(k);
-            }
-        }
-        return ret;
-    };
-}
-
-if (!Function.prototype.bind) {    
-    // from MDC
-    // https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Function/bind
-    Function.prototype.bind = function (obj) {       
-        var slice = [].slice;
-        var args = slice.call(arguments, 1);
-        var self = this;
-        var nop = function () {};
-
-        // optimize common case
-        if (arguments.length == 1) {
-	        var bound = function() {
-	            return self.apply(this instanceof nop ? this : obj, arguments);
-	        };
-        }
-        else {
-	        var bound = function () {
-	            return self.apply(
-	                this instanceof nop ? this : ( obj || {} ), 
-	                args.concat( slice.call(arguments) )
-	            );
-	        };
-        }
-	    
-        nop.prototype = self.prototype;    
-        bound.prototype = new nop();    
-        
-        // From Narwhal
-        bound.name = this.name;
-        bound.displayName = this.displayName;
-        bound.length = this.length;
-        bound.unbound = self;
-        
-        return bound;
-    };
-}
-
-exports.globalsLoaded = true;
-
-});/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Skywriter.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Kevin Dangoor (kdangoor@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('pilot/index', function(require, exports, module) {
-
-
-exports.startup = function(data, reason) {
-    require('pilot/fixoldbrowsers');
-
-    require('pilot/types/basic').startup(data, reason);
-    require('pilot/types/command').startup(data, reason);
-    require('pilot/types/settings').startup(data, reason);
-    require('pilot/commands/settings').startup(data, reason);
-    require('pilot/commands/basic').startup(data, reason);
-    // require('pilot/commands/history').startup(data, reason);
-    require('pilot/settings/canon').startup(data, reason);
-    require('pilot/canon').startup(data, reason);
-};
-
-exports.shutdown = function(data, reason) {
-    require('pilot/types/basic').shutdown(data, reason);
-    require('pilot/types/command').shutdown(data, reason);
-    require('pilot/types/settings').shutdown(data, reason);
-    require('pilot/commands/settings').shutdown(data, reason);
-    require('pilot/commands/basic').shutdown(data, reason);
-    // require('pilot/commands/history').shutdown(data, reason);
-    require('pilot/settings/canon').shutdown(data, reason);
-    require('pilot/canon').shutdown(data, reason);
-};
-
-
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Skywriter.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Skywriter Team (skywriter@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define(function(request, exports, module) {
-
-var console = require('pilot/console');
-var Trace = require('pilot/stacktrace').Trace;
-var keyutil = require('pilot/keyboard/keyutil');
-var history = require('canon/history');
-var Request = require('canon/request').Request;
-var env = require('environment').env;
-
-exports.keymappings = {};
-
-exports.addKeymapping = function(mapping) {
-    exports.keymappings[mapping.name] = mapping;
-};
-
-exports.removeKeymapping = function(name) {
-    delete exports.keymapping[name];
-};
-
-exports.startup = function(data, reason) {
-    var settings = data.env.settings;
-    // TODO register this
-    // catalog.addExtensionSpec("keymapping", {
-    //     "description": "A keymapping defines how keystrokes are interpreted.",
-    //     "params": [
-    //         {
-    //             "name": "states",
-    //             "required": true,
-    //             "description":
-    //                 "Holds the states and all the informations about the keymapping. See docs: pluginguide/keymapping"
-    //         }
-    //     ]
-    // });
-    settings.settingChange.add({
-        match: "customKeymapping",
-        ref: exports.keyboardManager,
-        func: exports.keyboardManager._customKeymappingChanged
-                                            .bind(exports.keyboardManager)
-    });
-};
-
-exports.shutdown = function(data, reason) {
-    var settings = data.env.settings;
-    settings.settingChange.remove(exports.keyboardManager);
-};
-
-
-/*
- * Things to do to sanitize this code:
- * - 'no command' is a bizarre special value at the very least it should be a
- *   constant to make typos more obvious, but it would be better to refactor
- *   so that a natural value like null worked.
- * - sender seems to be totally customized to the editor case, and the functions
- *   that we assume that it has make no sense for the commandLine case. We
- *   should either document and implement the same function set for both cases
- *   or admit that the cases are different enough to have separate
- *   implementations.
- * - remove remaining sproutcore-isms
- * - fold buildFlags into processKeyEvent or something better, preferably the
- *   latter. We don't want the environment to become a singleton
- */
-
-/**
- * Every time we call processKeyEvent, we pass in some flags that require the
- * same processing to set them up. This function can be called to do that
- * setup.
- * @param env Probably environment.env
- * @param flags Probably {} (but check other places where this is called)
- */
-exports.buildFlags = function(flags) {
-    flags.context = env.contexts[0];
-    return flags;
-};
-
-/**
- * The canon, or the repository of commands, contains functions to process
- * events and dispatch command messages to targets.
- * @class
- */
-var KeyboardManager = function() { };
-
-KeyboardManager.prototype = {
-    _customKeymappingCache: { states: {} },
-
-    /**
-     * Searches through the command canon for an event matching the given flags
-     * with a key equivalent matching the given SproutCore event, and, if the
-     * command is found, sends a message to the appropriate target.
-     *
-     * This will get a couple of upgrades in the not-too-distant future:
-     * 1. caching in the Canon for fast lookup based on key
-     * 2. there will be an extra layer in between to allow remapping via
-     *    user preferences and keyboard mapping plugins
-     *
-     * @return True if a matching command was found, false otherwise.
-     */
-    processKeyEvent: function(evt, sender, flags) {
-        // Use our modified commandCodes function to detect the meta key in
-        // more circumstances than SproutCore alone does.
-        var symbolicName = keyutil.commandCodes(evt, true)[0];
-        if (util.none(symbolicName)) {
-            return false;
-        }
-
-        // TODO: Maybe it should be the job of our caller to do this?
-        exports.buildFlags(flags);
-
-        flags.isCommandKey = true;
-        return this._matchCommand(symbolicName, sender, flags);
-    },
-
-    _matchCommand: function(symbolicName, sender, flags) {
-        var match = this._findCommandExtension(symbolicName, sender, flags);
-        if (match && match.commandExt !== 'no command') {
-            if (flags.isTextView) {
-                sender.resetKeyBuffers();
-            }
-
-            var commandExt = match.commandExt;
-            commandExt.load(function(command) {
-                var request = new Request({
-                    command: command,
-                    commandExt: commandExt
-                });
-                history.execute(match.args, request);
-            });
-            return true;
-        }
-
-        // 'no command' is returned if a keyevent is handled but there is no
-        // command executed (for example when switchting the keyboard state).
-        if (match && match.commandExt === 'no command') {
-            return true;
-        } else {
-            return false;
-        }
-    },
-
-    _buildBindingsRegex: function(bindings) {
-        // Escape a given Regex string.
-        bindings.forEach(function(binding) {
-            if (!util.none(binding.key)) {
-                binding.key = new RegExp('^' + binding.key + '$');
-            } else if (Array.isArray(binding.regex)) {
-                binding.key = new RegExp('^' + binding.regex[1] + '$');
-                binding.regex = new RegExp(binding.regex.join('') + '$');
-            } else {
-                binding.regex = new RegExp(binding.regex + '$');
-            }
-        });
-    },
-
-    /**
-     * Build the RegExp from the keymapping as RegExp can't stored directly
-     * in the metadata JSON and as the RegExp used to match the keys/buffer
-     * need to be adapted.
-     */
-    _buildKeymappingRegex: function(keymapping) {
-        for (state in keymapping.states) {
-            this._buildBindingsRegex(keymapping.states[state]);
-        }
-        keymapping._convertedRegExp = true;
-    },
-
-    /**
-     * Loop through the commands in the canon, looking for something that
-     * matches according to #_commandMatches, and return that.
-     */
-    _findCommandExtension: function(symbolicName, sender, flags) {
-        // If the flags indicate that we handle the textView's input then take
-        // a look at keymappings as well.
-        if (flags.isTextView) {
-            var currentState = sender._keyState;
-
-            // Don't add the symbolic name to the key buffer if the alt_ key is
-            // part of the symbolic name. If it starts with alt_, this means
-            // that the user hit an alt keycombo and there will be a single,
-            // new character detected after this event, which then will be
-            // added to the buffer (e.g. alt_j will result in ∆).
-            if (!flags.isCommandKey || symbolicName.indexOf('alt_') === -1) {
-                sender._keyBuffer +=
-                    symbolicName.replace(/ctrl_meta|meta/,'ctrl');
-                sender._keyMetaBuffer += symbolicName;
-            }
-
-            // List of all the keymappings to look at.
-            var ak = [ this._customKeymappingCache ];
-
-            // Get keymapping extension points.
-            ak = ak.concat(catalog.getExtensions('keymapping'));
-
-            for (var i = 0; i < ak.length; i++) {
-                // Check if the keymapping has the current state.
-                if (util.none(ak[i].states[currentState])) {
-                    continue;
-                }
-
-                if (util.none(ak[i]._convertedRegExp)) {
-                    this._buildKeymappingRegex(ak[i]);
-                }
-
-                // Try to match the current mapping.
-                var result = this._bindingsMatch(
-                                    symbolicName,
-                                    flags,
-                                    sender,
-                                    ak[i]);
-
-                if (!util.none(result)) {
-                    return result;
-                }
-            }
-        }
-
-        var commandExts = catalog.getExtensions('command');
-        var reply = null;
-        var args = {};
-
-        symbolicName = symbolicName.replace(/ctrl_meta|meta/,'ctrl');
-
-        commandExts.some(function(commandExt) {
-            if (this._commandMatches(commandExt, symbolicName, flags)) {
-                reply = commandExt;
-                return true;
-            }
-            return false;
-        }.bind(this));
-
-        return util.none(reply) ? null : { commandExt: reply, args: args };
-    },
-
-
-    /**
-     * Checks if the given parameters fit to one binding in the given bindings.
-     * Returns the command and arguments if a command was matched.
-     */
-    _bindingsMatch: function(symbolicName, flags, sender, keymapping) {
-        var match;
-        var commandExt = null;
-        var args = {};
-        var bufferToUse;
-
-        if (!util.none(keymapping.hasMetaKey)) {
-            bufferToUse = sender._keyBuffer;
-        } else {
-            bufferToUse = sender._keyMetaBuffer;
-        }
-
-        // Add the alt_key to the buffer as we don't want it to be in the buffer
-        // that is saved but for matching, it needs to be there.
-        if (symbolicName.indexOf('alt_') === 0 && flags.isCommandKey) {
-            bufferToUse += symbolicName;
-        }
-
-        // Loop over all the bindings of the keymapp until a match is found.
-        keymapping.states[sender._keyState].some(function(binding) {
-            // Check if the key matches.
-            if (binding.key && !binding.key.test(symbolicName)) {
-                return false;
-            }
-
-            // Check if the regex matches.
-            if (binding.regex && !(match = binding.regex.exec(bufferToUse))) {
-                return false;
-            }
-
-            // Check for disallowed matches.
-            if (binding.disallowMatches) {
-                for (var i = 0; i < binding.disallowMatches.length; i++) {
-                    if (!!match[binding.disallowMatches[i]]) {
-                        return true;
-                    }
-                }
-            }
-
-            // Check predicates.
-            if (!exports.flagsMatch(binding.predicates, flags)) {
-                return false;
-            }
-
-            // If there is a command to execute, then figure out the
-            // comand and the arguments.
-            if (binding.exec) {
-                // Get the command.
-                commandExt = catalog.getExtensionByKey('command', binding.exec);
-                if (util.none(commandExt)) {
-                    throw new Error('Can\'t find command ' + binding.exec +
-                        ' in state=' + sender._keyState +
-                        ', symbolicName=' + symbolicName);
-                }
-
-                // Bulid the arguments.
-                if (binding.params) {
-                    var value;
-                    binding.params.forEach(function(param) {
-                        if (!util.none(param.match) && !util.none(match)) {
-                            value = match[param.match] || param.defaultValue;
-                        } else {
-                            value = param.defaultValue;
-                        }
-
-                        if (param.type === 'number') {
-                            value = parseInt(value, 10);
-                        }
-
-                        args[param.name] = value;
-                    });
-                }
-                sender.resetKeyBuffers();
-            }
-
-            // Handle the 'then' property.
-            if (binding.then) {
-                sender._keyState = binding.then;
-                sender.resetKeyBuffers();
-            }
-
-            // If there is no command matched now, then return a 'false'
-            // command to stop matching.
-            if (util.none(commandExt)) {
-                commandExt = 'no command';
-            }
-
-            return true;
-        });
-
-        if (util.none(commandExt)) {
-            return null;
-        }
-
-        return { commandExt: commandExt, args: args };
-    },
-
-    /**
-     * Check that the given command fits the given key name and flags.
-     */
-    _commandMatches: function(commandExt, symbolicName, flags) {
-        var mappedKeys = commandExt.key;
-        if (!mappedKeys) {
-            return false;
-        }
-
-        // Check predicates
-        if (!exports.flagsMatch(commandExt.predicates, flags)) {
-            return false;
-        }
-
-        if (typeof(mappedKeys) === 'string') {
-            if (mappedKeys != symbolicName) {
-                return false;
-            }
-            return true;
-        }
-
-        if (!Array.isArray(mappedKeys)) {
-            mappedKeys = [mappedKeys];
-            commandExt.key = mappedKeys;
-        }
-
-        for (var i = 0; i < mappedKeys.length; i++) {
-            var keymap = mappedKeys[i];
-            if (typeof(keymap) === 'string') {
-                if (keymap == symbolicName) {
-                    return true;
-                }
-                continue;
-            }
-
-            if (keymap.key != symbolicName) {
-                continue;
-            }
-
-            return exports.flagsMatch(keymap.predicates, flags);
-        }
-        return false;
-    },
-
-    /**
-     * Build a cache of custom keymappings whenever the associated setting
-     * changes.
-     */
-    _customKeymappingChanged: function(settingName, value) {
-        var ckc = this._customKeymappingCache =
-                            JSON.parse(value);
-
-        ckc.states = ckc.states || {};
-
-        for (state in ckc.states) {
-            this._buildBindingsRegex(ckc.states[state]);
-        }
-        ckc._convertedRegExp = true;
-    }
-};
-
-/**
- *
- */
-exports.flagsMatch = function(predicates, flags) {
-    if (util.none(predicates)) {
-        return true;
-    }
-
-    if (!flags) {
-        return false;
-    }
-
-    for (var flagName in predicates) {
-        if (flags[flagName] !== predicates[flagName]) {
-            return false;
-        }
-    }
-
-    return true;
-};
-
-/**
- * The global exported KeyboardManager
- */
-exports.keyboardManager = new KeyboardManager();
-
-
-});
-/*! @license
-==========================================================================
-SproutCore -- JavaScript Application Framework
-copyright 2006-2009, Sprout Systems Inc., Apple Inc. and contributors.
-
-Permission is hereby granted, free of charge, to any person obtaining a
-copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation
-the rights to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-DEALINGS IN THE SOFTWARE.
-
-SproutCore and the SproutCore logo are trademarks of Sprout Systems, Inc.
-
-For more information about SproutCore, visit http://www.sproutcore.com
-
-
-==========================================================================
-@license */
-
-// Most of the following code is taken from SproutCore with a few changes.
-
-define('pilot/keyboard/keyutil', function(require, exports, module) {
-
-var event = require('pilot/event');
-var useragent = require('pilot/useragent');
-
-/**
- * Helper functions and hashes for key handling.
- */
-exports.KeyHelper = function() {
-    var ret = {
-        MODIFIER_KEYS: {
-            16: 'shift', 17: 'ctrl', 18: 'alt', 224: 'meta'
-        },
-
-        FUNCTION_KEYS : {
-              8: 'backspace', 9: 'tab',         13: 'return',   19: 'pause',
-             27: 'escape',   33: 'pageup',      34: 'pagedown', 35: 'end',
-             36: 'home',     37: 'left',        38: 'up',       39: 'right',
-             40: 'down',     44: 'printscreen', 45: 'insert',   46: 'delete',
-            112: 'f1',      113: 'f2',         114: 'f3',      115: 'f4',
-            116: 'f5',      117: 'f7',         119: 'f8',      120: 'f9',
-            121: 'f10',     122: 'f11',        123: 'f12',     144: 'numlock',
-            145: 'scrolllock'
-        },
-
-        PRINTABLE_KEYS: {
-           32: ' ',  48: '0',  49: '1',  50: '2',  51: '3',  52: '4', 53:  '5',
-           54: '6',  55: '7',  56: '8',  57: '9',  59: ';',  61: '=', 65:  'a',
-           66: 'b',  67: 'c',  68: 'd',  69: 'e',  70: 'f',  71: 'g', 72:  'h',
-           73: 'i',  74: 'j',  75: 'k',  76: 'l',  77: 'm',  78: 'n', 79:  'o',
-           80: 'p',  81: 'q',  82: 'r',  83: 's',  84: 't',  85: 'u', 86:  'v',
-           87: 'w',  88: 'x',  89: 'y',  90: 'z', 107: '+', 109: '-', 110: '.',
-          188: ',', 190: '.', 191: '/', 192: '`', 219: '[', 220: '\\',
-          221: ']', 222: '\"'
-        },
-
-        /**
-         * Create the lookup table for Firefox to convert charCodes to keyCodes
-         * in the keyPress event.
-         */
-        PRINTABLE_KEYS_CHARCODE: {},
-
-        /**
-         * Allow us to lookup keyCodes by symbolic name rather than number
-         */
-        KEY: {}
-    };
-
-    // Create the PRINTABLE_KEYS_CHARCODE hash.
-    for (var i in ret.PRINTABLE_KEYS) {
-        var k = ret.PRINTABLE_KEYS[i];
-        ret.PRINTABLE_KEYS_CHARCODE[k.charCodeAt(0)] = i;
-        if (k.toUpperCase() != k) {
-            ret.PRINTABLE_KEYS_CHARCODE[k.toUpperCase().charCodeAt(0)] = i;
-        }
-    }
-
-    // A reverse map of FUNCTION_KEYS
-    for (i in ret.FUNCTION_KEYS) {
-        var name = ret.FUNCTION_KEYS[i].toUpperCase();
-        ret.KEY[name] = parseInt(i, 10);
-    }
-
-    return ret;
-}();
-
-/**
- * Determines if the keyDown event is a non-printable or function key.
- * These kinds of events are processed as keyboard shortcuts.
- * If no shortcut handles the event, then it will be sent as a regular
- * keyDown event.
- * @private
- */
-var isFunctionOrNonPrintableKey = function(evt) {
-    return !!(evt.altKey || evt.ctrlKey || evt.metaKey ||
-            ((evt.charCode !== evt.which) &&
-                    exports.KeyHelper.FUNCTION_KEYS[evt.which]));
-};
-
-/**
- * Returns character codes for the event.
- * The first value is the normalized code string, with any Shift or Ctrl
- * characters added to the beginning.
- * The second value is the char string by itself.
- * @return {Array}
- */
-exports.commandCodes = function(evt, dontIgnoreMeta) {
-    var code = evt._keyCode || evt.keyCode;
-    var charCode = (evt._charCode === undefined ? evt.charCode : evt._charCode);
-    var ret = null;
-    var key = null;
-    var modifiers = '';
-    var lowercase;
-    var allowShift = true;
-
-    // Absent a value for 'keyCode' or 'which', we can't compute the
-    // command codes. Bail out.
-    if (code === 0 && evt.which === 0) {
-        return false;
-    }
-
-    // If the charCode is not zero, then we do not handle a command key
-    // here. Bail out.
-    if (charCode !== 0) {
-        return false;
-    }
-
-    // Check for modifier keys.
-    if (exports.KeyHelper.MODIFIER_KEYS[charCode]) {
-        return [exports.KeyHelper.MODIFIER_KEYS[charCode], null];
-    }
-
-    // handle function keys.
-    if (code) {
-        ret = exports.KeyHelper.FUNCTION_KEYS[code];
-        if (!ret && (evt.altKey || evt.ctrlKey || evt.metaKey)) {
-            ret = exports.KeyHelper.PRINTABLE_KEYS[code];
-            // Don't handle the shift key if the combo is
-            //    (meta_|ctrl_)<number>
-            // This is necessary for the French keyboard. On that keyboard,
-            // you have to hold down the shift key to access the number
-            // characters.
-            if (code > 47 && code < 58) {
-                allowShift = evt.altKey;
-            }
-        }
-
-        if (ret) {
-           if (evt.altKey) {
-               modifiers += 'alt_';
-           }
-           if (evt.ctrlKey) {
-               modifiers += 'ctrl_';
-           }
-           if (evt.metaKey) {
-               modifiers += 'meta_';
-           }
-        } else if (evt.ctrlKey || evt.metaKey) {
-            return false;
-        }
-    }
-
-    // otherwise just go get the right key.
-    if (!ret) {
-        code = evt.which;
-        key = ret = String.fromCharCode(code);
-        lowercase = ret.toLowerCase();
-
-        if (evt.metaKey) {
-           modifiers = 'meta_';
-           ret = lowercase;
-
-        } else ret = null;
-    }
-
-    if (evt.shiftKey && ret && allowShift) {
-        modifiers += 'shift_';
-    }
-
-    if (ret) {
-        ret = modifiers + ret;
-    }
-
-    if (!dontIgnoreMeta && ret) {
-        ret = ret.replace(/ctrl_meta|meta/,'ctrl');
-    }
-
-    return [ret, key];
-};
-
-// Note: Most of the following code is taken from SproutCore with a few changes.
-
-/**
- * Firefox sends a few key events twice: the first time to the keydown event
- * and then later again to the keypress event. To handle them correct, they
- * should be processed only once. Due to this, we will skip these events
- * in keydown and handle them then in keypress.
- */
-exports.addKeyDownListener = function(element, boundFunction) {
-
-    var handleBoundFunction = function(ev) {
-        var handled = boundFunction(ev);
-        // If the boundFunction returned true, then stop the event.
-        if (handled) {
-            event.stopEvent(ev);
-        }
-        return handled;
-    };
-
-    element.addEventListener('keydown', function(ev) {
-        if (useragent.isGecko) {
-            // Check for function keys (like DELETE, TAB, LEFT, RIGHT...)
-            if (exports.KeyHelper.FUNCTION_KEYS[ev.keyCode]) {
-                return true;
-                // Check for command keys (like ctrl_c, ctrl_z...)
-            } else if ((ev.ctrlKey || ev.metaKey) &&
-                    exports.KeyHelper.PRINTABLE_KEYS[ev.keyCode]) {
-                return true;
-            }
-        }
-
-        if (isFunctionOrNonPrintableKey(ev)) {
-            return handleBoundFunction(ev);
-        }
-
-        return true;
-    }, false);
-
-    element.addEventListener('keypress', function(ev) {
-        if (useragent.isGecko) {
-            // If this is a function key, we have to use the keyCode.
-            if (exports.KeyHelper.FUNCTION_KEYS[ev.keyCode]) {
-                return handleBoundFunction(ev);
-            } else if ((ev.ctrlKey || ev.metaKey) &&
-                    exports.KeyHelper.PRINTABLE_KEYS_CHARCODE[ev.charCode]){
-                // Check for command keys (like ctrl_c, ctrl_z...).
-                // For command keys have to convert the charCode to a keyCode
-                // as it has been sent from the keydown event to be in line
-                // with the other browsers implementations.
-
-                // FF does not allow let you change the keyCode or charCode
-                // property. Store to a custom keyCode/charCode variable.
-                // The getCommandCodes() function takes care of these
-                // special variables.
-                ev._keyCode = exports.KeyHelper.PRINTABLE_KEYS_CHARCODE[ev.charCode];
-                ev._charCode = 0;
-                return handleBoundFunction(ev);
-            }
-        }
-
-        // normal processing: send keyDown for printable keys.
-        if (ev.charCode !== undefined && ev.charCode === 0) {
-            return true;
-        }
-
-        return handleBoundFunction(ev);
-    }, false);
-};
-
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('pilot/lang', function(require, exports, module) {
-
-exports.stringReverse = function(string) {
-    return string.split("").reverse().join("");
-};
-
-exports.stringRepeat = function (string, count) {
-     return new Array(count + 1).join(string);
-};
-
-exports.copyObject = function(obj) {
-    var copy = {};
-    for (var key in obj) {
-        copy[key] = obj[key];
-    }
-    return copy;
-};
-
-exports.arrayToMap = function(arr) {
-    var map = {};
-    for (var i=0; i<arr.length; i++) {
-        map[arr[i]] = 1;
-    }
-    return map;
-
-};
-
-/**
- * splice out of 'array' anything that === 'value'
- */
-exports.arrayRemove = function(array, value) {
-  for (var i = 0; i <= array.length; i++) {
-    if (value === array[i]) {
-      array.splice(i, 1);
-    }
-  }
-};
-
-exports.escapeRegExp = function(str) {
-    return str.replace(/([.*+?^${}()|[\]\/\\])/g, '\\$1');
-};
-
-exports.deferredCall = function(fcn) {
-
-    var timer = null;
-    var callback = function() {
-        timer = null;
-        fcn();
-    };
-
-    return {
-      schedule: function() {
-        if (!timer) {
-            timer = setTimeout(callback, 0);
-        }
-      },
-
-      call: function() {
-          this.cancel();
-          fcn();
-      },
-
-      cancel: function() {
-          clearTimeout(timer);
-          timer = null;
-      }
-  };
-};
-
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('pilot/oop', function(require, exports, module) {
-
-exports.inherits = function(ctor, superCtor) {
-    var tempCtor = function() {};
-    tempCtor.prototype = superCtor.prototype;
-    ctor.super_ = superCtor.prototype;
-    ctor.prototype = new tempCtor();
-    ctor.prototype.constructor = ctor;
-};
-
-exports.mixin = function(obj, mixin) {
-    for (var key in mixin) {
-        obj[key] = mixin[key];
-    }
-};
-
-exports.implement = function(proto, mixin) {
-    exports.mixin(proto, mixin);
-};
-
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Skywriter.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Kevin Dangoor (kdangoor@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('pilot/plugin_manager', function(require, exports, module) {
-
-var Promise = require("pilot/promise").Promise;
-
-exports.REASONS = {
-    APP_STARTUP: 1,
-    APP_SHUTDOWN: 2,
-    PLUGIN_ENABLE: 3,
-    PLUGIN_DISABLE: 4,
-    PLUGIN_INSTALL: 5,
-    PLUGIN_UNINSTALL: 6,
-    PLUGIN_UPGRADE: 7,
-    PLUGIN_DOWNGRADE: 8
-};
-
-exports.Plugin = function(name) {
-    this.name = name;
-    this.status = this.INSTALLED;
-};
-
-exports.Plugin.prototype = {
-    /**
-     * constants for the state
-     */
-    NEW: 0,
-    INSTALLED: 1,
-    REGISTERED: 2,
-    STARTED: 3,
-    UNREGISTERED: 4,
-    SHUTDOWN: 5,
-
-    install: function(data, reason) {
-        var pr = new Promise();
-        if (this.status > this.NEW) {
-            pr.resolve(this);
-            return pr;
-        }
-        require([this.name], function(pluginModule) {
-            if (pluginModule.install) {
-                pluginModule.install(data, reason);
-            }
-            this.status = this.INSTALLED;
-            pr.resolve(this);
-        }.bind(this));
-        return pr;
-    },
-
-    register: function(data, reason) {
-        var pr = new Promise();
-        if (this.status != this.INSTALLED) {
-            pr.resolve(this);
-            return pr;
-        }
-        require([this.name], function(pluginModule) {
-            if (pluginModule.register) {
-                pluginModule.register(data, reason);
-            }
-            this.status = this.REGISTERED;
-            pr.resolve(this);
-        }.bind(this));
-        return pr;
-    },
-
-    startup: function(data, reason) {
-        reason = reason || exports.REASONS.APP_STARTUP;
-        var pr = new Promise();
-        if (this.status != this.REGISTERED) {
-            pr.resolve(this);
-            return pr;
-        }
-        require([this.name], function(pluginModule) {
-            if (pluginModule.startup) {
-                pluginModule.startup(data, reason);
-            }
-            this.status = this.STARTED;
-            pr.resolve(this);
-        }.bind(this));
-        return pr;
-    },
-
-    shutdown: function(data, reason) {
-        if (this.status != this.STARTED) {
-            return;
-        }
-        pluginModule = require(this.name);
-        if (pluginModule.shutdown) {
-            pluginModule.shutdown(data, reason);
-        }
-    }
-};
-
-exports.PluginCatalog = function() {
-    this.plugins = {};
-};
-
-exports.PluginCatalog.prototype = {
-    registerPlugins: function(pluginList, data, reason) {
-        var registrationPromises = [];
-        pluginList.forEach(function(pluginName) {
-            var plugin = this.plugins[pluginName];
-            if (plugin === undefined) {
-                plugin = new exports.Plugin(pluginName);
-                this.plugins[pluginName] = plugin;
-                registrationPromises.push(plugin.register(data, reason));
-            }
-        }.bind(this));
-        return Promise.group(registrationPromises);
-    },
-
-    startupPlugins: function(data, reason) {
-        var startupPromises = [];
-        for (var pluginName in this.plugins) {
-            var plugin = this.plugins[pluginName];
-            startupPromises.push(plugin.startup(data, reason));
-        }
-        return Promise.group(startupPromises);
-    }
-};
-
-exports.catalog = new exports.PluginCatalog();
-
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Skywriter.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Joe Walker (jwalker@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('pilot/promise', function(require, exports, module) {
-
-var console = require("pilot/console");
-var Trace = require('pilot/stacktrace').Trace;
-
-/**
- * A promise can be in one of 2 states.
- * The ERROR and SUCCESS states are terminal, the PENDING state is the only
- * start state.
- */
-var ERROR = -1;
-var PENDING = 0;
-var SUCCESS = 1;
-
-/**
- * We give promises and ID so we can track which are outstanding
- */
-var _nextId = 0;
-
-/**
- * Debugging help if 2 things try to complete the same promise.
- * This can be slow (especially on chrome due to the stack trace unwinding) so
- * we should leave this turned off in normal use.
- */
-var _traceCompletion = false;
-
-/**
- * Outstanding promises. Handy list for debugging only.
- */
-var _outstanding = [];
-
-/**
- * Recently resolved promises. Also for debugging only.
- */
-var _recent = [];
-
-/**
- * Create an unfulfilled promise
- */
-Promise = function () {
-    this._status = PENDING;
-    this._value = undefined;
-    this._onSuccessHandlers = [];
-    this._onErrorHandlers = [];
-
-    // Debugging help
-    this._id = _nextId++;
-    //this._createTrace = new Trace(new Error());
-    _outstanding[this._id] = this;
-};
-
-/**
- * Yeay for RTTI.
- */
-Promise.prototype.isPromise = true;
-
-/**
- * Have we either been resolve()ed or reject()ed?
- */
-Promise.prototype.isComplete = function() {
-    return this._status != PENDING;
-};
-
-/**
- * Have we resolve()ed?
- */
-Promise.prototype.isResolved = function() {
-    return this._status == SUCCESS;
-};
-
-/**
- * Have we reject()ed?
- */
-Promise.prototype.isRejected = function() {
-    return this._status == ERROR;
-};
-
-/**
- * Take the specified action of fulfillment of a promise, and (optionally)
- * a different action on promise rejection.
- */
-Promise.prototype.then = function(onSuccess, onError) {
-    if (typeof onSuccess === 'function') {
-        if (this._status === SUCCESS) {
-            onSuccess.call(null, this._value);
-        } else if (this._status === PENDING) {
-            this._onSuccessHandlers.push(onSuccess);
-        }
-    }
-
-    if (typeof onError === 'function') {
-        if (this._status === ERROR) {
-            onError.call(null, this._value);
-        } else if (this._status === PENDING) {
-            this._onErrorHandlers.push(onError);
-        }
-    }
-
-    return this;
-};
-
-/**
- * Like then() except that rather than returning <tt>this</tt> we return
- * a promise which
- */
-Promise.prototype.chainPromise = function(onSuccess) {
-    var chain = new Promise();
-    chain._chainedFrom = this;
-    this.then(function(data) {
-        try {
-            chain.resolve(onSuccess(data));
-        } catch (ex) {
-            chain.reject(ex);
-        }
-    }, function(ex) {
-        chain.reject(ex);
-    });
-    return chain;
-};
-
-/**
- * Supply the fulfillment of a promise
- */
-Promise.prototype.resolve = function(data) {
-    return this._complete(this._onSuccessHandlers, SUCCESS, data, 'resolve');
-};
-
-/**
- * Renege on a promise
- */
-Promise.prototype.reject = function(data) {
-    return this._complete(this._onErrorHandlers, ERROR, data, 'reject');
-};
-
-/**
- * Internal method to be called on resolve() or reject().
- * @private
- */
-Promise.prototype._complete = function(list, status, data, name) {
-    // Complain if we've already been completed
-    if (this._status != PENDING) {
-        console.group('Promise already closed');
-        console.error('Attempted ' + name + '() with ', data);
-        console.error('Previous status = ', this._status,
-                ', previous value = ', this._value);
-        console.trace();
-
-        if (this._completeTrace) {
-            console.error('Trace of previous completion:');
-            this._completeTrace.log(5);
-        }
-        console.groupEnd();
-        return this;
-    }
-
-    if (_traceCompletion) {
-        this._completeTrace = new Trace(new Error());
-    }
-
-    this._status = status;
-    this._value = data;
-
-    // Call all the handlers, and then delete them
-    list.forEach(function(handler) {
-        handler.call(null, this._value);
-    }, this);
-    this._onSuccessHandlers.length = 0;
-    this._onErrorHandlers.length = 0;
-
-    // Remove the given {promise} from the _outstanding list, and add it to the
-    // _recent list, pruning more than 20 recent promises from that list.
-    delete _outstanding[this._id];
-    _recent.push(this);
-    while (_recent.length > 20) {
-        _recent.shift();
-    }
-
-    return this;
-};
-
-/**
- * Takes an array of promises and returns a promise that that is fulfilled once
- * all the promises in the array are fulfilled
- * @param group The array of promises
- * @return the promise that is fulfilled when all the array is fulfilled
- */
-Promise.group = function(promiseList) {
-    if (!(promiseList instanceof Array)) {
-        promiseList = Array.prototype.slice.call(arguments);
-    }
-
-    // If the original array has nothing in it, return now to avoid waiting
-    if (promiseList.length === 0) {
-        return new Promise().resolve([]);
-    }
-
-    var groupPromise = new Promise();
-    var results = [];
-    var fulfilled = 0;
-
-    var onSuccessFactory = function(index) {
-        return function(data) {
-            results[index] = data;
-            fulfilled++;
-            // If the group has already failed, silently drop extra results
-            if (groupPromise._status !== ERROR) {
-                if (fulfilled === promiseList.length) {
-                    groupPromise.resolve(results);
-                }
-            }
-        };
-    };
-
-    promiseList.forEach(function(promise, index) {
-        var onSuccess = onSuccessFactory(index);
-        var onError = groupPromise.reject.bind(groupPromise);
-        promise.then(onSuccess, onError);
-    });
-
-    return groupPromise;
-};
-
-exports.Promise = Promise;
-exports._outstanding = _outstanding;
-exports._recent = _recent;
-
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Skywriter.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Julian Viereck (jviereck@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('pilot/proxy', function(require, exports, module) {
-
-var Promise = require('pilot/promise').Promise;
-
-exports.xhr = function(method, url, async, beforeSendCallback) {
-    var pr = new Promise();
-
-    if (!skywriter.proxy || !skywriter.proxy.xhr) {
-        var req = new XMLHttpRequest();
-        req.onreadystatechange = function() {
-            if (req.readyState !== 4) {
-                return;
-            }
-
-            var status = req.status;
-            if (status !== 0 && status !== 200) {
-                var error = new Error(req.responseText + ' (Status ' + req.status + ")");
-                error.xhr = req;
-                pr.reject(error);
-                return;
-            }
-
-            pr.resolve(req.responseText);
-        }.bind(this);
-
-        req.open("GET", url, async);
-        if (beforeSendCallback) {
-            beforeSendCallback(req);
-        }
-        req.send();
-    } else {
-        skywriter.proxy.xhr.call(this, method, url, async, beforeSendCallback, pr);
-    }
-
-    return pr;
-};
-
-exports.Worker = function(url) {
-    if (!skywriter.proxy || !skywriter.proxy.worker) {
-        return new Worker(url);
-    } else {
-        return new skywriter.proxy.worker(url);
-    }
-};
 
 });
 /* ***** BEGIN LICENSE BLOCK *****
@@ -3864,6 +2690,66 @@ exports.isRange = function(range) {
  * for the specific language governing rights and limitations under the
  * License.
  *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('pilot/oop', function(require, exports, module) {
+
+exports.inherits = (function() {
+    var tempCtor = function() {};
+    return function(ctor, superCtor) {
+        tempCtor.prototype = superCtor.prototype;
+        ctor.super_ = superCtor.prototype;
+        ctor.prototype = new tempCtor();
+        ctor.prototype.constructor = ctor;
+    }
+}());
+
+exports.mixin = function(obj, mixin) {
+    for (var key in mixin) {
+        obj[key] = mixin[key];
+    }
+};
+
+exports.implement = function(proto, mixin) {
+    exports.mixin(proto, mixin);
+};
+
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
  * The Original Code is Mozilla Skywriter.
  *
  * The Initial Developer of the Original Code is
@@ -3888,24 +2774,509 @@ exports.isRange = function(range) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/settings/canon', function(require, exports, module) {
+define('pilot/canon', function(require, exports, module) {
 
+var console = require('pilot/console');
+var Trace = require('pilot/stacktrace').Trace;
+var oop = require('pilot/oop');
+var EventEmitter = require('pilot/event_emitter').EventEmitter;
+var catalog = require('pilot/catalog');
+var Status = require('pilot/types').Status;
+var types = require('pilot/types');
+var lang = require('pilot/lang');
 
-var historyLengthSetting = {
-    name: "historyLength",
-    description: "How many typed commands do we recall for reference?",
-    type: "number",
-    defaultValue: 50
+/*
+// TODO: this doesn't belong here - or maybe anywhere?
+var dimensionsChangedExtensionSpec = {
+    name: 'dimensionsChanged',
+    description: 'A dimensionsChanged is a way to be notified of ' +
+            'changes to the dimension of Skywriter'
+};
+exports.startup = function(data, reason) {
+    catalog.addExtensionSpec(commandExtensionSpec);
+};
+exports.shutdown = function(data, reason) {
+    catalog.removeExtensionSpec(commandExtensionSpec);
+};
+*/
+
+var commandExtensionSpec = {
+    name: 'command',
+    description: 'A command is a bit of functionality with optional ' +
+            'typed arguments which can do something small like moving ' +
+            'the cursor around the screen, or large like cloning a ' +
+            'project from VCS.',
+    indexOn: 'name'
 };
 
 exports.startup = function(data, reason) {
-    data.env.settings.addSetting(historyLengthSetting);
+    // TODO: this is probably all kinds of evil, but we need something working
+    catalog.addExtensionSpec(commandExtensionSpec);
 };
 
 exports.shutdown = function(data, reason) {
-    data.env.settings.removeSetting(historyLengthSetting);
+    catalog.removeExtensionSpec(commandExtensionSpec);
 };
 
+/**
+ * Manage a list of commands in the current canon
+ */
+
+/**
+ * A Command is a discrete action optionally with a set of ways to customize
+ * how it happens. This is here for documentation purposes.
+ * TODO: Document better
+ */
+var thingCommand = {
+    name: 'thing',
+    description: 'thing is an example command',
+    params: [{
+        name: 'param1',
+        description: 'an example parameter',
+        type: 'text',
+        defaultValue: null
+    }],
+    exec: function(env, args, request) {
+        thing();
+    }
+};
+
+/**
+ * A lookup hash of our registered commands
+ */
+var commands = {};
+
+/**
+ * A sorted list of command names, we regularly want them in order, so pre-sort
+ */
+var commandNames = [];
+
+/**
+ * This registration method isn't like other Ace registration methods because
+ * it doesn't return a decorated command because there is no functional
+ * decoration to be done.
+ * TODO: Are we sure that in the future there will be no such decoration?
+ */
+function addCommand(command) {
+    if (!command.name) {
+        throw new Error('All registered commands must have a name');
+    }
+    if (command.params == null) {
+        command.params = [];
+    }
+    if (!Array.isArray(command.params)) {
+        throw new Error('command.params must be an array in ' + command.name);
+    }
+    // Replace the type
+    command.params.forEach(function(param) {
+        if (!param.name) {
+            throw new Error('In ' + command.name + ': all params must have a name');
+        }
+        upgradeType(command.name, param);
+    }, this);
+    commands[command.name] = command;
+
+    commandNames.push(command.name);
+    commandNames.sort();
+};
+
+function upgradeType(name, param) {
+    var lookup = param.type;
+    param.type = types.getType(lookup);
+    if (param.type == null) {
+        throw new Error('In ' + name + '/' + param.name +
+            ': can\'t find type for: ' + JSON.stringify(lookup));
+    }
+}
+
+function removeCommand(command) {
+    var name = (typeof command === 'string' ? command : command.name);
+    delete commands[name];
+    lang.arrayRemove(commandNames, name);
+};
+
+function getCommand(name) {
+    return commands[name];
+};
+
+function getCommandNames() {
+    return commandNames;
+};
+
+/**
+ * Entry point for keyboard accelerators or anything else that knows
+ * everything it needs to about the command params
+ * @param command Either a command, or the name of one
+ */
+function exec(command, env, args, typed) {
+    if (typeof command === 'string') {
+        command = commands[command];
+    }
+    if (!command) {
+        // TODO: Should we complain more than returning false?
+        return false;
+    }
+
+    var request = new Request({
+        command: command,
+        args: args,
+        typed: typed
+    });
+    command.exec(env, args || {}, request);
+    return true;
+};
+
+exports.removeCommand = removeCommand;
+exports.addCommand = addCommand;
+exports.getCommand = getCommand;
+exports.getCommandNames = getCommandNames;
+exports.exec = exec;
+exports.upgradeType = upgradeType;
+
+
+/**
+ * We publish a 'output' event whenever new command begins output
+ * TODO: make this more obvious
+ */
+oop.implement(exports, EventEmitter);
+
+
+/**
+ * Current requirements are around displaying the command line, and provision
+ * of a 'history' command and cursor up|down navigation of history.
+ * <p>Future requirements could include:
+ * <ul>
+ * <li>Multiple command lines
+ * <li>The ability to recall key presses (i.e. requests with no output) which
+ * will likely be needed for macro recording or similar
+ * <li>The ability to store the command history either on the server or in the
+ * browser local storage.
+ * </ul>
+ * <p>The execute() command doesn't really live here, except as part of that
+ * last future requirement, and because it doesn't really have anywhere else to
+ * live.
+ */
+
+/**
+ * The array of requests that wish to announce their presence
+ */
+var requests = [];
+
+/**
+ * How many requests do we store?
+ */
+var maxRequestLength = 100;
+
+/**
+ * To create an invocation, you need to do something like this (all the ctor
+ * args are optional):
+ * <pre>
+ * var request = new Request({
+ *     command: command,
+ *     args: args,
+ *     typed: typed
+ * });
+ * </pre>
+ * @constructor
+ */
+function Request(options) {
+    options = options || {};
+
+    // Will be used in the keyboard case and the cli case
+    this.command = options.command;
+
+    // Will be used only in the cli case
+    this.args = options.args;
+    this.typed = options.typed;
+
+    // Have we been initialized?
+    this._begunOutput = false;
+
+    this.start = new Date();
+    this.end = null;
+    this.completed = false;
+    this.error = false;
+};
+
+oop.implement(Request.prototype, EventEmitter);
+
+/**
+ * Lazy init to register with the history should only be done on output.
+ * init() is expensive, and won't be used in the majority of cases
+ */
+Request.prototype._beginOutput = function() {
+    this._begunOutput = true;
+    this.outputs = [];
+
+    requests.push(this);
+    // This could probably be optimized with some maths, but 99.99% of the
+    // time we will only be off by one, and I'm feeling lazy.
+    while (requests.length > maxRequestLength) {
+        requests.shiftObject();
+    }
+
+    exports._dispatchEvent('output', { requests: requests, request: this });
+};
+
+/**
+ * Sugar for:
+ * <pre>request.error = true; request.done(output);</pre>
+ */
+Request.prototype.doneWithError = function(content) {
+    this.error = true;
+    this.done(content);
+};
+
+/**
+ * Declares that this function will not be automatically done when
+ * the command exits
+ */
+Request.prototype.async = function() {
+    if (!this._begunOutput) {
+        this._beginOutput();
+    }
+};
+
+/**
+ * Complete the currently executing command with successful output.
+ * @param output Either DOM node, an SproutCore element or something that
+ * can be used in the content of a DIV to create a DOM node.
+ */
+Request.prototype.output = function(content) {
+    if (!this._begunOutput) {
+        this._beginOutput();
+    }
+
+    if (typeof content !== 'string' && !(content instanceof Node)) {
+        content = content.toString();
+    }
+
+    this.outputs.push(content);
+    this._dispatchEvent('output', {});
+
+    return this;
+};
+
+/**
+ * All commands that do output must call this to indicate that the command
+ * has finished execution.
+ */
+Request.prototype.done = function(content) {
+    this.completed = true;
+    this.end = new Date();
+    this.duration = this.end.getTime() - this.start.getTime();
+
+    if (content) {
+        this.output(content);
+    }
+
+    this._dispatchEvent('output', {});
+};
+exports.Request = Request;
+
+
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('pilot/dom', function(require, exports, module) {
+
+exports.setText = function(elem, text) {
+    if (elem.innerText !== undefined) {
+        elem.innerText = text;
+    }
+    if (elem.textContent !== undefined) {
+        elem.textContent = text;
+    }
+};
+
+exports.hasCssClass = function(el, name) {
+    var classes = el.className.split(/\s+/g);
+    return classes.indexOf(name) !== -1;
+};
+
+/**
+* Add a CSS class to the list of classes on the given node
+*/
+exports.addCssClass = function(el, name) {
+    if (!exports.hasCssClass(el, name)) {
+        el.className += " " + name;
+    }
+};
+
+/**
+ * Add or remove a CSS class from the list of classes on the given node
+ * depending on the value of <tt>include</tt>
+ */
+exports.setCssClass = function(node, className, include) {
+    if (include) {
+        exports.addCssClass(node, className);
+    } else {
+        exports.removeCssClass(node, className);
+    }
+};
+
+/**
+* Remove a CSS class from the list of classes on the given node
+*/
+exports.removeCssClass = function(el, name) {
+    var classes = el.className.split(/\s+/g);
+    while (true) {
+        var index = classes.indexOf(name);
+        if (index == -1) {
+            break;
+        }
+        classes.splice(index, 1);
+    }
+    el.className = classes.join(" ");
+};
+
+exports.importCssString = function(cssText, doc){
+    doc = doc || document;        
+
+    if (doc.createStyleSheet) {
+        var sheet = doc.createStyleSheet();
+        sheet.cssText = cssText;
+    }
+    else {
+        var style = doc.createElement("style");
+        style.appendChild(doc.createTextNode(cssText));
+        doc.getElementsByTagName("head")[0].appendChild(style);
+    }            
+};
+
+exports.getInnerWidth = function(element) {
+    return (parseInt(exports.computedStyle(element, "paddingLeft"))
+            + parseInt(exports.computedStyle(element, "paddingRight")) + element.clientWidth);
+};
+
+exports.getInnerHeight = function(element) {
+    return (parseInt(exports.computedStyle(element, "paddingTop"))
+            + parseInt(exports.computedStyle(element, "paddingBottom")) + element.clientHeight);
+};
+
+exports.computedStyle = function(element, style) {
+    if (window.getComputedStyle) {
+        return (window.getComputedStyle(element, "") || {})[style] || "";
+    }
+    else {
+        return element.currentStyle[style];
+    }
+};
+
+exports.scrollbarWidth = function() {
+
+    var inner = document.createElement('p');
+    inner.style.width = "100%";
+    inner.style.height = "200px";
+
+    var outer = document.createElement("div");
+    var style = outer.style;
+
+    style.position = "absolute";
+    style.left = "-10000px";
+    style.overflow = "hidden";
+    style.width = "200px";
+    style.height = "150px";
+
+    outer.appendChild(inner);
+    document.body.appendChild(outer);
+    var noScrollbar = inner.offsetWidth;
+
+    style.overflow = "scroll";
+    var withScrollbar = inner.offsetWidth;
+
+    if (noScrollbar == withScrollbar) {
+        withScrollbar = outer.clientWidth;
+    }
+
+    document.body.removeChild(outer);
+
+    return noScrollbar-withScrollbar;
+};
+
+/**
+ * Optimized set innerHTML. This is faster than plain innerHTML if the element
+ * already contains a lot of child elements.
+ * 
+ * See http://blog.stevenlevithan.com/archives/faster-than-innerhtml for details
+ */
+exports.setInnerHtml = function(el, innerHtml) {
+	var element = el.cloneNode(false);//document.createElement("div");
+    element.innerHTML = innerHtml;
+    el.parentNode.replaceChild(element, el);
+    return element;
+};
+
+exports.getParentWindow = function(document) {
+    return document.defaultView || document.parentWindow;
+};
+
+exports.getSelectionStart = function(textarea) {
+    // TODO IE
+    var start;
+    try {
+        start = textarea.selectionStart || 0;
+    } catch (e) {
+        start = 0;
+    }
+    return start;
+};
+
+exports.setSelectionStart = function(textarea, start) {
+    // TODO IE
+    return textarea.selectionStart = start;
+};
+
+exports.getSelectionEnd = function(textarea) {
+    // TODO IE
+    var end;
+    try {
+        end = textarea.selectionEnd || 0;
+    } catch (e) {
+        end = 0;
+    }
+    return end;
+};
+
+exports.setSelectionEnd = function(textarea, end) {
+    // TODO IE
+    return textarea.selectionEnd = end;
+};
 
 });
 /* ***** BEGIN LICENSE BLOCK *****
@@ -4211,333 +3582,308 @@ CookiePersister.prototype = {
 exports.CookiePersister = CookiePersister;
 
 });
-define('pilot/stacktrace', function(require, exports, module) {
-    
-var ua = require("pilot/useragent");
-var console = require('pilot/console');
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
-// Changed to suit the specific needs of running within Skywriter
+define('pilot/event', function(require, exports, module) {
 
-// Domain Public by Eric Wendelin http://eriwen.com/ (2008)
-//                  Luke Smith http://lucassmith.name/ (2008)
-//                  Loic Dachary <loic@dachary.org> (2008)
-//                  Johan Euphrosine <proppy@aminche.com> (2008)
-//                  Øyvind Sean Kinsey http://kinsey.no/blog
-//
-// Information and discussions
-// http://jspoker.pokersource.info/skin/test-printstacktrace.html
-// http://eriwen.com/javascript/js-stack-trace/
-// http://eriwen.com/javascript/stacktrace-update/
-// http://pastie.org/253058
-// http://browsershots.org/http://jspoker.pokersource.info/skin/test-printstacktrace.html
-//
+var keys = require("pilot/keys");
+var useragent = require("pilot/useragent");
 
-//
-// guessFunctionNameFromLines comes from firebug
-//
-// Software License Agreement (BSD License)
-//
-// Copyright (c) 2007, Parakey Inc.
-// All rights reserved.
-//
-// Redistribution and use of this software in source and binary forms, with or without modification,
-// are permitted provided that the following conditions are met:
-//
-// * Redistributions of source code must retain the above
-//   copyright notice, this list of conditions and the
-//   following disclaimer.
-//
-// * Redistributions in binary form must reproduce the above
-//   copyright notice, this list of conditions and the
-//   following disclaimer in the documentation and/or other
-//   materials provided with the distribution.
-//
-// * Neither the name of Parakey Inc. nor the names of its
-//   contributors may be used to endorse or promote products
-//   derived from this software without specific prior
-//   written permission of Parakey Inc.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
-// IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
-// FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
-// IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
-// OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+exports.addListener = function(elem, type, callback) {
+    if (elem.addEventListener) {
+        return elem.addEventListener(type, callback, false);
+    }
+    if (elem.attachEvent) {
+        var wrapper = function() {
+            callback(window.event);
+        };
+        callback._wrapper = wrapper;
+        elem.attachEvent("on" + type, wrapper);
+    }
+};
 
-
+exports.removeListener = function(elem, type, callback) {
+    if (elem.removeEventListener) {
+        return elem.removeEventListener(type, callback, false);
+    }
+    if (elem.detachEvent) {
+        elem.detachEvent("on" + type, callback._wrapper || callback);
+    }
+};
 
 /**
- * Different browsers create stack traces in different ways.
- * <strike>Feature</strike> Browser detection baby ;).
- */
-var mode = (function() {
+* Prevents propagation and clobbers the default action of the passed event
+*/
+exports.stopEvent = function(e) {
+    exports.stopPropagation(e);
+    exports.preventDefault(e);
+    return false;
+};
 
-    // We use SC's browser detection here to avoid the "break on error"
-    // functionality provided by Firebug. Firebug tries to do the right
-    // thing here and break, but it happens every time you load the page.
-    // bug 554105
-    if (ua.isGecko) {
-        return 'firefox';
-    } else if (ua.isOpera) {
-        return 'opera';
+exports.stopPropagation = function(e) {
+    if (e.stopPropagation)
+        e.stopPropagation();
+    else
+        e.cancelBubble = true;
+};
+
+exports.preventDefault = function(e) {
+    if (e.preventDefault)
+        e.preventDefault();
+    else
+        e.returnValue = false;
+};
+
+exports.getDocumentX = function(e) {
+    if (e.clientX) {
+        var scrollLeft = document.documentElement.scrollLeft || document.body.scrollLeft;
+        return e.clientX + scrollLeft;
     } else {
-        return 'other';
+        return e.pageX;
     }
+};
 
-    // SC doesn't do any detection of Chrome at this time.
-
-    // this is the original feature detection code that is used as a
-    // fallback.
-    try {
-        (0)();
-    } catch (e) {
-        if (e.arguments) {
-            return 'chrome';
-        }
-        if (e.stack) {
-            return 'firefox';
-        }
-        if (window.opera && !('stacktrace' in e)) { //Opera 9-
-            return 'opera';
-        }
+exports.getDocumentY = function(e) {
+    if (e.clientY) {
+        var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+        return e.clientY + scrollTop;
+    } else {
+        return e.pageX;
     }
-    return 'other';
-})();
+};
 
 /**
- *
+ * @return {Number} 0 for left button, 1 for middle button, 2 for right button
  */
-function stringifyArguments(args) {
-    for (var i = 0; i < args.length; ++i) {
-        var argument = args[i];
-        if (typeof argument == 'object') {
-            args[i] = '#object';
-        } else if (typeof argument == 'function') {
-            args[i] = '#function';
-        } else if (typeof argument == 'string') {
-            args[i] = '"' + argument + '"';
-        }
+exports.getButton = function(e) {
+    if (e.type == "dblclick")
+        return 0;
+    else if (e.type == "contextmenu")
+        return 2;
+        
+    // DOM Event
+    if (e.preventDefault) {
+        return e.button;
     }
-    return args.join(',');
+    // old IE
+    else {
+        return {1:0, 2:2, 4:1}[e.button];
+    }
+};
+
+if (document.documentElement.setCapture) {
+    exports.capture = function(el, eventHandler, releaseCaptureHandler) {
+        function onMouseMove(e) {
+            eventHandler(e);
+            return exports.stopPropagation(e);
+        }
+
+        function onReleaseCapture(e) {
+            eventHandler && eventHandler(e);
+            releaseCaptureHandler && releaseCaptureHandler();
+
+            exports.removeListener(el, "mousemove", eventHandler);
+            exports.removeListener(el, "mouseup", onReleaseCapture);
+            exports.removeListener(el, "losecapture", onReleaseCapture);
+
+            el.releaseCapture();
+        }
+
+        exports.addListener(el, "mousemove", eventHandler);
+        exports.addListener(el, "mouseup", onReleaseCapture);
+        exports.addListener(el, "losecapture", onReleaseCapture);
+        el.setCapture();
+    };
+}
+else {
+    exports.capture = function(el, eventHandler, releaseCaptureHandler) {
+        function onMouseMove(e) {
+            eventHandler(e);
+            e.stopPropagation();
+        }
+
+        function onMouseUp(e) {
+            eventHandler && eventHandler(e);
+            releaseCaptureHandler && releaseCaptureHandler();
+
+            document.removeEventListener("mousemove", onMouseMove, true);
+            document.removeEventListener("mouseup", onMouseUp, true);
+
+            e.stopPropagation();
+        }
+
+        document.addEventListener("mousemove", onMouseMove, true);
+        document.addEventListener("mouseup", onMouseUp, true);
+    };
 }
 
-/**
- * Extract a stack trace from the format emitted by each browser.
- */
-var decoders = {
-    chrome: function(e) {
-        var stack = e.stack;
-        if (!stack) {
-            console.log(e);
-            return [];
-        }
-        return stack.replace(/^.*?\n/, '').
-                replace(/^.*?\n/, '').
-                replace(/^.*?\n/, '').
-                replace(/^[^\(]+?[\n$]/gm, '').
-                replace(/^\s+at\s+/gm, '').
-                replace(/^Object.<anonymous>\s*\(/gm, '{anonymous}()@').
-                split('\n');
-    },
-
-    firefox: function(e) {
-        var stack = e.stack;
-        if (!stack) {
-            console.log(e);
-            return [];
-        }
-        // stack = stack.replace(/^.*?\n/, '');
-        stack = stack.replace(/(?:\n@:0)?\s+$/m, '');
-        stack = stack.replace(/^\(/gm, '{anonymous}(');
-        return stack.split('\n');
-    },
-
-    // Opera 7.x and 8.x only!
-    opera: function(e) {
-        var lines = e.message.split('\n'), ANON = '{anonymous}',
-            lineRE = /Line\s+(\d+).*?script\s+(http\S+)(?:.*?in\s+function\s+(\S+))?/i, i, j, len;
-
-        for (i = 4, j = 0, len = lines.length; i < len; i += 2) {
-            if (lineRE.test(lines[i])) {
-                lines[j++] = (RegExp.$3 ? RegExp.$3 + '()@' + RegExp.$2 + RegExp.$1 : ANON + '()@' + RegExp.$2 + ':' + RegExp.$1) +
-                ' -- ' +
-                lines[i + 1].replace(/^\s+/, '');
+exports.addMouseWheelListener = function(el, callback) {
+    var listener = function(e) {
+        if (e.wheelDelta !== undefined) {
+            if (e.wheelDeltaX !== undefined) {
+                e.wheelX = -e.wheelDeltaX / 8;
+                e.wheelY = -e.wheelDeltaY / 8;
+            } else {
+                e.wheelX = 0;
+                e.wheelY = -e.wheelDelta / 8;
             }
         }
+        else {
+            if (e.axis && e.axis == e.HORIZONTAL_AXIS) {
+                e.wheelX = (e.detail || 0) * 5;
+                e.wheelY = 0;
+            } else {
+                e.wheelX = 0;
+                e.wheelY = (e.detail || 0) * 5;
+            }
+        }
+        callback(e);
+    };
+    exports.addListener(el, "DOMMouseScroll", listener);
+    exports.addListener(el, "mousewheel", listener);
+};
 
-        lines.splice(j, lines.length - j);
-        return lines;
-    },
+exports.addMultiMouseDownListener = function(el, button, count, timeout, callback) {
+    var clicks = 0;
+    var startX, startY;
 
-    // Safari, Opera 9+, IE, and others
-    other: function(curr) {
-        var ANON = '{anonymous}', fnRE = /function\s*([\w\-$]+)?\s*\(/i, stack = [], j = 0, fn, args;
+    var listener = function(e) {
+        clicks += 1;
+        if (clicks == 1) {
+            startX = e.clientX;
+            startY = e.clientY;
 
-        var maxStackSize = 10;
-        while (curr && stack.length < maxStackSize) {
-            fn = fnRE.test(curr.toString()) ? RegExp.$1 || ANON : ANON;
-            args = Array.prototype.slice.call(curr['arguments']);
-            stack[j++] = fn + '(' + stringifyArguments(args) + ')';
+            setTimeout(function() {
+                clicks = 0;
+            }, timeout || 600);
+        }
 
-            //Opera bug: if curr.caller does not exist, Opera returns curr (WTF)
-            if (curr === curr.caller && window.opera) {
-                //TODO: check for same arguments if possible
+        if (exports.getButton(e) != button
+          || Math.abs(e.clientX - startX) > 5 || Math.abs(e.clientY - startY) > 5)
+            clicks = 0;
+
+        if (clicks == count) {
+            clicks = 0;
+            callback(e);
+        }
+        return exports.preventDefault(e);
+    };
+
+    exports.addListener(el, "mousedown", listener);
+    useragent.isIE && exports.addListener(el, "dblclick", listener);
+};
+
+function normalizeCommandKeys(callback, e, keyCode) {
+    var hashId = 0;
+    if (useragent.isOpera && useragent.isMac) {
+        hashId = 0 | (e.metaKey ? 1 : 0) | (e.altKey ? 2 : 0)
+            | (e.shiftKey ? 4 : 0) | (e.ctrlKey ? 8 : 0);
+    } else {
+        hashId = 0 | (e.ctrlKey ? 1 : 0) | (e.altKey ? 2 : 0)
+            | (e.shiftKey ? 4 : 0) | (e.metaKey ? 8 : 0);
+    }
+
+    if (keyCode in keys.MODIFIER_KEYS) {
+        switch (keys.MODIFIER_KEYS[keyCode]) {
+            case "Alt":
+                hashId = 2;
                 break;
-            }
-            curr = curr.caller;
+            case "Shift":
+                hashId = 4;
+                break
+            case "Ctrl":
+                hashId = 1;
+                break;
+            default:
+                hashId = 8;
+                break;
         }
-        return stack;
+        keyCode = 0;
     }
-};
 
-/**
- *
- */
-function NameGuesser() {
+    if (hashId & 8 && (keyCode == 91 || keyCode == 93)) {
+        keyCode = 0;
+    }
+
+    // If there is no hashID and the keyCode is not a function key, then
+    // we don't call the callback as we don't handle a command key here
+    // (it's a normal key/character input).
+    if (hashId == 0 && !(keyCode in keys.FUNCTION_KEYS)) {
+        return false;
+    }
+
+    return callback(e, hashId, keyCode);
 }
 
-NameGuesser.prototype = {
-
-    sourceCache: {},
-
-    ajax: function(url) {
-        var req = this.createXMLHTTPObject();
-        if (!req) {
-            return;
-        }
-        req.open('GET', url, false);
-        req.setRequestHeader('User-Agent', 'XMLHTTP/1.0');
-        req.send('');
-        return req.responseText;
-    },
-
-    createXMLHTTPObject: function() {
-	    // Try XHR methods in order and store XHR factory
-        var xmlhttp, XMLHttpFactories = [
-            function() {
-                return new XMLHttpRequest();
-            }, function() {
-                return new ActiveXObject('Msxml2.XMLHTTP');
-            }, function() {
-                return new ActiveXObject('Msxml3.XMLHTTP');
-            }, function() {
-                return new ActiveXObject('Microsoft.XMLHTTP');
-            }
-        ];
-        for (var i = 0; i < XMLHttpFactories.length; i++) {
-            try {
-                xmlhttp = XMLHttpFactories[i]();
-                // Use memoization to cache the factory
-                this.createXMLHTTPObject = XMLHttpFactories[i];
-                return xmlhttp;
-            } catch (e) {}
-        }
-    },
-
-    getSource: function(url) {
-        if (!(url in this.sourceCache)) {
-            this.sourceCache[url] = this.ajax(url).split('\n');
-        }
-        return this.sourceCache[url];
-    },
-
-    guessFunctions: function(stack) {
-        for (var i = 0; i < stack.length; ++i) {
-            var reStack = /{anonymous}\(.*\)@(\w+:\/\/([-\w\.]+)+(:\d+)?[^:]+):(\d+):?(\d+)?/;
-            var frame = stack[i], m = reStack.exec(frame);
-            if (m) {
-                var file = m[1], lineno = m[4]; //m[7] is character position in Chrome
-                if (file && lineno) {
-                    var functionName = this.guessFunctionName(file, lineno);
-                    stack[i] = frame.replace('{anonymous}', functionName);
-                }
-            }
-        }
-        return stack;
-    },
-
-    guessFunctionName: function(url, lineNo) {
-        try {
-            return this.guessFunctionNameFromLines(lineNo, this.getSource(url));
-        } catch (e) {
-            return 'getSource failed with url: ' + url + ', exception: ' + e.toString();
-        }
-    },
-
-    guessFunctionNameFromLines: function(lineNo, source) {
-        var reFunctionArgNames = /function ([^(]*)\(([^)]*)\)/;
-        var reGuessFunction = /['"]?([0-9A-Za-z_]+)['"]?\s*[:=]\s*(function|eval|new Function)/;
-        // Walk backwards from the first line in the function until we find the line which
-        // matches the pattern above, which is the function definition
-        var line = '', maxLines = 10;
-        for (var i = 0; i < maxLines; ++i) {
-            line = source[lineNo - i] + line;
-            if (line !== undefined) {
-                var m = reGuessFunction.exec(line);
-                if (m) {
-                    return m[1];
-                }
-                else {
-                    m = reFunctionArgNames.exec(line);
-                }
-                if (m && m[1]) {
-                    return m[1];
-                }
-            }
-        }
-        return '(?)';
-    }
-};
-
-var guesser = new NameGuesser();
-
-var frameIgnorePatterns = [
-    /http:\/\/localhost:4020\/sproutcore.js:/
-];
-
-exports.ignoreFramesMatching = function(regex) {
-    frameIgnorePatterns.push(regex);
-};
-
-/**
- * Create a stack trace from an exception
- * @param ex {Error} The error to create a stacktrace from (optional)
- * @param guess {Boolean} If we should try to resolve the names of anonymous functions
- */
-exports.Trace = function Trace(ex, guess) {
-    this._ex = ex;
-    this._stack = decoders[mode](ex);
-
-    if (guess) {
-        this._stack = guesser.guessFunctions(this._stack);
-    }
-};
-
-/**
- * Log to the console a number of lines (default all of them)
- * @param lines {number} Maximum number of lines to wrote to console
- */
-exports.Trace.prototype.log = function(lines) {
-    if (lines <= 0) {
-        // You aren't going to have more lines in your stack trace than this
-        // and it still fits in a 32bit integer
-        lines = 999999999;
-    }
-
-    var printed = 0;
-    for (var i = 0; i < this._stack.length && printed < lines; i++) {
-        var frame = this._stack[i];
-        var display = true;
-        frameIgnorePatterns.forEach(function(regex) {
-            if (regex.test(frame)) {
-                display = false;
-            }
+exports.addCommandKeyListener = function(el, callback) {
+    var addListener = exports.addListener;
+    if (useragent.isOldGecko) {
+        // Old versions of Gecko aka. Firefox < 4.0 didn't repeat the keydown
+        // event if the user pressed the key for a longer time. Instead, the
+        // keydown event was fired once and later on only the keypress event.
+        // To emulate the 'right' keydown behavior, the keyCode of the initial
+        // keyDown event is stored and in the following keypress events the
+        // stores keyCode is used to emulate a keyDown event.
+        var lastKeyDownKeyCode = null;
+        addListener(el, "keydown", function(e) {
+            lastKeyDownKeyCode = e.keyCode;
         });
-        if (display) {
-            console.debug(frame);
-            printed++;
+        addListener(el, "keypress", function(e) {
+            return normalizeCommandKeys(callback, e, lastKeyDownKeyCode);
+        });
+    } else {
+        var lastDown = null;
+
+        addListener(el, "keydown", function(e) {
+            lastDown = e.keyIdentifier || e.keyCode;
+            return normalizeCommandKeys(callback, e, e.keyCode);
+        });
+
+        // repeated keys are fired as keypress and not keydown events
+        if (useragent.isMac && useragent.isOpera) {
+            addListener(el, "keypress", function(e) {
+                var keyId = e.keyIdentifier || e.keyCode;
+                if (lastDown !== keyId) {
+                    return normalizeCommandKeys(callback, e, e.keyCode);
+                } else {
+                    lastDown = null;
+                }
+            });
         }
     }
 };
@@ -4556,7 +3902,202 @@ exports.Trace.prototype.log = function(lines) {
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Skywriter.
+ * The Original Code is Mozilla Skywriter.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Julian Viereck (jviereck@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('pilot/catalog', function(require, exports, module) {
+
+
+var extensionSpecs = {};
+
+exports.addExtensionSpec = function(extensionSpec) {
+    extensionSpecs[extensionSpec.name] = extensionSpec;
+};
+
+exports.removeExtensionSpec = function(extensionSpec) {
+    if (typeof extensionSpec === "string") {
+        delete extensionSpecs[extensionSpec];
+    }
+    else {
+        delete extensionSpecs[extensionSpec.name];
+    }
+};
+
+exports.getExtensionSpec = function(name) {
+    return extensionSpecs[name];
+};
+
+exports.getExtensionSpecs = function() {
+    return Object.keys(extensionSpecs);
+};
+
+
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Skywriter.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Joe Walker (jwalker@mozilla.com)
+ *   Patrick Walton (pwalton@mozilla.com)
+ *   Julian Viereck (jviereck@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+define('pilot/console', function(require, exports, module) {
+    
+/**
+ * This object represents a "safe console" object that forwards debugging
+ * messages appropriately without creating a dependency on Firebug in Firefox.
+ */
+
+var noop = function() {};
+
+// These are the functions that are available in Chrome 4/5, Safari 4
+// and Firefox 3.6. Don't add to this list without checking browser support
+var NAMES = [
+    "assert", "count", "debug", "dir", "dirxml", "error", "group", "groupEnd",
+    "info", "log", "profile", "profileEnd", "time", "timeEnd", "trace", "warn"
+];
+
+if (typeof(window) === 'undefined') {
+    // We're in a web worker. Forward to the main thread so the messages
+    // will show up.
+    NAMES.forEach(function(name) {
+        exports[name] = function() {
+            var args = Array.prototype.slice.call(arguments);
+            var msg = { op: 'log', method: name, args: args };
+            postMessage(JSON.stringify(msg));
+        };
+    });
+} else {
+    // For each of the console functions, copy them if they exist, stub if not
+    NAMES.forEach(function(name) {
+        if (window.console && window.console[name]) {
+            exports[name] = Function.prototype.bind.call(window.console[name], window.console);
+        } else {
+            exports[name] = noop;
+        }
+    });
+}
+
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is DomTemplate.
+ *
+ * The Initial Developer of the Original Code is Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Joe Walker (jwalker@mozilla.com) (original author)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('pilot/environment', function(require, exports, module) {
+
+
+var settings = require("pilot/settings").settings;
+
+/**
+ * Create an environment object
+ */
+function create() {
+    return {
+        settings: settings
+    };
+};
+
+exports.create = create;
+
+
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Skywriter.
  *
  * The Initial Developer of the Original Code is
  * Mozilla.
@@ -4580,372 +4121,231 @@ exports.Trace.prototype.log = function(lines) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/typecheck', function(require, exports, module) {
+define('pilot/promise', function(require, exports, module) {
 
-var objectToString = Object.prototype.toString;
+var console = require("pilot/console");
+var Trace = require('pilot/stacktrace').Trace;
 
 /**
- * Return true if it is a String
+ * A promise can be in one of 2 states.
+ * The ERROR and SUCCESS states are terminal, the PENDING state is the only
+ * start state.
  */
-exports.isString = function(it) {
-    return it && objectToString.call(it) === "[object String]";
+var ERROR = -1;
+var PENDING = 0;
+var SUCCESS = 1;
+
+/**
+ * We give promises and ID so we can track which are outstanding
+ */
+var _nextId = 0;
+
+/**
+ * Debugging help if 2 things try to complete the same promise.
+ * This can be slow (especially on chrome due to the stack trace unwinding) so
+ * we should leave this turned off in normal use.
+ */
+var _traceCompletion = false;
+
+/**
+ * Outstanding promises. Handy list for debugging only.
+ */
+var _outstanding = [];
+
+/**
+ * Recently resolved promises. Also for debugging only.
+ */
+var _recent = [];
+
+/**
+ * Create an unfulfilled promise
+ */
+Promise = function () {
+    this._status = PENDING;
+    this._value = undefined;
+    this._onSuccessHandlers = [];
+    this._onErrorHandlers = [];
+
+    // Debugging help
+    this._id = _nextId++;
+    //this._createTrace = new Trace(new Error());
+    _outstanding[this._id] = this;
 };
 
 /**
- * Returns true if it is a Boolean.
+ * Yeay for RTTI.
  */
-exports.isBoolean = function(it) {
-    return it && objectToString.call(it) === "[object Boolean]";
+Promise.prototype.isPromise = true;
+
+/**
+ * Have we either been resolve()ed or reject()ed?
+ */
+Promise.prototype.isComplete = function() {
+    return this._status != PENDING;
 };
 
 /**
- * Returns true if it is a Number.
+ * Have we resolve()ed?
  */
-exports.isNumber = function(it) {
-    return it && objectToString.call(it) === "[object Number]" && isFinite(it);
+Promise.prototype.isResolved = function() {
+    return this._status == SUCCESS;
 };
 
 /**
- * Hack copied from dojo.
+ * Have we reject()ed?
  */
-exports.isObject = function(it) {
-    return it !== undefined &&
-        (it === null || typeof it == "object" ||
-        Array.isArray(it) || exports.isFunction(it));
+Promise.prototype.isRejected = function() {
+    return this._status == ERROR;
 };
 
 /**
- * Is the passed object a function?
- * From dojo.isFunction()
+ * Take the specified action of fulfillment of a promise, and (optionally)
+ * a different action on promise rejection.
  */
-exports.isFunction = function(it) {
-    return it && objectToString.call(it) === "[object Function]";
-};
-
-});/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Skywriter.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Joe Walker (jwalker@mozilla.com)
- *      Kevin Dangoor (kdangoor@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('pilot/types/basic', function(require, exports, module) {
-
-var types = require("pilot/types");
-var Type = types.Type;
-var Conversion = types.Conversion;
-var Status = types.Status;
-
-/**
- * These are the basic types that we accept. They are vaguely based on the
- * Jetpack settings system (https://wiki.mozilla.org/Labs/Jetpack/JEP/24)
- * although clearly more restricted.
- *
- * <p>In addition to these types, Jetpack also accepts range, member, password
- * that we are thinking of adding.
- *
- * <p>This module probably should not be accessed directly, but instead used
- * through types.js
- */
-
-/**
- * 'text' is the default if no type is given.
- */
-var text = new Type();
-
-text.stringify = function(value) {
-    return value;
-};
-
-text.parse = function(value) {
-    if (typeof value != 'string') {
-        throw new Error('non-string passed to text.parse()');
-    }
-    return new Conversion(value);
-};
-
-text.name = 'text';
-
-/**
- * We don't currently plan to distinguish between integers and floats
- */
-var number = new Type();
-
-number.stringify = function(value) {
-    if (!value) {
-        return null;
-    }
-    return '' + value;
-};
-
-number.parse = function(value) {
-    if (typeof value != 'string') {
-        throw new Error('non-string passed to number.parse()');
+Promise.prototype.then = function(onSuccess, onError) {
+    if (typeof onSuccess === 'function') {
+        if (this._status === SUCCESS) {
+            onSuccess.call(null, this._value);
+        } else if (this._status === PENDING) {
+            this._onSuccessHandlers.push(onSuccess);
+        }
     }
 
-    if (value.replace(/\s/g, '').length === 0) {
-        return new Conversion(null, Status.INCOMPLETE, '');
+    if (typeof onError === 'function') {
+        if (this._status === ERROR) {
+            onError.call(null, this._value);
+        } else if (this._status === PENDING) {
+            this._onErrorHandlers.push(onError);
+        }
     }
 
-    var reply = new Conversion(parseInt(value, 10));
-    if (isNaN(reply.value)) {
-        reply.status = Status.INVALID;
-        reply.message = 'Can\'t convert "' + value + '" to a number.';
-    }
-
-    return reply;
+    return this;
 };
-
-number.decrement = function(value) {
-    return value - 1;
-};
-
-number.increment = function(value) {
-    return value + 1;
-};
-
-number.name = 'number';
 
 /**
- * One of a known set of options
+ * Like then() except that rather than returning <tt>this</tt> we return
+ * a promise which
  */
-function SelectionType(typeSpec) {
-    if (!Array.isArray(typeSpec.data) && typeof typeSpec.data !== 'function') {
-        throw new Error('instances of SelectionType need typeSpec.data to be an array or function that returns an array:' + JSON.stringify(typeSpec));
+Promise.prototype.chainPromise = function(onSuccess) {
+    var chain = new Promise();
+    chain._chainedFrom = this;
+    this.then(function(data) {
+        try {
+            chain.resolve(onSuccess(data));
+        } catch (ex) {
+            chain.reject(ex);
+        }
+    }, function(ex) {
+        chain.reject(ex);
+    });
+    return chain;
+};
+
+/**
+ * Supply the fulfillment of a promise
+ */
+Promise.prototype.resolve = function(data) {
+    return this._complete(this._onSuccessHandlers, SUCCESS, data, 'resolve');
+};
+
+/**
+ * Renege on a promise
+ */
+Promise.prototype.reject = function(data) {
+    return this._complete(this._onErrorHandlers, ERROR, data, 'reject');
+};
+
+/**
+ * Internal method to be called on resolve() or reject().
+ * @private
+ */
+Promise.prototype._complete = function(list, status, data, name) {
+    // Complain if we've already been completed
+    if (this._status != PENDING) {
+        console.group('Promise already closed');
+        console.error('Attempted ' + name + '() with ', data);
+        console.error('Previous status = ', this._status,
+                ', previous value = ', this._value);
+        console.trace();
+
+        if (this._completeTrace) {
+            console.error('Trace of previous completion:');
+            this._completeTrace.log(5);
+        }
+        console.groupEnd();
+        return this;
     }
-    Object.keys(typeSpec).forEach(function(key) {
-        this[key] = typeSpec[key];
+
+    if (_traceCompletion) {
+        this._completeTrace = new Trace(new Error());
+    }
+
+    this._status = status;
+    this._value = data;
+
+    // Call all the handlers, and then delete them
+    list.forEach(function(handler) {
+        handler.call(null, this._value);
     }, this);
+    this._onSuccessHandlers.length = 0;
+    this._onErrorHandlers.length = 0;
+
+    // Remove the given {promise} from the _outstanding list, and add it to the
+    // _recent list, pruning more than 20 recent promises from that list.
+    delete _outstanding[this._id];
+    _recent.push(this);
+    while (_recent.length > 20) {
+        _recent.shift();
+    }
+
+    return this;
 };
-
-SelectionType.prototype = new Type();
-
-SelectionType.prototype.stringify = function(value) {
-    return value;
-};
-
-SelectionType.prototype.parse = function(str) {
-    if (typeof str != 'string') {
-        throw new Error('non-string passed to parse()');
-    }
-    if (!this.data) {
-        throw new Error('Missing data on selection type extension.');
-    }
-    var data = (typeof(this.data) === 'function') ? this.data() : this.data;
-
-    // The matchedValue could be the boolean value false
-    var hasMatched = false;
-    var matchedValue;
-    var completions = [];
-    data.forEach(function(option) {
-        if (str == option) {
-            matchedValue = this.fromString(option);
-            hasMatched = true;
-        }
-        else if (option.indexOf(str) === 0) {
-            completions.push(this.fromString(option));
-        }
-    }, this);
-
-    if (hasMatched) {
-        return new Conversion(matchedValue);
-    }
-    else {
-        // This is something of a hack it basically allows us to tell the
-        // setting type to forget its last setting hack.
-        if (this.noMatch) {
-            this.noMatch();
-        }
-
-        if (completions.length > 0) {
-            var msg = 'Possibilities' +
-                (str.length === 0 ? '' : ' for \'' + str + '\'');
-            return new Conversion(null, Status.INCOMPLETE, msg, completions);
-        }
-        else {
-            var msg = 'Can\'t use \'' + str + '\'.';
-            return new Conversion(null, Status.INVALID, msg, completions);
-        }
-    }
-};
-
-SelectionType.prototype.fromString = function(str) {
-    return str;
-};
-
-SelectionType.prototype.decrement = function(value) {
-    var data = (typeof this.data === 'function') ? this.data() : this.data;
-    var index;
-    if (value == null) {
-        index = data.length - 1;
-    }
-    else {
-        var name = this.stringify(value);
-        var index = data.indexOf(name);
-        index = (index === 0 ? data.length - 1 : index - 1);
-    }
-    return this.fromString(data[index]);
-};
-
-SelectionType.prototype.increment = function(value) {
-    var data = (typeof this.data === 'function') ? this.data() : this.data;
-    var index;
-    if (value == null) {
-        index = 0;
-    }
-    else {
-        var name = this.stringify(value);
-        var index = data.indexOf(name);
-        index = (index === data.length - 1 ? 0 : index + 1);
-    }
-    return this.fromString(data[index]);
-};
-
-SelectionType.prototype.name = 'selection';
 
 /**
- * SelectionType is a base class for other types
+ * Takes an array of promises and returns a promise that that is fulfilled once
+ * all the promises in the array are fulfilled
+ * @param group The array of promises
+ * @return the promise that is fulfilled when all the array is fulfilled
  */
-exports.SelectionType = SelectionType;
-
-/**
- * true/false values
- */
-var bool = new SelectionType({
-    name: 'bool',
-    data: [ 'true', 'false' ],
-    stringify: function(value) {
-        return '' + value;
-    },
-    fromString: function(str) {
-        return str === 'true' ? true : false;
+Promise.group = function(promiseList) {
+    if (!(promiseList instanceof Array)) {
+        promiseList = Array.prototype.slice.call(arguments);
     }
-});
 
-
-/**
- * A we don't know right now, but hope to soon.
- */
-function DeferredType(typeSpec) {
-    if (typeof typeSpec.defer !== 'function') {
-        throw new Error('Instances of DeferredType need typeSpec.defer to be a function that returns a type');
+    // If the original array has nothing in it, return now to avoid waiting
+    if (promiseList.length === 0) {
+        return new Promise().resolve([]);
     }
-    Object.keys(typeSpec).forEach(function(key) {
-        this[key] = typeSpec[key];
-    }, this);
+
+    var groupPromise = new Promise();
+    var results = [];
+    var fulfilled = 0;
+
+    var onSuccessFactory = function(index) {
+        return function(data) {
+            results[index] = data;
+            fulfilled++;
+            // If the group has already failed, silently drop extra results
+            if (groupPromise._status !== ERROR) {
+                if (fulfilled === promiseList.length) {
+                    groupPromise.resolve(results);
+                }
+            }
+        };
+    };
+
+    promiseList.forEach(function(promise, index) {
+        var onSuccess = onSuccessFactory(index);
+        var onError = groupPromise.reject.bind(groupPromise);
+        promise.then(onSuccess, onError);
+    });
+
+    return groupPromise;
 };
 
-DeferredType.prototype = new Type();
-
-DeferredType.prototype.stringify = function(value) {
-    return this.defer().stringify(value);
-};
-
-DeferredType.prototype.parse = function(value) {
-    return this.defer().parse(value);
-};
-
-DeferredType.prototype.decrement = function(value) {
-    var deferred = this.defer();
-    return (deferred.decrement ? deferred.decrement(value) : undefined);
-};
-
-DeferredType.prototype.increment = function(value) {
-    var deferred = this.defer();
-    return (deferred.increment ? deferred.increment(value) : undefined);
-};
-
-DeferredType.prototype.name = 'deferred';
-
-/**
- * DeferredType is a base class for other types
- */
-exports.DeferredType = DeferredType;
-
-
-/**
- * A set of objects of the same type
- */
-function ArrayType(typeSpec) {
-    if (typeSpec instanceof Type) {
-        this.subtype = typeSpec;
-    }
-    else if (typeof typeSpec === 'string') {
-        this.subtype = types.getType(typeSpec);
-        if (this.subtype == null) {
-            throw new Error('Unknown array subtype: ' + typeSpec);
-        }
-    }
-    else {
-        throw new Error('Can\' handle array subtype');
-    }
-};
-
-ArrayType.prototype = new Type();
-
-ArrayType.prototype.stringify = function(values) {
-    // TODO: Check for strings with spaces and add quotes
-    return values.join(' ');
-};
-
-ArrayType.prototype.parse = function(value) {
-    return this.defer().parse(value);
-};
-
-ArrayType.prototype.name = 'array';
-
-/**
- * Registration and de-registration.
- */
-exports.startup = function() {
-    types.registerType(text);
-    types.registerType(number);
-    types.registerType(bool);
-    types.registerType(SelectionType);
-    types.registerType(DeferredType);
-    types.registerType(ArrayType);
-};
-
-exports.shutdown = function() {
-    types.unregisterType(text);
-    types.unregisterType(number);
-    types.unregisterType(bool);
-    types.unregisterType(SelectionType);
-    types.unregisterType(DeferredType);
-    types.unregisterType(ArrayType);
-};
-
+exports.Promise = Promise;
+exports._outstanding = _outstanding;
+exports._recent = _recent;
 
 });
 /* ***** BEGIN LICENSE BLOCK *****
@@ -4969,8 +4369,7 @@ exports.shutdown = function() {
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *      Joe Walker (jwalker@mozilla.com)
- *      Kevin Dangoor (kdangoor@mozilla.com)
+ *   Joe Walker (jwalker@mozilla.com)
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -4986,180 +4385,134 @@ exports.shutdown = function() {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/types/command', function(require, exports, module) {
-
-var canon = require("pilot/canon");
-var SelectionType = require("pilot/types/basic").SelectionType;
-var types = require("pilot/types");
+define('pilot/settings/canon', function(require, exports, module) {
 
 
-/**
- * Select from the available commands
- */
-var command = new SelectionType({
-    name: 'command',
-    data: function() {
-        return canon.getCommandNames();
-    },
-    stringify: function(command) {
-        return command.name;
-    },
-    fromString: function(str) {
-        return canon.getCommand(str);
-    }
-});
-
-
-/**
- * Registration and de-registration.
- */
-exports.startup = function() {
-    types.registerType(command);
+var historyLengthSetting = {
+    name: "historyLength",
+    description: "How many typed commands do we recall for reference?",
+    type: "number",
+    defaultValue: 50
 };
 
-exports.shutdown = function() {
-    types.unregisterType(command);
-};
-
-
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Skywriter.
- *
- * The Initial Developer of the Original Code is
- * Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Joe Walker (jwalker@mozilla.com)
- *      Kevin Dangoor (kdangoor@mozilla.com)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('pilot/types/settings', function(require, exports, module) {
-
-var SelectionType = require('pilot/types/basic').SelectionType;
-var DeferredType = require('pilot/types/basic').DeferredType;
-var types = require('pilot/types');
-var settings = require('pilot/settings').settings;
-
-
-/**
- * EVIL: This relies on us using settingValue in the same event as setting
- * The alternative is to have some central place where we store the current
- * command line, but this might be a lesser evil for now.
- */
-var lastSetting;
-
-/**
- * Select from the available settings
- */
-var setting = new SelectionType({
-    name: 'setting',
-    data: function() {
-        return env.settings.getSettingNames();
-    },
-    stringify: function(setting) {
-        lastSetting = setting;
-        return setting.name;
-    },
-    fromString: function(str) {
-        lastSetting = settings.getSetting(str);
-        return lastSetting;
-    },
-    noMatch: function() {
-        lastSetting = null;
-    }
-});
-
-/**
- * Something of a hack to allow the set command to give a clearer definition
- * of the type to the command line.
- */
-var settingValue = new DeferredType({
-    name: 'settingValue',
-    defer: function() {
-        if (lastSetting) {
-            return lastSetting.type;
-        }
-        else {
-            return types.getType('text');
-        }
-    },
-    /**
-     * Promote the current value in any list of predictions, and add it if
-     * there are none.
-     */
-    getDefault: function() {
-        var conversion = this.parse('');
-        if (lastSetting) {
-            var current = lastSetting.get();
-            if (conversion.predictions.length === 0) {
-                conversion.predictions.push(current);
-            }
-            else {
-                // Remove current from predictions
-                var removed = false;
-                while (true) {
-                    var index = conversion.predictions.indexOf(current);
-                    if (index === -1) {
-                        break;
-                    }
-                    conversion.predictions.splice(index, 1);
-                    removed = true;
-                }
-                // If the current value wasn't something we would predict, leave it
-                if (removed) {
-                    conversion.predictions.push(current);
-                }
-            }
-        }
-        return conversion;
-    }
-});
-
-var env;
-
-/**
- * Registration and de-registration.
- */
 exports.startup = function(data, reason) {
-    // TODO: this is probably all kinds of evil, but we need something working
-    env = data.env;
-    types.registerType(setting);
-    types.registerType(settingValue);
+    data.env.settings.addSetting(historyLengthSetting);
 };
 
 exports.shutdown = function(data, reason) {
-    types.unregisterType(setting);
-    types.unregisterType(settingValue);
+    data.env.settings.removeSetting(historyLengthSetting);
 };
 
+
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('pilot/lang', function(require, exports, module) {
+
+exports.stringReverse = function(string) {
+    return string.split("").reverse().join("");
+};
+
+exports.stringRepeat = function (string, count) {
+     return new Array(count + 1).join(string);
+};
+
+exports.copyObject = function(obj) {
+    var copy = {};
+    for (var key in obj) {
+        copy[key] = obj[key];
+    }
+    return copy;
+};
+
+exports.arrayToMap = function(arr) {
+    var map = {};
+    for (var i=0; i<arr.length; i++) {
+        map[arr[i]] = 1;
+    }
+    return map;
+
+};
+
+/**
+ * splice out of 'array' anything that === 'value'
+ */
+exports.arrayRemove = function(array, value) {
+  for (var i = 0; i <= array.length; i++) {
+    if (value === array[i]) {
+      array.splice(i, 1);
+    }
+  }
+};
+
+exports.escapeRegExp = function(str) {
+    return str.replace(/([.*+?^${}()|[\]\/\\])/g, '\\$1');
+};
+
+exports.deferredCall = function(fcn) {
+
+    var timer = null;
+    var callback = function() {
+        timer = null;
+        fcn();
+    };
+
+    return {
+        schedule: function(timeout) {
+            if (!timer) {
+                timer = setTimeout(callback, timeout || 0);
+            }
+            return this;
+        },
+
+        call: function() {
+            this.cancel();
+            fcn();
+            return this;
+        },
+
+        cancel: function() {
+            clearTimeout(timer);
+            timer = null;
+            return this;
+        }
+    };
+};
 
 });
 /* ***** BEGIN LICENSE BLOCK *****
@@ -5449,15 +4802,15 @@ exports.getType = function(typeSpec) {
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Ajax.org Code Editor (ACE).
+ * The Original Code is Mozilla Skywriter.
  *
  * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
+ *      Kevin Dangoor (kdangoor@mozilla.com)
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -5473,561 +4826,239 @@ exports.getType = function(typeSpec) {
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('pilot/useragent', function(require, exports, module) {
-
-var os = (navigator.platform.match(/mac|win|linux/i) || ["other"])[0].toLowerCase();
-var ua = navigator.userAgent;
-var av = navigator.appVersion;
-
-/** Is the user using a browser that identifies itself as Windows */
-exports.isWin = (os == "win");
-
-/** Is the user using a browser that identifies itself as Mac OS */
-exports.isMac = (os == "mac");
-
-/** Is the user using a browser that identifies itself as Linux */
-exports.isLinux = (os == "linux");
-
-exports.isIE = ! + "\v1";
-
-/** Is this Firefox or related? */
-exports.isGecko = exports.isMozilla = window.controllers && window.navigator.product === "Gecko";
-
-/** Is this Opera */
-exports.isOpera = window.opera && Object.prototype.toString.call(window.opera) == "[object Opera]";
-
-/** Is the user using a browser that identifies itself as WebKit */
-exports.isWebKit = parseFloat(ua.split("WebKit/")[1]) || undefined;
-
-exports.isAIR = ua.indexOf("AdobeAIR") >= 0;
+define('pilot/fixoldbrowsers', function(require, exports, module) {
 
 /**
- * I hate doing this, but we need some way to determine if the user is on a Mac
- * The reason is that users have different expectations of their key combinations.
- *
- * Take copy as an example, Mac people expect to use CMD or APPLE + C
- * Windows folks expect to use CTRL + C
+ * Array detector.
+ * Firefox 3.5 and Safari 4 have this already. Chrome 4 however ...
+ * Note to Dojo - your isArray is still broken: instanceof doesn't work with
+ * Arrays taken from a different frame/window.
  */
-exports.OS = {
-    LINUX: 'LINUX',
-    MAC: 'MAC',
-    WINDOWS: 'WINDOWS'
+if (!Array.isArray) {
+    Array.isArray = function(data) {
+        return data && Object.prototype.toString.call(data) === "[object Array]";
+    };
+}
+
+// from MDC
+// https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/indexOf
+if (!Array.prototype.indexOf)
+{
+	Array.prototype.indexOf = function(searchElement /*, fromIndex */)
+	{
+		if (this === void 0 || this === null)
+	    	throw new TypeError();
+		
+		var t = Object(this);
+		var len = t.length >>> 0;
+		if (len === 0)
+		    return -1;
+		
+		var n = 0;
+		if (arguments.length > 0) {
+		    n = Number(arguments[1]);
+		    if (n !== n)
+		        n = 0;
+		    else if (n !== 0 && n !== (1 / 0) && n !== -(1 / 0))
+		        n = (n > 0 || -1) * Math.floor(Math.abs(n));
+		}
+		
+		if (n >= len)
+		    return -1;
+		
+		var k = n >= 0
+		    ? n
+		    : Math.max(len - Math.abs(n), 0);
+		
+		for (; k < len; k++) {
+			if (k in t && t[k] === searchElement)
+			    return k;
+		}
+		return -1;
+	};
+}
+
+// from MDC
+// https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/map
+if (!Array.prototype.map) {
+    Array.prototype.map = function(fun /*, thisp */) {
+		if (this === void 0 || this === null)
+		    throw new TypeError();
+		
+		var t = Object(this);
+		var len = t.length >>> 0;
+		if (typeof fun !== "function")
+		    throw new TypeError();
+		
+    	res = new Array(len);
+		var thisp = arguments[1];
+		for (var i = 0; i < len; i++) {
+			if (i in t)
+			    res[i] = fun.call(thisp, t[i], i, t);
+		}
+    	
+    	return res;
+	};
+}
+
+// from MDC
+// https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array/forEach
+if (!Array.prototype.forEach) {
+    Array.prototype.forEach = function(fun /*, thisp */) {
+		if (this === void 0 || this === null)
+		    throw new TypeError();
+		
+		var t = Object(this);
+		var len = t.length >>> 0;
+		if (typeof fun !== "function")
+		    throw new TypeError();
+		
+		var thisp = arguments[1];
+		for (var i = 0; i < len; i++) {
+			if (i in t)
+			    fun.call(thisp, t[i], i, t);
+		}
+	};
+}
+
+/**
+ * Retrieves the list of keys on an object.
+ */
+if (!Object.keys) {
+    Object.keys = function(obj) {
+        var k, ret = [];
+        for (k in obj) {
+            if (obj.hasOwnProperty(k)) {
+                ret.push(k);
+            }
+        }
+        return ret;
+    };
+}
+
+if (!Function.prototype.bind) {    
+    // from MDC
+    // https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Function/bind
+    Function.prototype.bind = function (obj) {       
+        var slice = [].slice;
+        var args = slice.call(arguments, 1);
+        var self = this;
+        var nop = function () {};
+
+        // optimize common case
+        if (arguments.length == 1) {
+	        var bound = function() {
+	            return self.apply(this instanceof nop ? this : obj, arguments);
+	        };
+        }
+        else {
+	        var bound = function () {
+	            return self.apply(
+	                this instanceof nop ? this : ( obj || {} ), 
+	                args.concat( slice.call(arguments) )
+	            );
+	        };
+        }
+	    
+        nop.prototype = self.prototype;    
+        bound.prototype = new nop();    
+        
+        // From Narwhal
+        bound.name = this.name;
+        bound.displayName = this.displayName;
+        bound.length = this.length;
+        bound.unbound = self;
+        
+        return bound;
+    };
+}
+
+
+if (!String.prototype.trim) {
+    String.prototype.trim = function() {
+        return this.replace(/^\s+/, "").replace(/\s+$/, "");
+    }
+}
+
+exports.globalsLoaded = true;
+
+});/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Skywriter.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Joe Walker (jwalker@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('pilot/typecheck', function(require, exports, module) {
+
+var objectToString = Object.prototype.toString;
+
+/**
+ * Return true if it is a String
+ */
+exports.isString = function(it) {
+    return it && objectToString.call(it) === "[object String]";
 };
 
 /**
- * Return an exports.OS constant
+ * Returns true if it is a Boolean.
  */
-exports.getOS = function() {
-    if (exports.isMac) {
-        return exports.OS['MAC'];
-    } else if (exports.isLinux) {
-        return exports.OS['LINUX'];
-    } else {
-        return exports.OS['WINDOWS'];
-    }
+exports.isBoolean = function(it) {
+    return it && objectToString.call(it) === "[object Boolean]";
 };
 
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/background_tokenizer', function(require, exports, module) {
-
-var oop = require("pilot/oop");
-var EventEmitter = require("pilot/event_emitter").EventEmitter;
-
-var BackgroundTokenizer = function(tokenizer, editor) {
-    this.running = false;
-    this.textLines = [];
-    this.lines = [];
-    this.currentLine = 0;
-    this.tokenizer = tokenizer;
-
-    var self = this;
-
-    this.$worker = function() {
-        if (!self.running) { return; }
-
-        var workerStart = new Date();
-        var startLine = self.currentLine;
-        var textLines = self.textLines;
-
-        var processedLines = 0;
-        var lastVisibleRow = editor.getLastVisibleRow();
-
-        while (self.currentLine < textLines.length) {
-            self.lines[self.currentLine] = self.$tokenizeRows(self.currentLine, self.currentLine)[0];
-            self.currentLine++;
-
-            // only check every 5 lines
-            processedLines += 1;
-            if ((processedLines % 5 == 0) && (new Date() - workerStart) > 20) {
-                self.fireUpdateEvent(startLine, self.currentLine-1);
-
-                var timeout = self.currentLine < lastVisibleRow ? 20 : 100;
-                self.running = setTimeout(self.$worker, timeout);
-                return;
-            }
-        }
-
-        self.running = false;
-
-        self.fireUpdateEvent(startLine, textLines.length - 1);
-    };
+/**
+ * Returns true if it is a Number.
+ */
+exports.isNumber = function(it) {
+    return it && objectToString.call(it) === "[object Number]" && isFinite(it);
 };
 
-(function(){
+/**
+ * Hack copied from dojo.
+ */
+exports.isObject = function(it) {
+    return it !== undefined &&
+        (it === null || typeof it == "object" ||
+        Array.isArray(it) || exports.isFunction(it));
+};
 
-    oop.implement(this, EventEmitter);
-
-    this.setTokenizer = function(tokenizer) {
-        this.tokenizer = tokenizer;
-        this.lines = [];
-
-        this.start(0);
-    };
-
-    this.setLines = function(textLines) {
-        this.textLines = textLines;
-        this.lines = [];
-
-        this.stop();
-    };
-
-    this.fireUpdateEvent = function(firstRow, lastRow) {
-        var data = {
-            first: firstRow,
-            last: lastRow
-        };
-        this._dispatchEvent("update", {data: data});
-    };
-
-    this.start = function(startRow) {
-        this.currentLine = Math.min(startRow || 0, this.currentLine,
-                                    this.textLines.length);
-
-        // remove all cached items below this line
-        this.lines.splice(this.currentLine, this.lines.length);
-
-        this.stop();
-        // pretty long delay to prevent the tokenizer from interfering with the user
-        this.running = setTimeout(this.$worker, 700);
-    };
-
-    this.stop = function() {
-        if (this.running)
-            clearTimeout(this.running);
-        this.running = false;
-    };
-
-    this.getTokens = function(firstRow, lastRow, callback) {
-        callback(this.$tokenizeRows(firstRow, lastRow));
-    };
-
-    this.getState = function(row, callback) {
-        callback(this.$tokenizeRows(row, row)[0].state);
-    };
-
-    this.$tokenizeRows = function(firstRow, lastRow) {
-        var rows = [];
-
-        // determine start state
-        var state = "start";
-        var doCache = false;
-        if (firstRow > 0 && this.lines[firstRow - 1]) {
-            state = this.lines[firstRow - 1].state;
-            doCache = true;
-        }
-
-        for (var row=firstRow; row<=lastRow; row++) {
-            if (!this.lines[row]) {
-                var tokens = this.tokenizer.getLineTokens(this.textLines[row] || "", state);
-                var state = tokens.state;
-                rows.push(tokens);
-
-                if (doCache) {
-                    this.lines[row] = tokens;
-                }
-            }
-            else {
-                var tokens = this.lines[row];
-                state = tokens.state;
-                rows.push(tokens);
-            }
-        }
-        return rows;
-    };
-
-}).call(BackgroundTokenizer.prototype);
-
-exports.BackgroundTokenizer = BackgroundTokenizer;
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/commands/default_commands', function(require, exports, module) {
-
-var canon = require("pilot/canon");
-
-canon.addCommand({
-    name: "selectall",
-    exec: function(env, args, request) { env.editor.getSelection().selectAll(); }
-});
-canon.addCommand({
-    name: "removeline",
-    exec: function(env, args, request) { env.editor.removeLines(); }
-});
-canon.addCommand({
-    name: "gotoline",
-    exec: function(env, args, request) {
-        var line = parseInt(prompt("Enter line number:"));
-        if (!isNaN(line)) {
-            env.editor.gotoLine(line);
-        }
-    }
-});
-canon.addCommand({
-    name: "togglecomment",
-    exec: function(env, args, request) { env.editor.toggleCommentLines(); }
-});
-canon.addCommand({
-    name: "findnext",
-    exec: function(env, args, request) { env.editor.findNext(); }
-});
-canon.addCommand({
-    name: "findprevious",
-    exec: function(env, args, request) { env.editor.findPrevious(); }
-});
-canon.addCommand({
-    name: "find",
-    exec: function(env, args, request) {
-        var needle = prompt("Find:");
-        env.editor.find(needle);
-    }
-});
-canon.addCommand({
-    name: "undo",
-    exec: function(env, args, request) { env.editor.undo(); }
-});
-canon.addCommand({
-    name: "redo",
-    exec: function(env, args, request) { env.editor.redo(); }
-});
-canon.addCommand({
-    name: "redo",
-    exec: function(env, args, request) { env.editor.redo(); }
-});
-canon.addCommand({
-    name: "overwrite",
-    exec: function(env, args, request) { env.editor.toggleOverwrite(); }
-});
-canon.addCommand({
-    name: "copylinesup",
-    exec: function(env, args, request) { env.editor.copyLinesUp(); }
-});
-canon.addCommand({
-    name: "movelinesup",
-    exec: function(env, args, request) { env.editor.moveLinesUp(); }
-});
-canon.addCommand({
-    name: "selecttostart",
-    exec: function(env, args, request) { env.editor.getSelection().selectFileStart(); }
-});
-canon.addCommand({
-    name: "gotostart",
-    exec: function(env, args, request) { env.editor.navigateFileStart(); }
-});
-canon.addCommand({
-    name: "selectup",
-    exec: function(env, args, request) { env.editor.getSelection().selectUp(); }
-});
-canon.addCommand({
-    name: "golineup",
-    exec: function(env, args, request) { env.editor.navigateUp(); }
-});
-canon.addCommand({
-    name: "copylinesdown",
-    exec: function(env, args, request) { env.editor.copyLinesDown(); }
-});
-canon.addCommand({
-    name: "movelinesdown",
-    exec: function(env, args, request) { env.editor.moveLinesDown(); }
-});
-canon.addCommand({
-    name: "selecttoend",
-    exec: function(env, args, request) { env.editor.getSelection().selectFileEnd(); }
-});
-canon.addCommand({
-    name: "gotoend",
-    exec: function(env, args, request) { env.editor.navigateFileEnd(); }
-});
-canon.addCommand({
-    name: "selectdown",
-    exec: function(env, args, request) { env.editor.getSelection().selectDown(); }
-});
-canon.addCommand({
-    name: "godown",
-    exec: function(env, args, request) { env.editor.navigateDown(); }
-});
-canon.addCommand({
-    name: "selectwordleft",
-    exec: function(env, args, request) { env.editor.getSelection().selectWordLeft(); }
-});
-canon.addCommand({
-    name: "gotowordleft",
-    exec: function(env, args, request) { env.editor.navigateWordLeft(); }
-});
-canon.addCommand({
-    name: "selecttolinestart",
-    exec: function(env, args, request) { env.editor.getSelection().selectLineStart(); }
-});
-canon.addCommand({
-    name: "gotolinestart",
-    exec: function(env, args, request) { env.editor.navigateLineStart(); }
-});
-canon.addCommand({
-    name: "selectleft",
-    exec: function(env, args, request) { env.editor.getSelection().selectLeft(); }
-});
-canon.addCommand({
-    name: "gotoleft",
-    exec: function(env, args, request) { env.editor.navigateLeft(); }
-});
-canon.addCommand({
-    name: "selectwordright",
-    exec: function(env, args, request) { env.editor.getSelection().selectWordRight(); }
-});
-canon.addCommand({
-    name: "gotowordright",
-    exec: function(env, args, request) { env.editor.navigateWordRight(); }
-});
-canon.addCommand({
-    name: "selecttolineend",
-    exec: function(env, args, request) { env.editor.getSelection().selectLineEnd(); }
-});
-canon.addCommand({
-    name: "gotolineend",
-    exec: function(env, args, request) { env.editor.navigateLineEnd(); }
-});
-canon.addCommand({
-    name: "selectright",
-    exec: function(env, args, request) { env.editor.getSelection().selectRight(); }
-});
-canon.addCommand({
-    name: "gotoright",
-    exec: function(env, args, request) { env.editor.navigateRight(); }
-});
-canon.addCommand({
-    name: "selectpagedown",
-    exec: function(env, args, request) { env.editor.selectPageDown(); }
-});
-canon.addCommand({
-    name: "pagedown",
-    exec: function(env, args, request) { env.editor.scrollPageDown(); }
-});
-canon.addCommand({
-    name: "gotopagedown",
-    exec: function(env, args, request) { env.editor.gotoPageDown(); }
-});
-canon.addCommand({
-    name: "selectpageup",
-    exec: function(env, args, request) { env.editor.selectPageUp(); }
-});
-canon.addCommand({
-    name: "pageup",
-    exec: function(env, args, request) { env.editor.scrollPageUp(); }
-});
-canon.addCommand({
-    name: "gotopageup",
-    exec: function(env, args, request) { env.editor.gotoPageUp(); }
-});
-canon.addCommand({
-    name: "selectlinestart",
-    exec: function(env, args, request) { env.editor.getSelection().selectLineStart(); }
-});
-canon.addCommand({
-    name: "gotolinestart",
-    exec: function(env, args, request) { env.editor.navigateLineStart(); }
-});
-canon.addCommand({
-    name: "selectlineend",
-    exec: function(env, args, request) { env.editor.getSelection().selectLineEnd(); }
-});
-canon.addCommand({
-    name: "gotolineend",
-    exec: function(env, args, request) { env.editor.navigateLineEnd(); }
-});
-canon.addCommand({
-    name: "del",
-    exec: function(env, args, request) { env.editor.removeRight(); }
-});
-canon.addCommand({
-    name: "backspace",
-    exec: function(env, args, request) { env.editor.removeLeft(); }
-});
-canon.addCommand({
-    name: "outdent",
-    exec: function(env, args, request) { env.editor.blockOutdent(); }
-});
-canon.addCommand({
-    name: "indent",
-    exec: function(env, args, request) { env.editor.indent(); }
-});
-
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/conf/keybindings/default_mac', function(require, exports, module) {
-
-exports.bindings = {
-    "selectall": "Command-A",
-    "removeline": "Command-D",
-    "gotoline": "Command-L",
-    "togglecomment": "Command-7",
-    "findnext": "Command-K",
-    "findprevious": "Command-Shift-K",
-    "find": "Command-F",
-    "replace": "Command-R",
-    "undo": "Command-Z",
-    "redo": "Command-Shift-Z|Command-Y",
-    "overwrite": "Insert",
-    "copylinesup": "Command-Option-Up",
-    "movelinesup": "Option-Up",
-    "selecttostart": "Command-Shift-Up",
-    "gotostart": "Command-Home|Command-Up",
-    "selectup": "Shift-Up",
-    "golineup": "Up",
-    "copylinesdown": "Command-Option-Down",
-    "movelinesdown": "Option-Down",
-    "selecttoend": "Command-Shift-Down",
-    "gotoend": "Command-End|Command-Down",
-    "selectdown": "Shift-Down",
-    "godown": "Down",
-    "selectwordleft": "Option-Shift-Left",
-    "gotowordleft": "Option-Left",
-    "selecttolinestart": "Command-Shift-Left",
-    "gotolinestart": "Command-Left|Home",
-    "selectleft": "Shift-Left",
-    "gotoleft": "Left",
-    "selectwordright": "Option-Shift-Right",
-    "gotowordright": "Option-Right",
-    "selecttolineend": "Command-Shift-Right",
-    "gotolineend": "Command-Right|End",
-    "selectright": "Shift-Right",
-    "gotoright": "Right",
-    "selectpagedown": "Shift-PageDown",
-    "pagedown": "PageDown",
-    "selectpageup": "Shift-PageUp",
-    "pageup": "PageUp",
-    "selectlinestart": "Shift-Home",
-    "selectlineend": "Shift-End",
-    "del": "Delete",
-    "backspace": "Ctrl-Backspace|Command-Backspace|Option-Backspace|Backspace",
-    "outdent": "Shift-Tab",
-    "indent": "Tab"
+/**
+ * Is the passed object a function?
+ * From dojo.isFunction()
+ */
+exports.isFunction = function(it) {
+    return it && objectToString.call(it) === "[object Function]";
 };
 
 });/* ***** BEGIN LICENSE BLOCK *****
@@ -6046,3037 +5077,7 @@ exports.bindings = {
  * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/conf/keybindings/default_win', function(require, exports, module) {
-
-exports.bindings = {
-    "selectall": "Ctrl-A",
-    "removeline": "Ctrl-D",
-    "gotoline": "Ctrl-L",
-    "togglecomment": "Ctrl-7",
-    "findnext": "Ctrl-K",
-    "findprevious": "Ctrl-Shift-K",
-    "find": "Ctrl-F",
-    "replace": "Ctrl-R",
-    "undo": "Ctrl-Z",
-    "redo": "Ctrl-Shift-Z|Ctrl-Y",
-    "overwrite": "Insert",
-    "copylinesup": "Ctrl-Alt-Up",
-    "movelinesup": "Alt-Up",
-    "selecttostart": "Alt-Shift-Up",
-    "gotostart": "Ctrl-Home|Ctrl-Up",
-    "selectup": "Shift-Up",
-    "golineup": "Up",
-    "copylinesdown": "Ctrl-Alt-Down",
-    "movelinesdown": "Alt-Down",
-    "selecttoend": "Alt-Shift-Down",
-    "gotoend": "Ctrl-End|Ctrl-Down",
-    "selectdown": "Shift-Down",
-    "godown": "Down",
-    "selectwordleft": "Ctrl-Shift-Left",
-    "gotowordleft": "Ctrl-Left",
-    "selecttolinestart": "Alt-Shift-Left",
-    "gotolinestart": "Alt-Left|Home",
-    "selectleft": "Shift-Left",
-    "gotoleft": "Left",
-    "selectwordright": "Ctrl-Shift-Right",
-    "gotowordright": "Ctrl-Right",
-    "selecttolineend": "Alt-Shift-Right",
-    "gotolineend": "Alt-Right|End",
-    "selectright": "Shift-Right",
-    "gotoright": "Right",
-    "selectpagedown": "Shift-PageDown",
-    "pagedown": "PageDown",
-    "selectpageup": "Shift-PageUp",
-    "pageup": "PageUp",
-    "selectlinestart": "Shift-Home",
-    "selectlineend": "Shift-End",
-    "del": "Delete",
-    "backspace": "Backspace",
-    "outdent": "Shift-Tab",
-    "indent": "Tab"
-};
-
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/document', function(require, exports, module) {
-
-var oop = require("pilot/oop");
-var lang = require("pilot/lang");
-var EventEmitter = require("pilot/event_emitter").EventEmitter;
-var Selection = require("ace/selection").Selection;
-var TextMode = require("ace/mode/text").Mode;
-var Range = require("ace/range").Range;
-
-var Document = function(text, mode) {
-    
-    this.modified = true;
-    this.lines = [];
-    this.selection = new Selection(this);
-    this.$breakpoints = [];
-
-    this.listeners = [];
-    if (mode) {
-        this.setMode(mode);
-    }
-    
-    if (Array.isArray(text)) {
-        this.$insertLines(0, text);
-    } else {
-        this.$insert({row: 0, column: 0}, text);
-    }
-};
-
-
-(function() {
-
-    oop.implement(this, EventEmitter);
-
-    this.$undoManager = null;
-
-    this.$split = function(text) {
-        return text.split(/\r\n|\r|\n/);
-    };
-
-  	this.setValue = function(text) {
-  	    var args = [0, this.lines.length];
-  	    args.push.apply(args, this.$split(text));
-  	    this.lines.splice.apply(this.lines, args);
-  	    this.modified = true;
-  	    this.fireChangeEvent(0);
-  	};
-  	
-    this.toString = function() {
-        return this.lines.join(this.$getNewLineCharacter());
-    };
-    
-    this.getValue = this.toString;
-
-    this.getSelection = function() {
-        return this.selection;
-    };
-
-    this.fireChangeEvent = function(firstRow, lastRow) {
-        var data = {
-            firstRow: firstRow,
-            lastRow: lastRow
-        };
-        this._dispatchEvent("change", { data: data});
-    };
-
-    this.setUndoManager = function(undoManager) {
-        this.$undoManager = undoManager;
-        this.$deltas = [];
-
-        if (this.$informUndoManager) {
-            this.$informUndoManager.cancel();
-        }
-
-        if (undoManager) {
-            //undoManager.setDocument(this);
-            var self = this;
-            this.$informUndoManager = lang.deferredCall(function() {
-                if (self.$deltas.length > 0)
-                    undoManager.execute({
-                        action : "aceupdate",
-                        args   : [self.$deltas, self]
-                    });
-                self.$deltas = [];
-            });
-        }
-    };
-
-    this.$defaultUndoManager = {
-        undo: function() {},
-        redo: function() {}
-    };
-
-    this.getUndoManager = function() {
-        return this.$undoManager || this.$defaultUndoManager;
-    },
-
-    this.getTabString = function() {
-        if (this.getUseSoftTabs()) {
-            return lang.stringRepeat(" ", this.getTabSize());
-        } else {
-            return "\t";
-        }
-    };
-
-    this.$useSoftTabs = true;
-    this.setUseSoftTabs = function(useSoftTabs) {
-        if (this.$useSoftTabs === useSoftTabs) return;
-
-        this.$useSoftTabs = useSoftTabs;
-    };
-
-    this.getUseSoftTabs = function() {
-        return this.$useSoftTabs;
-    };
-
-    this.$tabSize = 4;
-    this.setTabSize = function(tabSize) {
-        if (isNaN(tabSize) || this.$tabSize === tabSize) return;
-
-        this.modified = true;
-        this.$tabSize = tabSize;
-        this._dispatchEvent("changeTabSize");
-    };
-
-    this.getTabSize = function() {
-        return this.$tabSize;
-    };
-    
-    this.isTabStop = function(position) {
-        return this.$useSoftTabs && (position.column % this.$tabSize == 0);
-    };
-
-    this.getBreakpoints = function() {
-        return this.$breakpoints;
-    };
-
-    this.setBreakpoints = function(rows) {
-        this.$breakpoints = [];
-        for (var i=0; i<rows.length; i++) {
-            this.$breakpoints[rows[i]] = true;
-        }
-        this._dispatchEvent("changeBreakpoint", {});
-    };
-
-    this.clearBreakpoints = function() {
-        this.$breakpoints = [];
-        this._dispatchEvent("changeBreakpoint", {});
-    };
-
-    this.setBreakpoint = function(row) {
-        this.$breakpoints[row] = true;
-        this._dispatchEvent("changeBreakpoint", {});
-    };
-
-    this.clearBreakpoint = function(row) {
-        delete this.$breakpoints[row];
-        this._dispatchEvent("changeBreakpoint", {});
-    };
-
-    this.$detectNewLine = function(text) {
-        var match = text.match(/^.*?(\r?\n)/m);
-        if (match) {
-            this.$autoNewLine = match[1];
-        } else {
-            this.$autoNewLine = "\n";
-        }
-    };
-    
-    this.tokenRe = /^[\w\d]+/g;
-    this.nonTokenRe = /^[^\w\d]+/g;
-    
-    this.getWordRange = function(row, column) {
-        var line = this.getLine(row);
-        
-        var inToken = false;
-        if (column > 0) {
-            inToken = !!line.charAt(column - 1).match(this.tokenRe);
-        }
-
-        if (!inToken) {
-            inToken = !!line.charAt(column).match(this.tokenRe);
-        }
-
-        var re = inToken ? this.tokenRe : this.nonTokenRe;
-
-        var start = column;
-        if (start > 0) {
-            do {
-                start--;
-            }
-            while (start >= 0 && line.charAt(start).match(re));
-            start++;
-        }
-
-        var end = column;
-        while (end < line.length && line.charAt(end).match(re)) {
-            end++;
-        }
-
-        return new Range(row, start, row, end);
-    };
-
-    this.$getNewLineCharacter = function() {
-      switch (this.$newLineMode) {
-          case "windows":
-              return "\r\n";
-
-          case "unix":
-              return "\n";
-
-          case "auto":
-              return this.$autoNewLine;
-      }
-    },
-
-    this.$autoNewLine = "\n";
-    this.$newLineMode = "auto";
-    this.setNewLineMode = function(newLineMode) {
-        if (this.$newLineMode === newLineMode) return;
-
-        this.$newLineMode = newLineMode;
-    };
-
-    this.getNewLineMode = function() {
-        return this.$newLineMode;
-    };
-
-    this.$mode = null;
-    this.setMode = function(mode) {
-        if (this.$mode === mode) return;
-
-        this.$mode = mode;
-        this._dispatchEvent("changeMode");
-    };
-
-    this.getMode = function() {
-        if (!this.$mode) {
-            this.$mode = new TextMode();
-        }
-        return this.$mode;
-    };
-
-    this.$scrollTop = 0;
-    this.setScrollTopRow = function(scrollTopRow) {
-        if (this.$scrollTop === scrollTopRow) return;
-
-        this.$scrollTop = scrollTopRow;
-        this._dispatchEvent("changeScrollTop");
-    };
-
-    this.getScrollTopRow = function() {
-        return this.$scrollTop;
-    };
-
-    this.getWidth = function() {
-        this.$computeWidth();
-        return this.width;
-    };
-
-    this.getScreenWidth = function() {
-        this.$computeWidth();
-        return this.screenWith;
-    };
-
-    this.$computeWidth = function() {
-        if (this.modified) {
-            this.modified = false;
-
-            var lines = this.lines;
-            var longestLine = 0;
-            var longestScreenLine = 0;
-            var tabSize = this.getTabSize();
-
-            for ( var i = 0; i < lines.length; i++) {
-                var len = lines[i].length;
-                longestLine = Math.max(longestLine, len);
-
-                lines[i].replace("\t", function(m) {
-                    len += tabSize-1;
-                    return m;
-                });
-                longestScreenLine = Math.max(longestScreenLine, len);
-            }
-            this.width = longestLine;
-            this.screenWith = longestScreenLine;
-        }
-    };
-
-    /**
-     * Get a verbatim copy of the given line as it is in the document 
-     */
-    this.getLine = function(row) {
-        return this.lines[row] || "";
-    };
-    
-    /**
-     * Get a line as it is displayed on screen. Tabs are replaced by spaces.
-     */
-    this.getDisplayLine = function(row) {
-        var tab = new Array(this.getTabSize()+1).join(" ");
-        return this.lines[row].replace(/\t/g, tab);
-    };
-
-    this.getLines = function(firstRow, lastRow) {
-        return this.lines.slice(firstRow, lastRow+1);
-    };
-
-    this.getLength = function() {
-        return this.lines.length;
-    };
-
-    this.getTextRange = function(range) {
-        if (range.start.row == range.end.row) {
-            return this.lines[range.start.row].substring(range.start.column,
-                                                         range.end.column);
-        }
-        else {
-            var lines = [];
-            lines.push(this.lines[range.start.row].substring(range.start.column));
-            lines.push.apply(lines, this.getLines(range.start.row+1, range.end.row-1));
-            lines.push(this.lines[range.end.row].substring(0, range.end.column));
-            return lines.join(this.$getNewLineCharacter());
-        }
-    };
-
-    this.findMatchingBracket = function(position) {
-        if (position.column == 0) return null;
-
-        var charBeforeCursor = this.getLine(position.row).charAt(position.column-1);
-        if (charBeforeCursor == "") return null;
-
-        var match = charBeforeCursor.match(/([\(\[\{])|([\)\]\}])/);
-        if (!match) {
-            return null;
-        }
-
-        if (match[1]) {
-            return this.$findClosingBracket(match[1], position);
-        } else {
-            return this.$findOpeningBracket(match[2], position);
-        }
-    };
-
-    this.$brackets = {
-        ")": "(",
-        "(": ")",
-        "]": "[",
-        "[": "]",
-        "{": "}",
-        "}": "{"
-    };
-
-    this.$findOpeningBracket = function(bracket, position) {
-        var openBracket = this.$brackets[bracket];
-
-        var column = position.column - 2;
-        var row = position.row;
-        var depth = 1;
-
-        var line = this.getLine(row);
-
-        while (true) {
-            while(column >= 0) {
-                var ch = line.charAt(column);
-                if (ch == openBracket) {
-                    depth -= 1;
-                    if (depth == 0) {
-                        return {row: row, column: column};
-                    }
-                }
-                else if (ch == bracket) {
-                    depth +=1;
-                }
-                column -= 1;
-            }
-            row -=1;
-            if (row < 0) break;
-
-            var line = this.getLine(row);
-            var column = line.length-1;
-        }
-        return null;
-    };
-
-    this.$findClosingBracket = function(bracket, position) {
-        var closingBracket = this.$brackets[bracket];
-
-        var column = position.column;
-        var row = position.row;
-        var depth = 1;
-
-        var line = this.getLine(row);
-        var lineCount = this.getLength();
-
-        while (true) {
-            while(column < line.length) {
-                var ch = line.charAt(column);
-                if (ch == closingBracket) {
-                    depth -= 1;
-                    if (depth == 0) {
-                        return {row: row, column: column};
-                    }
-                }
-                else if (ch == bracket) {
-                    depth +=1;
-                }
-                column += 1;
-            }
-            row +=1;
-            if (row >= lineCount) break;
-
-            var line = this.getLine(row);
-            var column = 0;
-        }
-        return null;
-    };
-
-    this.insert = function(position, text, fromUndo) {
-        var end = this.$insert(position, text, fromUndo);
-        this.fireChangeEvent(position.row, position.row == end.row ? position.row
-                : undefined);
-        return end;
-    };
-
-    this.$insertLines = function(row, lines, fromUndo) {
-        if (lines.length == 0)
-            return;
-
-        var args = [row, 0];
-        args.push.apply(args, lines);
-        this.lines.splice.apply(this.lines, args);
-
-        if (!fromUndo && this.$undoManager) {
-            var nl = this.$getNewLineCharacter();
-            this.$deltas.push({
-                action: "insertText",
-                range: new Range(row, 0, row + lines.length, 0),
-                text: lines.join(nl) + nl
-            });
-            this.$informUndoManager.schedule();
-        }
-    },
-
-    this.$insert = function(position, text, fromUndo) {
-        if (text.length == 0)
-            return position;
-
-        this.modified = true;
-        if (this.lines.length <= 1) {
-            this.$detectNewLine(text);
-        }
-
-        var newLines = this.$split(text);
-
-        if (this.$isNewLine(text)) {
-            var line = this.lines[position.row] || "";
-            this.lines[position.row] = line.substring(0, position.column);
-            this.lines.splice(position.row + 1, 0, line.substring(position.column));
-
-            var end = {
-                row : position.row + 1,
-                column : 0
-            };
-        }
-        else if (newLines.length == 1) {
-            var line = this.lines[position.row] || "";
-            this.lines[position.row] = line.substring(0, position.column) + text
-                    + line.substring(position.column);
-
-            var end = {
-                row : position.row,
-                column : position.column + text.length
-            };
-        }
-        else {
-            var line = this.lines[position.row] || "";
-            var firstLine = line.substring(0, position.column) + newLines[0];
-            var lastLine = newLines[newLines.length - 1] + line.substring(position.column);
-
-            this.lines[position.row] = firstLine;
-            this.$insertLines(position.row + 1, [lastLine], true);
-
-            if (newLines.length > 2) {
-                this.$insertLines(position.row + 1, newLines.slice(1, -1), true);
-            }
-
-            var end = {
-                row : position.row + newLines.length - 1,
-                column : newLines[newLines.length - 1].length
-            };
-        }
-
-        if (!fromUndo && this.$undoManager) {
-            this.$deltas.push({
-                action: "insertText",
-                range: Range.fromPoints(position, end),
-                text: text
-            });
-            this.$informUndoManager.schedule();
-        }
-
-        return end;
-    };
-
-    this.$isNewLine = function(text) {
-        return (text == "\r\n" || text == "\r" || text == "\n");
-    };
-
-    this.remove = function(range, fromUndo) {
-        if (range.isEmpty())
-            return range.start;
-
-        this.$remove(range, fromUndo);
-
-        this.fireChangeEvent(range.start.row, range.isMultiLine() ? undefined : range.start.row);
-
-        return range.start;
-    };
-
-    this.$remove = function(range, fromUndo) {
-        if (range.isEmpty())
-            return;
-
-        if (!fromUndo && this.$undoManager) {
-            var nl = this.$getNewLineCharacter();
-            this.$deltas.push({
-                action: "removeText",
-                range: range.clone(),
-                text: this.getTextRange(range)
-            });
-            this.$informUndoManager.schedule();
-        }
-
-        this.modified = true;
-
-        var firstRow = range.start.row;
-        var lastRow = range.end.row;
-
-        var row = this.getLine(firstRow).substring(0, range.start.column)
-                + this.getLine(lastRow).substring(range.end.column);
-
-        if (row != "")
-            this.lines.splice(firstRow, lastRow - firstRow + 1, row);
-        else
-            this.lines.splice(firstRow, lastRow - firstRow + 1, "");
-        return range.start;
-    };
-    
-    this.undoChanges = function(deltas) {
-        this.selection.clearSelection();
-        for (var i=deltas.length-1; i>=0; i--) {
-            var delta = deltas[i];
-            if (delta.action == "insertText") {
-                this.remove(delta.range, true);
-                this.selection.moveCursorToPosition(delta.range.start);
-            } else {
-                this.insert(delta.range.start, delta.text, true);
-                this.selection.clearSelection();
-            }
-        }
-    },
-
-    this.redoChanges = function(deltas) {
-        this.selection.clearSelection();
-        for (var i=0; i<deltas.length; i++) {
-            var delta = deltas[i];
-            if (delta.action == "insertText") {
-                this.insert(delta.range.start, delta.text, true);
-                this.selection.setSelectionRange(delta.range);
-            } else {
-                this.remove(delta.range, true);
-                this.selection.moveCursorToPosition(delta.range.start);
-            }
-        }
-    },
-
-    this.replace = function(range, text) {
-        this.$remove(range);
-        if (text) {
-            var end = this.$insert(range.start, text);
-        }
-        else {
-            end = range.start;
-        }
-
-        var lastRemoved = range.end.column == 0 ? range.end.column - 1
-                : range.end.column;
-        this.fireChangeEvent(range.start.row, lastRemoved == end.row ? lastRemoved
-                : undefined);
-
-        return end;
-    };
-
-    this.indentRows = function(startRow, endRow, indentString) {        
-        indentString = indentString.replace("\t", this.getTabString());
-        for (var row=startRow; row<=endRow; row++) {
-            this.$insert({row: row, column:0}, indentString);
-        }
-        this.fireChangeEvent(startRow, endRow);
-        return indentString.length;
-    };
-
-    this.outdentRows = function (range) {
-        var rowRange = range.collapseRows();
-        var deleteRange = new Range(0, 0, 0, 0);
-        var size = this.getTabSize();
-        
-        for (var i = rowRange.start.row; i <= rowRange.end.row; ++i) {
-            var line = this.getLine(i);
-            
-            deleteRange.start.row = i;
-            deleteRange.end.row = i;
-            for (var j = 0; j < size; ++j)
-                if (line.charAt(j) != ' ')
-                    break;            
-            if (j < size && line.charAt(j) == '\t') {
-                deleteRange.start.column = j;
-                deleteRange.end.column = j + 1;
-            } else {
-	            deleteRange.start.column = 0;
-	            deleteRange.end.column = j;
-	        }
-            if (i == range.start.row)
-                range.start.column -= deleteRange.end.column - deleteRange.start.column;
-            if (i == range.end.row)
-                range.end.column -= deleteRange.end.column - deleteRange.start.column;
-            this.$remove(deleteRange);
-        }
-        this.fireChangeEvent(range.start.row, range.end.row);
-        return range;
-    }    
-
-    this.moveLinesUp = function(firstRow, lastRow) {
-        if (firstRow <= 0) return 0;
-
-        var removed = this.lines.slice(firstRow, lastRow + 1);
-        this.$remove(new Range(firstRow-1, this.lines[firstRow-1].length, lastRow, this.lines[lastRow].length));
-        this.$insertLines(firstRow - 1, removed);
-        
-        this.fireChangeEvent(firstRow - 1, lastRow);
-        return -1;
-    };
-
-    this.moveLinesDown = function(firstRow, lastRow) {
-        if (lastRow >= this.lines.length-1) return 0;
-
-        var removed = this.lines.slice(firstRow, lastRow + 1);
-        this.$remove(new Range(firstRow, 0, lastRow + 1, 0));
-        this.$insertLines(firstRow+1, removed);
-        
-        this.fireChangeEvent(firstRow, lastRow + 1);
-        return 1;
-    };
-
-    this.duplicateLines = function(firstRow, lastRow) {
-        var firstRow = this.$clipRowToDocument(firstRow);
-        var lastRow = this.$clipRowToDocument(lastRow);
-
-        var lines = this.getLines(firstRow, lastRow);
-        this.$insertLines(firstRow, lines);
-
-        var addedRows = lastRow - firstRow + 1;
-        this.fireChangeEvent(firstRow);
-
-        return addedRows;
-    };
-
-    this.$clipRowToDocument = function(row) {
-        return Math.max(0, Math.min(row, this.lines.length-1));
-    };
-
-    this.documentToScreenColumn = function(row, docColumn) {
-        var tabSize = this.getTabSize();
-
-        var screenColumn = 0;
-        var remaining = docColumn;
-
-        var line = this.getLine(row).split("\t");
-        for (var i=0; i<line.length; i++) {
-            var len = line[i].length;
-            if (remaining > len) {
-                remaining -= (len + 1);
-                screenColumn += len + tabSize;
-            }
-            else {
-                screenColumn += remaining;
-                break;
-            }
-        }
-
-        return screenColumn;
-    };
-
-    this.screenToDocumentColumn = function(row, screenColumn) {
-        var tabSize = this.getTabSize();
-
-        var docColumn = 0;
-        var remaining = screenColumn;
-
-        var line = this.getLine(row).split("\t");
-        for (var i=0; i<line.length; i++) {
-            var len = line[i].length;
-            if (remaining >= len + tabSize) {
-                remaining -= (len + tabSize);
-                docColumn += (len + 1);
-            }
-            else if (remaining > len){
-                docColumn += len;
-                break;
-            }
-            else {
-                docColumn += remaining;
-                break;
-            }
-        }
-        return docColumn;
-    };
-
-}).call(Document.prototype);
-
-exports.Document = Document;
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/editor', function(require, exports, module) {
-
-var oop = require("pilot/oop");
-var event = require("pilot/event");
-var lang = require("pilot/lang");
-var TextInput = require("ace/textinput").TextInput;
-var KeyBinding = require("ace/keybinding").KeyBinding;
-var Document = require("ace/document").Document;
-var Search = require("ace/search").Search;
-var BackgroundTokenizer = require("ace/background_tokenizer").BackgroundTokenizer;
-var Range = require("ace/range").Range;
-var EventEmitter = require("pilot/event_emitter").EventEmitter;
-
-var Editor =function(renderer, doc) {
-    var container = renderer.getContainerElement();
-    this.container = container;
-    this.renderer = renderer;
-
-    this.textInput  = new TextInput(container, this);
-    this.keyBinding = new KeyBinding(container, this);
-    var self = this;
-    event.addListener(container, "mousedown", function(e) {
-        setTimeout(function() {self.focus();});
-        return event.preventDefault(e);
-    });
-    event.addListener(container, "selectstart", function(e) {
-        return event.preventDefault(e);
-    });
-
-    var mouseTarget = renderer.getMouseEventTarget();  
-    event.addListener(mouseTarget, "mousedown", this.onMouseDown.bind(this));
-    event.addMultiMouseDownListener(mouseTarget, 0, 2, 500, this.onMouseDoubleClick.bind(this));
-    event.addMultiMouseDownListener(mouseTarget, 0, 3, 600, this.onMouseTripleClick.bind(this));
-    event.addMouseWheelListener(mouseTarget, this.onMouseWheel.bind(this));
-
-    this.$selectionMarker = null;
-    this.$highlightLineMarker = null;
-    this.$blockScrolling = false;
-
-    this.$search = new Search().set({
-        wrap: true
-    });
-
-    this.setDocument(doc || new Document(""));
-    this.focus();
-};
-
-(function(){
-
-    oop.implement(this, EventEmitter);
-
-    this.$forwardEvents = {
-        gutterclick: 1,
-        gutterdblclick: 1
-    };
-
-    this.$originalAddEventListener = this.addEventListener;
-    this.$originalRemoveEventListener = this.removeEventListener;
-
-    this.addEventListener = function(eventName, callback) {
-        if (this.$forwardEvents[eventName]) {
-            return this.renderer.addEventListener(eventName, callback);
-        } else {
-            return this.$originalAddEventListener(eventName, callback);
-        }
-    };
-
-    this.removeEventListener = function(eventName, callback) {
-        if (this.$forwardEvents[eventName]) {
-            return this.renderer.removeEventListener(eventName, callback);
-        } else {
-            return this.$originalRemoveEventListener(eventName, callback);
-        }
-    };
-
-    this.setDocument = function(doc) {
-        if (this.doc == doc) return;
-
-        if (this.doc) {
-            this.doc.removeEventListener("change", this.$onDocumentChange);
-            this.doc.removeEventListener("changeMode", this.$onDocumentModeChange);
-            this.doc.removeEventListener("changeTabSize", this.$onDocumentChangeTabSize);
-            this.doc.removeEventListener("changeBreakpoint", this.$onDocumentChangeBreakpoint);
-
-            var selection = this.doc.getSelection();
-            selection.removeEventListener("changeCursor", this.$onCursorChange);
-            selection.removeEventListener("changeSelection", this.$onSelectionChange);
-
-            this.doc.setScrollTopRow(this.renderer.getScrollTopRow());
-        }
-
-        this.doc = doc;
-
-        this.$onDocumentChange = this.onDocumentChange.bind(this);
-        doc.addEventListener("change", this.$onDocumentChange);
-        this.renderer.setDocument(doc);
-
-        this.$onDocumentModeChange = this.onDocumentModeChange.bind(this);
-        doc.addEventListener("changeMode", this.$onDocumentModeChange);
-
-        this.$onDocumentChangeTabSize = this.renderer.updateText.bind(this.renderer);
-        doc.addEventListener("changeTabSize", this.$onDocumentChangeTabSize);
-
-        this.$onDocumentChangeBreakpoint = this.onDocumentChangeBreakpoint.bind(this);
-        this.doc.addEventListener("changeBreakpoint", this.$onDocumentChangeBreakpoint);
-
-        this.selection = doc.getSelection();
-        this.$desiredColumn = 0;
-
-        this.$onCursorChange = this.onCursorChange.bind(this);
-        this.selection.addEventListener("changeCursor", this.$onCursorChange);
-
-        this.$onSelectionChange = this.onSelectionChange.bind(this);
-        this.selection.addEventListener("changeSelection", this.$onSelectionChange);
-
-        this.onDocumentModeChange();
-        this.bgTokenizer.setLines(this.doc.lines);
-        this.bgTokenizer.start(0);
-
-        this.onCursorChange();
-        this.onSelectionChange();
-        this.onDocumentChangeBreakpoint();
-        this.renderer.scrollToRow(doc.getScrollTopRow());
-        this.renderer.updateFull();
-    };
-
-    this.getDocument = function() {
-        return this.doc;
-    };
-
-    this.getSelection = function() {
-        return this.selection;
-    };
-
-    this.resize = function() {
-        this.renderer.onResize();
-    };
-
-    this.setTheme = function(theme) {
-        this.renderer.setTheme(theme);
-    };
-
-    this.$highlightBrackets = function() {
-        if (this.$bracketHighlight) {
-            this.renderer.removeMarker(this.$bracketHighlight);
-            this.$bracketHighlight = null;
-        }
-
-        if (this.$highlightPending) {
-            return;
-        }
-
-        // perform highlight async to not block the browser during navigation
-        var self = this;
-        this.$highlightPending = true;
-        setTimeout(function() {
-            self.$highlightPending = false;
-
-            var pos = self.doc.findMatchingBracket(self.getCursorPosition());
-            if (pos) {
-                var range = new Range(pos.row, pos.column, pos.row, pos.column+1);
-                self.$bracketHighlight = self.renderer.addMarker(range, "ace_bracket");
-            }
-        }, 10);
-    };
-
-    this.focus = function() {
-        this.textInput.focus();
-    };
-
-    this.blur = function() {
-        this.textInput.blur();
-    };
-
-    this.onFocus = function() {
-        this.renderer.showCursor();
-        this.renderer.visualizeFocus();
-    };
-
-    this.onBlur = function() {
-        this.renderer.hideCursor();
-        this.renderer.visualizeBlur();
-    };
-
-    this.onDocumentChange = function(e) {
-        var data = e.data;
-        this.bgTokenizer.start(data.firstRow);
-        this.renderer.updateLines(data.firstRow, data.lastRow);
-
-        // update cursor because tab characters can influence the cursor position
-        this.renderer.updateCursor(this.getCursorPosition(), this.$overwrite);
-    };
-
-    this.onTokenizerUpdate = function(e) {
-        var rows = e.data;
-        this.renderer.updateLines(rows.first, rows.last);
-    };
-
-    this.onCursorChange = function() {
-        this.$highlightBrackets();
-        this.renderer.updateCursor(this.getCursorPosition(), this.$overwrite);
-
-        if (!this.$blockScrolling) {
-            this.renderer.scrollCursorIntoView();
-        }
-        this.$updateHighlightActiveLine();
-    };
-
-    this.$updateHighlightActiveLine = function() {
-        if (this.$highlightLineMarker) {
-            this.renderer.removeMarker(this.$highlightLineMarker);
-        }
-        this.$highlightLineMarker = null;
-
-        if (this.getHighlightActiveLine() && (this.getSelectionStyle() != "line" || !this.selection.isMultiLine())) {
-            var cursor = this.getCursorPosition();
-            var range = new Range(cursor.row, 0, cursor.row+1, 0);
-            this.$highlightLineMarker = this.renderer.addMarker(range, "ace_active_line", "line");
-        }
-    };
-
-    this.onSelectionChange = function() {
-        if (this.$selectionMarker) {
-            this.renderer.removeMarker(this.$selectionMarker);
-        }
-        this.$selectionMarker = null;
-
-        if (!this.selection.isEmpty()) {
-            var range = this.selection.getRange();
-            var style = this.getSelectionStyle();
-            this.$selectionMarker = this.renderer.addMarker(range, "ace_selection", style);
-        }
-
-        this.onCursorChange();
-    };
-
-    this.onDocumentChangeBreakpoint = function() {
-        this.renderer.setBreakpoints(this.doc.getBreakpoints());
-    };
-
-    this.onDocumentModeChange = function() {
-        var mode = this.doc.getMode();
-        if (this.mode == mode)
-            return;
-
-        this.mode = mode;
-        var tokenizer = mode.getTokenizer();
-
-        if (!this.bgTokenizer) {
-            var onUpdate = this.onTokenizerUpdate.bind(this);
-            this.bgTokenizer = new BackgroundTokenizer(tokenizer, this);
-            this.bgTokenizer.addEventListener("update", onUpdate);
-        } else {
-            this.bgTokenizer.setTokenizer(tokenizer);
-        }
-
-        this.renderer.setTokenizer(this.bgTokenizer);
-    };
-
-
-    this.onMouseDown = function(e) {
-        var pageX = event.getDocumentX(e);
-        var pageY = event.getDocumentY(e);
-
-        var pos = this.renderer.screenToTextCoordinates(pageX, pageY);
-        pos.row = Math.max(0, Math.min(pos.row, this.doc.getLength()-1));
-
-        if (event.getButton(e) != 0) {
-            if (this.selection.isEmpty()) {
-                this.moveCursorToPosition(pos);
-            }
-            return;
-        }
-
-        if (e.shiftKey)
-            this.selection.selectToPosition(pos)
-        else {
-            this.moveCursorToPosition(pos);
-            if (!this.$clickSelection)
-                this.selection.clearSelection(pos.row, pos.column);
-        }
-
-        this.renderer.scrollCursorIntoView();
-
-        var self = this;
-        var mousePageX, mousePageY;
-
-        var onMouseSelection = function(e) {
-            mousePageX = event.getDocumentX(e);
-            mousePageY = event.getDocumentY(e);
-        };
-
-        var onMouseSelectionEnd = function() {
-            clearInterval(timerId);
-            self.$clickSelection = null;
-        };
-
-        var onSelectionInterval = function() {
-            if (mousePageX === undefined || mousePageY === undefined)
-                return;
-
-            var cursor = self.renderer.screenToTextCoordinates(mousePageX, mousePageY);
-            cursor.row = Math.max(0, Math.min(cursor.row, self.doc.getLength()-1));
-
-            if (self.$clickSelection) {
-                if (self.$clickSelection.contains(cursor.row, cursor.column)) {
-                    self.selection.setSelectionRange(self.$clickSelection);
-                } else {
-                    if (self.$clickSelection.compare(cursor.row, cursor.column) == -1) {
-                        var anchor = self.$clickSelection.end;
-                    } else {
-                        var anchor = self.$clickSelection.start;
-                    }
-                    self.selection.setSelectionAnchor(anchor.row, anchor.column);
-                    self.selection.selectToPosition(cursor);
-                }
-            }
-            else {
-                self.selection.selectToPosition(cursor);
-            }
-
-            self.renderer.scrollCursorIntoView();
-        };
-
-        event.capture(this.container, onMouseSelection, onMouseSelectionEnd);
-        var timerId = setInterval(onSelectionInterval, 20);
-
-        return event.preventDefault(e);
-    };
-
-    this.onMouseDoubleClick = function(e) {
-        this.selection.selectWord();
-        this.$clickSelection = this.getSelectionRange();
-        this.$updateDesiredColumn();
-    };
-
-    this.onMouseTripleClick = function(e) {
-        this.selection.selectLine();
-        this.$clickSelection = this.getSelectionRange();
-        this.$updateDesiredColumn();
-    };
-
-    this.onMouseWheel = function(e) {
-        var speed = this.$scrollSpeed * 2;
-
-        this.renderer.scrollBy(e.wheelX * speed, e.wheelY * speed);
-        return event.preventDefault(e);
-    };
-
-    this.getCopyText = function() {
-        if (!this.selection.isEmpty()) {
-            return this.doc.getTextRange(this.getSelectionRange());
-        }
-        else {
-            return "";
-        }
-    };
-
-    this.onCut = function() {
-        if (this.$readOnly)
-            return;
-
-        if (!this.selection.isEmpty()) {
-            this.moveCursorToPosition(this.doc.remove(this.getSelectionRange()));
-            this.clearSelection();
-        }
-    };
-
-    this.onTextInput = function(text) {
-        if (this.$readOnly)
-            return;
-
-        var cursor = this.getCursorPosition();
-        text = text.replace("\t", this.doc.getTabString());
-
-        // remove selected text
-        if (!this.selection.isEmpty()) {
-            var cursor = this.doc.remove(this.getSelectionRange());
-            this.clearSelection();
-        } else if (this.$overwrite){
-            var range = new Range.fromPoints(cursor, cursor);
-            range.end.column += text.length;
-            this.doc.remove(range);
-        }
-
-        this.clearSelection();
-
-        var _self   = this;
-        this.bgTokenizer.getState(cursor.row, function (lineState) {
-            var shouldOutdent = _self.mode.checkOutdent(lineState, _self.doc.getLine(cursor.row), text);
-            var line          = _self.doc.getLine(cursor.row),
-                lineIndent    = _self.mode.getNextLineIndent(lineState, line.slice(0, cursor.column), _self.doc.getTabString());
-            var end           = _self.doc.insert(cursor, text);
-
-            /* TODO: This shortcut is somehow broken
-            if (!shouldOutdent && line != _self.doc.getLine(row) && text != "\n") {
-                _self.moveCursorToPosition(end);
-                _self.renderer.scrollCursorIntoView();
-                return;
-            }
-            */
-
-            _self.bgTokenizer.getState(cursor.row, function(lineState) {
-                // multi line insert
-                if (cursor.row !== end.row) {
-                    var size        = _self.doc.getTabSize(),
-                        minIndent   = Number.MAX_VALUE;
-
-                    for (var row = cursor.row + 1; row <= end.row; ++row) {
-                        var indent = 0;
-
-                        line = _self.doc.getLine(row);
-                        for (var i = 0; i < line.length; ++i)
-                            if (line.charAt(i) == '\t')
-                                indent += size;
-                            else if (line.charAt(i) == ' ')
-                                indent += 1;
-                            else
-                                break;
-                        if (/[^\s]/.test(line))
-                            minIndent = Math.min(indent, minIndent);
-                    }
-
-                    for (var row = cursor.row + 1; row <= end.row; ++row) {
-                        var outdent = minIndent;
-
-                        line = _self.doc.getLine(row);
-                        for (var i = 0; i < line.length && outdent > 0; ++i)
-                            if (line.charAt(i) == '\t')
-                                outdent -= size;
-                            else if (line.charAt(i) == ' ')
-                                outdent -= 1;
-                        _self.doc.replace(new Range(row, 0, row, line.length), line.substr(i));
-                    }
-                    end.column += _self.doc.indentRows(cursor.row + 1, end.row, lineIndent);
-                } else {
-                    if (shouldOutdent) {
-                        end.column += _self.mode.autoOutdent(lineState, _self.doc, cursor.row);
-                    }
-                }
-
-                _self.moveCursorToPosition(end);
-                _self.renderer.scrollCursorIntoView();
-            });
-        });
-    };
-
-    this.$overwrite = false;
-    this.setOverwrite = function(overwrite) {
-        if (this.$overwrite == overwrite) return;
-
-        this.$overwrite = overwrite;
-
-        this.$blockScrolling = true;
-        this.onCursorChange();
-        this.$blockScrolling = false;
-
-        this._dispatchEvent("changeOverwrite", {data: overwrite});
-    };
-
-    this.getOverwrite = function() {
-        return this.$overwrite;
-    };
-
-    this.toggleOverwrite = function() {
-        this.setOverwrite(!this.$overwrite);
-    };
-
-
-    this.$scrollSpeed = 1;
-    this.setScrollSpeed = function(speed) {
-        this.$scrollSpeed = speed;
-    }
-
-    this.getScrollSpeed = function() {
-        return this.$scrollSpeed;
-    }
-
-    this.$selectionStyle = "line";
-    this.setSelectionStyle = function(style) {
-        if (this.$selectionStyle == style) return;
-
-        this.$selectionStyle = style;
-        this.onSelectionChange();
-        this._dispatchEvent("changeSelectionStyle", {data: style});
-    };
-
-
-    this.getSelectionStyle = function() {
-        return this.$selectionStyle;
-    };
-
-    this.$highlightActiveLine = true;
-    this.setHighlightActiveLine = function(shouldHighlight) {
-        if (this.$highlightActiveLine == shouldHighlight) return;
-
-        this.$highlightActiveLine = shouldHighlight;
-        this.$updateHighlightActiveLine();
-    };
-
-    this.getHighlightActiveLine = function() {
-        return this.$highlightActiveLine;
-    };
-
-    this.setShowInvisibles = function(showInvisibles) {
-        if (this.getShowInvisibles() == showInvisibles)
-            return;
-
-        this.renderer.setShowInvisibles(showInvisibles);
-    };
-
-    this.getShowInvisibles = function() {
-        return this.renderer.getShowInvisibles();
-    };
-
-    this.setShowPrintMargin = function(showPrintMargin) {
-        this.renderer.setShowPrintMargin(showPrintMargin);
-    };
-
-    this.getShowPrintMargin = function() {
-        return this.renderer.getShowPrintMargin();
-    };
-
-    this.setPrintMarginColumn = function(showPrintMargin) {
-        this.renderer.setPrintMarginColumn(showPrintMargin);
-    };
-
-    this.getPrintMarginColumn = function() {
-        return this.renderer.getPrintMarginColumn();
-    };
-
-    this.$readOnly = false;
-    this.setReadOnly = function(readOnly) {
-        this.$readOnly = readOnly;
-    };
-
-    this.getReadOnly = function() {
-        return this.$readOnly;
-    };
-
-    this.removeRight = function() {
-        if (this.$readOnly)
-            return;
-
-        if (this.selection.isEmpty()) {
-            this.selection.selectRight();
-        }
-        this.moveCursorToPosition(this.doc.remove(this.getSelectionRange()));
-        this.clearSelection();
-    };
-
-    this.removeLeft = function() {
-        if (this.$readOnly)
-            return;
-
-        if (this.selection.isEmpty())
-            this.selection.selectLeft();
-        
-        this.moveCursorToPosition(this.doc.remove(this.getSelectionRange()));
-        this.clearSelection();
-    };
-
-    this.indent = function() {
-        if (this.$readOnly)
-            return;
-
-        var doc     = this.doc,
-            range   = this.getSelectionRange();
-
-        if (range.start.row < range.end.row || range.start.column < range.end.column) {
-            var rows = this.$getSelectedRows();
-            var count = doc.indentRows(rows.first, rows.last, "\t");
-
-            this.selection.shiftSelection(count);
-        } else {
-            var indentString;
-
-            if (this.doc.getUseSoftTabs()) {
-                var size        = doc.getTabSize(),
-                    position    = this.getCursorPosition(),
-                    column      = doc.documentToScreenColumn(position.row, position.column),
-                    count       = (size - column % size);
-
-                indentString = lang.stringRepeat(" ", count);
-            } else
-                indentString = "\t";
-            return this.onTextInput(indentString);
-        }
-    };
-
-    this.blockOutdent = function() {
-        if (this.$readOnly)
-            return;
-
-        var selection = this.doc.getSelection();
-        var range = this.doc.outdentRows(selection.getRange());
-
-        selection.setSelectionRange(range, selection.isBackwards());
-        this.$updateDesiredColumn();
-    };
-
-    this.toggleCommentLines = function() {
-        if (this.$readOnly)
-            return;
-
-        var _self = this;
-        this.bgTokenizer.getState(this.getCursorPosition().row, function(state) {
-            var rows = _self.$getSelectedRows()
-            var addedColumns = _self.mode.toggleCommentLines(state, _self.doc, rows.first, rows.last);
-            _self.selection.shiftSelection(addedColumns);
-        });
-    };
-
-    this.removeLines = function() {
-        if (this.$readOnly)
-            return;
-
-        var rows = this.$getSelectedRows();
-        this.selection.setSelectionAnchor(rows.last+1, 0);
-        this.selection.selectTo(rows.first, 0);
-
-        this.doc.remove(this.getSelectionRange());
-        this.clearSelection();
-    };
-
-    this.moveLinesDown = function() {
-        if (this.$readOnly)
-            return;
-
-        this.$moveLines(function(firstRow, lastRow) {
-            return this.doc.moveLinesDown(firstRow, lastRow);
-        });
-    };
-
-    this.moveLinesUp = function() {
-        if (this.$readOnly)
-            return;
-
-        this.$moveLines(function(firstRow, lastRow) {
-            return this.doc.moveLinesUp(firstRow, lastRow);
-        });
-    };
-
-    this.copyLinesUp = function() {
-        if (this.$readOnly)
-            return;
-
-        this.$moveLines(function(firstRow, lastRow) {
-            this.doc.duplicateLines(firstRow, lastRow);
-            return 0;
-        });
-    };
-
-    this.copyLinesDown = function() {
-        if (this.$readOnly)
-            return;
-
-        this.$moveLines(function(firstRow, lastRow) {
-            return this.doc.duplicateLines(firstRow, lastRow);
-        });
-    };
-
-
-    this.$moveLines = function(mover) {
-        var rows = this.$getSelectedRows();
-
-        var linesMoved = mover.call(this, rows.first, rows.last);
-
-        var selection = this.selection;
-        selection.setSelectionAnchor(rows.last+linesMoved+1, 0);
-        selection.$moveSelection(function() {
-            selection.moveCursorTo(rows.first+linesMoved, 0);
-        });
-    };
-
-    this.$getSelectedRows = function() {
-        var range = this.getSelectionRange().collapseRows();
-
-        return {
-            first: range.start.row,
-            last: range.end.row
-        };
-    };
-
-    this.onCompositionStart = function(text) {
-        this.renderer.showComposition(this.getCursorPosition());
-        //this.onTextInput(text);
-    };
-
-    this.onCompositionUpdate = function(text) {
-        this.renderer.setCompositionText(text);
-    };
-
-    this.onCompositionEnd = function() {
-        this.renderer.hideComposition();
-        //this.removeLeft();
-    };
-
-
-    this.getFirstVisibleRow = function() {
-        return this.renderer.getFirstVisibleRow();
-    };
-
-    this.getLastVisibleRow = function() {
-        return this.renderer.getLastVisibleRow();
-    };
-
-    this.isRowVisible = function(row) {
-        return (row >= this.getFirstVisibleRow() && row <= this.getLastVisibleRow());
-    };
-
-    this.getVisibleRowCount = function() {
-        return this.getLastVisibleRow() - this.getFirstVisibleRow() + 1;
-    };
-
-    this.getPageDownRow = function() {
-        return this.renderer.getLastVisibleRow() - 1;
-    };
-
-    this.getPageUpRow = function() {
-        var firstRow = this.renderer.getFirstVisibleRow();
-        var lastRow = this.renderer.getLastVisibleRow();
-
-        return firstRow - (lastRow - firstRow) + 1;
-    };
-
-    this.selectPageDown = function() {
-        var row = this.getPageDownRow() + Math.floor(this.getVisibleRowCount() / 2);
-
-        this.scrollPageDown();
-
-        var selection = this.getSelection();
-        selection.$moveSelection(function() {
-            selection.moveCursorTo(row, selection.getSelectionLead().column);
-        });
-    };
-
-    this.selectPageUp = function() {
-        var visibleRows = this.getLastVisibleRow() - this.getFirstVisibleRow();
-        var row = this.getPageUpRow() + Math.round(visibleRows / 2);
-
-        this.scrollPageUp();
-
-        var selection = this.getSelection();
-        selection.$moveSelection(function() {
-            selection.moveCursorTo(row, selection.getSelectionLead().column);
-        });
-    };
-
-    this.gotoPageDown = function() {
-        var row     = this.getPageDownRow(),
-            column  = Math.min(this.getCursorPosition().column,
-                               this.doc.getLine(row).length);
-
-        this.scrollToRow(row);
-        this.getSelection().moveCursorTo(row, column);
-    };
-
-    this.gotoPageUp = function() {
-       var  row     = this.getPageUpRow(),
-            column  = Math.min(this.getCursorPosition().column,
-                               this.doc.getLine(row).length);
-
-       this.scrollToRow(row);
-       this.getSelection().moveCursorTo(row, column);
-    };
-
-    this.scrollPageDown = function() {
-        this.scrollToRow(this.getPageDownRow());
-    };
-
-    this.scrollPageUp = function() {
-        this.renderer.scrollToRow(this.getPageUpRow());
-    };
-
-    this.scrollToRow = function(row) {
-        this.renderer.scrollToRow(row);
-    };
-
-
-    this.getCursorPosition = function() {
-        return this.selection.getCursor();
-    };
-
-    this.getSelectionRange = function() {
-        return this.selection.getRange();
-    };
-
-    this.clearSelection = function() {
-        this.selection.clearSelection();
-        this.$updateDesiredColumn();
-    };
-
-    this.moveCursorTo = function(row, column) {
-        this.selection.moveCursorTo(row, column);
-        this.$updateDesiredColumn();
-    };
-
-    this.moveCursorToPosition = function(pos) {
-        this.selection.moveCursorToPosition(pos);
-        this.$updateDesiredColumn();
-    };
-
-
-    this.gotoLine = function(lineNumber, row) {
-        this.selection.clearSelection();
-
-        this.$blockScrolling = true;
-        this.moveCursorTo(lineNumber-1, row || 0);
-        this.$blockScrolling = false;
-
-        if (!this.isRowVisible(this.getCursorPosition().row)) {
-            this.scrollToRow(lineNumber - 1 - Math.floor(this.getVisibleRowCount() / 2));
-        }
-    },
-
-    this.navigateTo = function(row, column) {
-        this.clearSelection();
-        this.moveCursorTo(row, column);
-        this.$updateDesiredColumn(column);
-    };
-
-    this.navigateUp = function() {
-        this.selection.clearSelection();
-        this.selection.moveCursorBy(-1, 0);
-
-        if (this.$desiredColumn) {
-            var cursor = this.getCursorPosition();
-            var column = this.doc.screenToDocumentColumn(cursor.row, this.$desiredColumn);
-            this.selection.moveCursorTo(cursor.row, column);
-        }
-    };
-
-    this.navigateDown = function() {
-        this.selection.clearSelection();
-        this.selection.moveCursorBy(1, 0);
-
-        if (this.$desiredColumn) {
-            var cursor = this.getCursorPosition();
-            var column = this.doc.screenToDocumentColumn(cursor.row, this.$desiredColumn);
-            this.selection.moveCursorTo(cursor.row, column);
-        }
-    };
-
-    this.$updateDesiredColumn = function() {
-        var cursor = this.getCursorPosition();
-        this.$desiredColumn = this.doc.documentToScreenColumn(cursor.row, cursor.column);
-    };
-
-    this.navigateLeft = function() {
-        if (!this.selection.isEmpty()) {
-            var selectionStart = this.getSelectionRange().start;
-            this.moveCursorToPosition(selectionStart);
-        }
-        else {
-            this.selection.moveCursorLeft();
-        }
-        this.clearSelection();
-    };
-
-    this.navigateRight = function() {
-        if (!this.selection.isEmpty()) {
-            var selectionEnd = this.getSelectionRange().end;
-            this.moveCursorToPosition(selectionEnd);
-        }
-        else {
-            this.selection.moveCursorRight();
-        }
-        this.clearSelection();
-    };
-
-    this.navigateLineStart = function() {
-        this.selection.moveCursorLineStart();
-        this.clearSelection();
-    };
-
-    this.navigateLineEnd = function() {
-        this.selection.moveCursorLineEnd();
-        this.clearSelection();
-    };
-
-    this.navigateFileEnd = function() {
-        this.selection.moveCursorFileEnd();
-        this.clearSelection();
-    };
-
-    this.navigateFileStart = function() {
-        this.selection.moveCursorFileStart();
-        this.clearSelection();
-    };
-
-    this.navigateWordRight = function() {
-        this.selection.moveCursorWordRight();
-        this.clearSelection();
-    };
-
-    this.navigateWordLeft = function() {
-        this.selection.moveCursorWordLeft();
-        this.clearSelection();
-    };
-
-    this.replace = function(replacement, options) {
-        if (options)
-            this.$search.set(options);
-
-        var range = this.$search.find(this.doc);
-        this.$tryReplace(range, replacement);
-        if (range !== null)
-            this.selection.setSelectionRange(range);
-        this.$updateDesiredColumn();
-    },
-
-    this.replaceAll = function(replacement, options) {
-        if (options) {
-            this.$search.set(options);
-        }
-
-        var ranges = this.$search.findAll(this.doc);
-        if (!ranges.length)
-            return;
-
-        this.clearSelection();
-        this.selection.moveCursorTo(0, 0);
-
-        for (var i = ranges.length - 1; i >= 0; --i)
-            this.$tryReplace(ranges[i], replacement);
-        if (ranges[0] !== null)
-            this.selection.setSelectionRange(ranges[0]);
-        this.$updateDesiredColumn();
-    },
-
-    this.$tryReplace = function(range, replacement) {
-        var input = this.doc.getTextRange(range);
-        var replacement = this.$search.replace(input, replacement);
-        if (replacement !== null) {
-            range.end = this.doc.replace(range, replacement);
-            return range;
-        } else {
-            return null;
-        }
-    };
-
-    this.getLastSearchOptions = function() {
-        return this.$search.getOptions();
-    };
-
-    this.find = function(needle, options) {
-        this.clearSelection();
-        options = options || {};
-        options.needle = needle;
-        this.$search.set(options);
-        this.$find();
-    },
-
-    this.findNext = function(options) {
-        options = options || {};
-        if (typeof options.backwards == "undefined")
-            options.backwards = false;
-        this.$search.set(options);
-        this.$find();
-    };
-
-    this.findPrevious = function(options) {
-        options = options || {};
-        if (typeof options.backwards == "undefined")
-            options.backwards = true;
-        this.$search.set(options);
-        this.$find();
-    };
-
-    this.$find = function(backwards) {
-        if (!this.selection.isEmpty()) {
-            this.$search.set({needle: this.doc.getTextRange(this.getSelectionRange())});
-        }
-
-        if (typeof backwards != "undefined")
-            this.$search.set({backwards: backwards});
-
-        var range = this.$search.find(this.doc);
-        if (range) {
-            this.gotoLine(range.end.row+1, range.end.column);
-            this.$updateDesiredColumn();
-            this.selection.setSelectionRange(range);
-        }
-    };
-
-    this.undo = function() {
-        this.doc.getUndoManager().undo();
-    };
-
-    this.redo = function() {
-        this.doc.getUndoManager().redo();
-    };
-
-}).call(Editor.prototype);
-
-
-exports.Editor = Editor;
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/keybinding', function(require, exports, module) {
-
-var useragent = require("pilot/useragent");
-var event = require("pilot/event");
-var default_mac = require("ace/conf/keybindings/default_mac").bindings;
-var default_win = require("ace/conf/keybindings/default_win").bindings;
-var canon = require("pilot/canon");
-require("ace/commands/default_commands");
-
-var KeyBinding = function(element, editor, config) {
-    this.setConfig(config);
-
-    var _self = this;
-    event.addKeyListener(element, function(e) {
-        // opera on mac swaps ctrl and meta keys
-        if (useragent.isOpera && useragent.isMac)
-	        var hashId = 0 | (e.metaKey ? 1 : 0) | (e.altKey ? 2 : 0)
-	            | (e.shiftKey ? 4 : 0) | (e.ctrlKey ? 8 : 0);
-        else
-	        var hashId = 0 | (e.ctrlKey ? 1 : 0) | (e.altKey ? 2 : 0)
-	            | (e.shiftKey ? 4 : 0) | (e.metaKey ? 8 : 0);
-	            
-        var key = _self.keyNames[e.keyCode];
-
-        var commandName = (_self.config.reverse[hashId] || {})[(key
-            || String.fromCharCode(e.keyCode)).toLowerCase()];
-
-        var success = canon.exec(commandName, {editor: editor});
-        if (success) {
-            return event.stopEvent(e);
-        }
-    });
-};
-
-(function() {
-    this.keyMods = {"ctrl": 1, "alt": 2, "option" : 2, "shift": 4, "meta": 8, "command": 8};
-
-    this.keyNames = {
-        "8"  : "Backspace",
-        "9"  : "Tab",
-        "13" : "Enter",
-        "27" : "Esc",
-        "32" : "Space",
-        "33" : "PageUp",
-        "34" : "PageDown",
-        "35" : "End",
-        "36" : "Home",
-        "37" : "Left",
-        "38" : "Up",
-        "39" : "Right",
-        "40" : "Down",
-        "45" : "Insert",
-        "46" : "Delete",
-        "107": "+",
-        "112": "F1",
-        "113": "F2",
-        "114": "F3",
-        "115": "F4",
-        "116": "F5",
-        "117": "F6",
-        "118": "F7",
-        "119": "F8",
-        "120": "F9",
-        "121": "F10",
-        "122": "F11",
-        "123": "F12"
-    };
-
-    function splitSafe(s, separator, limit, bLowerCase) {
-        return (bLowerCase && s.toLowerCase() || s)
-            .replace(/(?:^\s+|\n|\s+$)/g, "")
-            .split(new RegExp("[\\s ]*" + separator + "[\\s ]*", "g"), limit || 999);
-    }
-
-    function parseKeys(keys, val, ret) {
-        var key,
-            hashId = 0,
-            parts  = splitSafe(keys, "\\-", null, true),
-            i      = 0,
-            l      = parts.length;
-
-        for (; i < l; ++i) {
-            if (this.keyMods[parts[i]])
-                hashId = hashId | this.keyMods[parts[i]];
-            else
-                key = parts[i] || "-"; //when empty, the splitSafe removed a '-'
-        }
-
-        (ret[hashId] || (ret[hashId] = {}))[key] = val;
-        return ret;
-    }
-
-    function objectReverse(obj, keySplit) {
-        var i, j, l, key,
-            ret = {};
-        for (i in obj) {
-            key = obj[i];
-            if (keySplit && typeof key == "string") {
-                key = key.split(keySplit);
-                for (j = 0, l = key.length; j < l; ++j)
-                    parseKeys.call(this, key[j], i, ret);
-            }
-            else {
-                parseKeys.call(this, key, i, ret);
-            }
-        }
-        return ret;
-    }
-
-    this.setConfig = function(config) {
-        this.config = config || (useragent.isMac
-            ? default_mac
-            : default_win);
-        if (typeof this.config.reverse == "undefined")
-            this.config.reverse = objectReverse.call(this, this.config, "|");
-    };
-
-}).call(KeyBinding.prototype);
-
-exports.KeyBinding = KeyBinding;
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/layer/cursor', function(require, exports, module) {
-
-var dom = require("pilot/dom");
-
-var Cursor = function(parentEl) {
-    this.element = document.createElement("div");
-    this.element.className = "ace_layer ace_cursor-layer";
-    parentEl.appendChild(this.element);
-
-    this.cursor = document.createElement("div");
-    this.cursor.className = "ace_cursor";
-
-    this.isVisible = false;
-};
-
-(function() {
-
-    this.setDocument = function(doc) {
-        this.doc = doc;
-    };
-
-    this.setCursor = function(position, overwrite) {
-        this.position = {
-            row : position.row,
-            column : this.doc.documentToScreenColumn(position.row, position.column)
-        };
-        if (overwrite) {
-            dom.addCssClass(this.cursor, "ace_overwrite");
-        } else {
-            dom.removeCssClass(this.cursor, "ace_overwrite");
-        }
-    };
-
-    this.hideCursor = function() {
-        this.isVisible = false;
-        if (this.cursor.parentNode) {
-            this.cursor.parentNode.removeChild(this.cursor);
-        }
-        clearInterval(this.blinkId);
-    };
-
-    this.showCursor = function() {
-        this.isVisible = true;
-        this.element.appendChild(this.cursor);
-
-        var cursor = this.cursor;
-        cursor.style.visibility = "visible";
-        this.restartTimer();
-    };
-
-    this.restartTimer = function() {
-        clearInterval(this.blinkId);
-        if (!this.isVisible) {
-            return;
-        }
-
-        var cursor = this.cursor;
-        this.blinkId = setInterval(function() {
-            cursor.style.visibility = "hidden";
-            setTimeout(function() {
-                cursor.style.visibility = "visible";
-            }, 400);
-        }, 1000);
-    };
-
-    this.getPixelPosition = function() {
-        if (!this.config || !this.position) {
-            return {
-                left : 0,
-                top : 0
-            };
-        }
-
-        var cursorLeft = Math.round(this.position.column * this.config.characterWidth);
-        var cursorTop = this.position.row * this.config.lineHeight;
-
-       return {
-            left : cursorLeft,
-            top : cursorTop
-        };
-    };
-
-    this.update = function(config) {
-        if (!this.position)
-            return;
-
-        this.config = config;
-
-        var cursorLeft = Math.round(this.position.column * config.characterWidth);
-        var cursorTop = this.position.row * config.lineHeight;
-
-        this.pixelPos = {
-            left : cursorLeft,
-            top : cursorTop
-        };
-
-        this.cursor.style.left = cursorLeft + "px";
-        this.cursor.style.top = (cursorTop - (config.firstRow * config.lineHeight))
-                + "px";
-        this.cursor.style.width = config.characterWidth + "px";
-        this.cursor.style.height = config.lineHeight + "px";
-
-        if (this.isVisible) {
-            this.element.appendChild(this.cursor);
-        }
-        this.restartTimer();
-    };
-
-}).call(Cursor.prototype);
-
-exports.Cursor = Cursor;
-
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/layer/gutter', function(require, exports, module) {
-
-var Gutter = function(parentEl) {
-    this.element = document.createElement("div");
-    this.element.className = "ace_layer ace_gutter-layer";
-    parentEl.appendChild(this.element);
-
-    this.$breakpoints = [];
-    this.$decorations = [];
-};
-
-(function() {
-
-    this.addGutterDecoration = function(row, className){
-        if (!this.$decorations[row]) 
-            this.$decorations[row] = "";
-        this.$decorations[row] += " ace_" + className;
-    }
-    
-    this.removeGutterDecoration = function(row, className){
-        this.$decorations[row] = 
-            this.$decorations[row].replace(" ace_" + className, "");
-    }
-
-    this.setBreakpoints = function(rows) {
-        this.$breakpoints = rows.concat();
-    };
-
-    this.update = function(config) {
-        this.$config = config;
-
-        var html = [];
-        for ( var i = config.firstRow; i <= config.lastRow; i++) {
-            html.push("<div class='ace_gutter-cell",
-                this.$decorations[i] || "",
-                this.$breakpoints[i] ? " ace_breakpoint" : "",
-                "' style='height:", config.lineHeight, "px;'>", (i+1), "</div>");
-            html.push("</div>");
-        }
-
-        this.element.innerHTML = html.join("");
-        this.element.style.height = config.minHeight + "px";
-    };
-
-}).call(Gutter.prototype);
-
-exports.Gutter = Gutter;
-
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/layer/marker', function(require, exports, module) {
-
-var Range = require("ace/range").Range;
-
-var Marker = function(parentEl) {
-    this.element = document.createElement("div");
-    this.element.className = "ace_layer ace_marker-layer";
-    parentEl.appendChild(this.element);
-
-    this.markers = {};
-    this.$markerId = 1;
-};
-
-(function() {
-
-    this.setDocument = function(doc) {
-        this.doc = doc;
-    };
-
-    this.addMarker = function(range, clazz, type) {
-        var id = this.$markerId++;
-        this.markers[id] = {
-            range : range,
-            type : type || "line",
-            clazz : clazz
-        };
-
-        return id;
-    };
-
-    this.removeMarker = function(markerId) {
-        var marker = this.markers[markerId];
-        if (marker) {
-            delete (this.markers[markerId]);
-        }
-    };
-
-    this.update = function(config) {
-        var config = config || this.config;
-        if (!config)
-            return;
-
-        this.config = config;
-
-        var html = [];
-        for ( var key in this.markers) {
-            var marker = this.markers[key];
-
-            var range = marker.range.clipRows(config.firstRow, config.lastRow);
-            if (range.isEmpty()) continue;
-
-            if (range.isMultiLine()) {
-                if (marker.type == "text") {
-                    this.drawTextMarker(html, range, marker.clazz, config);
-                } else {
-                    this.drawMultiLineMarker(html, range, marker.clazz, config);
-                }
-            }
-            else {
-                this.drawSingleLineMarker(html, range, marker.clazz, config);
-            }
-        }
-        this.element.innerHTML = html.join("");
-    };
-
-    this.drawTextMarker = function(stringBuilder, range, clazz, layerConfig) {
-
-        // selection start
-        var row = range.start.row;
-        var lineRange = new Range(row, range.start.column, row, this.doc.getLine(row).length);
-        this.drawSingleLineMarker(stringBuilder, lineRange, clazz, layerConfig);
-
-        // selection end
-        var row = range.end.row;
-        var lineRange = new Range(row, 0, row, range.end.column);
-        this.drawSingleLineMarker(stringBuilder, lineRange, clazz, layerConfig);
-
-        for (var row = range.start.row + 1; row < range.end.row; row++) {
-            lineRange.start.row = row;
-            lineRange.end.row = row;
-            lineRange.end.column = this.doc.getLine(row).length;
-            this.drawSingleLineMarker(stringBuilder, lineRange, clazz, layerConfig);
-        }
-    };
-
-    this.drawMultiLineMarker = function(stringBuilder, range, clazz, layerConfig) {
-        var range = range.toScreenRange(this.doc);
-
-        // from selection start to the end of the line
-        var height = layerConfig.lineHeight;
-        var width = Math.round(layerConfig.width - (range.start.column * layerConfig.characterWidth));
-        var top = (range.start.row - layerConfig.firstRow) * layerConfig.lineHeight;
-        var left = Math.round(range.start.column * layerConfig.characterWidth);
-
-        stringBuilder.push(
-            "<div class='", clazz, "' style='",
-            "height:", height, "px;",
-            "width:", width, "px;",
-            "top:", top, "px;",
-            "left:", left, "px;'></div>"
-        );
-
-        // from start of the last line to the selection end
-        var top = (range.end.row - layerConfig.firstRow) * layerConfig.lineHeight;
-        var width = Math.round(range.end.column * layerConfig.characterWidth);
-
-        stringBuilder.push(
-            "<div class='", clazz, "' style='",
-            "height:", height, "px;",
-            "top:", top, "px;",
-            "width:", width, "px;'></div>"
-        );
-
-        // all the complete lines
-        var height = (range.end.row - range.start.row - 1) * layerConfig.lineHeight;
-        if (height < 0)
-            return;
-        var top = (range.start.row + 1 - layerConfig.firstRow) * layerConfig.lineHeight;
-
-        stringBuilder.push(
-            "<div class='", clazz, "' style='",
-            "height:", height, "px;",
-            "width:", layerConfig.width, "px;",
-            "top:", top, "px;'></div>"
-        );
-    };
-
-    this.drawSingleLineMarker = function(stringBuilder, range, clazz, layerConfig) {
-        var range = range.toScreenRange(this.doc);
-
-        var height = layerConfig.lineHeight;
-        var width = Math.round((range.end.column - range.start.column) * layerConfig.characterWidth);
-        var top = (range.start.row - layerConfig.firstRow) * layerConfig.lineHeight;
-        var left = Math.round(range.start.column * layerConfig.characterWidth);
-
-        stringBuilder.push(
-            "<div class='", clazz, "' style='",
-            "height:", height, "px;",
-            "width:", width, "px;",
-            "top:", top, "px;",
-            "left:", left,"px;'></div>"
-        );
-    };
-
-}).call(Marker.prototype);
-
-exports.Marker = Marker;
-
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/layer/text', function(require, exports, module) {
-
-var oop = require("pilot/oop");
-var dom = require("pilot/dom");
-var lang = require("pilot/lang");
-var EventEmitter = require("pilot/event_emitter").EventEmitter;
-
-var Text = function(parentEl) {
-    this.element = document.createElement("div");
-    this.element.className = "ace_layer ace_text-layer";
-    parentEl.appendChild(this.element);
-
-    this.$characterSize = this.$measureSizes();
-    this.$pollSizeChanges();
-};
-
-(function() {
-
-    oop.implement(this, EventEmitter);
-
-    this.EOF_CHAR = "&para;";
-    this.EOL_CHAR = "&not;";
-    this.TAB_CHAR = "&rarr;";
-    this.SPACE_CHAR = "&middot;";
-
-    this.setTokenizer = function(tokenizer) {
-        this.tokenizer = tokenizer;
-    };
-
-    this.getLineHeight = function() {
-        return this.$characterSize.height || 1;
-    };
-
-    this.getCharacterWidth = function() {
-        return this.$characterSize.width || 1;
-    };
-
-    this.$pollSizeChanges = function() {
-        var self = this;
-        setInterval(function() {
-            var size = self.$measureSizes();
-            if (self.$characterSize.width !== size.width || self.$characterSize.height !== size.height) {
-                self.$characterSize = size;
-                self._dispatchEvent("changeCharaterSize", {data: size});
-            }
-        }, 500);
-    };
-
-    this.$fontStyles = {
-        fontFamily : 1,
-        fontSize : 1,
-        fontWeight : 1,
-        fontStyle : 1,
-        lineHeight : 1
-    },
-
-    this.$measureSizes = function() {
-        var n = 1000;
-        if (!this.$measureNode) {
-	        var measureNode = this.$measureNode = document.createElement("div");
-	        var style = measureNode.style;
-	
-	        style.width = style.height = "auto";
-	        style.left = style.top = "-1000px";
-	        
-	        style.visibility = "hidden";
-	        style.position = "absolute";
-	        style.overflow = "visible";
-	        style.whiteSpace = "nowrap";
-	
-	        // in FF 3.6 monospace fonts can have a fixed sub pixel width.
-	        // that's why we have to measure many characters
-	        // Note: characterWidth can be a float!
-	        measureNode.innerHTML = lang.stringRepeat("Xy", n);
-	        document.body.insertBefore(measureNode, document.body.firstChild);
-        }
-
-        var style = this.$measureNode.style;
-        for (var prop in this.$fontStyles) {
-            var value = dom.computedStyle(this.element, prop);
-            style[prop] = value;
-        }
-
-        var size = {
-            height: this.$measureNode.offsetHeight,
-            width: this.$measureNode.offsetWidth / (n * 2)
-        };
-        return size;
-    };
-
-    this.setDocument = function(doc) {
-        this.doc = doc;
-    };
-
-    this.$showInvisibles = false;
-    this.setShowInvisibles = function(showInvisibles) {
-        this.$showInvisibles = showInvisibles;
-    };
-
-    this.$computeTabString = function() {
-        var tabSize = this.doc.getTabSize();
-        if (this.$showInvisibles) {
-            var halfTab = (tabSize) / 2;
-            this.$tabString = "<span class='ace_invisible'>"
-                + new Array(Math.floor(halfTab)).join("&nbsp;")
-                + this.TAB_CHAR
-                + new Array(Math.ceil(halfTab)+1).join("&nbsp;")
-                + "</span>";
-        } else {
-            this.$tabString = new Array(tabSize+1).join("&nbsp;");
-        }
-    };
-
-    this.updateLines = function(layerConfig, firstRow, lastRow) {
-        this.$computeTabString();
-        this.config = layerConfig;
-        
-        var first = Math.max(firstRow, layerConfig.firstRow);
-        var last = Math.min(lastRow, layerConfig.lastRow);
-
-        var lineElements = this.element.childNodes;
-        var _self = this;
-        this.tokenizer.getTokens(first, last, function(tokens) {
-            for ( var i = first; i <= last; i++) {
-                var lineElement = lineElements[i - layerConfig.firstRow];
-                if (!lineElement)
-                    continue;
-
-                var html = [];
-                _self.$renderLine(html, i, tokens[i-first].tokens);
-                lineElement.innerHTML = html.join("");
-            }
-        });
-    };
-
-    this.scrollLines = function(config) {
-        var _self = this;
-
-        this.$computeTabString();
-        var oldConfig = this.config;
-        this.config = config;
-
-        if (!oldConfig || oldConfig.lastRow < config.firstRow)
-            return this.update(config);
-
-        if (config.lastRow < oldConfig.firstRow)
-            return this.update(config);
-
-        var el = this.element;
-
-        if (oldConfig.firstRow < config.firstRow)
-            for (var row=oldConfig.firstRow; row<config.firstRow; row++)
-                el.removeChild(el.firstChild);
-
-        if (oldConfig.lastRow > config.lastRow)
-            for (var row=config.lastRow+1; row<=oldConfig.lastRow; row++)
-                el.removeChild(el.lastChild);
-
-        appendTop(appendBottom);
-
-        function appendTop(callback) {
-            if (config.firstRow < oldConfig.firstRow) {
-                _self.$renderLinesFragment(config, config.firstRow, oldConfig.firstRow - 1, function(fragment) {
-                    if (el.firstChild)
-                        el.insertBefore(fragment, el.firstChild);
-                    else
-                        el.appendChild(fragment);
-                    callback();
-                });
-            }
-            else
-                callback();
-        }
-
-        function appendBottom() {
-            if (config.lastRow > oldConfig.lastRow) {
-                _self.$renderLinesFragment(config, oldConfig.lastRow + 1, config.lastRow, function(fragment) {
-                    el.appendChild(fragment);
-                });
-            }
-        }
-    };
-
-    this.$renderLinesFragment = function(config, firstRow, lastRow, callback) {
-        var fragment = document.createDocumentFragment();
-        var _self = this;
-        this.tokenizer.getTokens(firstRow, lastRow, function(tokens) {
-            for (var row=firstRow; row<=lastRow; row++) {
-                var lineEl = document.createElement("div");
-                lineEl.className = "ace_line";
-                var style = lineEl.style;
-                style.height = _self.$characterSize.height + "px";
-                style.width = config.width + "px";
-
-                var html = [];
-                _self.$renderLine(html, row, tokens[row-firstRow].tokens);
-                lineEl.innerHTML = html.join("");
-                fragment.appendChild(lineEl);
-            }
-            callback(fragment);
-        });
-    };
-
-    this.update = function(config) {
-        this.$computeTabString();
-        this.config = config;
-
-        var html = [];
-        var _self = this;
-        this.tokenizer.getTokens(config.firstRow, config.lastRow, function(tokens) {
-            for ( var i = config.firstRow; i <= config.lastRow; i++) {
-                html.push("<div class='ace_line' style='height:" + _self.$characterSize.height + "px;", "width:",
-                        config.width, "px'>");
-                _self.$renderLine(html, i, tokens[i-config.firstRow].tokens), html.push("</div>");
-            }
-
-            _self.element.innerHTML = html.join("");
-        });
-    };
-
-    this.$textToken = {
-        "text": true,
-        "rparen": true,
-        "lparen": true
-    };
-
-    this.$renderLine = function(stringBuilder, row, tokens) {
-//        if (this.$showInvisibles) {
-//            var self = this;
-//            var spaceRe = /[\v\f \u00a0\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u200b\u2028\u2029\u3000]+/g;
-//            var spaceReplace = function(space) {
-//                var space = new Array(space.length+1).join(self.SPACE_CHAR);
-//                return "<span class='ace_invisible'>" + space + "</span>";
-//            };
-//        }
-//        else {
-            var spaceRe = /[\v\f \u00a0\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u200b\u2028\u2029\u3000]/g;
-            var spaceReplace = "&nbsp;";
-//        }
-
-        for ( var i = 0; i < tokens.length; i++) {
-            var token = tokens[i];
-
-            var output = token.value
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(spaceRe, spaceReplace)
-                .replace(/\t/g, this.$tabString);
-
-            if (!this.$textToken[token.type]) {
-                var classes = "ace_" + token.type.replace(/\./g, " ace_");
-                stringBuilder.push("<span class='", classes, "'>", output, "</span>");
-            }
-            else {
-                stringBuilder.push(output);
-            }
-        };
-
-        if (this.$showInvisibles) {
-            if (row !== this.doc.getLength() - 1) {
-                stringBuilder.push("<span class='ace_invisible'>" + this.EOL_CHAR + "</span>");
-            } else {
-                stringBuilder.push("<span class='ace_invisible'>" + this.EOF_CHAR + "</span>");
-            }
-        }
-    };
-
-}).call(Text.prototype);
-
-exports.Text = Text;
-
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/range', function(require, exports, module) {
-
-var Range = function(startRow, startColumn, endRow, endColumn) {
-    this.start = {
-        row: startRow,
-        column: startColumn
-    };
-
-    this.end = {
-        row: endRow,
-        column: endColumn
-    };
-};
-
-(function() {
-
-    this.toString = function() {
-        return ("Range: [" + this.start.row + "/" + this.start.column +
-            "] -> [" + this.end.row + "/" + this.end.column + "]");
-    };
-
-    this.contains = function(row, column) {
-        return this.compare(row, column) == 0;
-    };
-
-    this.compare = function(row, column) {
-        if (!this.isMultiLine()) {
-            if (row === this.start.row) {
-                return column < this.start.column ? -1 : (column > this.end.column ? 1 : 0);
-            };
-        }
-
-        if (row < this.start.row)
-            return -1;
-
-        if (row > this.end.row)
-            return 1;
-
-        if (this.start.row === row)
-            return column >= this.start.column ? 0 : -1;
-
-        if (this.end.row === row)
-            return column <= this.end.column ? 0 : 1;
-
-        return 0;
-    };
-
-    this.clipRows = function(firstRow, lastRow) {
-        if (this.end.row > lastRow) {
-            var end = {
-                row: lastRow+1,
-                column: 0
-            };
-        }
-
-        if (this.start.row > lastRow) {
-            var start = {
-                row: lastRow+1,
-                column: 0
-            };
-        }
-
-        if (this.start.row < firstRow) {
-            var start = {
-                row: firstRow,
-                column: 0
-            };
-        }
-
-        if (this.end.row < firstRow) {
-            var end = {
-                row: firstRow,
-                column: 0
-            };
-        }
-        return Range.fromPoints(start || this.start, end || this.end);
-    };
-
-    this.extend = function(row, column) {
-        var cmp = this.compare(row, column);
-
-        if (cmp == 0)
-            return this;
-        else if (cmp == -1)
-            var start = {row: row, column: column};
-        else
-            var end = {row: row, column: column};
-
-        return Range.fromPoints(start || this.start, end || this.end);
-    };
-
-    this.isEmpty = function() {
-        return (this.start.row == this.end.row && this.start.column == this.end.column);
-    };
-
-    this.isMultiLine = function() {
-        return (this.start.row !== this.end.row);
-    };
-
-    this.clone = function() {
-        return Range.fromPoints(this.start, this.end);
-    };
-    
-    this.collapseRows = function() {
-        if (this.end.column == 0)
-            return new Range(this.start.row, 0, Math.max(this.start.row, this.end.row-1), 0)
-        else
-            return new Range(this.start.row, 0, this.end.row, 0)
-    };
-
-    this.toScreenRange = function(doc) {
-        return new Range(
-            this.start.row, doc.documentToScreenColumn(this.start.row, this.start.column),
-            this.end.row, doc.documentToScreenColumn(this.end.row, this.end.column)
-        );
-    };
-
-}).call(Range.prototype);
-
-
-Range.fromPoints = function(start, end) {
-    return new Range(start.row, start.column, end.row, end.column);
-};
-
-exports.Range = Range;
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/renderloop', function(require, exports, module) {
-
-var event = require("pilot/event");
-
-var RenderLoop = function(onRender) {
-    this.onRender = onRender;
-    this.pending = false;
-    this.changes = 0;
-};
-
-(function() {
-
-    this.schedule = function(change) {
-        //this.onRender(change);
-        //return;
-        this.changes = this.changes | change;
-        if (!this.pending) {
-            this.pending = true;
-            var _self = this;
-            this.setTimeoutZero(function() {
-                _self.pending = false;
-                var changes = _self.changes;
-                _self.changes = 0;
-                _self.onRender(changes);
-            })
-        }
-    };
-
-    if (window.postMessage) {
-
-        this.messageName = "zero-timeout-message";
-
-        this.setTimeoutZero = function(callback) {
-            if (!this.attached) {
-                var _self = this;
-                event.addListener(window, "message", function(e) {
-                    if (e.source == window && _self.callback && e.data == _self.messageName) {
-                        event.stopPropagation(e);
-                        _self.callback();
-                    }
-                });
-                this.attached = true;
-            }
-            this.callback = callback;
-            window.postMessage(this.messageName, "*");
-        }
-
-    } else {
-
-        this.setTimeoutZero = function(callback) {
-            setTimeout(callback, 0);
-        }
-    }
-
-}).call(RenderLoop.prototype);
-
-exports.RenderLoop = RenderLoop;
-});
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
+ * Ajax.org B.V.
  * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
@@ -9162,7 +5163,7 @@ exports.ScrollBar = ScrollBar;
  * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
+ * Ajax.org B.V.
  * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
@@ -9183,289 +5184,370 @@ exports.ScrollBar = ScrollBar;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/search', function(require, exports, module) {
+define('ace/keyboard/textinput', function(require, exports, module) {
 
-var lang = require("pilot/lang");
-var oop = require("pilot/oop");
-var Range = require("ace/range").Range;
+var event = require("pilot/event");
 
-var Search = function() {
-    this.$options = {
-        needle: "",
-        backwards: false,
-        wrap: false,
-        caseSensitive: false,
-        wholeWord: false,
-        scope: Search.ALL,
-        regExp: false
+var TextInput = function(parentNode, host) {
+
+    var text = document.createElement("textarea");
+    var style = text.style;
+    style.position = "absolute";
+    style.left = "-10000px";
+    style.top = "-10000px";
+    parentNode.appendChild(text);
+
+    var PLACEHOLDER = String.fromCharCode(0);
+    sendText();
+
+    var inCompostion = false;
+    var copied = false;
+
+    function sendText(valueToSend) {
+        if (!copied) {
+            var value = valueToSend || text.value;
+            if (value) {
+                if (value.charCodeAt(value.length-1) == PLACEHOLDER.charCodeAt(0)) {
+                    value = value.slice(0, -1);
+                    if (value)
+                        host.onTextInput(value);
+                } else
+                    host.onTextInput(value);
+            }
+        }
+        copied = false;
+
+        // Safari doesn't fire copy events if no text is selected
+        text.value = PLACEHOLDER;
+        text.select();
+    }
+
+    var onTextInput = function(e) {
+        setTimeout(function() {
+            if (!inCompostion)
+                sendText();
+        }, 0);
+    };
+
+    var onCompositionStart = function(e) {
+        inCompostion = true;
+        sendText();
+        text.value = "";
+        host.onCompositionStart();
+        setTimeout(onCompositionUpdate, 0);
+    };
+
+    var onCompositionUpdate = function() {
+        host.onCompositionUpdate(text.value);
+    };
+
+    var onCompositionEnd = function() {
+        inCompostion = false;
+        host.onCompositionEnd();
+        onTextInput();
+    };
+
+    var onCopy = function() {
+        copied = true;
+        text.value = host.getCopyText();
+        text.select();
+        copied = true;
+        setTimeout(sendText, 0);
+    };
+
+    var onCut = function() {
+        copied = true;
+        text.value = host.getCopyText();
+        host.onCut();
+        text.select();
+        setTimeout(sendText, 0);
+    };
+
+    event.addCommandKeyListener(text, host.onCommandKey.bind(host));
+    event.addListener(text, "keypress", onTextInput);
+    event.addListener(text, "textInput", onTextInput);
+    event.addListener(text, "paste", function(e) {
+        // Some browsers support the event.clipboardData API. Use this to get
+        // the pasted content which increases speed if pasting a lot of lines.
+        if (e.clipboardData && e.clipboardData.getData) {
+            sendText(e.clipboardData.getData("text/plain"));
+            e.preventDefault();
+        } else
+        // If a browser doesn't support any of the things above, use the regular
+        // method to detect the pasted input.
+        {
+            onTextInput();
+        }
+    });
+    event.addListener(text, "propertychange", onTextInput);
+
+    event.addListener(text, "copy", onCopy);
+    event.addListener(text, "cut", onCut);
+
+    event.addListener(text, "compositionstart", onCompositionStart);
+    event.addListener(text, "compositionupdate", onCompositionUpdate);
+    event.addListener(text, "compositionend", onCompositionEnd);
+
+    event.addListener(text, "blur", function() {
+        host.onBlur();
+    });
+
+    event.addListener(text, "focus", function() {
+        host.onFocus();
+        text.select();
+    });
+
+    this.focus = function() {
+        host.onFocus();
+        text.select();
+        text.focus();
+    };
+
+    this.blur = function() {
+        text.blur();
     };
 };
 
-Search.ALL = 1;
-Search.SELECTION = 2;
+exports.TextInput = TextInput;
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Skywriter.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Julian Viereck (julian.viereck@gmail.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
-(function() {
+define('ace/keyboard/state_handler', function(require, exports, module) {
 
-    this.set = function(options) {
-        oop.mixin(this.$options, options);
-        return this;
-    };
-    
-    this.getOptions = function() {
-        return lang.copyObject(this.$options);
-    };
+// If you're developing a new keymapping and want to get an idea what's going
+// on, then enable debugging.
+var DEBUG = false;
 
-    this.find = function(doc) {
-        if (!this.$options.needle)
-            return null;
+function StateHandler(keymapping) {
+    this.keymapping = this.$buildKeymappingRegex(keymapping);
+}
 
-        if (this.$options.backwards) {
-            var iterator = this.$backwardMatchIterator(doc);
-        } else {
-            iterator = this.$forwardMatchIterator(doc);
+StateHandler.prototype = {
+    /**
+     * Build the RegExp from the keymapping as RegExp can't stored directly
+     * in the metadata JSON and as the RegExp used to match the keys/buffer
+     * need to be adapted.
+     */
+    $buildKeymappingRegex: function(keymapping) {
+        for (state in keymapping) {
+            this.$buildBindingsRegex(keymapping[state]);
+        }
+        return keymapping;
+    },
+
+    $buildBindingsRegex: function(bindings) {
+        // Escape a given Regex string.
+        bindings.forEach(function(binding) {
+            if (binding.key) {
+                binding.key = new RegExp('^' + binding.key + '$');
+            } else if (Array.isArray(binding.regex)) {
+                binding.key = new RegExp('^' + binding.regex[1] + '$');
+                binding.regex = new RegExp(binding.regex.join('') + '$');
+            } else if (binding.regex) {
+                binding.regex = new RegExp(binding.regex + '$');
+            }
+        });
+    },
+
+    $composeBuffer: function(data, hashId, key) {
+        // Initialize the data object.
+        if (data.state == null || data.buffer == null) {
+            data.state = "start";
+            data.buffer = "";
         }
 
-        var firstRange = null;
-        iterator.forEach(function(range) {
-            firstRange = range;
+        var keyArray = [];
+        if (hashId & 1) keyArray.push("Ctrl");
+        if (hashId & 8) keyArray.push("Command");
+        if (hashId & 2) keyArray.push("Option");
+        if (hashId & 4) keyArray.push("Shift");
+        if (key)        keyArray.push(key);
+
+        var symbolicName = keyArray.join("-").toLowerCase();
+        var bufferToUse = data.buffer + symbolicName;
+
+        // Don't add the symbolic name to the key buffer if the alt_ key is
+        // part of the symbolic name. If it starts with alt_, this means
+        // that the user hit an alt keycombo and there will be a single,
+        // new character detected after this event, which then will be
+        // added to the buffer (e.g. alt_j will result in ∆).
+        //
+        // We test for 2 and not for & 2 as we only want to exclude the case where
+        // the option key is pressed alone.
+        if (hashId != 2) {
+            data.buffer = bufferToUse;
+        }
+
+        return {
+            bufferToUse:    bufferToUse,
+            symbolicName:   symbolicName
+        };
+    },
+
+    $find: function(data, buffer, symbolicName, hashId, key) {
+        // Holds the command to execute and the args if a command matched.
+        var result = {};
+
+        // Loop over all the bindings of the keymapp until a match is found.
+        this.keymapping[data.state].some(function(binding) {
+            var match;
+
+            // Check if the key matches.
+            if (binding.key && !binding.key.test(symbolicName)) {
+                return false;
+            }
+
+            // Check if the regex matches.
+            if (binding.regex && !(match = binding.regex.exec(buffer))) {
+                return false;
+            }
+
+            // Check if the match function matches.
+            if (binding.match && !binding.match(buffer, hashId, key, symbolicName)) {
+                return false;
+            }
+
+            // Check for disallowed matches.
+            if (binding.disallowMatches) {
+                for (var i = 0; i < binding.disallowMatches.length; i++) {
+                    if (!!match[binding.disallowMatches[i]]) {
+                        return false;
+                    }
+                }
+            }
+
+            // If there is a command to execute, then figure out the
+            // comand and the arguments.
+            if (binding.exec) {
+                result.command = binding.exec;
+
+                // Bulid the arguments.
+                if (binding.params) {
+                    var value;
+                    result.args = {};
+                    binding.params.forEach(function(param) {
+                        if (param.match != null && match != null) {
+                            value = match[param.match] || param.defaultValue;
+                        } else {
+                            value = param.defaultValue;
+                        }
+
+                        if (param.type === 'number') {
+                            value = parseInt(value);
+                        }
+
+                        result.args[param.name] = value;
+                    });
+                }
+                data.buffer = "";
+            }
+
+            // Handle the 'then' property.
+            if (binding.then) {
+                data.state = binding.then;
+                data.buffer = "";
+            }
+
+            // If no command is set, then execute the "null" fake command.
+            if (result.command == null) {
+                result.command = "null";
+            }
+
+            if (DEBUG) {
+                console.log("KeyboardStateMapper#find", binding);
+            }
             return true;
         });
 
-        return firstRange;
-    };
-
-    this.findAll = function(doc) {
-        if (!this.$options.needle)
-            return [];
-
-        if (this.$options.backwards) {
-            var iterator = this.$backwardMatchIterator(doc);
+        if (result.command) {
+            return result;
         } else {
-            iterator = this.$forwardMatchIterator(doc);
+            data.buffer = "";
+            return false;
+        }
+    },
+
+    /**
+     * This function is called by keyBinding.
+     */
+    handleKeyboard: function(data, hashId, key) {
+        // Compute the current value of the keyboard input buffer.
+        var r = this.$composeBuffer(data, hashId, key);
+        var buffer = r.bufferToUse;
+        var symbolicName = r.symbolicName;
+
+        r = this.$find(data, buffer, symbolicName, hashId, key);
+        if (DEBUG) {
+            console.log("KeyboardStateMapper#match", buffer, symbolicName, r);
         }
 
-        var ranges = [];
-        iterator.forEach(function(range) {
-            ranges.push(range);
-        });
+        return r;
+    }
+}
 
-        return ranges;
-    };
+/**
+ * This is a useful matching function and therefore is defined here so that
+ * users of KeyboardStateMapper can use it.
+ *
+ * @return boolean
+ *          If no command key (Command|Option|Shift|Ctrl) is pressed, it
+ *          returns true. If the only the Shift key is pressed + a character
+ *          true is returned as well. Otherwise, false is returned.
+ *          Summing up, the function returns true whenever the user typed
+ *          a normal character on the keyboard and no shortcut.
+ */
+exports.matchCharacterOnly = function(buffer, hashId, key, symbolicName) {
+    // If no command keys are pressed, then catch the input.
+    if (hashId == 0) {
+        return true;
+    }
+    // If only the shift key is pressed and a character key, then
+    // catch that input as well.
+    else if ((hashId == 4) && key.length == 1) {
+        return true;
+    }
+    // Otherwise, we let the input got through.
+    else {
+        return false;
+    }
+};
 
-    this.replace = function(input, replacement) {
-        var re = this.$assembleRegExp();
-        var match = re.exec(input);
-        if (match && match[0].length == input.length) {
-            if (this.$options.regExp) {
-                return input.replace(re, replacement);
-            } else {
-                return replacement;
-            }
-        } else {
-            return null;
-        }
-    };
-
-    this.$forwardMatchIterator = function(doc) {
-        var re = this.$assembleRegExp();
-        var self = this;
-
-        return {
-            forEach: function(callback) {
-                self.$forwardLineIterator(doc).forEach(function(line, startIndex, row) {
-                    if (startIndex) {
-                        line = line.substring(startIndex);
-                    }
-
-                    var matches = [];
-
-                    line.replace(re, function(str) {
-                        var offset = arguments[arguments.length-2];
-                        matches.push({
-                            str: str,
-                            offset: startIndex + offset
-                        });
-                        return str;
-                    });
-
-                    for (var i=0; i<matches.length; i++) {
-                        var match = matches[i];
-                        var range = self.$rangeFromMatch(row, match.offset, match.str.length);
-                        if (callback(range))
-                            return true;
-                    }
-
-                });
-            }
-        };
-    };
-
-    this.$backwardMatchIterator = function(doc) {
-        var re = this.$assembleRegExp();
-        var self = this;
-
-        return {
-            forEach: function(callback) {
-                self.$backwardLineIterator(doc).forEach(function(line, startIndex, row) {
-                    if (startIndex) {
-                        line = line.substring(startIndex);
-                    }
-
-                    var matches = [];
-
-                    line.replace(re, function(str, offset) {
-                        matches.push({
-                            str: str,
-                            offset: startIndex + offset
-                        });
-                        return str;
-                    });
-
-                    for (var i=matches.length-1; i>= 0; i--) {
-                        var match = matches[i];
-                        var range = self.$rangeFromMatch(row, match.offset, match.str.length);
-                        if (callback(range))
-                            return true;
-                    }
-                });
-            }
-        };
-    };
-
-    this.$rangeFromMatch = function(row, column, length) {
-        return new Range(row, column, row, column+length);
-    };
-
-    this.$assembleRegExp = function() {
-        if (this.$options.regExp) {
-            var needle = this.$options.needle;
-        } else {
-            needle = lang.escapeRegExp(this.$options.needle);
-        }
-
-        if (this.$options.wholeWord) {
-            needle = "\\b" + needle + "\\b";
-        }
-
-        var modifier = "g";
-        if (!this.$options.caseSensitive) {
-            modifier += "i";
-        }
-
-        var re = new RegExp(needle, modifier);
-        return re;
-    };
-
-    this.$forwardLineIterator = function(doc) {
-        var searchSelection = this.$options.scope == Search.SELECTION;
-
-        var range = doc.getSelection().getRange();
-        var start = doc.getSelection().getCursor();
-
-        var firstRow = searchSelection ? range.start.row : 0;
-        var firstColumn = searchSelection ? range.start.column : 0;
-        var lastRow = searchSelection ? range.end.row : doc.getLength() - 1;
-
-        var wrap = this.$options.wrap;
-
-        function getLine(row) {
-            var line = doc.getLine(row);
-            if (searchSelection && row == range.end.row) {
-                line = line.substring(0, range.end.column);
-            }
-            return line;
-        }
-
-        return {
-            forEach: function(callback) {
-                var row = start.row;
-
-                var line = getLine(row);
-                var startIndex = start.column;
-
-                var stop = false;
-
-                while (!callback(line, startIndex, row)) {
-
-                    if (stop) {
-                        return;
-                    }
-
-                    row++;
-                    startIndex = 0;
-
-                    if (row > lastRow) {
-                        if (wrap) {
-                            row = firstRow;
-                            startIndex = firstColumn;
-                        } else {
-                            return;
-                        }
-                    }
-
-                    if (row == start.row)
-                        stop = true;
-
-                    line = getLine(row);
-                }
-            }
-        };
-    };
-
-    this.$backwardLineIterator = function(doc) {
-        var searchSelection = this.$options.scope == Search.SELECTION;
-
-        var range = doc.getSelection().getRange();
-        var start = searchSelection ? range.end : range.start;
-
-        var firstRow = searchSelection ? range.start.row : 0;
-        var firstColumn = searchSelection ? range.start.column : 0;
-        var lastRow = searchSelection ? range.end.row : doc.getLength() - 1;
-
-        var wrap = this.$options.wrap;
-
-        return {
-            forEach : function(callback) {
-                var row = start.row;
-
-                var line = doc.getLine(row).substring(0, start.column);
-                var startIndex = 0;
-                var stop = false;
-
-                while (!callback(line, startIndex, row)) {
-
-                    if (stop)
-                        return;
-
-                    row--;
-                    startIndex = 0;
-
-                    if (row < firstRow) {
-                        if (wrap) {
-                            row = lastRow;
-                        } else {
-                            return;
-                        }
-                    }
-
-                    if (row == start.row)
-                        stop = true;
-
-                    line = doc.getLine(row);
-                    if (searchSelection) {
-                        if (row == firstRow)
-                            startIndex = firstColumn;
-                        else if (row == lastRow)
-                            line = line.substring(0, range.end.column);
-                    }
-                }
-            }
-        };
-    };
-
-}).call(Search.prototype);
-
-exports.Search = Search;
+exports.StateHandler = StateHandler;
 });
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -9483,7 +5565,1471 @@ exports.Search = Search;
  * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *      Julian Viereck <julian.viereck@gmail.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/keyboard/keybinding', function(require, exports, module) {
+
+var useragent = require("pilot/useragent");
+var keyUtil  = require("pilot/keys");
+var event = require("pilot/event");
+var settings  = require("pilot/settings").settings;
+var HashHandler = require("ace/keyboard/hash_handler").HashHandler;
+var default_mac = require("ace/keyboard/keybinding/default_mac").bindings;
+var default_win = require("ace/keyboard/keybinding/default_win").bindings;
+var canon = require("pilot/canon");
+require("ace/commands/default_commands");
+
+var KeyBinding = function(editor, config) {
+    this.$editor = editor;
+    this.$data = { };
+    this.$keyboardHandler = null;
+    this.$defaulKeyboardHandler = new HashHandler(config || (useragent.isMac
+        ? default_mac
+        : default_win));
+};
+
+(function() {
+    this.setKeyboardHandler = function(keyboardHandler) {
+        if (this.$keyboardHandler != keyboardHandler) {
+            this.$data = { };
+            this.$keyboardHandler = keyboardHandler;
+        }
+    };
+
+    this.getKeyboardHandler = function() {
+        return this.$keyboardHandler;
+    };
+
+    this.$callKeyboardHandler = function (e, hashId, keyOrText, keyCode) {
+        var toExecute;
+        if (this.$keyboardHandler) {
+            toExecute =
+                this.$keyboardHandler.handleKeyboard(this.$data, hashId, keyOrText, keyCode, e);
+        }
+
+        // If there is nothing to execute yet, then use the default keymapping.
+        if (!toExecute || !toExecute.command) {
+            toExecute = this.$defaulKeyboardHandler.
+                handleKeyboard(this.$data, hashId, keyOrText, keyCode, e);
+        }
+
+        if (toExecute) {
+            var success = canon.exec(toExecute.command,
+                                        {editor: this.$editor}, toExecute.args);
+            if (success) {
+                return event.stopEvent(e);
+            }
+        }
+    };
+
+    this.onCommandKey = function(e, hashId, keyCode) {
+        key = (keyUtil[keyCode] ||
+                String.fromCharCode(keyCode)).toLowerCase();
+
+        this.$callKeyboardHandler(e, hashId, key, keyCode);
+    };
+
+    this.onTextInput = function(text) {
+        this.$callKeyboardHandler({}, 0, text, 0);
+    }
+
+}).call(KeyBinding.prototype);
+
+exports.KeyBinding = KeyBinding;
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Skywriter.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Julian Viereck (julian.viereck@gmail.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/keyboard/keybinding/vim', function(require, exports, module) {
+
+var StateHandler = require("ace/keyboard/state_handler").StateHandler;
+var matchCharacterOnly =  require("ace/keyboard/state_handler").matchCharacterOnly;
+
+var vimStates = {
+    start: [
+        {
+            key:    "i",
+            then:   "insertMode"
+        },
+        {
+            regex:  [ "([0-9]*)", "(k|up)" ],
+            exec:   "golineup",
+            params: [
+                {
+                    name:     "times",
+                    match:    1,
+                    type:     "number",
+                    defaultValue:     1
+                }
+            ]
+        },
+        {
+            regex:  [ "([0-9]*)", "(j|down|enter)" ],
+            exec:   "golinedown",
+            params: [
+                {
+                    name:    "times",
+                    match:   1,
+                    type:    "number",
+                    defaultValue:    1
+                }
+            ]
+        },
+        {
+            regex:  [ "([0-9]*)", "(l|right)" ],
+            exec:   "gotoright",
+            params: [
+                {
+                    name:   "times",
+                    match:  1,
+                    type:   "number",
+                    defaultValue:     1
+                }
+            ]
+        },
+        {
+            regex:  [ "([0-9]*)", "(h|left)" ],
+            exec:   "gotoleft",
+            params: [
+                {
+                    name:     "times",
+                    match:    1,
+                    type:     "number",
+                    defaultValue:     1
+                }
+            ]
+        },
+        {
+            comment:    "Catch some keyboard input to stop it here",
+            match:      matchCharacterOnly
+        }
+    ],
+    insertMode: [
+        {
+            key:      "esc",
+            then:     "start"
+        }
+    ]
+};
+
+exports.Vim = new StateHandler(vimStates);
+
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/keyboard/keybinding/default_win', function(require, exports, module) {
+
+exports.bindings = {
+    "selectall": "Ctrl-A",
+    "removeline": "Ctrl-D",
+    "gotoline": "Ctrl-L",
+    "togglecomment": "Ctrl-7",
+    "findnext": "Ctrl-K",
+    "findprevious": "Ctrl-Shift-K",
+    "find": "Ctrl-F",
+    "replace": "Ctrl-R",
+    "undo": "Ctrl-Z",
+    "redo": "Ctrl-Shift-Z|Ctrl-Y",
+    "overwrite": "Insert",
+    "copylinesup": "Ctrl-Alt-Up",
+    "movelinesup": "Alt-Up",
+    "selecttostart": "Alt-Shift-Up",
+    "gotostart": "Ctrl-Home|Ctrl-Up",
+    "selectup": "Shift-Up",
+    "golineup": "Up",
+    "copylinesdown": "Ctrl-Alt-Down",
+    "movelinesdown": "Alt-Down",
+    "selecttoend": "Alt-Shift-Down",
+    "gotoend": "Ctrl-End|Ctrl-Down",
+    "selectdown": "Shift-Down",
+    "golinedown": "Down",
+    "selectwordleft": "Ctrl-Shift-Left",
+    "gotowordleft": "Ctrl-Left",
+    "selecttolinestart": "Alt-Shift-Left",
+    "gotolinestart": "Alt-Left|Home",
+    "selectleft": "Shift-Left",
+    "gotoleft": "Left",
+    "selectwordright": "Ctrl-Shift-Right",
+    "gotowordright": "Ctrl-Right",
+    "selecttolineend": "Alt-Shift-Right",
+    "gotolineend": "Alt-Right|End",
+    "selectright": "Shift-Right",
+    "gotoright": "Right",
+    "selectpagedown": "Shift-PageDown",
+    "pagedown": "PageDown",
+    "selectpageup": "Shift-PageUp",
+    "pageup": "PageUp",
+    "selectlinestart": "Shift-Home",
+    "selectlineend": "Shift-End",
+    "del": "Delete",
+    "backspace": "Backspace",
+    "outdent": "Shift-Tab",
+    "indent": "Tab"
+};
+
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/keyboard/keybinding/default_mac', function(require, exports, module) {
+
+exports.bindings = {
+    "selectall": "Command-A",
+    "removeline": "Command-D",
+    "gotoline": "Command-L",
+    "togglecomment": "Command-7",
+    "findnext": "Command-K",
+    "findprevious": "Command-Shift-K",
+    "find": "Command-F",
+    "replace": "Command-R",
+    "undo": "Command-Z",
+    "redo": "Command-Shift-Z|Command-Y",
+    "overwrite": "Insert",
+    "copylinesup": "Command-Option-Up",
+    "movelinesup": "Option-Up",
+    "selecttostart": "Command-Shift-Up",
+    "gotostart": "Command-Home|Command-Up",
+    "selectup": "Shift-Up",
+    "golineup": "Up",
+    "copylinesdown": "Command-Option-Down",
+    "movelinesdown": "Option-Down",
+    "selecttoend": "Command-Shift-Down",
+    "gotoend": "Command-End|Command-Down",
+    "selectdown": "Shift-Down",
+    "golinedown": "Down",
+    "selectwordleft": "Option-Shift-Left",
+    "gotowordleft": "Option-Left",
+    "selecttolinestart": "Command-Shift-Left",
+    "gotolinestart": "Command-Left|Home",
+    "selectleft": "Shift-Left",
+    "gotoleft": "Left",
+    "selectwordright": "Option-Shift-Right",
+    "gotowordright": "Option-Right",
+    "selecttolineend": "Command-Shift-Right",
+    "gotolineend": "Command-Right|End",
+    "selectright": "Shift-Right",
+    "gotoright": "Right",
+    "selectpagedown": "Shift-PageDown",
+    "pagedown": "PageDown",
+    "selectpageup": "Shift-PageUp",
+    "pageup": "PageUp",
+    "selectlinestart": "Shift-Home",
+    "selectlineend": "Shift-End",
+    "del": "Delete",
+    "backspace": "Ctrl-Backspace|Command-Backspace|Option-Backspace|Backspace",
+    "outdent": "Shift-Tab",
+    "indent": "Tab"
+};
+
+});/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Skywriter.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Julian Viereck (julian.viereck@gmail.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/keyboard/keybinding/emacs', function(require, exports, module) {
+
+var StateHandler = require("ace/keyboard/state_handler").StateHandler;
+var matchCharacterOnly =  require("ace/keyboard/state_handler").matchCharacterOnly;
+
+var emacsState = {
+    start: [
+        {
+            key:    "ctrl-x",
+            then:   "c-x"
+        },
+        {
+            regex:  [ "(?:command-([0-9]*))*", "(down|ctrl-n)" ],
+            exec:   "golinedown",
+            params: [
+                {
+                    name: "times",
+                    match: 1,
+                    type: "number",
+                    defaultValue: 1
+                }
+            ]
+        },
+        {
+            regex: [ "(?:command-([0-9]*))*", "(right|ctrl-f)" ],
+            exec: "gotoright",
+            params: [
+                {
+                    name: "times",
+                    match: 1,
+                    type: "number",
+                    defaultValue: 1
+                }
+            ]
+        },
+        {
+            regex: [ "(?:command-([0-9]*))*", "(up|ctrl-p)" ],
+            exec: "golineup",
+            params: [
+                {
+                    name: "times",
+                    match: 1,
+                    type: "number",
+                    defaultValue: 1
+                }
+            ]
+        },
+        {
+            regex: [ "(?:command-([0-9]*))*", "(left|ctrl-b)" ],
+            exec: "gotoleft",
+            params: [
+                {
+                    name: "times",
+                    match: 1,
+                    type: "number",
+                    defaultValue: 1
+                }
+            ]
+        },
+        {
+            comment: "This binding matches all printable characters except numbers as long as they are no numbers and print them n times.",
+            regex:  [ "(?:command-([0-9]*))", "([^0-9]+)*" ],
+            match:  matchCharacterOnly,
+            exec:   "inserttext",
+            params: [
+                {
+                    name: "times",
+                    match: 1,
+                    type: "number",
+                    defaultValue: "1"
+                },
+                {
+                    name: "text",
+                    match: 2
+                }
+            ]
+        },
+        {
+            comment: "This binding matches numbers as long as there is no meta_number in the buffer.",
+            regex:  [ "(command-[0-9]*)*", "([0-9]+)" ],
+            match:  matchCharacterOnly,
+            disallowMatches:  [ 1 ],
+            exec:   "inserttext",
+            params: [
+                {
+                    name: "text",
+                    match: 2,
+                    type: "text"
+                }
+            ]
+        },
+        {
+            regex: [ "command-([0-9]*)", "(command-[0-9]|[0-9])" ],
+            comment: "Stops execution if the regex /meta_[0-9]+/ matches to avoid resetting the buffer."
+        }
+    ],
+    "c-x": [
+        {
+            key: "ctrl-g",
+            then: "start"
+        },
+        {
+            key: "ctrl-s",
+            exec: "save",
+            then: "start"
+        }
+    ]
+};
+
+exports.Emacs = new StateHandler(emacsState);
+
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Skywriter.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Fabian Jakobs <fabian AT ajax DOT org>
+ *   Julian Viereck (julian.viereck@gmail.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/keyboard/hash_handler', function(require, exports, module) {
+
+var keyUtil  = require("pilot/keys");
+
+function HashHandler(config) {
+    this.setConfig(config);
+}
+
+(function() {
+    function splitSafe(s, separator, limit, bLowerCase) {
+        return (bLowerCase && s.toLowerCase() || s)
+            .replace(/(?:^\s+|\n|\s+$)/g, "")
+            .split(new RegExp("[\\s ]*" + separator + "[\\s ]*", "g"), limit || 999);
+    }
+
+    function parseKeys(keys, val, ret) {
+        var key,
+            hashId = 0,
+            parts  = splitSafe(keys, "\\-", null, true),
+            i      = 0,
+            l      = parts.length;
+
+        for (; i < l; ++i) {
+            if (keyUtil.KEY_MODS[parts[i]])
+                hashId = hashId | keyUtil.KEY_MODS[parts[i]];
+            else
+                key = parts[i] || "-"; //when empty, the splitSafe removed a '-'
+        }
+
+        (ret[hashId] || (ret[hashId] = {}))[key] = val;
+        return ret;
+    }
+
+    function objectReverse(obj, keySplit) {
+        var i, j, l, key,
+            ret = {};
+        for (i in obj) {
+            key = obj[i];
+            if (keySplit && typeof key == "string") {
+                key = key.split(keySplit);
+                for (j = 0, l = key.length; j < l; ++j)
+                    parseKeys.call(this, key[j], i, ret);
+            }
+            else {
+                parseKeys.call(this, key, i, ret);
+            }
+        }
+        return ret;
+    }
+
+    this.setConfig = function(config) {
+        this.$config = config;
+        if (typeof this.$config.reverse == "undefined")
+            this.$config.reverse = objectReverse.call(this, this.$config, "|");
+    };
+
+    /**
+     * This function is called by keyBinding.
+     */
+    this.handleKeyboard = function(data, hashId, textOrKey, keyCode) {
+        // Figure out if a commandKey was pressed or just some text was insert.
+        if (hashId != 0 || keyCode != 0) {
+            return {
+                command: (this.$config.reverse[hashId] || {})[textOrKey]
+            }
+        } else {
+            return {
+                command: "inserttext",
+                args: {
+                    text: textOrKey
+                }
+            }
+        }
+    }
+}).call(HashHandler.prototype)
+
+exports.HashHandler = HashHandler;
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *      Irakli Gozalishvili <rfobic@gmail.com> (http://jeditoolkit.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/virtual_renderer', function(require, exports, module) {
+
+var oop = require("pilot/oop");
+var dom = require("pilot/dom");
+var event = require("pilot/event");
+var GutterLayer = require("ace/layer/gutter").Gutter;
+var MarkerLayer = require("ace/layer/marker").Marker;
+var TextLayer = require("ace/layer/text").Text;
+var CursorLayer = require("ace/layer/cursor").Cursor;
+var ScrollBar = require("ace/scrollbar").ScrollBar;
+var RenderLoop = require("ace/renderloop").RenderLoop;
+var EventEmitter = require("pilot/event_emitter").EventEmitter;
+var editorCss = require("text!ace/css/editor.css");
+
+// import CSS once
+dom.importCssString(editorCss);
+
+var VirtualRenderer = function(container, theme) {
+    this.container = container;
+    dom.addCssClass(this.container, "ace_editor");
+
+    this.setTheme(theme);
+
+    this.$gutter = document.createElement("div");
+    this.$gutter.className = "ace_gutter";
+    this.container.appendChild(this.$gutter);
+
+    this.scroller = document.createElement("div");
+    this.scroller.className = "ace_scroller";
+    this.container.appendChild(this.scroller);
+
+    this.content = document.createElement("div");
+    this.content.style.cssText = "position:absolute;box-sizing:border-box;" +
+        "-moz-box-sizing:border-box;-webkit-box-sizing:border-box";
+    this.scroller.appendChild(this.content);
+
+    this.$gutterLayer = new GutterLayer(this.$gutter);
+    this.$markerLayer = new MarkerLayer(this.content);
+
+    var textLayer = this.$textLayer = new TextLayer(this.content);
+    this.canvas = textLayer.element;
+
+    this.characterWidth = textLayer.getCharacterWidth();
+    this.lineHeight = textLayer.getLineHeight();
+
+    this.$cursorLayer = new CursorLayer(this.content);
+
+    this.layers = [ this.$markerLayer, textLayer, this.$cursorLayer ];
+
+    this.scrollBar = new ScrollBar(container);
+    this.scrollBar.addEventListener("scroll", this.onScroll.bind(this));
+
+    this.scrollTop = 0;
+
+    this.cursorPos = {
+        row : 0,
+        column : 0
+    };
+
+    var self = this;
+    this.$textLayer.addEventListener("changeCharaterSize", function() {
+        self.characterWidth = textLayer.getCharacterWidth();
+        self.lineHeight = textLayer.getLineHeight();
+
+        self.$loop.schedule(self.CHANGE_FULL);
+    });
+    event.addListener(this.$gutter, "click", this.$onGutterClick.bind(this));
+    event.addListener(this.$gutter, "dblclick", this.$onGutterClick.bind(this));
+
+    this.$size = {
+        width: 0,
+        height: 0,
+        scrollerHeight: 0,
+        scrollerWidth: 0
+    };
+
+    this.$loop = new RenderLoop(this.$renderChanges.bind(this));
+    this.$loop.schedule(this.CHANGE_FULL);
+
+    this.$updatePrintMargin();
+    this.setPadding(4);
+};
+
+(function() {
+
+    this.showGutter = true;
+
+    this.CHANGE_CURSOR = 1;
+    this.CHANGE_MARKER = 2;
+    this.CHANGE_GUTTER = 4;
+    this.CHANGE_SCROLL = 8;
+    this.CHANGE_LINES = 16;
+    this.CHANGE_TEXT = 32;
+    this.CHANGE_SIZE = 64;
+    this.CHANGE_FULL = 128;
+
+    oop.implement(this, EventEmitter);
+
+    this.setSession = function(session) {
+        this.session = session;
+        this.$cursorLayer.setSession(session);
+        this.$markerLayer.setSession(session);
+        this.$textLayer.setSession(session);
+
+        this.$loop.schedule(this.CHANGE_FULL);
+    };
+
+    /**
+     * Triggers partial update of the text layer
+     */
+    this.updateLines = function(firstRow, lastRow) {
+        if (lastRow === undefined)
+            lastRow = Infinity;
+
+        if (!this.$changedLines) {
+            this.$changedLines = {
+                firstRow: firstRow,
+                lastRow: lastRow
+            };
+        }
+        else {
+            if (this.$changedLines.firstRow > firstRow)
+                this.$changedLines.firstRow = firstRow;
+
+            if (this.$changedLines.lastRow < lastRow)
+                this.$changedLines.lastRow = lastRow;
+        }
+
+        this.$loop.schedule(this.CHANGE_LINES);
+    };
+
+    /**
+     * Triggers full update of the text layer
+     */
+    this.updateText = function() {
+        this.$loop.schedule(this.CHANGE_TEXT);
+    };
+
+    /**
+     * Triggers a full update of all layers
+     */
+    this.updateFull = function() {
+        this.$loop.schedule(this.CHANGE_FULL);
+    };
+
+    /**
+     * Triggers resize of the editor
+     */
+    this.onResize = function() {
+        var changes = this.CHANGE_SIZE;
+
+        var height = dom.getInnerHeight(this.container);
+        if (this.$size.height != height) {
+            this.$size.height = height;
+
+            this.scroller.style.height = height + "px";
+            this.scrollBar.setHeight(height);
+
+            if (this.session) {
+                this.scrollToY(this.getScrollTop());
+                changes = changes | this.CHANGE_FULL;
+            }
+        }
+
+        var width = dom.getInnerWidth(this.container);
+        if (this.$size.width != width) {
+            this.$size.width = width;
+
+            var gutterWidth = this.showGutter ? this.$gutter.offsetWidth : 0;
+            this.scroller.style.left = gutterWidth + "px";
+            this.scroller.style.width = Math.max(0, width - gutterWidth - this.scrollBar.getWidth()) + "px";
+        }
+
+        this.$size.scrollerWidth = this.scroller.clientWidth;
+        this.$size.scrollerHeight = this.scroller.clientHeight;
+        this.$loop.schedule(changes);
+    };
+
+    this.setTokenizer = function(tokenizer) {
+        this.$tokenizer = tokenizer;
+        this.$textLayer.setTokenizer(tokenizer);
+        this.$loop.schedule(this.CHANGE_TEXT);
+    };
+
+    this.$onGutterClick = function(e) {
+        var pageX = event.getDocumentX(e);
+        var pageY = event.getDocumentY(e);
+
+        this._dispatchEvent("gutter" + e.type, {
+            row: this.screenToTextCoordinates(pageX, pageY).row,
+            htmlEvent: e
+        });
+    };
+
+    this.setShowInvisibles = function(showInvisibles) {
+        if (this.$textLayer.setShowInvisibles(showInvisibles))
+            this.$loop.schedule(this.CHANGE_TEXT);
+    };
+
+    this.getShowInvisibles = function() {
+        return this.$textLayer.showInvisibles;
+    };
+
+    this.$showPrintMargin = true;
+    this.setShowPrintMargin = function(showPrintMargin) {
+        this.$showPrintMargin = showPrintMargin;
+        this.$updatePrintMargin();
+    };
+
+    this.getShowPrintMargin = function() {
+        return this.$showPrintMargin;
+    };
+
+    this.$printMarginColumn = 80;
+    this.setPrintMarginColumn = function(showPrintMargin) {
+        this.$printMarginColumn = showPrintMargin;
+        this.$updatePrintMargin();
+    };
+
+    this.getPrintMarginColumn = function() {
+        return this.$printMarginColumn;
+    };
+
+    this.setShowGutter = function(show){
+        this.$gutter.style.display = show ? "block" : "none";
+        this.showGutter = show;
+        this.onResize();
+    }
+
+    this.$updatePrintMargin = function() {
+        var containerEl
+
+        if (!this.$showPrintMargin && !this.$printMarginEl)
+            return;
+        if (!this.$printMarginEl) {
+            containerEl = document.createElement("div");
+            containerEl.className = "ace_print_margin_layer";
+            this.$printMarginEl = document.createElement("div")
+            this.$printMarginEl.className = "ace_print_margin";
+            containerEl.appendChild(this.$printMarginEl);
+            this.content.insertBefore(containerEl, this.$textLayer.element);
+        }
+
+        var style = this.$printMarginEl.style;
+        style.left = (this.characterWidth * this.$printMarginColumn) + "px";
+        style.visibility = this.$showPrintMargin ? "visible" : "hidden";
+    };
+
+    this.getContainerElement = function() {
+        return this.container;
+    };
+
+    this.getMouseEventTarget = function() {
+        return this.content;
+    };
+
+    this.getFirstVisibleRow = function() {
+        return (this.layerConfig || {}).firstRow || 0;
+    };
+
+    this.getFirstFullyVisibleRow = function(){
+        if (!this.layerConfig)
+            return 0;
+
+        return this.layerConfig.firstRow + (this.layerConfig.offset == 0 ? 0 : 1);
+    }
+
+    this.getLastFullyVisibleRow = function() {
+        if (!this.layerConfig)
+            return 0;
+
+        var flint = Math.floor((this.layerConfig.height + this.layerConfig.offset) / this.layerConfig.lineHeight);
+        return this.layerConfig.firstRow - 1 + flint;
+    }
+
+    this.getLastVisibleRow = function() {
+        return (this.layerConfig || {}).lastRow || 0;
+    };
+
+    this.$padding = null;
+    this.setPadding = function(padding) {
+        this.$padding = padding;
+        this.content.style.padding = "0 " + padding + "px";
+        this.$loop.schedule(this.CHANGE_FULL);
+    };
+
+    this.onScroll = function(e) {
+        this.scrollToY(e.data);
+    };
+
+    this.$updateScrollBar = function() {
+        this.scrollBar.setInnerHeight(this.session.getLength() * this.lineHeight);
+        this.scrollBar.setScrollTop(this.scrollTop);
+    };
+
+    this.$renderChanges = function(changes) {
+        if (!changes || !this.session || !this.$tokenizer)
+            return;
+        
+        // text, scrolling and resize changes can cause the view port size to change
+        if (!this.layerConfig ||
+            changes & this.CHANGE_FULL ||
+            changes & this.CHANGE_SIZE ||
+            changes & this.CHANGE_TEXT ||
+            changes & this.CHANGE_LINES ||
+            changes & this.CHANGE_SCROLL
+        )
+            this.$computeLayerConfig();
+
+        // full
+        if (changes & this.CHANGE_FULL) {
+            this.$textLayer.update(this.layerConfig);
+            this.showGutter && this.$gutterLayer.update(this.layerConfig);
+            this.$markerLayer.update(this.layerConfig);
+            this.$cursorLayer.update(this.layerConfig);
+            this.$updateScrollBar();
+            return;
+        }
+
+        // scrolling
+        if (changes & this.CHANGE_SCROLL) {
+            if (changes & this.CHANGE_TEXT || changes & this.CHANGE_LINES)
+                this.$textLayer.update(this.layerConfig);
+            else
+                this.$textLayer.scrollLines(this.layerConfig);
+            this.showGutter && this.$gutterLayer.update(this.layerConfig);
+            this.$markerLayer.update(this.layerConfig);
+            this.$cursorLayer.update(this.layerConfig);
+            this.$updateScrollBar();
+            return;
+        }
+
+        if (changes & this.CHANGE_TEXT) {
+            this.$textLayer.update(this.layerConfig);
+            this.showGutter && this.$gutterLayer.update(this.layerConfig);
+        }
+        else if (changes & this.CHANGE_LINES) {
+            this.$updateLines();
+            this.$updateScrollBar();
+            this.showGutter && this.$gutterLayer.update(this.layerConfig);
+        } else if (changes & this.CHANGE_GUTTER) {
+            this.showGutter && this.$gutterLayer.update(this.layerConfig);
+        }
+
+        if (changes & this.CHANGE_CURSOR)
+            this.$cursorLayer.update(this.layerConfig);
+
+        if (changes & this.CHANGE_MARKER) {
+            this.$markerLayer.update(this.layerConfig);
+        }
+
+        if (changes & this.CHANGE_SIZE)
+            this.$updateScrollBar();
+    };
+
+    this.$computeLayerConfig = function() {
+        var offset = this.scrollTop % this.lineHeight;
+        var minHeight = this.$size.scrollerHeight + this.lineHeight;
+
+        var longestLine = this.$getLongestLine();
+        var widthChanged = !this.layerConfig ? true : (this.layerConfig.width != longestLine);
+
+        var lineCount = Math.ceil(minHeight / this.lineHeight);
+        var firstRow = Math.max(0, Math.round((this.scrollTop - offset) / this.lineHeight));
+        var lastRow = Math.max(0, Math.min(this.session.getLength(), firstRow + lineCount) - 1);
+
+        var layerConfig = this.layerConfig = {
+            width : longestLine,
+            padding : this.$padding,
+            firstRow : firstRow,
+            lastRow : lastRow,
+            lineHeight : this.lineHeight,
+            characterWidth : this.characterWidth,
+            minHeight : minHeight,
+            offset : offset,
+            height : this.$size.scrollerHeight
+        };
+
+        this.$gutterLayer.element.style.marginTop = (-offset) + "px";
+        this.content.style.marginTop = (-offset) + "px";
+        this.content.style.width = longestLine + "px";
+        this.content.style.height = minHeight + "px";
+    };
+
+    this.$updateLines = function() {
+        var firstRow = this.$changedLines.firstRow;
+        var lastRow = this.$changedLines.lastRow;
+        this.$changedLines = null;
+
+        var layerConfig = this.layerConfig;
+
+        // if the update changes the width of the document do a full redraw
+        if (layerConfig.width != this.$getLongestLine())
+            return this.$textLayer.update(layerConfig);
+
+        if (firstRow > layerConfig.lastRow + 1) { return; }
+        if (lastRow < layerConfig.firstRow) { return; }
+
+        // if the last row is unknown -> redraw everything
+        if (lastRow === Infinity) {
+            this.showGutter && this.$gutterLayer.update(layerConfig);
+            this.$textLayer.update(layerConfig);
+            return;
+        }
+
+        // else update only the changed rows
+        this.$textLayer.updateLines(layerConfig, firstRow, lastRow);
+    };
+
+    this.$getLongestLine = function() {
+        var charCount = this.session.getScreenWidth();
+        if (this.$textLayer.showInvisibles)
+            charCount += 1;
+
+        return Math.max(this.$size.scrollerWidth - this.$padding * 2, Math.round(charCount * this.characterWidth));
+    };
+
+    this.addMarker = function(range, clazz, type) {
+        var id = this.$markerLayer.addMarker(range, clazz, type);
+        this.$loop.schedule(this.CHANGE_MARKER);
+        return id;
+    };
+
+    this.removeMarker = function(markerId) {
+        this.$markerLayer.removeMarker(markerId);
+        this.$loop.schedule(this.CHANGE_MARKER);
+    };
+
+    this.addGutterDecoration = function(row, className){
+        this.$gutterLayer.addGutterDecoration(row, className);
+        this.$loop.schedule(this.CHANGE_GUTTER);
+    }
+
+    this.removeGutterDecoration = function(row, className){
+        this.$gutterLayer.removeGutterDecoration(row, className);
+        this.$loop.schedule(this.CHANGE_GUTTER);
+    }
+
+    this.setBreakpoints = function(rows) {
+        this.$gutterLayer.setBreakpoints(rows);
+        this.$loop.schedule(this.CHANGE_GUTTER);
+    };
+
+    this.updateCursor = function(position, overwrite) {
+        this.$cursorLayer.setCursor(position, overwrite);
+        this.$loop.schedule(this.CHANGE_CURSOR);
+    };
+
+    this.hideCursor = function() {
+        this.$cursorLayer.hideCursor();
+    };
+
+    this.showCursor = function() {
+        this.$cursorLayer.showCursor();
+    };
+
+    this.scrollCursorIntoView = function() {
+        var pos = this.$cursorLayer.getPixelPosition();
+
+        var left = pos.left + this.$padding;
+        var top = pos.top;
+
+        if (this.getScrollTop() > top) {
+            this.scrollToY(top);
+        }
+
+        if (this.getScrollTop() + this.$size.scrollerHeight < top
+                + this.lineHeight) {
+            this.scrollToY(top + this.lineHeight - this.$size.scrollerHeight);
+        }
+
+        if (this.scroller.scrollLeft > left) {
+            this.scrollToX(left);
+        }
+
+        if (this.scroller.scrollLeft + this.$size.scrollerWidth < left
+                + this.characterWidth) {
+            this.scrollToX(Math.round(left + this.characterWidth
+                    - this.$size.scrollerWidth));
+        }
+    },
+
+    this.getScrollTop = function() {
+        return this.scrollTop;
+    };
+
+    this.getScrollLeft = function() {
+        return this.scroller.scrollLeft;
+    };
+
+    this.getScrollTopRow = function() {
+        return this.scrollTop / this.lineHeight;
+    };
+
+    this.scrollToRow = function(row) {
+        this.scrollToY(row * this.lineHeight);
+    };
+
+    this.scrollToY = function(scrollTop) {
+        var maxHeight = this.session.getLength() * this.lineHeight - this.$size.scrollerHeight;
+        var scrollTop = Math.max(0, Math.min(maxHeight, scrollTop));
+
+        if (this.scrollTop !== scrollTop) {
+            this.scrollTop = scrollTop;
+            this.$loop.schedule(this.CHANGE_SCROLL);
+        }
+    };
+
+    this.scrollToX = function(scrollLeft) {
+        if (scrollLeft <= this.$padding)
+            scrollLeft = 0;
+
+        this.scroller.scrollLeft = scrollLeft;
+    };
+
+    this.scrollBy = function(deltaX, deltaY) {
+        deltaY && this.scrollToY(this.scrollTop + deltaY);
+        deltaX && this.scrollToX(this.scroller.scrollLeft + deltaX);
+    };
+
+    this.screenToTextCoordinates = function(pageX, pageY) {
+        var canvasPos = this.scroller.getBoundingClientRect();
+
+        var col = Math.round((pageX + this.scroller.scrollLeft - canvasPos.left - this.$padding)
+                / this.characterWidth);
+        var row = Math.floor((pageY + this.scrollTop - canvasPos.top)
+                / this.lineHeight);
+
+        return {
+            row : row,
+            column : this.session.screenToDocumentColumn(Math.max(0, Math.min(row, this.session.getLength()-1)), col)
+        };
+    };
+
+    this.textToScreenCoordinates = function(row, column) {
+        var canvasPos = this.scroller.getBoundingClientRect();
+
+        var x = this.$padding + Math.round(this.session.documentToScreenColumn(row, column) * this.characterWidth);
+        var y = row * this.lineHeight;
+
+        return {
+            pageX: canvasPos.left + x - this.getScrollLeft(),
+            pageY: canvasPos.top + y - this.getScrollTop()
+        }
+    };
+
+    this.visualizeFocus = function() {
+        dom.addCssClass(this.container, "ace_focus");
+    };
+
+    this.visualizeBlur = function() {
+        dom.removeCssClass(this.container, "ace_focus");
+    };
+
+    this.showComposition = function(position) {
+    };
+
+    this.setCompositionText = function(text) {
+    };
+
+    this.hideComposition = function() {
+    };
+
+    this.setTheme = function(theme) {
+        var _self = this;
+        if (!theme || typeof theme == "string") {
+            theme = theme || "ace/theme/textmate";
+            require([theme], function(theme) {
+                afterLoad(theme);
+            });
+        } else {
+            afterLoad(theme);
+        }
+
+        var _self = this;
+        function afterLoad(theme) {
+            if (_self.$theme)
+                dom.removeCssClass(_self.container, _self.$theme);
+
+            _self.$theme = theme ? theme.cssClass : null;
+
+            if (_self.$theme)
+                dom.addCssClass(_self.container, _self.$theme);
+
+            // force re-measure of the gutter width
+            if (_self.$size) {
+                _self.$size.width = 0;
+                _self.onResize();
+            }
+        }
+    };
+
+}).call(VirtualRenderer.prototype);
+
+exports.VirtualRenderer = VirtualRenderer;
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/background_tokenizer', function(require, exports, module) {
+
+var oop = require("pilot/oop");
+var EventEmitter = require("pilot/event_emitter").EventEmitter;
+
+var BackgroundTokenizer = function(tokenizer, editor) {
+    this.running = false;
+    this.doc = [];
+    this.lines = [];
+    this.currentLine = 0;
+    this.tokenizer = tokenizer;
+
+    var self = this;
+
+    this.$worker = function() {
+        if (!self.running) { return; }
+
+        var workerStart = new Date();
+        var startLine = self.currentLine;
+        var doc = self.doc;
+
+        var processedLines = 0;
+        var lastVisibleRow = editor.getLastVisibleRow();
+
+        var len = doc.getLength();
+        while (self.currentLine < len) {
+            self.lines[self.currentLine] = self.$tokenizeRows(self.currentLine, self.currentLine)[0];
+            self.currentLine++;
+
+            // only check every 5 lines
+            processedLines += 1;
+            if ((processedLines % 5 == 0) && (new Date() - workerStart) > 20) {
+                self.fireUpdateEvent(startLine, self.currentLine-1);
+
+                var timeout = self.currentLine < lastVisibleRow ? 20 : 100;
+                self.running = setTimeout(self.$worker, timeout);
+                return;
+            }
+        }
+
+        self.running = false;
+
+        self.fireUpdateEvent(startLine, len - 1);
+    };
+};
+
+(function(){
+
+    oop.implement(this, EventEmitter);
+
+    this.setTokenizer = function(tokenizer) {
+        this.tokenizer = tokenizer;
+        this.lines = [];
+
+        this.start(0);
+    };
+
+    this.setDocument = function(doc) {
+        this.doc = doc;
+        this.lines = [];
+
+        this.stop();
+    };
+
+    this.fireUpdateEvent = function(firstRow, lastRow) {
+        var data = {
+            first: firstRow,
+            last: lastRow
+        };
+        this._dispatchEvent("update", {data: data});
+    };
+
+    this.start = function(startRow) {
+        this.currentLine = Math.min(startRow || 0, this.currentLine,
+                                    this.doc.getLength());
+
+        // remove all cached items below this line
+        this.lines.splice(this.currentLine, this.lines.length);
+
+        this.stop();
+        // pretty long delay to prevent the tokenizer from interfering with the user
+        this.running = setTimeout(this.$worker, 700);
+    };
+
+    this.stop = function() {
+        if (this.running)
+            clearTimeout(this.running);
+        this.running = false;
+    };
+
+    this.getTokens = function(firstRow, lastRow) {
+        return this.$tokenizeRows(firstRow, lastRow);
+    };
+
+    this.getState = function(row) {
+        return this.$tokenizeRows(row, row)[0].state;
+    };
+
+    this.$tokenizeRows = function(firstRow, lastRow) {
+        var rows = [];
+
+        // determine start state
+        var state = "start";
+        var doCache = false;
+        if (firstRow > 0 && this.lines[firstRow - 1]) {
+            state = this.lines[firstRow - 1].state;
+            doCache = true;
+        }
+
+        var lines = this.doc.getLines(firstRow, lastRow);
+        for (var row=firstRow; row<=lastRow; row++) {
+            if (!this.lines[row]) {
+                var tokens = this.tokenizer.getLineTokens(lines[row-firstRow] || "", state);
+                var state = tokens.state;
+                rows.push(tokens);
+
+                if (doCache) {
+                    this.lines[row] = tokens;
+                }
+            }
+            else {
+                var tokens = this.lines[row];
+                state = tokens.state;
+                rows.push(tokens);
+            }
+        }
+        return rows;
+    };
+
+}).call(BackgroundTokenizer.prototype);
+
+exports.BackgroundTokenizer = BackgroundTokenizer;
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
  * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
@@ -9619,9 +7165,16 @@ var Selection = function(doc) {
         var lastRow = this.doc.getLength() - 1;
         this.setSelectionAnchor(lastRow, this.doc.getLine(lastRow).length);
 
-        this.$moveSelection(function() {
-            this.moveCursorTo(0, 0);
-        });
+        if (!this.selectionAnchor) {
+            this.selectionAnchor = this.$clone(this.selectionLead);
+        }
+
+        var cursor = {row:0, column:0};
+        // only dispatch change if the cursor actually changed
+        if (cursor.row !== this.selectionLead.row || cursor.column !== this.selectionLead.column) {
+            this.selectionLead = cursor;
+            this._dispatchEvent("changeSelection", {blockScrolling: true});
+        }
     };
 
     this.setSelectionRange = function(range, reverse) {
@@ -9917,7 +7470,7 @@ exports.Selection = Selection;
  * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
+ * Ajax.org B.V.
  * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
@@ -9938,118 +7491,360 @@ exports.Selection = Selection;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/textinput', function(require, exports, module) {
+define('ace/document', function(require, exports, module) {
 
-var event = require("pilot/event");
+var oop = require("pilot/oop");
+var EventEmitter = require("pilot/event_emitter").EventEmitter;
+var Range = require("ace/range").Range;
 
-var TextInput = function(parentNode, host) {
+var Document = function(text) {
+    this.$lines = [];
 
-    var text = document.createElement("textarea");
-    var style = text.style;
-    style.position = "absolute";
-    style.left = "-10000px";
-    style.top = "-10000px";
-    parentNode.appendChild(text);
-
-    var PLACEHOLDER = String.fromCharCode(0);
-    sendText();
-
-    var inCompostion = false;
-    var copied = false;
-
-    function sendText() {
-        if (!copied) {
-            var value = text.value;
-            if (value) {
-                if (value.charCodeAt(value.length-1) == PLACEHOLDER.charCodeAt(0)) {
-                    value = value.slice(0, -1);
-                    if (value)
-                        host.onTextInput(value);
-                } else
-                    host.onTextInput(value);
-            }
-        }
-        copied = false;
-
-        // Safari doesn't fire copy events if no text is selected
-        text.value = PLACEHOLDER;
-        text.select();
+    if (Array.isArray(text)) {
+        this.insertLines(0, text);
+    } else {
+        this.insert({row: 0, column:0}, text);
     }
-
-    var onTextInput = function(e) {
-        setTimeout(function() {
-            if (!inCompostion)
-                sendText();
-        }, 0);
-    };
-
-    var onCompositionStart = function(e) {
-        inCompostion = true;
-        sendText();
-        text.value = "";
-        host.onCompositionStart();
-        setTimeout(onCompositionUpdate, 0);
-    };
-
-    var onCompositionUpdate = function() {
-        host.onCompositionUpdate(text.value);
-    };
-
-    var onCompositionEnd = function() {
-        inCompostion = false;
-        host.onCompositionEnd();
-        onTextInput();
-    };
-
-    var onCopy = function() {
-        copied = true;
-        text.value = host.getCopyText();
-        text.select();
-        copied = true;
-        setTimeout(sendText, 0);
-    };
-
-    var onCut = function() {
-        copied = true;
-        text.value = host.getCopyText();
-        host.onCut();
-        text.select();
-        setTimeout(sendText, 0);
-    };
-
-    event.addListener(text, "keypress", onTextInput);
-    event.addListener(text, "textInput", onTextInput);
-    event.addListener(text, "paste", onTextInput);
-    event.addListener(text, "propertychange", onTextInput);
-
-    event.addListener(text, "copy", onCopy);
-    event.addListener(text, "cut", onCut);
-
-    event.addListener(text, "compositionstart", onCompositionStart);
-    event.addListener(text, "compositionupdate", onCompositionUpdate);
-    event.addListener(text, "compositionend", onCompositionEnd);
-
-    event.addListener(text, "blur", function() {
-        host.onBlur();
-    });
-
-    event.addListener(text, "focus", function() {
-        host.onFocus();
-        text.select();
-    });
-
-    this.focus = function() {
-        host.onFocus();
-        text.select();
-        text.focus();
-    };
-
-    this.blur = function() {
-        text.blur();
-    };
 };
 
-exports.TextInput = TextInput;
+(function() {
+
+    oop.implement(this, EventEmitter);
+
+    this.setValue = function(text) {
+        var len = this.getLength();
+        this.remove(new Range(0, 0, len, this.getLine(len-1).length));
+        this.insertLines(0, this.$split(text));
+    };
+  	
+    this.getValue = function() {
+        return this.$lines.join(this.getNewLineCharacter());
+    };
+    
+    // check for IE split bug
+    if ("aaa".split(/a/).length == 0)        
+        this.$split = function(text) {
+            return text.replace(/\r\n|\r/g, "\n").split("\n");
+        }
+    else
+        this.$split = function(text) {
+            return text.split(/\r\n|\r|\n/);
+        };
+
+    
+    this.$detectNewLine = function(text) {
+        var match = text.match(/^.*?(\r?\n)/m);
+        if (match) {
+            this.$autoNewLine = match[1];
+        } else {
+            this.$autoNewLine = "\n";
+        }
+    };
+    
+    this.getNewLineCharacter = function() {
+      switch (this.$newLineMode) {
+          case "windows":
+              return "\r\n";
+
+          case "unix":
+              return "\n";
+
+          case "auto":
+              return this.$autoNewLine;
+      }
+    },
+
+    this.$autoNewLine = "\n";
+    this.$newLineMode = "auto";
+    this.setNewLineMode = function(newLineMode) {
+        if (this.$newLineMode === newLineMode) return;
+
+        this.$newLineMode = newLineMode;
+    };
+
+    this.getNewLineMode = function() {
+        return this.$newLineMode;
+    };
+    
+    this.isNewLine = function(text) {
+        return (text == "\r\n" || text == "\r" || text == "\n");
+    };
+
+    /**
+     * Get a verbatim copy of the given line as it is in the document 
+     */
+    this.getLine = function(row) {
+        return this.$lines[row] || "";
+    };
+    
+    this.getLines = function(firstRow, lastRow) {
+        return this.$lines.slice(firstRow, lastRow+1);
+    };
+    
+    /**
+     * Returns all lines in the document as string array. Warning: The caller 
+     * should not modify this array!
+     */
+    this.getAllLines = function() {
+        return this.$lines;
+    };
+
+    this.getLength = function() {
+        return this.$lines.length;
+    };
+
+    this.getTextRange = function(range) {
+        if (range.start.row == range.end.row) {
+            return this.$lines[range.start.row].substring(range.start.column,
+                                                         range.end.column);
+        }
+        else {
+            var lines = [];
+            lines.push(this.$lines[range.start.row].substring(range.start.column));
+            lines.push.apply(lines, this.getLines(range.start.row+1, range.end.row-1));
+            lines.push(this.$lines[range.end.row].substring(0, range.end.column));
+            return lines.join(this.getNewLineCharacter());
+        }
+    };
+
+    this.$clipPosition = function(position) {
+        var length = this.getLength();
+        if (position.row >= length) {
+            position.row = Math.max(0, length - 1);
+            position.column = this.getLine(length-1).length;
+        }
+        return position;        
+    }
+
+    this.insert = function(position, text) {
+        if (text.length == 0)
+            return position;
+            
+        position = this.$clipPosition(position);
+            
+        if (this.getLength() <= 1)
+            this.$detectNewLine(text);
+
+        var newLines = this.$split(text);
+
+        if (this.isNewLine(text)) {
+            var end = this.insertNewLine(position);
+        }
+        else if (newLines.length == 1) {
+            var end = this.insertInLine(position, text);
+        }
+        else {
+            var end = this.insertInLine(position, newLines[0]);
+            this.insertNewLine(end);
+            if (newLines.length > 2)
+                this.insertLines(position.row+1, newLines.slice(1, newLines.length-1));
+                
+            var end = this.insertInLine({row: position.row + newLines.length - 1, column: 0}, newLines[newLines.length-1]);
+        }
+
+        return end;
+    };
+    
+    this.insertLines = function(row, lines) {
+        if (lines.length == 0)
+            return {row: row, column: 0};
+            
+        var args = [row, 0];
+        args.push.apply(args, lines);
+        this.$lines.splice.apply(this.$lines, args);
+    
+        var range = new Range(row, 0, row + lines.length - 1, 0);
+        var delta = {
+            action: "insertLines",
+            range: range,
+            lines: lines
+        };
+        this._dispatchEvent("change", { data: delta });    
+        return range.end;
+    },
+    
+    this.insertNewLine = function(position) {
+        position = this.$clipPosition(position);
+        var line = this.$lines[position.row] || "";
+        this.$lines[position.row] = line.substring(0, position.column);
+        this.$lines.splice(position.row + 1, 0, line.substring(position.column, line.length));
+        
+        var end = {
+            row : position.row + 1,
+            column : 0
+        };
+        
+        var delta = {
+            action: "insertText",
+            range: Range.fromPoints(position, end),
+            text: this.getNewLineCharacter()
+        };
+        this._dispatchEvent("change", { data: delta });
+        
+        return end;
+    };
+    
+    this.insertInLine = function(position, text) {
+        if (text.length == 0)
+            return position;
+            
+        var line = this.$lines[position.row] || "";
+        this.$lines[position.row] = line.substring(0, position.column) + text
+                + line.substring(position.column);
+
+        var end = {
+            row : position.row,
+            column : position.column + text.length
+        };
+        
+        var delta = {
+            action: "insertText",
+            range: Range.fromPoints(position, end),
+            text: text
+        };
+        this._dispatchEvent("change", { data: delta });
+        
+        return end;
+    };
+
+    this.remove = function(range) {
+        // clip to document
+        range.start = this.$clipPosition(range.start);
+        range.end = this.$clipPosition(range.end);
+
+        if (range.isEmpty())
+            return range.start;
+        
+        var firstRow = range.start.row;
+        var lastRow = range.end.row;
+
+        if (range.isMultiLine()) {
+            
+            // TODO removeInLine can be optimized away!
+            this.removeInLine(lastRow, 0, range.end.column);
+            if (lastRow - firstRow >= 2)
+                this.removeLines(firstRow + 1, lastRow - 1);
+            this.removeInLine(firstRow, range.start.column, this.$lines[firstRow].length);
+            this.removeNewLine(range.start.row);
+        }
+        else {
+            this.removeInLine(firstRow, range.start.column, range.end.column);
+        }
+        return range.start;
+    };
+    
+    this.removeInLine = function(row, startColumn, endColumn) {
+        if (startColumn == endColumn)
+            return;
+            
+        var range = new Range(row, startColumn, row, endColumn);
+        var line = this.getLine(row);
+        var removed = line.substring(startColumn, endColumn);
+        var newLine = line.substring(0, startColumn) + line.substring(endColumn, line.length);
+        this.$lines.splice(row, 1, newLine);
+        
+        var delta = {
+            action: "removeText",
+            range: range,
+            text: removed
+        };
+        this._dispatchEvent("change", { data: delta });
+        return range.start;
+    };
+    
+    /**
+     * Removes a range of full lines
+     * 
+     * @param firstRow {Integer} The first row to be removed
+     * @param lastRow {Integer} The last row to be removed
+     * @return {String[]} The removed lines
+     */
+    this.removeLines = function(firstRow, lastRow) {
+        var range = new Range(firstRow, 0, lastRow, this.$lines[lastRow].length);        
+        var removed = this.$lines.splice(firstRow, lastRow - firstRow + 1);
+        
+        var delta = {
+            action: "removeLines",
+            range: range,
+            nl: this.getNewLineCharacter(),
+            lines: removed
+        };
+        this._dispatchEvent("change", { data: delta });
+        return removed;
+    };
+    
+    this.removeNewLine = function(row) {
+        var firstLine = this.getLine(row);
+        var secondLine = this.getLine(row+1);
+        
+        var range = new Range(row, firstLine.length, row+1, 0);
+        var line = firstLine + secondLine;
+        
+        this.$lines.splice(row, 2, line);
+        
+        var delta = {
+            action: "removeText",
+            range: range,
+            text: this.getNewLineCharacter()
+        };
+        this._dispatchEvent("change", { data: delta });
+    };
+    
+    this.replace = function(range, text) {
+        if (text.length == 0 && range.isEmpty())
+            return range.start;
+        
+        // Shortcut: If the text we want to insert is the same as it is already
+        // in the document, we don't have to replace anything.
+        if (text == this.getTextRange(range))
+            return range.end;
+    
+        this.remove(range);
+        if (text) {
+            var end = this.insert(range.start, text);
+        }
+        else {
+            end = range.start;
+        }
+    
+        return end;
+    };
+    
+    this.applyDeltas = function(deltas) {
+        for (var i=0; i<deltas.length; i++) {
+            var delta = deltas[i];
+            var range = Range.fromPoints(delta.range.start, delta.range.end);
+            
+            if (delta.action == "insertLines")
+                this.insertLines(range.start.row, delta.lines)
+            else if (delta.action == "insertText")
+                this.insert(range.start, delta.text)
+            else if (delta.action == "removeLines")
+                this.removeLines(range.start.row, range.end.row)
+            else if (delta.action == "removeText")
+                this.remove(range)
+        }        
+    };
+    
+    this.revertDeltas = function(deltas) {
+        for (var i=deltas.length-1; i>=0; i--) {
+            var delta = deltas[i];
+            var range = Range.fromPoints(delta.range.start, delta.range.end);
+            
+            if (delta.action == "insertLines")
+                this.removeLines(range.start.row, range.end.row)
+            else if (delta.action == "insertText")
+                this.remove(range)
+            else if (delta.action == "removeLines")
+                this.insertLines(range.start.row, delta.lines)
+            else if (delta.action == "removeText")
+                this.insert(range.start, delta.text)
+        }        
+    };
+
+}).call(Document.prototype);
+
+exports.Document = Document;
 });
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -10067,7 +7862,2204 @@ exports.TextInput = TextInput;
  * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/edit_session', function(require, exports, module) {
+
+var oop = require("pilot/oop");
+var lang = require("pilot/lang");
+var EventEmitter = require("pilot/event_emitter").EventEmitter;
+var Selection = require("ace/selection").Selection;
+var TextMode = require("ace/mode/text").Mode;
+var Range = require("ace/range").Range;
+var Document = require("ace/document").Document;
+
+var NO_CHANGE_DELTAS = {};
+
+var EditSession = function(text, mode) {
+    this.$modified = true;
+    this.selection = new Selection(this);
+    this.$breakpoints = [];
+
+    this.listeners = [];
+    if (mode) {
+        this.setMode(mode);
+    }
+    
+    if (text instanceof Document) {
+        this.setDocument(text)
+    } else {
+        this.setDocument(new Document(text));
+    }
+};
+
+
+(function() {
+
+    oop.implement(this, EventEmitter);
+
+    this.setDocument = function(doc) {
+        if (this.doc)
+            throw new Error("Document is already set");
+            
+        this.doc = doc;
+        doc.on("change", this.onChange.bind(this));
+    };
+    
+    this.getDocument = function() {
+        return this.doc;
+    };
+    
+    this.onChange = function(e) {
+        var delta = e.data;
+        this.$modified = true;
+        if (!this.$fromUndo && this.$undoManager) {
+            this.$deltas.push(delta);
+            this.$informUndoManager.schedule();
+        }
+        this._dispatchEvent("change", e);
+    };
+
+    this.setValue = function(text) {
+      this.doc.setValue(text);
+      this.$deltas = [];
+    };
+
+    this.getValue =
+    this.toString = function() {
+        return this.doc.getValue();
+    };
+    
+    this.getSelection = function() {
+        return this.selection;
+    };
+
+    this.setUndoManager = function(undoManager) {
+        this.$undoManager = undoManager;
+        this.$deltas = [];
+
+        if (this.$informUndoManager) {
+            this.$informUndoManager.cancel();
+        }
+
+        if (undoManager) {
+            var self = this;
+            this.$informUndoManager = lang.deferredCall(function() {
+                if (self.$deltas.length > 0)
+                    undoManager.execute({
+                        action : "aceupdate",
+                        args   : [self.$deltas, self]
+                    });
+                self.$deltas = [];
+            });
+        }
+    };
+
+    this.$defaultUndoManager = {
+        undo: function() {},
+        redo: function() {}
+    };
+
+    this.getUndoManager = function() {
+        return this.$undoManager || this.$defaultUndoManager;
+    },
+
+    this.getTabString = function() {
+        if (this.getUseSoftTabs()) {
+            return lang.stringRepeat(" ", this.getTabSize());
+        } else {
+            return "\t";
+        }
+    };
+
+    this.$useSoftTabs = true;
+    this.setUseSoftTabs = function(useSoftTabs) {
+        if (this.$useSoftTabs === useSoftTabs) return;
+
+        this.$useSoftTabs = useSoftTabs;
+    };
+
+    this.getUseSoftTabs = function() {
+        return this.$useSoftTabs;
+    };
+
+    this.$tabSize = 4;
+    this.setTabSize = function(tabSize) {
+        if (isNaN(tabSize) || this.$tabSize === tabSize) return;
+
+        this.$modified = true;
+        this.$tabSize = tabSize;
+        this._dispatchEvent("changeTabSize");
+    };
+
+    this.getTabSize = function() {
+        return this.$tabSize;
+    };
+    
+    this.isTabStop = function(position) {
+        return this.$useSoftTabs && (position.column % this.$tabSize == 0);
+    };
+
+    this.getBreakpoints = function() {
+        return this.$breakpoints;
+    };
+
+    this.setBreakpoints = function(rows) {
+        this.$breakpoints = [];
+        for (var i=0; i<rows.length; i++) {
+            this.$breakpoints[rows[i]] = true;
+        }
+        this._dispatchEvent("changeBreakpoint", {});
+    };
+
+    this.clearBreakpoints = function() {
+        this.$breakpoints = [];
+        this._dispatchEvent("changeBreakpoint", {});
+    };
+
+    this.setBreakpoint = function(row) {
+        this.$breakpoints[row] = true;
+        this._dispatchEvent("changeBreakpoint", {});
+    };
+
+    this.clearBreakpoint = function(row) {
+        delete this.$breakpoints[row];
+        this._dispatchEvent("changeBreakpoint", {});
+    };
+
+    this.$detectNewLine = function(text) {
+        var match = text.match(/^.*?(\r?\n)/m);
+        if (match) {
+            this.$autoNewLine = match[1];
+        } else {
+            this.$autoNewLine = "\n";
+        }
+    };
+    
+    this.tokenRe = /^[\w\d]+/g;
+    this.nonTokenRe = /^[^\w\d]+/g;
+    
+    this.getWordRange = function(row, column) {
+        var line = this.getLine(row);
+        
+        var inToken = false;
+        if (column > 0) {
+            inToken = !!line.charAt(column - 1).match(this.tokenRe);
+        }
+
+        if (!inToken) {
+            inToken = !!line.charAt(column).match(this.tokenRe);
+        }
+
+        var re = inToken ? this.tokenRe : this.nonTokenRe;
+
+        var start = column;
+        if (start > 0) {
+            do {
+                start--;
+            }
+            while (start >= 0 && line.charAt(start).match(re));
+            start++;
+        }
+
+        var end = column;
+        while (end < line.length && line.charAt(end).match(re)) {
+            end++;
+        }
+
+        return new Range(row, start, row, end);
+    };
+
+    this.setNewLineMode = function(newLineMode) {
+        this.doc.setNewLineMode(newLineMode);
+    };
+
+    this.getNewLineMode = function() {
+        return this.doc.getNewLineMode();
+    };
+
+    this.$mode = null;
+    this.setMode = function(mode) {
+        if (this.$mode === mode) return;
+
+        this.$mode = mode;
+        this._dispatchEvent("changeMode");
+    };
+
+    this.getMode = function() {
+        if (!this.$mode) {
+            this.$mode = new TextMode();
+        }
+        return this.$mode;
+    };
+
+    this.$scrollTop = 0;
+    this.setScrollTopRow = function(scrollTopRow) {
+        if (this.$scrollTop === scrollTopRow) return;
+
+        this.$scrollTop = scrollTopRow;
+        this._dispatchEvent("changeScrollTop");
+    };
+
+    this.getScrollTopRow = function() {
+        return this.$scrollTop;
+    };
+
+    this.getWidth = function() {
+        this.$computeWidth();
+        return this.width;
+    };
+
+    this.getScreenWidth = function() {
+        this.$computeWidth();
+        return this.screenWidth;
+    };
+
+    this.$computeWidth = function() {
+        if (this.$modified) {
+            this.$modified = false;
+
+            var lines = this.doc.getAllLines();
+            var longestLine = 0;
+            var longestScreenLine = 0;
+            var tabSize = this.getTabSize();
+
+            for ( var i = 0; i < lines.length; i++) {
+                var len = lines[i].length;
+                longestLine = Math.max(longestLine, len);
+
+                lines[i].replace(/\t/g, function(m) {
+                    len += tabSize-1;
+                    return m;
+                });
+                longestScreenLine = Math.max(longestScreenLine, len);
+            }
+            this.width = longestLine;
+            this.screenWidth = longestScreenLine;
+        }
+    };
+
+    /**
+     * Get a verbatim copy of the given line as it is in the document 
+     */
+    this.getLine = function(row) {
+        return this.doc.getLine(row);
+    };
+    
+    /**
+     * Get a line as it is displayed on screen. Tabs are replaced by spaces.
+     */
+    this.getDisplayLine = function(row) {
+        var tab = new Array(this.getTabSize()+1).join(" ");
+        return this.doc.getLine(row).replace(/\t/g, tab);
+    };
+
+    this.getLines = function(firstRow, lastRow) {
+        return this.doc.getLines(firstRow, lastRow);
+    };
+
+    this.getLength = function() {
+        return this.doc.getLength();
+    };
+
+    this.getTextRange = function(range) {
+        return this.doc.getTextRange(range);
+    };
+
+    this.findMatchingBracket = function(position) {
+        if (position.column == 0) return null;
+
+        var charBeforeCursor = this.getLine(position.row).charAt(position.column-1);
+        if (charBeforeCursor == "") return null;
+
+        var match = charBeforeCursor.match(/([\(\[\{])|([\)\]\}])/);
+        if (!match) {
+            return null;
+        }
+
+        if (match[1]) {
+            return this.$findClosingBracket(match[1], position);
+        } else {
+            return this.$findOpeningBracket(match[2], position);
+        }
+    };
+
+    this.$brackets = {
+        ")": "(",
+        "(": ")",
+        "]": "[",
+        "[": "]",
+        "{": "}",
+        "}": "{"
+    };
+
+    this.$findOpeningBracket = function(bracket, position) {
+        var openBracket = this.$brackets[bracket];
+
+        var column = position.column - 2;
+        var row = position.row;
+        var depth = 1;
+
+        var line = this.getLine(row);
+
+        while (true) {
+            while(column >= 0) {
+                var ch = line.charAt(column);
+                if (ch == openBracket) {
+                    depth -= 1;
+                    if (depth == 0) {
+                        return {row: row, column: column};
+                    }
+                }
+                else if (ch == bracket) {
+                    depth +=1;
+                }
+                column -= 1;
+            }
+            row -=1;
+            if (row < 0) break;
+
+            var line = this.getLine(row);
+            var column = line.length-1;
+        }
+        return null;
+    };
+
+    this.$findClosingBracket = function(bracket, position) {
+        var closingBracket = this.$brackets[bracket];
+
+        var column = position.column;
+        var row = position.row;
+        var depth = 1;
+
+        var line = this.getLine(row);
+        var lineCount = this.getLength();
+
+        while (true) {
+            while(column < line.length) {
+                var ch = line.charAt(column);
+                if (ch == closingBracket) {
+                    depth -= 1;
+                    if (depth == 0) {
+                        return {row: row, column: column};
+                    }
+                }
+                else if (ch == bracket) {
+                    depth +=1;
+                }
+                column += 1;
+            }
+            row +=1;
+            if (row >= lineCount) break;
+
+            var line = this.getLine(row);
+            var column = 0;
+        }
+        return null;
+    };
+
+    this.insert = function(position, text) {
+        return this.doc.insert(position, text);
+    };
+    
+    /**
+     * @param rows Array[Integer] sorted list of rows
+     */
+    this.multiRowInsert = function(rows, column, text) {        
+        for (var i=rows.length-1; i>=0; i--) {
+            var row = rows[i];
+            if (row >= this.doc.getLength())
+                continue;
+                
+            var diff = column - this.doc.getLine(row).length;
+            if ( diff > 0) {
+                var padded = lang.stringRepeat(" ", diff) + text;
+                var offset = -diff;
+            }
+            else {
+                padded = text;
+                offset = 0;
+            }
+                
+            var end = this.insert({row: row, column: column+offset}, padded);
+        }
+        
+        return {
+            rows: end ? end.row - rows[0] : 0,
+            columns: end ? end.column - column : 0
+        }
+    };
+
+    this.remove = function(range) {
+        return this.doc.remove(range);
+    };
+
+    this.multiRowRemove = function(rows, range) {
+        if (range.start.row !== rows[0])
+            throw new TypeError("range must start in the first row!");
+            
+        var height = range.end.row - rows[0];
+        for (var i=rows.length-1; i>=0; i--) {
+            var row = rows[i];
+            if (row >= this.doc.getLength())
+                continue;
+                
+            var end = this.remove(new Range(row, range.start.column, row+height, range.end.column));
+        }
+    };
+    
+    this.undoChanges = function(deltas) {
+        if (!deltas.length)
+            return;
+            
+        this.$fromUndo = true;
+        this.doc.revertDeltas(deltas);
+        this.$fromUndo = false;
+        
+        // update the selection
+        var firstDelta = deltas[0];
+        var lastDelta = deltas[deltas.length-1];
+        
+        this.selection.clearSelection();
+        if (firstDelta.action == "insertText" || firstDelta.action == "insertLines")
+            this.selection.moveCursorToPosition(firstDelta.range.start);
+        if (firstDelta.action == "removeText" || firstDelta.action == "removeLines")
+            this.selection.setSelectionRange(Range.fromPoints(firstDelta.range.start, lastDelta.range.end));
+    },
+
+    this.redoChanges = function(deltas) {
+        if (!deltas.length)
+            return;
+            
+        this.$fromUndo = true;
+        this.doc.applyDeltas(deltas);
+        this.$fromUndo = false;
+        
+        // update the selection
+        var firstDelta = deltas[0];
+        var lastDelta = deltas[deltas.length-1];
+        
+        this.selection.clearSelection();
+        if (firstDelta.action == "insertText" || firstDelta.action == "insertLines")
+            this.selection.setSelectionRange(Range.fromPoints(firstDelta.range.start, lastDelta.range.end));
+        if (firstDelta.action == "removeText" || firstDelta.action == "removeLines")
+            this.selection.moveCursorToPosition(firstDelta.range.start);
+    },
+
+    this.replace = function(range, text) {
+        return this.doc.replace(range, text);
+    };
+
+    this.indentRows = function(startRow, endRow, indentString) {
+        indentString = indentString.replace(/\t/g, this.getTabString());
+        for (var row=startRow; row<=endRow; row++) {
+            this.insert({row: row, column:0}, indentString);
+        }
+        return indentString.length;
+    };
+
+    this.outdentRows = function (range) {
+        var rowRange = range.collapseRows();
+        var deleteRange = new Range(0, 0, 0, 0);
+        var size = this.getTabSize();
+        
+        for (var i = rowRange.start.row; i <= rowRange.end.row; ++i) {
+            var line = this.getLine(i);
+            
+            deleteRange.start.row = i;
+            deleteRange.end.row = i;
+            for (var j = 0; j < size; ++j)
+                if (line.charAt(j) != ' ')
+                    break;            
+            if (j < size && line.charAt(j) == '\t') {
+                deleteRange.start.column = j;
+                deleteRange.end.column = j + 1;
+            } else {
+                deleteRange.start.column = 0;
+                deleteRange.end.column = j;
+            }
+            if (i == range.start.row)
+                range.start.column -= deleteRange.end.column - deleteRange.start.column;
+            if (i == range.end.row)
+                range.end.column -= deleteRange.end.column - deleteRange.start.column;
+            this.remove(deleteRange);
+        }
+        return range;
+    }    
+
+    this.moveLinesUp = function(firstRow, lastRow) {
+        if (firstRow <= 0) return 0;
+
+        var removed = this.doc.removeLines(firstRow, lastRow);
+        this.doc.insertLines(firstRow - 1, removed);
+        return -1;
+    };
+
+    this.moveLinesDown = function(firstRow, lastRow) {
+        if (lastRow >= this.doc.getLength()-1) return 0;
+
+        var removed = this.doc.removeLines(firstRow, lastRow);
+        this.doc.insertLines(firstRow+1, removed);
+        return 1;
+    };
+
+    this.duplicateLines = function(firstRow, lastRow) {
+        var firstRow = this.$clipRowToDocument(firstRow);
+        var lastRow = this.$clipRowToDocument(lastRow);
+
+        var lines = this.getLines(firstRow, lastRow);
+        this.doc.insertLines(firstRow, lines);
+
+        var addedRows = lastRow - firstRow + 1;
+        return addedRows;
+    };
+
+    this.$clipRowToDocument = function(row) {
+        return Math.max(0, Math.min(row, this.doc.getLength()-1));
+    };
+
+    this.documentToScreenColumn = function(row, docColumn) {
+        var tabSize = this.getTabSize();
+
+        var screenColumn = 0;
+        var remaining = docColumn;
+
+        var line = this.getLine(row).split("\t");
+        for (var i=0; i<line.length; i++) {
+            var len = line[i].length;
+            if (remaining > len) {
+                remaining -= (len + 1);
+                screenColumn += len + tabSize;
+            }
+            else {
+                screenColumn += remaining;
+                break;
+            }
+        }
+
+        return screenColumn;
+    };
+
+    this.screenToDocumentColumn = function(row, screenColumn) {
+        var tabSize = this.getTabSize();
+
+        var docColumn = 0;
+        var remaining = screenColumn;
+
+        var line = this.getLine(row).split("\t");
+        for (var i=0; i<line.length; i++) {
+            var len = line[i].length;
+            if (remaining >= len + tabSize) {
+                remaining -= (len + tabSize);
+                docColumn += (len + 1);
+            }
+            else if (remaining > len){
+                docColumn += len;
+                break;
+            }
+            else {
+                docColumn += remaining;
+                break;
+            }
+        }
+        return docColumn;
+    };
+
+}).call(EditSession.prototype);
+
+exports.EditSession = EditSession;
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/editor', function(require, exports, module) {
+
+var oop = require("pilot/oop");
+var event = require("pilot/event");
+var lang = require("pilot/lang");
+var TextInput = require("ace/keyboard/textinput").TextInput;
+var KeyBinding = require("ace/keyboard/keybinding").KeyBinding;
+var EditSession = require("ace/edit_session").EditSession;
+var Search = require("ace/search").Search;
+var BackgroundTokenizer = require("ace/background_tokenizer").BackgroundTokenizer;
+var Range = require("ace/range").Range;
+var EventEmitter = require("pilot/event_emitter").EventEmitter;
+
+var Editor =function(renderer, session) {
+    var container = renderer.getContainerElement();
+    this.container = container;
+    this.renderer = renderer;
+
+    this.textInput  = new TextInput(container, this);
+    this.keyBinding = new KeyBinding(this);
+    var self = this;
+    event.addListener(container, "mousedown", function(e) {
+        setTimeout(function() {self.focus();});
+        return event.preventDefault(e);
+    });
+    event.addListener(container, "selectstart", function(e) {
+        return event.preventDefault(e);
+    });
+
+    var mouseTarget = renderer.getMouseEventTarget();
+    event.addListener(mouseTarget, "mousedown", this.onMouseDown.bind(this));
+    event.addMultiMouseDownListener(mouseTarget, 0, 2, 500, this.onMouseDoubleClick.bind(this));
+    event.addMultiMouseDownListener(mouseTarget, 0, 3, 600, this.onMouseTripleClick.bind(this));
+    event.addMouseWheelListener(mouseTarget, this.onMouseWheel.bind(this));
+
+    this.$selectionMarker = null;
+    this.$highlightLineMarker = null;
+    this.$blockScrolling = false;
+
+    this.$search = new Search().set({
+        wrap: true
+    });
+
+    this.setSession(session || new EditSession(""));
+    this.focus();
+};
+
+(function(){
+
+    oop.implement(this, EventEmitter);
+
+    this.$forwardEvents = {
+        gutterclick: 1,
+        gutterdblclick: 1
+    };
+
+    this.$originalAddEventListener = this.addEventListener;
+    this.$originalRemoveEventListener = this.removeEventListener;
+
+    this.addEventListener = function(eventName, callback) {
+        if (this.$forwardEvents[eventName]) {
+            return this.renderer.addEventListener(eventName, callback);
+        } else {
+            return this.$originalAddEventListener(eventName, callback);
+        }
+    };
+
+    this.removeEventListener = function(eventName, callback) {
+        if (this.$forwardEvents[eventName]) {
+            return this.renderer.removeEventListener(eventName, callback);
+        } else {
+            return this.$originalRemoveEventListener(eventName, callback);
+        }
+    };
+
+    this.setKeyboardHandler = function(keyboardHandler) {
+        this.keyBinding.setKeyboardHandler(keyboardHandler);
+    };
+
+    this.getKeyboardHandler = function() {
+        return this.keyBinding.getKeyboardHandler();
+    }
+
+    this.setSession = function(session) {
+        if (this.session == session) return;
+
+        if (this.session) {
+            this.session.removeEventListener("change", this.$onDocumentChange);
+            this.session.removeEventListener("changeMode", this.$onDocumentModeChange);
+            this.session.removeEventListener("changeTabSize", this.$onDocumentChangeTabSize);
+            this.session.removeEventListener("changeBreakpoint", this.$onDocumentChangeBreakpoint);
+
+            var selection = this.session.getSelection();
+            selection.removeEventListener("changeCursor", this.$onCursorChange);
+            selection.removeEventListener("changeSelection", this.$onSelectionChange);
+
+            this.session.setScrollTopRow(this.renderer.getScrollTopRow());
+        }
+
+        this.session = session;
+
+        this.$onDocumentChange = this.onDocumentChange.bind(this);
+        session.addEventListener("change", this.$onDocumentChange);
+        this.renderer.setSession(session);
+
+        this.$onDocumentModeChange = this.onDocumentModeChange.bind(this);
+        session.addEventListener("changeMode", this.$onDocumentModeChange);
+
+        this.$onDocumentChangeTabSize = this.renderer.updateText.bind(this.renderer);
+        session.addEventListener("changeTabSize", this.$onDocumentChangeTabSize);
+
+        this.$onDocumentChangeBreakpoint = this.onDocumentChangeBreakpoint.bind(this);
+        this.session.addEventListener("changeBreakpoint", this.$onDocumentChangeBreakpoint);
+
+        this.selection = session.getSelection();
+        this.$desiredColumn = 0;
+
+        this.$onCursorChange = this.onCursorChange.bind(this);
+        this.selection.addEventListener("changeCursor", this.$onCursorChange);
+
+        this.$onSelectionChange = this.onSelectionChange.bind(this);
+        this.selection.addEventListener("changeSelection", this.$onSelectionChange);
+
+        this.onDocumentModeChange();
+        this.bgTokenizer.setDocument(session.getDocument());
+        this.bgTokenizer.start(0);
+
+        this.onCursorChange();
+        this.onSelectionChange();
+        this.onDocumentChangeBreakpoint();
+        this.renderer.scrollToRow(session.getScrollTopRow());
+        this.renderer.updateFull();
+    };
+
+    this.getSession = function() {
+        return this.session;
+    };
+
+    this.getSelection = function() {
+        return this.selection;
+    };
+
+    this.resize = function() {
+        this.renderer.onResize();
+    };
+
+    this.setTheme = function(theme) {
+        this.renderer.setTheme(theme);
+    };
+
+    this.$highlightBrackets = function() {
+        if (this.$bracketHighlight) {
+            this.renderer.removeMarker(this.$bracketHighlight);
+            this.$bracketHighlight = null;
+        }
+
+        if (this.$highlightPending) {
+            return;
+        }
+
+        // perform highlight async to not block the browser during navigation
+        var self = this;
+        this.$highlightPending = true;
+        setTimeout(function() {
+            self.$highlightPending = false;
+
+            var pos = self.session.findMatchingBracket(self.getCursorPosition());
+            if (pos) {
+                var range = new Range(pos.row, pos.column, pos.row, pos.column+1);
+                self.$bracketHighlight = self.renderer.addMarker(range, "ace_bracket");
+            }
+        }, 10);
+    };
+
+    this.focus = function() {
+        this.textInput.focus();
+    };
+
+    this.blur = function() {
+        this.textInput.blur();
+    };
+
+    this.onFocus = function() {
+        this.renderer.showCursor();
+        this.renderer.visualizeFocus();
+    };
+
+    this.onBlur = function() {
+        this.renderer.hideCursor();
+        this.renderer.visualizeBlur();
+    };
+
+    this.onDocumentChange = function(e) {
+        var delta = e.data;
+        var range = delta.range;
+        
+        this.bgTokenizer.start(range.start.row);
+        if (range.start.row == range.end.row)
+            var lastRow = range.end.row;
+        else 
+            lastRow = Infinity;
+        this.renderer.updateLines(range.start.row, lastRow);
+
+        // update cursor because tab characters can influence the cursor position
+        this.renderer.updateCursor(this.getCursorPosition(), this.$overwrite);
+    };
+
+    this.onTokenizerUpdate = function(e) {
+        var rows = e.data;
+        this.renderer.updateLines(rows.first, rows.last);
+    };
+
+    this.onCursorChange = function(e) {
+        this.$highlightBrackets();
+        this.renderer.updateCursor(this.getCursorPosition(), this.$overwrite);
+
+        if (!this.$blockScrolling && (!e || !e.blockScrolling)) {
+            this.renderer.scrollCursorIntoView();
+        }
+        this.$updateHighlightActiveLine();
+    };
+
+    this.$updateHighlightActiveLine = function() {
+        if (this.$highlightLineMarker) {
+            this.renderer.removeMarker(this.$highlightLineMarker);
+        }
+        this.$highlightLineMarker = null;
+
+        if (this.getHighlightActiveLine() && (this.getSelectionStyle() != "line" || !this.selection.isMultiLine())) {
+            var cursor = this.getCursorPosition();
+            var range = new Range(cursor.row, 0, cursor.row+1, 0);
+            this.$highlightLineMarker = this.renderer.addMarker(range, "ace_active_line", "line");
+        }
+    };
+
+    this.onSelectionChange = function(e) {
+        if (this.$selectionMarker) {
+            this.renderer.removeMarker(this.$selectionMarker);
+        }
+        this.$selectionMarker = null;
+
+        if (!this.selection.isEmpty()) {
+            var range = this.selection.getRange();
+            var style = this.getSelectionStyle();
+            this.$selectionMarker = this.renderer.addMarker(range, "ace_selection", style);
+        }
+
+        this.onCursorChange(e);
+    };
+
+    this.onDocumentChangeBreakpoint = function() {
+        this.renderer.setBreakpoints(this.session.getBreakpoints());
+    };
+
+    this.onDocumentModeChange = function() {
+        var mode = this.session.getMode();
+        if (this.mode == mode)
+            return;
+
+        this.mode = mode;
+        var tokenizer = mode.getTokenizer();
+
+        if (!this.bgTokenizer) {
+            var onUpdate = this.onTokenizerUpdate.bind(this);
+            this.bgTokenizer = new BackgroundTokenizer(tokenizer, this);
+            this.bgTokenizer.addEventListener("update", onUpdate);
+        } else {
+            this.bgTokenizer.setTokenizer(tokenizer);
+        }
+
+        this.renderer.setTokenizer(this.bgTokenizer);
+    };
+
+
+    this.onMouseDown = function(e) {
+        var pageX = event.getDocumentX(e);
+        var pageY = event.getDocumentY(e);
+
+        var pos = this.renderer.screenToTextCoordinates(pageX, pageY);
+        pos.row = Math.max(0, Math.min(pos.row, this.session.getLength()-1));
+
+        if (event.getButton(e) != 0) {
+            if (this.selection.isEmpty()) {
+                this.moveCursorToPosition(pos);
+            }
+            return;
+        }
+
+        if (e.shiftKey)
+            this.selection.selectToPosition(pos)
+        else {
+            this.moveCursorToPosition(pos);
+            if (!this.$clickSelection)
+                this.selection.clearSelection(pos.row, pos.column);
+        }
+
+        this.renderer.scrollCursorIntoView();
+
+        var self = this;
+        var mousePageX, mousePageY;
+
+        var onMouseSelection = function(e) {
+            mousePageX = event.getDocumentX(e);
+            mousePageY = event.getDocumentY(e);
+        };
+
+        var onMouseSelectionEnd = function() {
+            clearInterval(timerId);
+            self.$clickSelection = null;
+        };
+
+        var onSelectionInterval = function() {
+            if (mousePageX === undefined || mousePageY === undefined)
+                return;
+
+            var cursor = self.renderer.screenToTextCoordinates(mousePageX, mousePageY);
+            cursor.row = Math.max(0, Math.min(cursor.row, self.session.getLength()-1));
+
+            if (self.$clickSelection) {
+                if (self.$clickSelection.contains(cursor.row, cursor.column)) {
+                    self.selection.setSelectionRange(self.$clickSelection);
+                } else {
+                    if (self.$clickSelection.compare(cursor.row, cursor.column) == -1) {
+                        var anchor = self.$clickSelection.end;
+                    } else {
+                        var anchor = self.$clickSelection.start;
+                    }
+                    self.selection.setSelectionAnchor(anchor.row, anchor.column);
+                    self.selection.selectToPosition(cursor);
+                }
+            }
+            else {
+                self.selection.selectToPosition(cursor);
+            }
+
+            self.renderer.scrollCursorIntoView();
+        };
+
+        event.capture(this.container, onMouseSelection, onMouseSelectionEnd);
+        var timerId = setInterval(onSelectionInterval, 20);
+
+        return event.preventDefault(e);
+    };
+
+    this.onMouseDoubleClick = function(e) {
+        this.selection.selectWord();
+        this.$clickSelection = this.getSelectionRange();
+        this.$updateDesiredColumn();
+    };
+
+    this.onMouseTripleClick = function(e) {
+        this.selection.selectLine();
+        this.$clickSelection = this.getSelectionRange();
+        this.$updateDesiredColumn();
+    };
+
+    this.onMouseWheel = function(e) {
+        var speed = this.$scrollSpeed * 2;
+
+        this.renderer.scrollBy(e.wheelX * speed, e.wheelY * speed);
+        return event.preventDefault(e);
+    };
+
+    this.getCopyText = function() {
+        if (!this.selection.isEmpty()) {
+            return this.session.getTextRange(this.getSelectionRange());
+        }
+        else {
+            return "";
+        }
+    };
+
+    this.onCut = function() {
+        if (this.$readOnly)
+            return;
+
+        if (!this.selection.isEmpty()) {
+            this.moveCursorToPosition(this.session.remove(this.getSelectionRange()));
+            this.clearSelection();
+        }
+    };
+
+    this.insert = function(text) {
+        if (this.$readOnly)
+            return;
+
+        var cursor = this.getCursorPosition();
+        text = text.replace("\t", this.session.getTabString());
+
+        // remove selected text
+        if (!this.selection.isEmpty()) {
+            var cursor = this.session.remove(this.getSelectionRange());
+            this.clearSelection();
+        } else if (this.$overwrite){
+            var range = new Range.fromPoints(cursor, cursor);
+            range.end.column += text.length;
+            this.session.remove(range);
+        }
+
+        this.clearSelection();
+
+        var lineState     = this.bgTokenizer.getState(cursor.row);
+        var shouldOutdent = this.mode.checkOutdent(lineState, this.session.getLine(cursor.row), text);
+        var line          = this.session.getLine(cursor.row);
+        var lineIndent    = this.mode.getNextLineIndent(lineState, line.slice(0, cursor.column), this.session.getTabString());
+        var end           = this.session.insert(cursor, text);
+
+        /* TODO: This shortcut is somehow broken
+        if (!shouldOutdent && line != this.session.getLine(row) && text != "\n") {
+            this.moveCursorToPosition(end);
+            this.renderer.scrollCursorIntoView();
+            return;
+        }
+        */
+
+        var lineState = this.bgTokenizer.getState(cursor.row);
+        // multi line insert
+        if (cursor.row !== end.row) {
+            var size        = this.session.getTabSize(),
+                minIndent   = Number.MAX_VALUE;
+
+            for (var row = cursor.row + 1; row <= end.row; ++row) {
+                var indent = 0;
+
+                line = this.session.getLine(row);
+                for (var i = 0; i < line.length; ++i)
+                    if (line.charAt(i) == '\t')
+                        indent += size;
+                    else if (line.charAt(i) == ' ')
+                        indent += 1;
+                    else
+                        break;
+                if (/[^\s]/.test(line))
+                    minIndent = Math.min(indent, minIndent);
+            }
+
+            for (var row = cursor.row + 1; row <= end.row; ++row) {
+                var outdent = minIndent;
+
+                line = this.session.getLine(row);
+                for (var i = 0; i < line.length && outdent > 0; ++i)
+                    if (line.charAt(i) == '\t')
+                        outdent -= size;
+                    else if (line.charAt(i) == ' ')
+                        outdent -= 1;
+                this.session.replace(new Range(row, 0, row, line.length), line.substr(i));
+            }
+            end.column += this.session.indentRows(cursor.row + 1, end.row, lineIndent);
+        } else {
+            if (shouldOutdent) {
+                end.column += this.mode.autoOutdent(lineState, this.session, cursor.row);
+            }
+        }
+
+        this.moveCursorToPosition(end);
+        this.renderer.scrollCursorIntoView();
+    }
+
+    this.onTextInput = function(text) {
+        this.keyBinding.onTextInput(text);
+    };
+
+    this.onCommandKey = function(e, hashId, keyCode) {
+        this.keyBinding.onCommandKey(e, hashId, keyCode);
+    };
+
+    this.$overwrite = false;
+    this.setOverwrite = function(overwrite) {
+        if (this.$overwrite == overwrite) return;
+
+        this.$overwrite = overwrite;
+
+        this.$blockScrolling = true;
+        this.onCursorChange();
+        this.$blockScrolling = false;
+
+        this._dispatchEvent("changeOverwrite", {data: overwrite});
+    };
+
+    this.getOverwrite = function() {
+        return this.$overwrite;
+    };
+
+    this.toggleOverwrite = function() {
+        this.setOverwrite(!this.$overwrite);
+    };
+
+
+    this.$scrollSpeed = 1;
+    this.setScrollSpeed = function(speed) {
+        this.$scrollSpeed = speed;
+    }
+
+    this.getScrollSpeed = function() {
+        return this.$scrollSpeed;
+    }
+
+    this.$selectionStyle = "line";
+    this.setSelectionStyle = function(style) {
+        if (this.$selectionStyle == style) return;
+
+        this.$selectionStyle = style;
+        this.onSelectionChange();
+        this._dispatchEvent("changeSelectionStyle", {data: style});
+    };
+
+
+    this.getSelectionStyle = function() {
+        return this.$selectionStyle;
+    };
+
+    this.$highlightActiveLine = true;
+    this.setHighlightActiveLine = function(shouldHighlight) {
+        if (this.$highlightActiveLine == shouldHighlight) return;
+
+        this.$highlightActiveLine = shouldHighlight;
+        this.$updateHighlightActiveLine();
+    };
+
+    this.getHighlightActiveLine = function() {
+        return this.$highlightActiveLine;
+    };
+
+    this.setShowInvisibles = function(showInvisibles) {
+        if (this.getShowInvisibles() == showInvisibles)
+            return;
+
+        this.renderer.setShowInvisibles(showInvisibles);
+    };
+
+    this.getShowInvisibles = function() {
+        return this.renderer.getShowInvisibles();
+    };
+
+    this.setShowPrintMargin = function(showPrintMargin) {
+        this.renderer.setShowPrintMargin(showPrintMargin);
+    };
+
+    this.getShowPrintMargin = function() {
+        return this.renderer.getShowPrintMargin();
+    };
+
+    this.setPrintMarginColumn = function(showPrintMargin) {
+        this.renderer.setPrintMarginColumn(showPrintMargin);
+    };
+
+    this.getPrintMarginColumn = function() {
+        return this.renderer.getPrintMarginColumn();
+    };
+
+    this.$readOnly = false;
+    this.setReadOnly = function(readOnly) {
+        this.$readOnly = readOnly;
+    };
+
+    this.getReadOnly = function() {
+        return this.$readOnly;
+    };
+
+    this.removeRight = function() {
+        if (this.$readOnly)
+            return;
+
+        if (this.selection.isEmpty()) {
+            this.selection.selectRight();
+        }
+        this.moveCursorToPosition(this.session.remove(this.getSelectionRange()));
+        this.clearSelection();
+    };
+
+    this.removeLeft = function() {
+        if (this.$readOnly)
+            return;
+
+        if (this.selection.isEmpty())
+            this.selection.selectLeft();
+
+        this.moveCursorToPosition(this.session.remove(this.getSelectionRange()));
+        this.clearSelection();
+    };
+
+    this.indent = function() {
+        if (this.$readOnly)
+            return;
+
+        var session = this.session;
+        var range = this.getSelectionRange();
+
+        if (range.start.row < range.end.row || range.start.column < range.end.column) {
+            var rows = this.$getSelectedRows();
+            var count = session.indentRows(rows.first, rows.last, "\t");
+
+            this.selection.shiftSelection(count);
+        } else {
+            var indentString;
+
+            if (this.session.getUseSoftTabs()) {
+                var size        = session.getTabSize(),
+                    position    = this.getCursorPosition(),
+                    column      = session.documentToScreenColumn(position.row, position.column),
+                    count       = (size - column % size);
+
+                indentString = lang.stringRepeat(" ", count);
+            } else
+                indentString = "\t";
+            return this.onTextInput(indentString);
+        }
+    };
+
+    this.blockOutdent = function() {
+        if (this.$readOnly)
+            return;
+
+        var selection = this.session.getSelection();
+        var range = this.session.outdentRows(selection.getRange());
+
+        selection.setSelectionRange(range, selection.isBackwards());
+        this.$updateDesiredColumn();
+    };
+
+    this.toggleCommentLines = function() {
+        if (this.$readOnly)
+            return;
+
+        var state = this.bgTokenizer.getState(this.getCursorPosition().row);
+        var rows = this.$getSelectedRows()
+        var addedColumns = this.mode.toggleCommentLines(state, this.session, rows.first, rows.last);
+        this.selection.shiftSelection(addedColumns);
+    };
+
+    this.removeLines = function() {
+        if (this.$readOnly)
+            return;
+
+        var rows = this.$getSelectedRows();
+        this.selection.setSelectionAnchor(rows.last+1, 0);
+        this.selection.selectTo(rows.first, 0);
+
+        this.session.remove(this.getSelectionRange());
+        this.clearSelection();
+    };
+
+    this.moveLinesDown = function() {
+        if (this.$readOnly)
+            return;
+
+        this.$moveLines(function(firstRow, lastRow) {
+            return this.session.moveLinesDown(firstRow, lastRow);
+        });
+    };
+
+    this.moveLinesUp = function() {
+        if (this.$readOnly)
+            return;
+
+        this.$moveLines(function(firstRow, lastRow) {
+            return this.session.moveLinesUp(firstRow, lastRow);
+        });
+    };
+
+    this.copyLinesUp = function() {
+        if (this.$readOnly)
+            return;
+
+        this.$moveLines(function(firstRow, lastRow) {
+            this.session.duplicateLines(firstRow, lastRow);
+            return 0;
+        });
+    };
+
+    this.copyLinesDown = function() {
+        if (this.$readOnly)
+            return;
+
+        this.$moveLines(function(firstRow, lastRow) {
+            return this.session.duplicateLines(firstRow, lastRow);
+        });
+    };
+
+
+    this.$moveLines = function(mover) {
+        var rows = this.$getSelectedRows();
+
+        var linesMoved = mover.call(this, rows.first, rows.last);
+
+        var selection = this.selection;
+        selection.setSelectionAnchor(rows.last+linesMoved+1, 0);
+        selection.$moveSelection(function() {
+            selection.moveCursorTo(rows.first+linesMoved, 0);
+        });
+    };
+
+    this.$getSelectedRows = function() {
+        var range = this.getSelectionRange().collapseRows();
+
+        return {
+            first: range.start.row,
+            last: range.end.row
+        };
+    };
+
+    this.onCompositionStart = function(text) {
+        this.renderer.showComposition(this.getCursorPosition());
+        //this.onTextInput(text);
+    };
+
+    this.onCompositionUpdate = function(text) {
+        this.renderer.setCompositionText(text);
+    };
+
+    this.onCompositionEnd = function() {
+        this.renderer.hideComposition();
+        //this.removeLeft();
+    };
+
+
+    this.getFirstVisibleRow = function() {
+        return this.renderer.getFirstVisibleRow();
+    };
+
+    this.getLastVisibleRow = function() {
+        return this.renderer.getLastVisibleRow();
+    };
+
+    this.isRowVisible = function(row) {
+        return (row >= this.getFirstVisibleRow() && row <= this.getLastVisibleRow());
+    };
+
+    this.getVisibleRowCount = function() {
+        return this.getLastVisibleRow() - this.getFirstVisibleRow() + 1;
+    };
+
+    this.getPageDownRow = function() {
+        return this.renderer.getLastVisibleRow() - 1;
+    };
+
+    this.getPageUpRow = function() {
+        var firstRow = this.renderer.getFirstVisibleRow();
+        var lastRow = this.renderer.getLastVisibleRow();
+
+        return firstRow - (lastRow - firstRow) + 1;
+    };
+
+    this.selectPageDown = function() {
+        var row = this.getPageDownRow() + Math.floor(this.getVisibleRowCount() / 2);
+
+        this.scrollPageDown();
+
+        var selection = this.getSelection();
+        selection.$moveSelection(function() {
+            selection.moveCursorTo(row, selection.getSelectionLead().column);
+        });
+    };
+
+    this.selectPageUp = function() {
+        var visibleRows = this.getLastVisibleRow() - this.getFirstVisibleRow();
+        var row = this.getPageUpRow() + Math.round(visibleRows / 2);
+
+        this.scrollPageUp();
+
+        var selection = this.getSelection();
+        selection.$moveSelection(function() {
+            selection.moveCursorTo(row, selection.getSelectionLead().column);
+        });
+    };
+
+    this.gotoPageDown = function() {
+        var row     = this.getPageDownRow(),
+            column  = Math.min(this.getCursorPosition().column,
+                               this.session.getLine(row).length);
+
+        this.scrollToRow(row);
+        this.getSelection().moveCursorTo(row, column);
+    };
+
+    this.gotoPageUp = function() {
+       var  row     = this.getPageUpRow(),
+            column  = Math.min(this.getCursorPosition().column,
+                               this.session.getLine(row).length);
+
+       this.scrollToRow(row);
+       this.getSelection().moveCursorTo(row, column);
+    };
+
+    this.scrollPageDown = function() {
+        this.scrollToRow(this.getPageDownRow());
+    };
+
+    this.scrollPageUp = function() {
+        this.renderer.scrollToRow(this.getPageUpRow());
+    };
+
+    this.scrollToRow = function(row) {
+        this.renderer.scrollToRow(row);
+    };
+
+
+    this.getCursorPosition = function() {
+        return this.selection.getCursor();
+    };
+
+    this.getSelectionRange = function() {
+        return this.selection.getRange();
+    };
+
+    this.clearSelection = function() {
+        this.selection.clearSelection();
+        this.$updateDesiredColumn();
+    };
+
+    this.moveCursorTo = function(row, column) {
+        this.selection.moveCursorTo(row, column);
+        this.$updateDesiredColumn();
+    };
+
+    this.moveCursorToPosition = function(pos) {
+        this.selection.moveCursorToPosition(pos);
+        this.$updateDesiredColumn();
+    };
+
+
+    this.gotoLine = function(lineNumber, row) {
+        this.selection.clearSelection();
+
+        this.$blockScrolling = true;
+        this.moveCursorTo(lineNumber-1, row || 0);
+        this.$blockScrolling = false;
+
+        if (!this.isRowVisible(this.getCursorPosition().row)) {
+            this.scrollToRow(lineNumber - 1 - Math.floor(this.getVisibleRowCount() / 2));
+        }
+    },
+
+    this.navigateTo = function(row, column) {
+        this.clearSelection();
+        this.moveCursorTo(row, column);
+        this.$updateDesiredColumn(column);
+    };
+
+    this.navigateUp = function(times) {
+        this.selection.clearSelection();
+        this.selection.moveCursorBy(-(times || 1), 0);
+
+        if (this.$desiredColumn) {
+            var cursor = this.getCursorPosition();
+            var column = this.session.screenToDocumentColumn(cursor.row, this.$desiredColumn);
+            this.selection.moveCursorTo(cursor.row, column);
+        }
+    };
+
+    this.navigateDown = function(times) {
+        this.selection.clearSelection();
+        this.selection.moveCursorBy(times || 1, 0);
+
+        if (this.$desiredColumn) {
+            var cursor = this.getCursorPosition();
+            var column = this.session.screenToDocumentColumn(cursor.row, this.$desiredColumn);
+            this.selection.moveCursorTo(cursor.row, column);
+        }
+    };
+
+    this.$updateDesiredColumn = function() {
+        var cursor = this.getCursorPosition();
+        this.$desiredColumn = this.session.documentToScreenColumn(cursor.row, cursor.column);
+    };
+
+    this.navigateLeft = function(times) {
+        if (!this.selection.isEmpty()) {
+            var selectionStart = this.getSelectionRange().start;
+            this.moveCursorToPosition(selectionStart);
+        }
+        else {
+            times = times || 1;
+            while (times--) {
+                this.selection.moveCursorLeft();
+            }
+        }
+        this.clearSelection();
+    };
+
+    this.navigateRight = function(times) {
+        if (!this.selection.isEmpty()) {
+            var selectionEnd = this.getSelectionRange().end;
+            this.moveCursorToPosition(selectionEnd);
+        }
+        else {
+            times = times || 1;
+            while (times--) {
+                this.selection.moveCursorRight();
+            }
+        }
+        this.clearSelection();
+    };
+
+    this.navigateLineStart = function() {
+        this.selection.moveCursorLineStart();
+        this.clearSelection();
+    };
+
+    this.navigateLineEnd = function() {
+        this.selection.moveCursorLineEnd();
+        this.clearSelection();
+    };
+
+    this.navigateFileEnd = function() {
+        this.selection.moveCursorFileEnd();
+        this.clearSelection();
+    };
+
+    this.navigateFileStart = function() {
+        this.selection.moveCursorFileStart();
+        this.clearSelection();
+    };
+
+    this.navigateWordRight = function() {
+        this.selection.moveCursorWordRight();
+        this.clearSelection();
+    };
+
+    this.navigateWordLeft = function() {
+        this.selection.moveCursorWordLeft();
+        this.clearSelection();
+    };
+
+    this.replace = function(replacement, options) {
+        if (options)
+            this.$search.set(options);
+
+        var range = this.$search.find(this.session);
+        this.$tryReplace(range, replacement);
+        if (range !== null)
+            this.selection.setSelectionRange(range);
+        this.$updateDesiredColumn();
+    },
+
+    this.replaceAll = function(replacement, options) {
+        if (options) {
+            this.$search.set(options);
+        }
+
+        var ranges = this.$search.findAll(this.session);
+        if (!ranges.length)
+            return;
+
+        this.clearSelection();
+        this.selection.moveCursorTo(0, 0);
+
+        for (var i = ranges.length - 1; i >= 0; --i)
+            this.$tryReplace(ranges[i], replacement);
+        if (ranges[0] !== null)
+            this.selection.setSelectionRange(ranges[0]);
+        this.$updateDesiredColumn();
+    },
+
+    this.$tryReplace = function(range, replacement) {
+        var input = this.session.getTextRange(range);
+        var replacement = this.$search.replace(input, replacement);
+        if (replacement !== null) {
+            range.end = this.session.replace(range, replacement);
+            return range;
+        } else {
+            return null;
+        }
+    };
+
+    this.getLastSearchOptions = function() {
+        return this.$search.getOptions();
+    };
+
+    this.find = function(needle, options) {
+        this.clearSelection();
+        options = options || {};
+        options.needle = needle;
+        this.$search.set(options);
+        this.$find();
+    },
+
+    this.findNext = function(options) {
+        options = options || {};
+        if (typeof options.backwards == "undefined")
+            options.backwards = false;
+        this.$search.set(options);
+        this.$find();
+    };
+
+    this.findPrevious = function(options) {
+        options = options || {};
+        if (typeof options.backwards == "undefined")
+            options.backwards = true;
+        this.$search.set(options);
+        this.$find();
+    };
+
+    this.$find = function(backwards) {
+        if (!this.selection.isEmpty()) {
+            this.$search.set({needle: this.session.getTextRange(this.getSelectionRange())});
+        }
+
+        if (typeof backwards != "undefined")
+            this.$search.set({backwards: backwards});
+
+        var range = this.$search.find(this.session);
+        if (range) {
+            this.gotoLine(range.end.row+1, range.end.column);
+            this.$updateDesiredColumn();
+            this.selection.setSelectionRange(range);
+        }
+    };
+
+    this.undo = function() {
+        this.session.getUndoManager().undo();
+    };
+
+    this.redo = function() {
+        this.session.getUndoManager().redo();
+    };
+
+}).call(Editor.prototype);
+
+
+exports.Editor = Editor;
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *      Julian Viereck <julian.viereck@gmail.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/commands/default_commands', function(require, exports, module) {
+
+var lang = require("pilot/lang");
+var canon = require("pilot/canon");
+
+canon.addCommand({
+    name: "null",
+    exec: function(env, args, request) {  }
+});
+
+canon.addCommand({
+    name: "selectall",
+    exec: function(env, args, request) { env.editor.getSelection().selectAll(); }
+});
+canon.addCommand({
+    name: "removeline",
+    exec: function(env, args, request) { env.editor.removeLines(); }
+});
+canon.addCommand({
+    name: "gotoline",
+    exec: function(env, args, request) {
+        var line = parseInt(prompt("Enter line number:"));
+        if (!isNaN(line)) {
+            env.editor.gotoLine(line);
+        }
+    }
+});
+canon.addCommand({
+    name: "togglecomment",
+    exec: function(env, args, request) { env.editor.toggleCommentLines(); }
+});
+canon.addCommand({
+    name: "findnext",
+    exec: function(env, args, request) { env.editor.findNext(); }
+});
+canon.addCommand({
+    name: "findprevious",
+    exec: function(env, args, request) { env.editor.findPrevious(); }
+});
+canon.addCommand({
+    name: "find",
+    exec: function(env, args, request) {
+        var needle = prompt("Find:");
+        env.editor.find(needle);
+    }
+});
+canon.addCommand({
+    name: "undo",
+    exec: function(env, args, request) { env.editor.undo(); }
+});
+canon.addCommand({
+    name: "redo",
+    exec: function(env, args, request) { env.editor.redo(); }
+});
+canon.addCommand({
+    name: "redo",
+    exec: function(env, args, request) { env.editor.redo(); }
+});
+canon.addCommand({
+    name: "overwrite",
+    exec: function(env, args, request) { env.editor.toggleOverwrite(); }
+});
+canon.addCommand({
+    name: "copylinesup",
+    exec: function(env, args, request) { env.editor.copyLinesUp(); }
+});
+canon.addCommand({
+    name: "movelinesup",
+    exec: function(env, args, request) { env.editor.moveLinesUp(); }
+});
+canon.addCommand({
+    name: "selecttostart",
+    exec: function(env, args, request) { env.editor.getSelection().selectFileStart(); }
+});
+canon.addCommand({
+    name: "gotostart",
+    exec: function(env, args, request) { env.editor.navigateFileStart(); }
+});
+canon.addCommand({
+    name: "selectup",
+    exec: function(env, args, request) { env.editor.getSelection().selectUp(); }
+});
+canon.addCommand({
+    name: "golineup",
+    exec: function(env, args, request) { env.editor.navigateUp(args.times); }
+});
+canon.addCommand({
+    name: "copylinesdown",
+    exec: function(env, args, request) { env.editor.copyLinesDown(); }
+});
+canon.addCommand({
+    name: "movelinesdown",
+    exec: function(env, args, request) { env.editor.moveLinesDown(); }
+});
+canon.addCommand({
+    name: "selecttoend",
+    exec: function(env, args, request) { env.editor.getSelection().selectFileEnd(); }
+});
+canon.addCommand({
+    name: "gotoend",
+    exec: function(env, args, request) { env.editor.navigateFileEnd(); }
+});
+canon.addCommand({
+    name: "selectdown",
+    exec: function(env, args, request) { env.editor.getSelection().selectDown(); }
+});
+canon.addCommand({
+    name: "golinedown",
+    exec: function(env, args, request) { env.editor.navigateDown(args.times); }
+});
+canon.addCommand({
+    name: "selectwordleft",
+    exec: function(env, args, request) { env.editor.getSelection().selectWordLeft(); }
+});
+canon.addCommand({
+    name: "gotowordleft",
+    exec: function(env, args, request) { env.editor.navigateWordLeft(); }
+});
+canon.addCommand({
+    name: "selecttolinestart",
+    exec: function(env, args, request) { env.editor.getSelection().selectLineStart(); }
+});
+canon.addCommand({
+    name: "gotolinestart",
+    exec: function(env, args, request) { env.editor.navigateLineStart(); }
+});
+canon.addCommand({
+    name: "selectleft",
+    exec: function(env, args, request) { env.editor.getSelection().selectLeft(); }
+});
+canon.addCommand({
+    name: "gotoleft",
+    exec: function(env, args, request) { env.editor.navigateLeft(args.times); }
+});
+canon.addCommand({
+    name: "selectwordright",
+    exec: function(env, args, request) { env.editor.getSelection().selectWordRight(); }
+});
+canon.addCommand({
+    name: "gotowordright",
+    exec: function(env, args, request) { env.editor.navigateWordRight(); }
+});
+canon.addCommand({
+    name: "selecttolineend",
+    exec: function(env, args, request) { env.editor.getSelection().selectLineEnd(); }
+});
+canon.addCommand({
+    name: "gotolineend",
+    exec: function(env, args, request) { env.editor.navigateLineEnd(); }
+});
+canon.addCommand({
+    name: "selectright",
+    exec: function(env, args, request) { env.editor.getSelection().selectRight(); }
+});
+canon.addCommand({
+    name: "gotoright",
+    exec: function(env, args, request) { env.editor.navigateRight(args.times); }
+});
+canon.addCommand({
+    name: "selectpagedown",
+    exec: function(env, args, request) { env.editor.selectPageDown(); }
+});
+canon.addCommand({
+    name: "pagedown",
+    exec: function(env, args, request) { env.editor.scrollPageDown(); }
+});
+canon.addCommand({
+    name: "gotopagedown",
+    exec: function(env, args, request) { env.editor.gotoPageDown(); }
+});
+canon.addCommand({
+    name: "selectpageup",
+    exec: function(env, args, request) { env.editor.selectPageUp(); }
+});
+canon.addCommand({
+    name: "pageup",
+    exec: function(env, args, request) { env.editor.scrollPageUp(); }
+});
+canon.addCommand({
+    name: "gotopageup",
+    exec: function(env, args, request) { env.editor.gotoPageUp(); }
+});
+canon.addCommand({
+    name: "selectlinestart",
+    exec: function(env, args, request) { env.editor.getSelection().selectLineStart(); }
+});
+canon.addCommand({
+    name: "gotolinestart",
+    exec: function(env, args, request) { env.editor.navigateLineStart(); }
+});
+canon.addCommand({
+    name: "selectlineend",
+    exec: function(env, args, request) { env.editor.getSelection().selectLineEnd(); }
+});
+canon.addCommand({
+    name: "gotolineend",
+    exec: function(env, args, request) { env.editor.navigateLineEnd(); }
+});
+canon.addCommand({
+    name: "del",
+    exec: function(env, args, request) { env.editor.removeRight(); }
+});
+canon.addCommand({
+    name: "backspace",
+    exec: function(env, args, request) { env.editor.removeLeft(); }
+});
+canon.addCommand({
+    name: "outdent",
+    exec: function(env, args, request) { env.editor.blockOutdent(); }
+});
+canon.addCommand({
+    name: "indent",
+    exec: function(env, args, request) { env.editor.indent(); }
+});
+canon.addCommand({
+    name: "inserttext",
+    exec: function(env, args, request) {
+        env.editor.insert(lang.stringRepeat(args.text  || "",
+                                            args.times || 1));
+    }
+});
+
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/undomanager', function(require, exports, module) {
+
+var UndoManager = function() {
+    this.$undoStack = [];
+    this.$redoStack = [];
+};
+
+(function() {
+
+    this.execute = function(options) {
+        var deltas = options.args[0];
+        this.$doc  = options.args[1];
+        this.$undoStack.push(deltas);
+    };
+
+    this.undo = function() {
+        var deltas = this.$undoStack.pop();
+        if (deltas) {
+            this.$doc.undoChanges(deltas);
+            this.$redoStack.push(deltas);
+        }
+    };
+
+    this.redo = function() {
+        var deltas = this.$redoStack.pop();
+        if (deltas) {
+            this.$doc.redoChanges(deltas);
+            this.$undoStack.push(deltas);
+        }
+    };
+
+}).call(UndoManager.prototype);
+
+exports.UndoManager = UndoManager;
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/range', function(require, exports, module) {
+
+var Range = function(startRow, startColumn, endRow, endColumn) {
+    this.start = {
+        row: startRow,
+        column: startColumn
+    };
+
+    this.end = {
+        row: endRow,
+        column: endColumn
+    };
+};
+
+(function() {
+
+    this.toString = function() {
+        return ("Range: [" + this.start.row + "/" + this.start.column +
+            "] -> [" + this.end.row + "/" + this.end.column + "]");
+    };
+
+    this.contains = function(row, column) {
+        return this.compare(row, column) == 0;
+    };
+
+    this.compare = function(row, column) {
+        if (!this.isMultiLine()) {
+            if (row === this.start.row) {
+                return column < this.start.column ? -1 : (column > this.end.column ? 1 : 0);
+            };
+        }
+
+        if (row < this.start.row)
+            return -1;
+
+        if (row > this.end.row)
+            return 1;
+
+        if (this.start.row === row)
+            return column >= this.start.column ? 0 : -1;
+
+        if (this.end.row === row)
+            return column <= this.end.column ? 0 : 1;
+
+        return 0;
+    };
+
+    this.clipRows = function(firstRow, lastRow) {
+        if (this.end.row > lastRow) {
+            var end = {
+                row: lastRow+1,
+                column: 0
+            };
+        }
+
+        if (this.start.row > lastRow) {
+            var start = {
+                row: lastRow+1,
+                column: 0
+            };
+        }
+
+        if (this.start.row < firstRow) {
+            var start = {
+                row: firstRow,
+                column: 0
+            };
+        }
+
+        if (this.end.row < firstRow) {
+            var end = {
+                row: firstRow,
+                column: 0
+            };
+        }
+        return Range.fromPoints(start || this.start, end || this.end);
+    };
+
+    this.extend = function(row, column) {
+        var cmp = this.compare(row, column);
+
+        if (cmp == 0)
+            return this;
+        else if (cmp == -1)
+            var start = {row: row, column: column};
+        else
+            var end = {row: row, column: column};
+
+        return Range.fromPoints(start || this.start, end || this.end);
+    };
+
+    this.isEmpty = function() {
+        return (this.start.row == this.end.row && this.start.column == this.end.column);
+    };
+
+    this.isMultiLine = function() {
+        return (this.start.row !== this.end.row);
+    };
+
+    this.clone = function() {
+        return Range.fromPoints(this.start, this.end);
+    };
+    
+    this.collapseRows = function() {
+        if (this.end.column == 0)
+            return new Range(this.start.row, 0, Math.max(this.start.row, this.end.row-1), 0)
+        else
+            return new Range(this.start.row, 0, this.end.row, 0)
+    };
+
+    this.toScreenRange = function(doc) {
+        return new Range(
+            this.start.row, doc.documentToScreenColumn(this.start.row, this.start.column),
+            this.end.row, doc.documentToScreenColumn(this.end.row, this.end.column)
+        );
+    };
+
+}).call(Range.prototype);
+
+
+Range.fromPoints = function(start, end) {
+    return new Range(start.row, start.column, end.row, end.column);
+};
+
+exports.Range = Range;
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
  * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
@@ -10195,7 +10187,7 @@ exports.Tokenizer = Tokenizer;
  * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
+ * Ajax.org B.V.
  * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
@@ -10216,45 +10208,55 @@ exports.Tokenizer = Tokenizer;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/undomanager', function(require, exports, module) {
+define('ace/layer/gutter', function(require, exports, module) {
 
-var UndoManager = function() {
-    this.$undoStack = [];
-    this.$redoStack = [];
+var dom = require("pilot/dom");
+
+var Gutter = function(parentEl) {
+    this.element = document.createElement("div");
+    this.element.className = "ace_layer ace_gutter-layer";
+    parentEl.appendChild(this.element);
+
+    this.$breakpoints = [];
+    this.$decorations = [];
 };
 
 (function() {
 
-    /*this.$doc = null;
-    this.setDocument = function(doc) {
-        this.$doc = doc;
-    };*/
+    this.addGutterDecoration = function(row, className){
+        if (!this.$decorations[row]) 
+            this.$decorations[row] = "";
+        this.$decorations[row] += " ace_" + className;
+    }
+    
+    this.removeGutterDecoration = function(row, className){
+        this.$decorations[row] = 
+            this.$decorations[row].replace(" ace_" + className, "");
+    }
 
-    this.execute = function(options) {
-        var deltas = options.args[0];
-        this.$doc  = options.args[1];
-        this.$undoStack.push(deltas);
+    this.setBreakpoints = function(rows) {
+        this.$breakpoints = rows.concat();
     };
 
-    this.undo = function() {
-        var deltas = this.$undoStack.pop();
-        if (deltas) {
-            this.$doc.undoChanges(deltas);
-            this.$redoStack.push(deltas);
+    this.update = function(config) {
+        this.$config = config;
+
+        var html = [];
+        for ( var i = config.firstRow; i <= config.lastRow; i++) {
+            html.push("<div class='ace_gutter-cell",
+                this.$decorations[i] || "",
+                this.$breakpoints[i] ? " ace_breakpoint" : "",
+                "' style='height:", config.lineHeight, "px;'>", (i+1), "</div>");
+            html.push("</div>");
         }
+		this.element = dom.setInnerHtml(this.element, html.join(""));
+        this.element.style.height = config.minHeight + "px";
     };
 
-    this.redo = function() {
-        var deltas = this.$redoStack.pop();
-        if (deltas) {
-            this.$doc.redoChanges(deltas);
-            this.$undoStack.push(deltas);
-        }
-    };
+}).call(Gutter.prototype);
 
-}).call(UndoManager.prototype);
+exports.Gutter = Gutter;
 
-exports.UndoManager = UndoManager;
 });
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -10272,7 +10274,7 @@ exports.UndoManager = UndoManager;
  * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
+ * Ajax.org B.V.
  * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
@@ -10293,608 +10295,155 @@ exports.UndoManager = UndoManager;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/virtual_renderer', function(require, exports, module) {
+define('ace/layer/marker', function(require, exports, module) {
 
-var oop = require("pilot/oop");
+var Range = require("ace/range").Range;
 var dom = require("pilot/dom");
-var event = require("pilot/event");
-var GutterLayer = require("ace/layer/gutter").Gutter;
-var MarkerLayer = require("ace/layer/marker").Marker;
-var TextLayer = require("ace/layer/text").Text;
-var CursorLayer = require("ace/layer/cursor").Cursor;
-var ScrollBar = require("ace/scrollbar").ScrollBar;
-var RenderLoop = require("ace/renderloop").RenderLoop;
-var EventEmitter = require("pilot/event_emitter").EventEmitter;
-var editorCss = require("text!ace/css/editor.css");
 
-// import CSS once
-dom.importCssString(editorCss);
+var Marker = function(parentEl) {
+    this.element = document.createElement("div");
+    this.element.className = "ace_layer ace_marker-layer";
+    parentEl.appendChild(this.element);
 
-var VirtualRenderer = function(container, theme) {
-    this.container = container;
-    dom.addCssClass(this.container, "ace_editor");
-
-    this.setTheme(theme);
-
-    this.$gutter = document.createElement("div");
-    this.$gutter.className = "ace_gutter";
-    this.container.appendChild(this.$gutter);
-
-    this.scroller = document.createElement("div");
-    this.scroller.className = "ace_scroller";
-    this.container.appendChild(this.scroller);
-
-    this.content = document.createElement("div");
-    this.content.style.position = "absolute";
-    this.scroller.appendChild(this.content);
-
-    this.$gutterLayer = new GutterLayer(this.$gutter);
-    this.$markerLayer = new MarkerLayer(this.content);
-
-    var textLayer = this.$textLayer = new TextLayer(this.content);
-    this.canvas = textLayer.element;
-
-    this.characterWidth = textLayer.getCharacterWidth();
-    this.lineHeight = textLayer.getLineHeight();
-
-    this.$cursorLayer = new CursorLayer(this.content);
-
-    this.layers = [ this.$markerLayer, textLayer, this.$cursorLayer ];
-
-    this.scrollBar = new ScrollBar(container);
-    this.scrollBar.addEventListener("scroll", this.onScroll.bind(this));
-
-    this.scrollTop = 0;
-
-    this.cursorPos = {
-        row : 0,
-        column : 0
-    };
-
-    var self = this;
-    this.$textLayer.addEventListener("changeCharaterSize", function() {
-        self.characterWidth = textLayer.getCharacterWidth();
-        self.lineHeight = textLayer.getLineHeight();
-
-        self.$loop.schedule(self.CHANGE_FULL);
-    });
-    event.addListener(this.$gutter, "click", this.$onGutterClick.bind(this));
-    event.addListener(this.$gutter, "dblclick", this.$onGutterClick.bind(this));
-
-    this.$size = {
-        width: 0,
-        height: 0,
-        scrollerHeight: 0,
-        scrollerWidth: 0
-    };
-
-    this.$loop = new RenderLoop(this.$renderChanges.bind(this));
-    this.$loop.schedule(this.CHANGE_FULL);
-
-    this.$updatePrintMargin();
-    this.setPadding(4);
+    this.markers = {};
+    this.$markerId = 1;
 };
 
 (function() {
 
-    this.showGutter = true;
-
-    this.CHANGE_CURSOR = 1;
-    this.CHANGE_MARKER = 2;
-    this.CHANGE_GUTTER = 4;
-    this.CHANGE_SCROLL = 8;
-    this.CHANGE_LINES = 16;
-    this.CHANGE_TEXT = 32;
-    this.CHANGE_SIZE = 64;
-    this.CHANGE_FULL = 128;
-
-    oop.implement(this, EventEmitter);
-
-    this.setDocument = function(doc) {
-        this.lines = doc.lines;
-        this.doc = doc;
-        this.$cursorLayer.setDocument(doc);
-        this.$markerLayer.setDocument(doc);
-        this.$textLayer.setDocument(doc);
-
-        this.$loop.schedule(this.CHANGE_FULL);
-    };
-
-    /**
-     * Triggers partial update of the text layer
-     */
-    this.updateLines = function(firstRow, lastRow) {
-        if (lastRow === undefined)
-            lastRow = Infinity;
-
-        if (!this.$changedLines) {
-            this.$changedLines = {
-                firstRow: firstRow,
-                lastRow: lastRow
-            };
-        }
-        else {
-            if (this.$changedLines.firstRow > firstRow)
-                this.$changedLines.firstRow = firstRow;
-
-            if (this.$changedLines.lastRow < lastRow)
-                this.$changedLines.lastRow = lastRow;
-        }
-
-        this.$loop.schedule(this.CHANGE_LINES);
-    };
-
-    /**
-     * Triggers full update of the text layer
-     */
-    this.updateText = function() {
-        this.$loop.schedule(this.CHANGE_TEXT);
-    };
-
-    /**
-     * Triggers a full update of all layers
-     */
-    this.updateFull = function() {
-        this.$loop.schedule(this.CHANGE_FULL);
-    };
-
-    /**
-     * Triggers resize of the editor
-     */
-    this.onResize = function() {
-        var changes = this.CHANGE_SIZE;
-
-        var height = dom.getInnerHeight(this.container);
-        if (this.$size.height != height) {
-            this.$size.height = height;
-
-            this.scroller.style.height = height + "px";
-            this.scrollBar.setHeight(height);
-
-            if (this.doc) {
-                this.scrollToY(this.getScrollTop());
-                changes = changes | this.CHANGE_FULL;
-            }
-        }
-
-        var width = dom.getInnerWidth(this.container);
-        if (this.$size.width != width) {
-            this.$size.width = width;
-
-            var gutterWidth = this.showGutter ? this.$gutter.offsetWidth : 0;
-            this.scroller.style.left = gutterWidth + "px";
-            this.scroller.style.width = Math.max(0, width - gutterWidth - this.scrollBar.getWidth()) + "px";
-        }
-
-        this.$size.scrollerWidth = this.scroller.clientWidth;
-        this.$size.scrollerHeight = this.scroller.clientHeight;
-        this.$loop.schedule(changes);
-    };
-
-    this.setTokenizer = function(tokenizer) {
-        this.$tokenizer = tokenizer;
-        this.$textLayer.setTokenizer(tokenizer);
-        this.$loop.schedule(this.CHANGE_TEXT);
-    };
-
-    this.$onGutterClick = function(e) {
-        var pageX = event.getDocumentX(e);
-        var pageY = event.getDocumentY(e);
-
-        this._dispatchEvent("gutter" + e.type, {
-            row: this.screenToTextCoordinates(pageX, pageY).row,
-            htmlEvent: e
-        });
-    };
-
-    this.$showInvisibles = true;
-    this.setShowInvisibles = function(showInvisibles) {
-        this.$showInvisibles = showInvisibles;
-        this.$textLayer.setShowInvisibles(showInvisibles);
-
-        this.$loop.schedule(this.CHANGE_TEXT);
-    };
-
-    this.getShowInvisibles = function() {
-        return this.$showInvisibles;
-    };
-
-    this.$showPrintMargin = true;
-    this.setShowPrintMargin = function(showPrintMargin) {
-        this.$showPrintMargin = showPrintMargin;
-        this.$updatePrintMargin();
-    };
-
-    this.getShowPrintMargin = function() {
-        return this.$showPrintMargin;
-    };
-
-    this.$printMarginColumn = 80;
-    this.setPrintMarginColumn = function(showPrintMargin) {
-        this.$printMarginColumn = showPrintMargin;
-        this.$updatePrintMargin();
-    };
-
-    this.getPrintMarginColumn = function() {
-        return this.$printMarginColumn;
-    };
-
-    this.setShowGutter = function(show){
-        this.$gutter.style.display = show ? "block" : "none";
-        this.showGutter = show;
-        this.onResize();
-    }
-
-    this.$updatePrintMargin = function() {
-        if (!this.$showPrintMargin && !this.$printMarginEl)
-            return;
-
-        if (!this.$printMarginEl) {
-            this.$printMarginEl = document.createElement("div");
-            this.$printMarginEl.className = "ace_printMargin";
-            this.content.insertBefore(this.$printMarginEl, this.$textLayer.element);
-        }
-
-        var style = this.$printMarginEl.style;
-        style.left = (this.characterWidth * this.$printMarginColumn) + "px";
-        style.visibility = this.$showPrintMargin ? "visible" : "hidden";
-    };
-
-    this.getContainerElement = function() {
-        return this.container;
-    };
-
-    this.getMouseEventTarget = function() {
-        return this.content;
-    };
-
-    this.getFirstVisibleRow = function() {
-        return (this.layerConfig || {}).firstRow || 0;
-    };
-
-    this.getFirstFullyVisibleRow = function(){
-        if (!this.layerConfig)
-            return 0;
-
-        return this.layerConfig.firstRow + (this.layerConfig.offset == 0 ? 0 : 1);
-    }
-
-    this.getLastFullyVisibleRow = function() {
-        if (!this.layerConfig)
-            return 0;
-
-        var flint = Math.floor((this.layerConfig.height + this.layerConfig.offset) / this.layerConfig.lineHeight);
-        return this.layerConfig.firstRow - 1 + flint;
-    }
-
-    this.getLastVisibleRow = function() {
-        return (this.layerConfig || {}).lastRow || 0;
-    };
-
-    this.$padding = null;
-    this.setPadding = function(padding) {
-        this.$padding = padding;
-        this.content.style.padding = "0 " + padding + "px";
-        this.$loop.schedule(this.CHANGE_FULL);
-    };
-
-    this.onScroll = function(e) {
-        this.scrollToY(e.data);
-    };
-
-    this.$updateScrollBar = function() {
-        this.scrollBar.setInnerHeight(this.doc.getLength() * this.lineHeight);
-        this.scrollBar.setScrollTop(this.scrollTop);
-    };
-
-    this.$renderChanges = function(changes) {
-        if (!changes || !this.doc || !this.$tokenizer)
-            return;
-        
-        // text, scrolling and resize changes can cause the view port size to change
-        if (!this.layerConfig ||
-            changes & this.CHANGE_FULL ||
-            changes & this.CHANGE_SIZE ||
-            changes & this.CHANGE_TEXT ||
-            changes & this.CHANGE_LINES ||
-            changes & this.CHANGE_SCROLL
-        )
-            this.$computeLayerConfig();
-
-        // full
-        if (changes & this.CHANGE_FULL) {
-            this.$textLayer.update(this.layerConfig);
-            this.showGutter && this.$gutterLayer.update(this.layerConfig);
-            this.$markerLayer.update(this.layerConfig);
-            this.$cursorLayer.update(this.layerConfig);
-            this.$updateScrollBar();
-            return;
-        }
-
-        // scrolling
-        if (changes & this.CHANGE_SCROLL) {
-            if (changes & this.CHANGE_TEXT || changes & this.CHANGE_LINES)
-                this.$textLayer.update(this.layerConfig);
-            else
-                this.$textLayer.scrollLines(this.layerConfig);
-            this.showGutter && this.$gutterLayer.update(this.layerConfig);
-            this.$markerLayer.update(this.layerConfig);
-            this.$cursorLayer.update(this.layerConfig);
-            this.$updateScrollBar();
-            return;
-        }
-
-        if (changes & this.CHANGE_TEXT) {
-            this.$textLayer.update(this.layerConfig);
-            this.showGutter && this.$gutterLayer.update(this.layerConfig);
-        }
-        else if (changes & this.CHANGE_LINES) {
-            this.$updateLines();
-            this.$updateScrollBar();
-            this.showGutter && this.$gutterLayer.update(this.layerConfig);
-        } else if (changes & this.CHANGE_GUTTER) {
-            this.showGutter && this.$gutterLayer.update(this.layerConfig);
-        }
-
-        if (changes & this.CHANGE_CURSOR)
-            this.$cursorLayer.update(this.layerConfig);
-
-        if (changes & this.CHANGE_MARKER) {
-            this.$markerLayer.update(this.layerConfig);
-        }
-
-        if (changes & this.CHANGE_SIZE)
-            this.$updateScrollBar();
-    };
-
-    this.$computeLayerConfig = function() {
-        var offset = this.scrollTop % this.lineHeight;
-        var minHeight = this.$size.scrollerHeight + this.lineHeight;
-
-        var longestLine = this.$getLongestLine();
-        var widthChanged = !this.layerConfig ? true : (this.layerConfig.width != longestLine);
-
-        var lineCount = Math.ceil(minHeight / this.lineHeight);
-        var firstRow = Math.max(0, Math.round((this.scrollTop - offset) / this.lineHeight));
-        var lastRow = Math.max(0, Math.min(this.lines.length, firstRow + lineCount) - 1);
-
-        var layerConfig = this.layerConfig = {
-            width : longestLine,
-            padding : this.$padding,
-            firstRow : firstRow,
-            lastRow : lastRow,
-            lineHeight : this.lineHeight,
-            characterWidth : this.characterWidth,
-            minHeight : minHeight,
-            offset : offset,
-            height : this.$size.scrollerHeight
-        };
-
-        for ( var i = 0; i < this.layers.length; i++) {
-            var layer = this.layers[i];
-            if (widthChanged) {
-                var style = layer.element.style;
-                style.width = longestLine + "px";
-            }
-        };
-
-        this.$gutterLayer.element.style.marginTop = (-offset) + "px";
-        this.content.style.marginTop = (-offset) + "px";
-        this.content.style.width = longestLine + "px";
-        this.content.style.height = minHeight + "px";
-    };
-
-    this.$updateLines = function() {
-        var firstRow = this.$changedLines.firstRow;
-        var lastRow = this.$changedLines.lastRow;
-        this.$changedLines = null;
-
-        var layerConfig = this.layerConfig;
-
-        // if the update changes the width of the document do a full redraw
-        if (layerConfig.width != this.$getLongestLine())
-            return this.$textLayer.update(layerConfig);
-
-        if (firstRow > layerConfig.lastRow + 1) { return; }
-        if (lastRow < layerConfig.firstRow) { return; }
-
-        // if the last row is unknown -> redraw everything
-        if (lastRow === Infinity) {
-            this.showGutter && this.$gutterLayer.update(layerConfig);
-            this.$textLayer.update(layerConfig);
-            return;
-        }
-
-        // else update only the changed rows
-        this.$textLayer.updateLines(layerConfig, firstRow, lastRow);
-    };
-
-    this.$getLongestLine = function() {
-        var charCount = this.doc.getScreenWidth();
-        if (this.$showInvisibles)
-            charCount += 1;
-
-        return Math.max(this.$size.scrollerWidth - this.$padding * 2, Math.round(charCount * this.characterWidth));
+    this.setSession = function(session) {
+        this.session = session;
     };
 
     this.addMarker = function(range, clazz, type) {
-        var id = this.$markerLayer.addMarker(range, clazz, type);
-        this.$loop.schedule(this.CHANGE_MARKER);
+        var id = this.$markerId++;
+        this.markers[id] = {
+            range : range,
+            type : type || "line",
+            clazz : clazz
+        };
+
         return id;
     };
 
     this.removeMarker = function(markerId) {
-        this.$markerLayer.removeMarker(markerId);
-        this.$loop.schedule(this.CHANGE_MARKER);
-    };
-
-    this.addGutterDecoration = function(row, className){
-        this.$gutterLayer.addGutterDecoration(row, className);
-        this.$loop.schedule(this.CHANGE_GUTTER);
-    }
-
-    this.removeGutterDecoration = function(row, className){
-        this.$gutterLayer.removeGutterDecoration(row, className);
-        this.$loop.schedule(this.CHANGE_GUTTER);
-    }
-
-    this.setBreakpoints = function(rows) {
-        this.$gutterLayer.setBreakpoints(rows);
-        this.$loop.schedule(this.CHANGE_GUTTER);
-    };
-
-    this.updateCursor = function(position, overwrite) {
-        this.$cursorLayer.setCursor(position, overwrite);
-        this.$loop.schedule(this.CHANGE_CURSOR);
-    };
-
-    this.hideCursor = function() {
-        this.$cursorLayer.hideCursor();
-    };
-
-    this.showCursor = function() {
-        this.$cursorLayer.showCursor();
-    };
-
-    this.scrollCursorIntoView = function() {
-        var pos = this.$cursorLayer.getPixelPosition();
-
-        var left = pos.left + this.$padding;
-        var top = pos.top;
-
-        if (this.getScrollTop() > top) {
-            this.scrollToY(top);
-        }
-
-        if (this.getScrollTop() + this.$size.scrollerHeight < top
-                + this.lineHeight) {
-            this.scrollToY(top + this.lineHeight - this.$size.scrollerHeight);
-        }
-
-        if (this.scroller.scrollLeft > left) {
-            this.scrollToX(left);
-        }
-
-        if (this.scroller.scrollLeft + this.$size.scrollerWidth < left
-                + this.characterWidth) {
-            this.scrollToX(Math.round(left + this.characterWidth
-                    - this.$size.scrollerWidth));
-        }
-    },
-
-    this.getScrollTop = function() {
-        return this.scrollTop;
-    };
-
-    this.getScrollLeft = function() {
-        return this.scroller.scrollLeft;
-    };
-
-    this.getScrollTopRow = function() {
-        return this.scrollTop / this.lineHeight;
-    };
-
-    this.scrollToRow = function(row) {
-        this.scrollToY(row * this.lineHeight);
-    };
-
-    this.scrollToY = function(scrollTop) {
-        var maxHeight = this.lines.length * this.lineHeight - this.$size.scrollerHeight;
-        var scrollTop = Math.max(0, Math.min(maxHeight, scrollTop));
-
-        if (this.scrollTop !== scrollTop) {
-            this.scrollTop = scrollTop;
-            this.$loop.schedule(this.CHANGE_SCROLL);
+        var marker = this.markers[markerId];
+        if (marker) {
+            delete (this.markers[markerId]);
         }
     };
 
-    this.scrollToX = function(scrollLeft) {
-        if (scrollLeft <= this.$padding)
-            scrollLeft = 0;
+    this.update = function(config) {
+        var config = config || this.config;
+        if (!config)
+            return;
 
-        this.scroller.scrollLeft = scrollLeft;
-    };
+        this.config = config;
 
-    this.scrollBy = function(deltaX, deltaY) {
-        deltaY && this.scrollToY(this.scrollTop + deltaY);
-        deltaX && this.scrollToX(this.scroller.scrollLeft + deltaX);
-    };
+        var html = [];
+        for ( var key in this.markers) {
+            var marker = this.markers[key];
 
-    this.screenToTextCoordinates = function(pageX, pageY) {
-        var canvasPos = this.scroller.getBoundingClientRect();
+            var range = marker.range.clipRows(config.firstRow, config.lastRow);
+            if (range.isEmpty()) continue;
 
-        var col = Math.round((pageX + this.scroller.scrollLeft - canvasPos.left - this.$padding)
-                / this.characterWidth);
-        var row = Math.floor((pageY + this.scrollTop - canvasPos.top)
-                / this.lineHeight);
-
-        return {
-            row : row,
-            column : this.doc.screenToDocumentColumn(Math.max(0, Math.min(row, this.doc.getLength()-1)), col)
-        };
-    };
-
-    this.textToScreenCoordinates = function(row, column) {
-        var canvasPos = this.scroller.getBoundingClientRect();
-
-        var x = this.padding + Math.round(this.doc.documentToScreenColumn(row, column) * this.characterWidth);
-        var y = row * this.lineHeight;
-
-        return {
-            pageX: canvasPos.left + x - this.getScrollLeft(),
-            pageY: canvasPos.top + y - this.getScrollTop()
-        }
-    };
-
-    this.visualizeFocus = function() {
-        dom.addCssClass(this.container, "ace_focus");
-    };
-
-    this.visualizeBlur = function() {
-        dom.removeCssClass(this.container, "ace_focus");
-    };
-
-    this.showComposition = function(position) {
-    };
-
-    this.setCompositionText = function(text) {
-    };
-
-    this.hideComposition = function() {
-    };
-
-    this.setTheme = function(theme) {
-        var _self = this;
-        if (!theme || typeof theme == "string") {
-            theme = theme || "ace/theme/textmate";
-            require([theme], function(theme) {
-                afterLoad(theme);
-            });
-        } else {
-            afterLoad(theme);
-        }
-
-        var _self = this;
-        function afterLoad(theme) {
-            if (_self.$theme)
-                dom.removeCssClass(_self.container, _self.$theme);
-
-            _self.$theme = theme ? theme.cssClass : null;
-
-            if (_self.$theme)
-                dom.addCssClass(_self.container, _self.$theme);
-
-            // force re-measure of the gutter width
-            if (_self.$size) {
-                _self.$size.width = 0;
-                _self.onResize();
+            if (range.isMultiLine()) {
+                if (marker.type == "text") {
+                    this.drawTextMarker(html, range, marker.clazz, config);
+                } else {
+                    this.drawMultiLineMarker(html, range, marker.clazz, config);
+                }
+            }
+            else {
+                this.drawSingleLineMarker(html, range, marker.clazz, config);
             }
         }
+        this.element = dom.setInnerHtml(this.element, html.join(""));
     };
 
-}).call(VirtualRenderer.prototype);
+    this.drawTextMarker = function(stringBuilder, range, clazz, layerConfig) {
 
-exports.VirtualRenderer = VirtualRenderer;
+        // selection start
+        var row = range.start.row;
+        var lineRange = new Range(row, range.start.column, row, this.session.getLine(row).length);
+        this.drawSingleLineMarker(stringBuilder, lineRange, clazz, layerConfig, 1);
+
+        // selection end
+        var row = range.end.row;
+        var lineRange = new Range(row, 0, row, range.end.column);
+        this.drawSingleLineMarker(stringBuilder, lineRange, clazz, layerConfig);
+
+        for (var row = range.start.row + 1; row < range.end.row; row++) {
+            lineRange.start.row = row;
+            lineRange.end.row = row;
+            lineRange.end.column = this.session.getLine(row).length; // account for endofline characters
+            this.drawSingleLineMarker(stringBuilder, lineRange, clazz, layerConfig, 1);
+        }
+    };
+
+    this.drawMultiLineMarker = function(stringBuilder, range, clazz, layerConfig) {
+        var range = range.toScreenRange(this.session);
+
+        // from selection start to the end of the line
+        var height = layerConfig.lineHeight;
+        var width = Math.round(layerConfig.width - (range.start.column * layerConfig.characterWidth));
+        var top = (range.start.row - layerConfig.firstRow) * layerConfig.lineHeight;
+        var left = Math.round(range.start.column * layerConfig.characterWidth);
+
+        stringBuilder.push(
+            "<div class='", clazz, "' style='",
+            "height:", height, "px;",
+            "width:", width, "px;",
+            "top:", top, "px;",
+            "left:", left, "px;'></div>"
+        );
+
+        // from start of the last line to the selection end
+        var top = (range.end.row - layerConfig.firstRow) * layerConfig.lineHeight;
+        var width = Math.round(range.end.column * layerConfig.characterWidth);
+
+        stringBuilder.push(
+            "<div class='", clazz, "' style='",
+            "height:", height, "px;",
+            "top:", top, "px;",
+            "width:", width, "px;'></div>"
+        );
+
+        // all the complete lines
+        var height = (range.end.row - range.start.row - 1) * layerConfig.lineHeight;
+        if (height < 0)
+            return;
+        var top = (range.start.row + 1 - layerConfig.firstRow) * layerConfig.lineHeight;
+
+        stringBuilder.push(
+            "<div class='", clazz, "' style='",
+            "height:", height, "px;",
+            "width:", layerConfig.width, "px;",
+            "top:", top, "px;'></div>"
+        );
+    };
+
+    this.drawSingleLineMarker = function(stringBuilder, range, clazz, layerConfig, extraLength) {
+        var range = range.toScreenRange(this.session);
+
+        var height = layerConfig.lineHeight;
+        var width = Math.round((range.end.column + (extraLength || 0) - range.start.column) * layerConfig.characterWidth);
+        var top = (range.start.row - layerConfig.firstRow) * layerConfig.lineHeight;
+        var left = Math.round(range.start.column * layerConfig.characterWidth);
+
+        stringBuilder.push(
+            "<div class='", clazz, "' style='",
+            "height:", height, "px;",
+            "width:", width, "px;",
+            "top:", top, "px;",
+            "left:", left,"px;'></div>"
+        );
+    };
+
+}).call(Marker.prototype);
+
+exports.Marker = Marker;
+
 });
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -10912,7 +10461,868 @@ exports.VirtualRenderer = VirtualRenderer;
  * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/layer/text', function(require, exports, module) {
+
+var oop = require("pilot/oop");
+var dom = require("pilot/dom");
+var lang = require("pilot/lang");
+var EventEmitter = require("pilot/event_emitter").EventEmitter;
+
+var Text = function(parentEl) {
+    this.element = document.createElement("div");
+    this.element.className = "ace_layer ace_text-layer";
+    parentEl.appendChild(this.element);
+
+    this.$characterSize = this.$measureSizes();
+    this.$pollSizeChanges();
+};
+
+(function() {
+
+    oop.implement(this, EventEmitter);
+
+    this.EOF_CHAR = "&para;";
+    this.EOL_CHAR = "&not;";
+    this.TAB_CHAR = "&rarr;";
+    this.SPACE_CHAR = "&middot;";
+
+    this.setTokenizer = function(tokenizer) {
+        this.tokenizer = tokenizer;
+    };
+
+    this.getLineHeight = function() {
+        return this.$characterSize.height || 1;
+    };
+
+    this.getCharacterWidth = function() {
+        return this.$characterSize.width || 1;
+    };
+
+    this.$pollSizeChanges = function() {
+        var self = this;
+        setInterval(function() {
+            var size = self.$measureSizes();
+            if (self.$characterSize.width !== size.width || self.$characterSize.height !== size.height) {
+                self.$characterSize = size;
+                self._dispatchEvent("changeCharaterSize", {data: size});
+            }
+        }, 500);
+    };
+
+    this.$fontStyles = {
+        fontFamily : 1,
+        fontSize : 1,
+        fontWeight : 1,
+        fontStyle : 1,
+        lineHeight : 1
+    },
+
+    this.$measureSizes = function() {
+        var n = 1000;
+        if (!this.$measureNode) {
+	        var measureNode = this.$measureNode = document.createElement("div");
+	        var style = measureNode.style;
+	
+	        style.width = style.height = "auto";
+	        style.left = style.top = "-1000px";
+	        
+	        style.visibility = "hidden";
+	        style.position = "absolute";
+	        style.overflow = "visible";
+	        style.whiteSpace = "nowrap";
+	
+	        // in FF 3.6 monospace fonts can have a fixed sub pixel width.
+	        // that's why we have to measure many characters
+	        // Note: characterWidth can be a float!
+	        measureNode.innerHTML = lang.stringRepeat("Xy", n);
+	        document.body.insertBefore(measureNode, document.body.firstChild);
+        }
+
+        var style = this.$measureNode.style;
+        for (var prop in this.$fontStyles) {
+            var value = dom.computedStyle(this.element, prop);
+            style[prop] = value;
+        }
+
+        var size = {
+            height: this.$measureNode.offsetHeight,
+            width: this.$measureNode.offsetWidth / (n * 2)
+        };
+        return size;
+    };
+
+    this.setSession = function(session) {
+        this.session = session;
+    };
+
+    this.showInvisibles = false;
+    this.setShowInvisibles = function(showInvisibles) {
+        if (this.showInvisibles == showInvisibles)
+            return false;
+            
+        this.showInvisibles = showInvisibles;
+        return true;
+    };
+
+    this.$computeTabString = function() {
+        var tabSize = this.session.getTabSize();
+        if (this.showInvisibles) {
+            var halfTab = (tabSize) / 2;
+            this.$tabString = "<span class='ace_invisible'>"
+                + new Array(Math.floor(halfTab)).join("&nbsp;")
+                + this.TAB_CHAR
+                + new Array(Math.ceil(halfTab)+1).join("&nbsp;")
+                + "</span>";
+        } else {
+            this.$tabString = new Array(tabSize+1).join("&nbsp;");
+        }
+    };
+
+    this.updateLines = function(layerConfig, firstRow, lastRow) {
+        this.$computeTabString();
+        this.config = layerConfig;
+        
+        var first = Math.max(firstRow, layerConfig.firstRow);
+        var last = Math.min(lastRow, layerConfig.lastRow);
+
+        var lineElements = this.element.childNodes;
+        var tokens = this.tokenizer.getTokens(first, last);
+        for (var i=first; i<=last; i++) {
+            var lineElement = lineElements[i - layerConfig.firstRow];
+            if (!lineElement)
+                continue;
+
+            var html = [];
+            this.$renderLine(html, i, tokens[i-first].tokens);
+            dom.setInnerHtml(lineElement, html.join(""));
+        }
+    };
+
+    this.scrollLines = function(config) {
+        this.$computeTabString();
+        var oldConfig = this.config;
+        this.config = config;
+
+        if (!oldConfig || oldConfig.lastRow < config.firstRow)
+            return this.update(config);
+
+        if (config.lastRow < oldConfig.firstRow)
+            return this.update(config);
+
+        var el = this.element;
+
+        if (oldConfig.firstRow < config.firstRow)
+            for (var row=oldConfig.firstRow; row<config.firstRow; row++)
+                el.removeChild(el.firstChild);
+
+        if (oldConfig.lastRow > config.lastRow)
+            for (var row=config.lastRow+1; row<=oldConfig.lastRow; row++)
+                el.removeChild(el.lastChild);
+
+        if (config.firstRow < oldConfig.firstRow) {
+            var fragment = this.$renderLinesFragment(config, config.firstRow, oldConfig.firstRow - 1);
+            if (el.firstChild)
+                el.insertBefore(fragment, el.firstChild);
+            else
+                el.appendChild(fragment);
+        }
+               
+        if (config.lastRow > oldConfig.lastRow) {
+            var fragment = this.$renderLinesFragment(config, oldConfig.lastRow + 1, config.lastRow);
+            el.appendChild(fragment);
+        }
+    };
+
+    this.$renderLinesFragment = function(config, firstRow, lastRow) {
+        var fragment = document.createDocumentFragment();
+        var tokens = this.tokenizer.getTokens(firstRow, lastRow);
+        for (var row=firstRow; row<=lastRow; row++) {
+            var lineEl = document.createElement("div");
+            lineEl.className = "ace_line";
+            var style = lineEl.style;
+            style.height = this.$characterSize.height + "px";
+            style.width = config.width + "px";
+
+            var html = [];
+            this.$renderLine(html, row, tokens[row-firstRow].tokens);
+            // don't use setInnerHtml since we are working with an empty DIV
+            lineEl.innerHTML = html.join("");
+            fragment.appendChild(lineEl);
+        }
+        return fragment;
+    };
+
+    this.update = function(config) {
+        this.$computeTabString();
+        this.config = config;
+
+        var html = [];
+        var tokens = this.tokenizer.getTokens(config.firstRow, config.lastRow);
+        for (var i=config.firstRow; i<=config.lastRow; i++) {
+            html.push("<div class='ace_line' style='height:" + this.$characterSize.height + "px;", "width:",
+                    config.width, "px'>");
+            this.$renderLine(html, i, tokens[i-config.firstRow].tokens), html.push("</div>");
+        }
+
+        this.element = dom.setInnerHtml(this.element, html.join(""));
+    };
+
+    this.$textToken = {
+        "text": true,
+        "rparen": true,
+        "lparen": true
+    };
+
+    this.$renderLine = function(stringBuilder, row, tokens) {
+//        if (this.showInvisibles) {
+//            var self = this;
+//            var spaceRe = /[\v\f \u00a0\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u200b\u2028\u2029\u3000]+/g;
+//            var spaceReplace = function(space) {
+//                var space = new Array(space.length+1).join(self.SPACE_CHAR);
+//                return "<span class='ace_invisible'>" + space + "</span>";
+//            };
+//        }
+//        else {
+            var spaceRe = /[\v\f \u00a0\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u200b\u2028\u2029\u3000]/g;
+            var spaceReplace = "&nbsp;";
+//        }
+
+        for ( var i = 0; i < tokens.length; i++) {
+            var token = tokens[i];
+
+            var output = token.value
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(spaceRe, spaceReplace)
+                .replace(/\t/g, this.$tabString);
+
+            if (!this.$textToken[token.type]) {
+                var classes = "ace_" + token.type.replace(/\./g, " ace_");
+                stringBuilder.push("<span class='", classes, "'>", output, "</span>");
+            }
+            else {
+                stringBuilder.push(output);
+            }
+        };
+
+        if (this.showInvisibles) {
+            if (row !== this.session.getLength() - 1) {
+                stringBuilder.push("<span class='ace_invisible'>" + this.EOL_CHAR + "</span>");
+            } else {
+                stringBuilder.push("<span class='ace_invisible'>" + this.EOF_CHAR + "</span>");
+            }
+        }
+    };
+
+}).call(Text.prototype);
+
+exports.Text = Text;
+
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/layer/cursor', function(require, exports, module) {
+
+var dom = require("pilot/dom");
+
+var Cursor = function(parentEl) {
+    this.element = document.createElement("div");
+    this.element.className = "ace_layer ace_cursor-layer";
+    parentEl.appendChild(this.element);
+
+    this.cursor = document.createElement("div");
+    this.cursor.className = "ace_cursor";
+
+    this.isVisible = false;
+};
+
+(function() {
+
+    this.setSession = function(session) {
+        this.session = session;
+    };
+
+    this.setCursor = function(position, overwrite) {
+        this.position = {
+            row : position.row,
+            column : this.session.documentToScreenColumn(position.row, position.column)
+        };
+        if (overwrite) {
+            dom.addCssClass(this.cursor, "ace_overwrite");
+        } else {
+            dom.removeCssClass(this.cursor, "ace_overwrite");
+        }
+    };
+
+    this.hideCursor = function() {
+        this.isVisible = false;
+        if (this.cursor.parentNode) {
+            this.cursor.parentNode.removeChild(this.cursor);
+        }
+        clearInterval(this.blinkId);
+    };
+
+    this.showCursor = function() {
+        this.isVisible = true;
+        this.element.appendChild(this.cursor);
+
+        var cursor = this.cursor;
+        cursor.style.visibility = "visible";
+        this.restartTimer();
+    };
+
+    this.restartTimer = function() {
+        clearInterval(this.blinkId);
+        if (!this.isVisible) {
+            return;
+        }
+
+        var cursor = this.cursor;
+        this.blinkId = setInterval(function() {
+            cursor.style.visibility = "hidden";
+            setTimeout(function() {
+                cursor.style.visibility = "visible";
+            }, 400);
+        }, 1000);
+    };
+
+    this.getPixelPosition = function() {
+        if (!this.config || !this.position) {
+            return {
+                left : 0,
+                top : 0
+            };
+        }
+
+        var cursorLeft = Math.round(this.position.column * this.config.characterWidth);
+        var cursorTop = this.position.row * this.config.lineHeight;
+
+       return {
+            left : cursorLeft,
+            top : cursorTop
+        };
+    };
+
+    this.update = function(config) {
+        if (!this.position)
+            return;
+
+        this.config = config;
+
+        var cursorLeft = Math.round(this.position.column * config.characterWidth);
+        var cursorTop = this.position.row * config.lineHeight;
+
+        this.pixelPos = {
+            left : cursorLeft,
+            top : cursorTop
+        };
+
+        this.cursor.style.left = cursorLeft + "px";
+        this.cursor.style.top = (cursorTop - (config.firstRow * config.lineHeight))
+                + "px";
+        this.cursor.style.width = config.characterWidth + "px";
+        this.cursor.style.height = config.lineHeight + "px";
+
+        if (this.isVisible) {
+            this.element.appendChild(this.cursor);
+        }
+        this.restartTimer();
+    };
+
+}).call(Cursor.prototype);
+
+exports.Cursor = Cursor;
+
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/renderloop', function(require, exports, module) {
+
+var event = require("pilot/event");
+
+var RenderLoop = function(onRender) {
+    this.onRender = onRender;
+    this.pending = false;
+    this.changes = 0;
+};
+
+(function() {
+
+    this.schedule = function(change) {
+        //this.onRender(change);
+        //return;
+        this.changes = this.changes | change;
+        if (!this.pending) {
+            this.pending = true;
+            var _self = this;
+            this.setTimeoutZero(function() {
+                _self.pending = false;
+                var changes = _self.changes;
+                _self.changes = 0;
+                _self.onRender(changes);
+            })
+        }
+    };
+
+    if (window.postMessage) {
+
+        this.messageName = "zero-timeout-message";
+
+        this.setTimeoutZero = function(callback) {
+            if (!this.attached) {
+                var _self = this;
+                event.addListener(window, "message", function(e) {
+                    if (_self.callback && e.data == _self.messageName) {
+                        event.stopPropagation(e);
+                        _self.callback();
+                    }
+                });
+                this.attached = true;
+            }
+            this.callback = callback;
+            window.postMessage(this.messageName, "*");
+        }
+
+    } else {
+
+        this.setTimeoutZero = function(callback) {
+            setTimeout(callback, 0);
+        }
+    }
+
+}).call(RenderLoop.prototype);
+
+exports.RenderLoop = RenderLoop;
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/search', function(require, exports, module) {
+
+var lang = require("pilot/lang");
+var oop = require("pilot/oop");
+var Range = require("ace/range").Range;
+
+var Search = function() {
+    this.$options = {
+        needle: "",
+        backwards: false,
+        wrap: false,
+        caseSensitive: false,
+        wholeWord: false,
+        scope: Search.ALL,
+        regExp: false
+    };
+};
+
+Search.ALL = 1;
+Search.SELECTION = 2;
+
+(function() {
+
+    this.set = function(options) {
+        oop.mixin(this.$options, options);
+        return this;
+    };
+    
+    this.getOptions = function() {
+        return lang.copyObject(this.$options);
+    };
+
+    this.find = function(session) {
+        if (!this.$options.needle)
+            return null;
+
+        if (this.$options.backwards) {
+            var iterator = this.$backwardMatchIterator(session);
+        } else {
+            iterator = this.$forwardMatchIterator(session);
+        }
+
+        var firstRange = null;
+        iterator.forEach(function(range) {
+            firstRange = range;
+            return true;
+        });
+
+        return firstRange;
+    };
+
+    this.findAll = function(session) {
+        if (!this.$options.needle)
+            return [];
+
+        if (this.$options.backwards) {
+            var iterator = this.$backwardMatchIterator(session);
+        } else {
+            iterator = this.$forwardMatchIterator(session);
+        }
+
+        var ranges = [];
+        iterator.forEach(function(range) {
+            ranges.push(range);
+        });
+
+        return ranges;
+    };
+
+    this.replace = function(input, replacement) {
+        var re = this.$assembleRegExp();
+        var match = re.exec(input);
+        if (match && match[0].length == input.length) {
+            if (this.$options.regExp) {
+                return input.replace(re, replacement);
+            } else {
+                return replacement;
+            }
+        } else {
+            return null;
+        }
+    };
+
+    this.$forwardMatchIterator = function(session) {
+        var re = this.$assembleRegExp();
+        var self = this;
+
+        return {
+            forEach: function(callback) {
+                self.$forwardLineIterator(session).forEach(function(line, startIndex, row) {
+                    if (startIndex) {
+                        line = line.substring(startIndex);
+                    }
+
+                    var matches = [];
+
+                    line.replace(re, function(str) {
+                        var offset = arguments[arguments.length-2];
+                        matches.push({
+                            str: str,
+                            offset: startIndex + offset
+                        });
+                        return str;
+                    });
+
+                    for (var i=0; i<matches.length; i++) {
+                        var match = matches[i];
+                        var range = self.$rangeFromMatch(row, match.offset, match.str.length);
+                        if (callback(range))
+                            return true;
+                    }
+
+                });
+            }
+        };
+    };
+
+    this.$backwardMatchIterator = function(session) {
+        var re = this.$assembleRegExp();
+        var self = this;
+
+        return {
+            forEach: function(callback) {
+                self.$backwardLineIterator(session).forEach(function(line, startIndex, row) {
+                    if (startIndex) {
+                        line = line.substring(startIndex);
+                    }
+
+                    var matches = [];
+
+                    line.replace(re, function(str, offset) {
+                        matches.push({
+                            str: str,
+                            offset: startIndex + offset
+                        });
+                        return str;
+                    });
+
+                    for (var i=matches.length-1; i>= 0; i--) {
+                        var match = matches[i];
+                        var range = self.$rangeFromMatch(row, match.offset, match.str.length);
+                        if (callback(range))
+                            return true;
+                    }
+                });
+            }
+        };
+    };
+
+    this.$rangeFromMatch = function(row, column, length) {
+        return new Range(row, column, row, column+length);
+    };
+
+    this.$assembleRegExp = function() {
+        if (this.$options.regExp) {
+            var needle = this.$options.needle;
+        } else {
+            needle = lang.escapeRegExp(this.$options.needle);
+        }
+
+        if (this.$options.wholeWord) {
+            needle = "\\b" + needle + "\\b";
+        }
+
+        var modifier = "g";
+        if (!this.$options.caseSensitive) {
+            modifier += "i";
+        }
+
+        var re = new RegExp(needle, modifier);
+        return re;
+    };
+
+    this.$forwardLineIterator = function(session) {
+        var searchSelection = this.$options.scope == Search.SELECTION;
+
+        var range = session.getSelection().getRange();
+        var start = session.getSelection().getCursor();
+
+        var firstRow = searchSelection ? range.start.row : 0;
+        var firstColumn = searchSelection ? range.start.column : 0;
+        var lastRow = searchSelection ? range.end.row : session.getLength() - 1;
+
+        var wrap = this.$options.wrap;
+
+        function getLine(row) {
+            var line = session.getLine(row);
+            if (searchSelection && row == range.end.row) {
+                line = line.substring(0, range.end.column);
+            }
+            return line;
+        }
+
+        return {
+            forEach: function(callback) {
+                var row = start.row;
+
+                var line = getLine(row);
+                var startIndex = start.column;
+
+                var stop = false;
+
+                while (!callback(line, startIndex, row)) {
+
+                    if (stop) {
+                        return;
+                    }
+
+                    row++;
+                    startIndex = 0;
+
+                    if (row > lastRow) {
+                        if (wrap) {
+                            row = firstRow;
+                            startIndex = firstColumn;
+                        } else {
+                            return;
+                        }
+                    }
+
+                    if (row == start.row)
+                        stop = true;
+
+                    line = getLine(row);
+                }
+            }
+        };
+    };
+
+    this.$backwardLineIterator = function(session) {
+        var searchSelection = this.$options.scope == Search.SELECTION;
+
+        var range = session.getSelection().getRange();
+        var start = searchSelection ? range.end : range.start;
+
+        var firstRow = searchSelection ? range.start.row : 0;
+        var firstColumn = searchSelection ? range.start.column : 0;
+        var lastRow = searchSelection ? range.end.row : session.getLength() - 1;
+
+        var wrap = this.$options.wrap;
+
+        return {
+            forEach : function(callback) {
+                var row = start.row;
+
+                var line = session.getLine(row).substring(0, start.column);
+                var startIndex = 0;
+                var stop = false;
+
+                while (!callback(line, startIndex, row)) {
+
+                    if (stop)
+                        return;
+
+                    row--;
+                    startIndex = 0;
+
+                    if (row < firstRow) {
+                        if (wrap) {
+                            row = lastRow;
+                        } else {
+                            return;
+                        }
+                    }
+
+                    if (row == start.row)
+                        stop = true;
+
+                    line = session.getLine(row);
+                    if (searchSelection) {
+                        if (row == firstRow)
+                            startIndex = firstColumn;
+                        else if (row == lastRow)
+                            line = line.substring(0, range.end.column);
+                    }
+                }
+            }
+        };
+    };
+
+}).call(Search.prototype);
+
+exports.Search = Search;
+});
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
  * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
@@ -10959,7 +11369,7 @@ define('ace/theme/textmate', function(require, exports, module) {
  * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
+ * Ajax.org B.V.
  * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
@@ -11039,7 +11449,7 @@ exports.Mode = Mode;
  * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
+ * Ajax.org B.V.
  * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
@@ -11166,7 +11576,7 @@ exports.Mode = Mode;
  * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
+ * Ajax.org B.V.
  * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
@@ -11243,7 +11653,7 @@ exports.TextHighlightRules = TextHighlightRules;
  * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
+ * Ajax.org B.V.
  * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
@@ -11305,7 +11715,7 @@ JavaScriptHighlightRules = function() {
 	            next : "comment"
 	        }, {
 	            token : "string.regexp",
-	            regex : "[/](?:(?:\\[(?:\\\\]|[^\\]])+\\])|(?:\\\\/|[^\\]/]))*[/][gimy]*\\s*(?=[).,;]|$)"
+	            regex : "[/](?:(?:\\[(?:\\\\]|[^\\]])+\\])|(?:\\\\/|[^\\]/]))*[/]\\w*\\s*(?=[).,;]|$)"
 	        }, {
 	            token : "string", // single line
 	            regex : '["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'
@@ -11417,7 +11827,7 @@ exports.JavaScriptHighlightRules = JavaScriptHighlightRules;
  * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
+ * Ajax.org B.V.
  * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
@@ -11502,7 +11912,7 @@ exports.DocCommentHighlightRules = DocCommentHighlightRules;
  * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
+ * Ajax.org B.V.
  * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
@@ -11584,7 +11994,7 @@ exports.MatchingBraceOutdent = MatchingBraceOutdent;
  * The Original Code is Ajax.org Code Editor (ACE).
  *
  * The Initial Developer of the Original Code is
- * Ajax.org Services B.V.
+ * Ajax.org B.V.
  * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
@@ -11646,7 +12056,7 @@ JavaScriptHighlightRules = function() {
 	            next : "comment"
 	        }, {
 	            token : "string.regexp",
-	            regex : "[/](?:(?:\\[(?:\\\\]|[^\\]])+\\])|(?:\\\\/|[^\\]/]))*[/][gimy]*\\s*(?=[).,;]|$)"
+	            regex : "[/](?:(?:\\[(?:\\\\]|[^\\]])+\\])|(?:\\\\/|[^\\]/]))*[/]\\w*\\s*(?=[).,;]|$)"
 	        }, {
 	            token : "string", // single line
 	            regex : '["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'
@@ -11776,17 +12186,28 @@ define("text!ace/css/editor.css", ".ace_editor {" +
   "  left: 0px;" +
   "}" +
   "" +
-  ".ace_editor .ace_printMargin {" +
+  ".ace_editor .ace_print_margin_layer {" +
+  "  z-index: 0;" +
+  "  position: absolute;" +
+  "  overflow: hidden;" +
+  "  margin: 0px;" +
+  "  left: 0px;" +
+  "  height: 100%;" +
+  "  width: 100%;" +
+  "}" +
+  "" +
+  ".ace_editor .ace_print_margin {" +
   "  position: absolute;" +
   "  height: 100%;" +
   "}" +
   "" +
   ".ace_layer {" +
-  "  z-index: 0;" +
+  "  z-index: 1;" +
   "  position: absolute;" +
   "  overflow: hidden;  " +
   "  white-space: nowrap;" +
   "  height: 100%;" +
+  "  width: 100%;" +
   "}" +
   "" +
   ".ace_text-layer {" +
@@ -11799,7 +12220,7 @@ define("text!ace/css/editor.css", ".ace_editor {" +
   "}" +
   "" +
   ".ace_cursor {" +
-  "  z-index: 3;" +
+  "  z-index: 4;" +
   "  position: absolute;" +
   "}" +
   "" +
@@ -11812,23 +12233,24 @@ define("text!ace/css/editor.css", ".ace_editor {" +
   "" +
   ".ace_marker-layer .ace_step {" +
   "  position: absolute;" +
-  "  z-index: 2;" +
+  "  z-index: 3;" +
   "}" +
   "" +
   ".ace_marker-layer .ace_selection {" +
   "  position: absolute;" +
-  "  z-index: 3;" +
+  "  z-index: 4;" +
   "}" +
   "" +
   ".ace_marker-layer .ace_bracket {" +
   "  position: absolute;" +
-  "  z-index: 4;" +
+  "  z-index: 5;" +
   "}" +
   "" +
   ".ace_marker-layer .ace_active_line {" +
   "  position: absolute;" +
-  "  z-index: 1;" +
-  "}");
+  "  z-index: 2;" +
+  "}" +
+  "");
 
 define("text!ace/theme/tm.css", ".ace-tm .ace_editor {" +
   "  border: 2px solid rgb(159, 159, 159);" +
@@ -11854,7 +12276,7 @@ define("text!ace/theme/tm.css", ".ace-tm .ace_editor {" +
   "  padding-right: 6px;" +
   "}" +
   "" +
-  ".ace-tm .ace_editor .ace_printMargin {" +
+  ".ace-tm .ace_print_margin {" +
   "  width: 1px;" +
   "  background: #e8e8e8;" +
   "}" +
@@ -12020,20 +12442,20 @@ var ace = {
         var env = require("pilot/environment").create();
         var catalog = require("pilot/plugin_manager").catalog;
         catalog.startupPlugins({ env: env }).then(function() {
-            var Document = require("ace/document").Document;
+            var EditSession = require("ace/edit_session").EditSession;
             var JavaScriptMode = require("ace/mode/javascript").Mode;
             var UndoManager = require("ace/undomanager").UndoManager;
             var Editor = require("ace/editor").Editor;
             var Renderer = require("ace/virtual_renderer").VirtualRenderer;
             var theme = require("ace/theme/textmate");
 
-            var doc = new Document(el.innerHTML);
+            var doc = new EditSession(el.innerHTML);
             el.innerHTML = '';
             doc.setMode(new JavaScriptMode());
             doc.setUndoManager(new UndoManager());
             env.document = doc;
             env.editor = new Editor(new Renderer(el, theme));
-            env.editor.setDocument(doc);
+            env.editor.setSession(doc);
             env.editor.resize();
             window.addEventListener("resize", function() {
                 env.editor.resize();
