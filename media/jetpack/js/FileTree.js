@@ -75,7 +75,22 @@ FileTree = new Class({
 			edit: options.edit ? '<span class="edit" title="Rename"></span>' : '',
 			remove: options.remove ? '<span class="delete" title="Delete"></span>' : ''
 		});
-		var li = new Element('li', attr).inject(target);
+		
+		var li = new Element('li', attr),
+			where = 'bottom';
+		
+		//branches should always be in alpha order
+		//so, find the place to inject the new branch
+		target.getChildren('li').some(function(el) {
+			if (el.get('title') > attr.title) {
+				target = el;
+				where = 'before';
+				return true;
+			}
+			return false;
+		});
+		
+		li.inject(target, where);
 		this.fireEvent('addBranch', [li].combine(arguments));
 		return li;
 	},
@@ -125,12 +140,12 @@ FileTree = new Class({
 			end = splitted.length - 1,
 			selector = '',
 			el;
-			
-		elements.each(function(name, i, a){
+		
+		elements.each(function(name, i){
 			var path = splitted.slice(0, i + 1).join('/');
 			if(i == end){
-				var previous = a[i - 1] ? a[i - 1].getElement('ul') : options.target;
-				el = a[i] = previous.getChildren(selector += 'li[title='+ name + suffix +'] ')[0] || this.addBranch({
+				var previous = elements[i - 1] ? elements[i - 1].getElement('ul') : (options.target.getElement('ul') || options.target);
+				el = elements[i] = previous.getChildren(selector += 'li[title='+ name + suffix +'] ')[0] || this.addBranch({
 					'title': name + suffix,
 					'name': name,
 					'path': path,
@@ -139,10 +154,10 @@ FileTree = new Class({
 					'class': 'UI_File_Normal' + (options.nodrag ? ' nodrag' : '')
 				}, previous, options);
 				
-				a[i].store('file', obj);
+				elements[i].store('file', obj);
 			}
 			else{
-				a[i] = options.target.getElement(selector += 'li[title='+ name +'] ') || this.addBranch({
+				elements[i] = options.target.getElement(selector += 'li[title='+ name +'] ') || this.addBranch({
 					'title': name,
 					'name': name,
 					'rel': 'directory',
