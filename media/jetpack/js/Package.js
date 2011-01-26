@@ -305,7 +305,7 @@ var Library = new Class({
 	
 	onSelect: function() {
 		//open in a new tab, of course
-		window.open(this.options.library_url);
+		window.open(this.options.view_url);
 	},
 	
 	get_css_id: function() {
@@ -741,7 +741,7 @@ Package.Edit = new Class({
 						full_name: response.full_name,
 						id_number: response.id_number,
 						library_name: response.library_name,
-						library_url: response.library_url,
+						view_url: response.library_url,
 						revision_number: response.library_revision_number,
 						path: response.path
 					});
