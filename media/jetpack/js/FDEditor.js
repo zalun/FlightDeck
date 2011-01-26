@@ -38,7 +38,7 @@ var FDEditor = new Class({
     },
 
     switchTo: function(item){
-        $log('switching to ' + item.uid);
+        $log('FD: DEBUG: FDEditor.switchTo ' + item.uid);
         var self = this;
         if (!this.items[item.uid]) {
             this.registerItem(item);

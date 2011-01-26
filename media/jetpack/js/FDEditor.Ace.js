@@ -17,35 +17,50 @@ Class.refactor(FDEditor, {
         this.element.inject(wrapper);
         ace.edit(this.element);
         this.ace = this.element.env;
-
-        if (this.options.readonly) {
-            // set read only
-        }
 		this.changed = false;
         // prepare change events
-        this.boundChanged = this.changed.bind(this);
+        this.boundWhenItemChanged = this.whenItemChanged.bind(this);
+        this.boundSetContent = this.setContent.bind(this);
+    },
+
+    setEditable: function() {
+        $log('FD: WARNING: FDEditor.Ace.setEditable - No action!')
+        if (!this.change_hooked) {
+            this.hookChange();
+        }
+    },
+    
+    setReadOnly: function() {
+        $log('FD: WARNING: FDEditor.Ace.setReadOnly - No action!')
+        if (this.change_hooked) {
+            this.unookChange();
+        }
     },
     
     hookChange: function(){
         // hook to onChange Event
+        $log('FD: WARNING: FDEditor.Ace.hookChange - No action!');
         this.change_hooked = true;
 	},
 
     unhookChange: function(){
         // unhook the onChange Event
+        $log('FD: WARNING: FDEditor.Ace.unhookChange - No action!');
         this.change_hooked = false;
     },
 
     getContent: function(){
-        return this.ace.getValue();
+        return this.ace.document.getValue();
     },
 
     setContent: function(value){
-        this.ace.setValue(value);
+        this.ace.document.setValue(value);
         return this;
     },
 
-    setSyntax: function(){}
+    setSyntax: function(){
+        $log('FD: WARNING: FDEditor.Ace.setSyntax - No action!');
+    }
 });
 
 
