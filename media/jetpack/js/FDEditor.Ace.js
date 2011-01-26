@@ -25,14 +25,10 @@ Class.refactor(FDEditor, {
     },
 
     setEditable: function() {
-        $log('FD: WARNING: FDEditor.Ace.setEditable - No action!')
-        if (!this.change_hooked) {
-            this.hookChange();
-        }
+        this.hookChangeIfNeeded();
     },
     
     setReadOnly: function() {
-        $log('FD: WARNING: FDEditor.Ace.setReadOnly - No action!')
         if (this.change_hooked) {
             this.unhookChange();
         }
@@ -48,7 +44,6 @@ Class.refactor(FDEditor, {
         // unhook the onChange Event
         this.ace.document.removeEventListener('change', this.boundWhenItemChanged);
         this.change_hooked = false;
-        $log('FD: INFO: No longer following changes');
     },
 
     getContent: function(){
@@ -61,7 +56,6 @@ Class.refactor(FDEditor, {
     },
 
     setSyntax: function(){
-        $log('FD: WARNING: FDEditor.Ace.setSyntax - No action!');
     }
 });
 

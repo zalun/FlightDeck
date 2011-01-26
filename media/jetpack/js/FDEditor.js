@@ -40,6 +40,7 @@ var FDEditor = new Class({
     switchTo: function(item){
         $log('FD: DEBUG: FDEditor.switchTo ' + item.uid);
         var self = this;
+        this.switching = true;
         if (!this.items[item.uid]) {
             this.registerItem(item);
         }
@@ -63,6 +64,7 @@ var FDEditor = new Class({
             this.setEditable();
         }
         this.setSyntax(item.options.type);
+        this.switching = false;
     },
 
     dumpCurrent: function() {
@@ -80,8 +82,14 @@ var FDEditor = new Class({
         if (this.element.get('readonly')) { 
             this.element.erase('readonly');
         }
-        if (!this.change_hooked) {
+        this.hookChangeIfNeeded();
+    },
+
+    hookChangeIfNeeded: function() {
+        if (!this.current.changed && !this.change_hooked) {
             this.hookChange();
+        } else if (this.current.changed && this.change_hooked) {
+            this.unhookChange();
         }
     },
 
@@ -97,7 +105,7 @@ var FDEditor = new Class({
     },
 
     whenItemChanged: function() {
-        if (this.getContent() != this.current.original_content) {
+        if (!this.switching && this.getContent() != this.current.original_content) {
             this.current.changed = true;
             this.fireEvent('change');
             $log('FD: DEBUG: changed, code is considered dirty and will remain'
@@ -105,7 +113,7 @@ var FDEditor = new Class({
             // fire the fd event
             fd.fireEvent('change');
             this.unhookChange();
-        } else if (this.current.changed) {
+        } else if (!this.switching && this.current.changed) {
             this.current.changed = false;
         }
     },
