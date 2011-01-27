@@ -741,8 +741,8 @@ Package.Edit = new Class({
 						full_name: response.full_name,
 						id_number: response.id_number,
 						library_name: response.library_name,
-						library_url: response.library_url,
-						view_url: response.view_url,
+						view_url: response.library_url,
+						revision_number: response.library_revision_number,
 						path: response.path
 					});
 				}.bind(this)

@@ -63,10 +63,24 @@ FlightDeck = Class.refactor(FlightDeck,{
 								'</ul>'+
 							'</div>'+
 						'</div>';
-		display = this.displayModal(template.substitute(data));
+		var display = this.displayModal(template.substitute(data));
 		if (data.callback && data.id) {
 			$(data.id).addEvent('click', data.callback);
 		}
+		
+		//auto focus first input if it exists
+		//also listen for the enter key if a text input exists
+		var textboxes = $(display).getElements('input[type="text"]').addEvent('keyup:keys(enter)', function(e) {
+			e.preventDefault();
+			data.callback();
+		});
+		
+		if (textboxes.length) {
+			setTimeout(function() {
+				textboxes[0].focus();
+			}, 5);
+		}
+		
 		return display;
 	}
 });
