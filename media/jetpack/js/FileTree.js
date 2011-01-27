@@ -119,6 +119,10 @@ FileTree = new Class({
 		}
 		
 		label.set('tabIndex', 0).set('contenteditable', true).focus();
+		label.addEvent('blur', function blur(e) {
+			label.removeEvent('blur', blur);
+			this.renameBranch(element);
+		}.bind(this))
 		
 		if(hasExtension){
 			var range = document.createRange(),
