@@ -38,8 +38,9 @@ var FDEditor = new Class({
     },
 
     switchTo: function(item){
-        $log('switching to ' + item.uid);
+        $log('FD: DEBUG: FDEditor.switchTo ' + item.uid);
         var self = this;
+        this.switching = true;
         if (!this.items[item.uid]) {
             this.registerItem(item);
         }
@@ -52,7 +53,7 @@ var FDEditor = new Class({
         this.current = item;
         this.current.active = true;
         if (!this.current.content) {
-            this.current.addEvent('loadcontent', this.boundSetContent);
+            this.current.addVolatileEvent('loadcontent', this.boundSetContent);
             this.current.loadContent();
         } else {
             this.setContent(this.current.content);
@@ -63,6 +64,7 @@ var FDEditor = new Class({
             this.setEditable();
         }
         this.setSyntax(item.options.type);
+        this.switching = false;
     },
 
     dumpCurrent: function() {
@@ -80,8 +82,14 @@ var FDEditor = new Class({
         if (this.element.get('readonly')) { 
             this.element.erase('readonly');
         }
-        if (!this.change_hooked) {
+        this.hookChangeIfNeeded();
+    },
+
+    hookChangeIfNeeded: function() {
+        if (!this.current.changed && !this.change_hooked) {
             this.hookChange();
+        } else if (this.current.changed && this.change_hooked) {
+            this.unhookChange();
         }
     },
 
@@ -93,12 +101,23 @@ var FDEditor = new Class({
     unhookChange: function(){
         this.element.removeEvent('keyup', this.boundWhenItemChanged);
         this.change_hooked = false;
+        $log('FD: INFO: No longer following changes');
     },
 
     whenItemChanged: function() {
-        this.fireEvent('modification');
-        this.current.changed = true;
-        $log('touched');
+        if (!this.switching && this.getContent() != this.current.original_content) {
+            this.current.changed = true;
+            this.fireEvent('change');
+            $log('FD: DEBUG: changed, code is considered dirty and will remain'
+                    +'be treated as such even if changes are reverted');
+            // fire the fd event
+            if (!fd.edited) {
+                fd.fireEvent('change');
+            }
+            this.unhookChange();
+        } else if (!this.switching && this.current.changed) {
+            this.current.changed = false;
+        }
     },
 
 	getContent: function() {
@@ -110,15 +129,6 @@ var FDEditor = new Class({
 		return this;
 	},
 
-    onModification: function() {
-        if (this.getValue() != this.current.original_content) {
-            this.fireEvent('change');
-            $log('changed');
-        } else if (this.current.changed) {
-            this.current.changed = false;
-        }
-    },
-
     isChanged: function() {
         return this.items.some(function(item) {
             return item.changed;
@@ -126,5 +136,4 @@ var FDEditor = new Class({
     },
 
     setSyntax: function(){}
-
 });

@@ -31,7 +31,7 @@ var FlightDeck = new Class({
         this.addEvent('xpi_downloaded', this.whenXpiDownloaded);
         this.addEvent('xpi_installed', this.whenXpiInstalled);
         this.addEvent('xpi_uninstalled', this.whenXpiUninstalled);
-        if (!this.isAddonInstalled()) $log('FD: No Addon Builder Helper')
+        //if (!this.isAddonInstalled()) $log('FD: No Addon Builder Helper')
     },
 
     parseTooltips: function() {
@@ -408,7 +408,7 @@ Events.implement({
             counter = 1;
         }
         var volatileFn = function(){
-            fn.run(arguments);
+            fn.apply(this, arguments);
             counter -= 1;
             if(counter < 1) {
                 this.removeEvent(type, volatileFn);

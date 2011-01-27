@@ -374,7 +374,7 @@ var Attachment = new Class({
 			onSuccess: function(text) {
                 this.content = text;
                 this.original_content = text;
-				this.fireEvent('load_content', text);
+				this.fireEvent('loadcontent', text);
 			}.bind(this)
 		}).send();
 	},
