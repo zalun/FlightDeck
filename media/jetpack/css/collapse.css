@@ -1,0 +1,147 @@
+ul.collapse {
+	margin: 0;
+	padding:5px;
+}
+
+ul.licollapsest ul {
+	margin: 0;
+	padding: 0 0 0 10px;
+}
+
+ul.collapse li {
+	background: url(/media/jetpack/img/t.gif) no-repeat top left;
+	list-style-type: none;
+	padding: 0 0 0 20px;
+	line-height: 18px;
+	margin: 0;
+	clear: both;
+	overflow: hidden;
+}
+
+ul.collapse li:last-child {
+	background-image:url(/media/jetpack/img/t-bottom.gif);
+	
+}
+
+ul.collapse .label {
+	padding: 2px 0 2px 24px;
+	cursor: pointer;
+	color: #5e5e5e;
+	text-decoration: none;
+}
+
+ul.collapse a.expand {
+	outline: 0;
+	position:absolute;
+	left:0;
+	top:0;
+	width: 16px;
+	height: 19px;
+	padding: 0;
+	margin: 0;
+	background: url(/media/jetpack/img/expand.png) no-repeat bottom center;
+}
+
+ul.collapse a.collapse {
+	background: url(/media/jetpack/img/collapse.png) no-repeat bottom center;
+}
+
+ul.collapse a.collapse + .holder > .icon
+{
+	background-image: url(/media/jetpack/img/UI_File_Listing/folder_fill_16x16.png);
+}
+
+ul.collapse li.top_branch {
+	background:none;
+}
+
+ul li.top_branch > a
+{
+	position:absolute;
+	top:8px;
+	left:10px;
+}
+
+li.top_branch > .holder {
+	overflow:hidden;
+}
+
+ul li.top_branch > .holder > .label
+{
+	background-color: #efefef;
+	padding: 8px 6px 8px 40px;
+	border-width: 1px;
+	border-style: solid;
+	border-color: #dadada #d0d0d0 #cacaca;
+	-moz-border-radius:3px;
+	display:block;
+	float:left;
+}
+
+ul li.top_branch > .holder > .icon {
+	background:no-repeat left top ;
+	background-image: url(/media/jetpack/img/toggle-icons.png) !important;
+	position:absolute;
+	height:27px;
+	left:5px;
+	top:5px;
+	width:26px;
+}
+
+ul li.top_branch > a.expand {
+	top:5px;
+}
+
+#lib_branch > .holder > .icon
+{
+	background-position:0 0;
+}
+
+#data_branch > .holder > .icon
+{
+	background-position:0 -81px;
+}
+
+#plugins_branch > .holder > .icon
+{
+	background-position:0 -110px;
+}
+
+li[rel="file"] > .holder > .icon {
+	background-image: url(/media/jetpack/img/UI_File_Listing/document_stroke_16x16.png) !important;
+}
+
+li[rel="file"].UI_File_Selected > .holder  >.icon {
+	background-image: url(/media/jetpack/img/UI_File_Listing/document_fill_16x16.png) !important;
+}
+
+li[title$=".png"] > .holder > .icon, li[title$=".jpg"] > .holder > .icon, li[title$=".gif"] > .holder > .icon
+{
+	background-image: url(/media/jetpack/img/UI_File_Listing/image_16x16.png) !important;
+}
+
+/*li[title$=".html"] > .holder > .icon
+{
+	background-image: url(/media/jetpack/img/html.png) !important;
+}
+
+li[title$=".js"] > .holder > .icon
+{
+	background-image: url(/media/jetpack/img/js.png) !important;
+}
+
+li[title$=".css"] > .holder > .icon
+{
+	background-image: url(/media/jetpack/img/css.png) !important;
+}
+
+li[title$=".json"] > .holder > .icon
+{
+	background-image: url(/media/jetpack/img/json.png) !important;
+}
+
+li[title$=".md"] > .holder > .icon
+{
+	background-image: url(/media/jetpack/img/md.png) !important;
+}*/
+	

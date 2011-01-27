@@ -2,19 +2,20 @@
 
 {% block title %}{{ revision }} - {% endblock %}
 
-{% block head_prejs %}
-	<link id="bespin_base" href="/media/lib/bespin"/>
-	<script src="/media/lib/bespin/BespinEmbedded.js"></script>
-{% endblock %}
-
 {% block head %}
 	<link rel="stylesheet" href="/media/jetpack/css/UI.Editor.css" type="text/css" media="screen" />
-	<link rel="stylesheet" href="/media/lib/bespin/BespinEmbedded.css" type="text/css" media="screen" />
+	<link rel="stylesheet" href="/media/jetpack/css/FlightDeck.Autocomplete.css" type="text/css" media="screen" />
+	<link rel="stylesheet" href="/media/jetpack/css/tree.css" type="text/css" media="screen" />
+	<link rel="stylesheet" href="/media/jetpack/css/collapse.css" type="text/css" media="screen" />
 	<script src="/media/jetpack/js/FlightDeck.Editor.js"></script>
-	<script src="/media/jetpack/js/Editor.js"></script>
-	<script src="/media/jetpack/js/Bespin.js"></script>
-	<script src="/media/jetpack/js/FlightDeck.Bespin.js"></script>
+	<script src="/media/lib/ace/ace.js"></script>
+	<script src="/media/jetpack/js/FDEditor.js"></script>
+	<script src="/media/jetpack/js/FDEditor.Ace.js"></script>
+	<script src="/media/lib/meio/Meio.Autocomplete.HTML-1.3.js"></script>
+	<script src="/media/base/js/FlightDeck.Autocomplete.js"></script>
 	<script src="/media/jetpack/js/Package.js"></script>
+	<script src="/media/lib/tree.js"></script>
+	<script src="/media/jetpack/js/FileTree.js"></script>
 {% endblock %}
 
 {# switch off default menu bar #}
@@ -47,47 +48,26 @@
 	<section id="package-info" class="UI_Sidebar_Item">
 		{% include "_package_info.html" %}
 	</section>
-	<section id="modules">
-		{% block modules_sidebar %}{% endblock %}
-	</section>
-	{% with revision.attachments.all as attachments %}{% if attachments %}
-	<section id="attachments">
-			<h3 class="UI_Sidebar_Toggler attachments opened">
-				<a title="Attachments" href="#">
-					Attachments <strong id="attachments-counter">({{ attachments|length }})</strong>
-					<span class="UI_OC"></span>
-					<span class="UI_Sidebar_Toggler_Icon"></span>
-				</a>
-			</h3>
-			<div class="UI_Sidebar_ItemCont">
-				<ul class="UI_File_Listing" id='attachments_ul'>
-					{% for attachment in attachments %}
-						<li class="UI_File_Normal">
-                        <a title="" href="{{ attachment.get_display_url }}" rel="{{ attachment.ext }}" class="Module_file" id="{{ attachment.get_uid }}_attachment_switch">
-								{{ attachment.get_filename }}
-							</a>
-						</li>
-					{% endfor %}
-				</ul>
-			</div>
+	<div class="trees-container">
+		<section id="modules">
+			<ul id="LibTree" class="tree collapse">
+				
+			</ul>
 		</section>
-	{% endif %}{% endwith %}
-	{% if libraries or revision.package.is_addon %}
+		{% with revision.attachments.all as attachments %}{% if attachments %}
+		<section id="attachments">
+			<ul id="DataTree" class="tree collapse">
+				
+			</ul>
+		</section>
+		{% endif %}{% endwith %}
+		{% if libraries or revision.package.is_addon %}
 		<section id="libraries">
-			<h3 class="UI_Sidebar_Toggler libraries opened"><a title="Libraries" href="#">
-				Libraries <strong id="libraries-counter">({{ library_counter }})</strong>
-				<span class="UI_OC"></span>
-				<span class="UI_Sidebar_Toggler_Icon"></span>
-			</a></h3>
-			<div class="UI_Sidebar_ItemCont">
-				<ul class="UI_File_Listing">
-					{% block core_library %}{% endblock %}
-					{% if libraries %}
-						{% include "_sidebar_revision_libraries_list.html" %}
-					{% endif %}
-				</ul>
-			</div>
+			<ul id="PluginsTree" class="tree collapse">
+				{% block core_library %}{% endblock %}
+			</ul>
 		</section>
+	</div>
 	{% endif %}
 {% endblock %}
 
@@ -107,6 +87,5 @@
 		</ul>
 	</div> <!-- /editor-menu-wrapper -->
 	<div id="editor-wrapper">
-		{% block editor_wrapper %}{% endblock %}
 	</div>
 {% endblock %}

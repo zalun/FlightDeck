@@ -27,5 +27,4 @@ modules: {{ revision.get_modules_list_json|safe }},
 attachments: {{ revision.get_attachments_list_json|safe }},
 // Actions
 copy_url: '{{ revision.get_copy_url }}',
-hashtag: '{% hashtag %}',
-tree: {{ tree|safe }}
+hashtag: '{% hashtag %}'

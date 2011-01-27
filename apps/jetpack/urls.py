@@ -62,8 +62,8 @@ urlpatterns = patterns('jetpack.views',
         name='jp_library_revision_details'),
     # get full module info
     url(r'^get_module/(?P<id_number>[-\w]+)/(?P<revision_number>\d+)/'
-            '(?P<filename>.*)$',
-        'get_module', name='jp_get_module'),
+            '(?P<filename>.*)$', 'get_module', name='jp_get_module'),
+    url(r'^module/(?P<pk>\d+)/$', 'download_module', name='jp_module'),
 
     # copy a PackageRevision
     url(r'^addon/copy/(?P<id_number>[-\w]+)/revision/'
@@ -109,6 +109,16 @@ urlpatterns = patterns('jetpack.views',
         'package_remove_module',
         {'type_id': 'l'},  name='jp_library_revision_remove_module'),
 
+    # rename module
+    url(r'^addon/rename_module/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
+        'package_rename_module',
+        {'type_id': 'a'}, name='jp_addon_revision_rename_module'),
+    url(r'^library/rename_module/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
+        'package_rename_module',
+        {'type_id': 'l'}, name='jp_library_revision_rename_module'),
+
     # switch SDK version
     url(r'^addon/switch_sdk/(?P<id_number>[-\w]+)/revision/'
             '(?P<revision_number>\d+)/$',
@@ -131,6 +141,16 @@ urlpatterns = patterns('jetpack.views',
             '(?P<revision_number>\d+)/$',
         'package_remove_attachment',
         {'type_id': 'l'},  name='jp_library_revision_remove_attachment'),
+
+     # rename attachment
+    url(r'^addon/rename_attachment/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
+        'package_rename_attachment',
+        {'type_id': 'a'}, name='jp_addon_revision_rename_attachment'),
+    url(r'^library/rename_attachment/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
+        'package_rename_attachment',
+        {'type_id': 'l'}, name='jp_library_revision_rename_attachment'),
 
     # display attachment
     url(r'^attachment/(?P<uid>.*)$',

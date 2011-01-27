@@ -19,7 +19,7 @@ license: MIT-style license
 	background: #fff;
 	width: 110px;
 	border: solid 1px #BEC5CC;
-	z-index: 50;
+	z-index: 10005;
 	padding: 5px 0;
 	opacity: 1;
 	-moz-box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);

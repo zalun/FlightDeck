@@ -1,71 +1,409 @@
-/*
- * File: jetpack/Sidebar.js
- */
-
 
 var Sidebar = new Class({
 	
 	Implements: [Options, Events],
 	
 	options: {
-		togglerTrigger: '.UI_Sidebar_Toggler a',
-		togglerContainer: '.UI_Sidebar_ItemCont'
+		file_selected_class: 'UI_File_Selected',
+		file_normal_class: 'UI_File_Normal',
+		file_listing_class: 'tree',
+		editable: false
 	},
+	
+	trees: {},
 	
 	initialize: function(options){
 		this.setOptions(options);
-		this.showItem = [];
-		this.checkTogglers();
+		this.element = $('app-sidebar');
+		
+		this.resizeTreeContainer();
+		window.addEvent('resize', this.resizeTreeContainer.bind(this));
 	},
 	
-	checkTogglers: function(){
-		this.togglers = $$(this.options.togglerTrigger);
-		this.containers = $$(this.options.togglerContainer);
-		this.slideFx = [];
-		this.sideContStatus = JSON.decode(Cookie.read('openedSidebarItems'));
-		
-		this.containers.each(this.attachActions.bind(this));
+	resizeTreeContainer: function() {
+		// set height on tree container, to allow for overflow:auto
+		var container = this.element.getElement('.trees-container');
+		if(container) {
+			container.setStyle('height', window.getHeight() - container.getTop());
+		}
 	},
 	
-	attachActions: function(container, index){
-		var self = this,
-			currentToggler = this.togglers[index].getParent();
+	buildTree: function() {
+		var that = this;
+		var treeOptions = {
+			checkDrag: function(el){
+				return !el.hasClass('nodrag') && that.options.editable;
+			},
+			checkDrop: function(el, drop){
+				var isFile = el.get('rel') == 'file',
+					isSibling = this.current.getSiblings().contains(el);
+					
+				return (
+						((drop.isSubnode || isSibling) && isFile)
+						|| el.hasClass('top_branch')
+						|| isSibling && !isFile && !drop.isSubnode
+						|| !isFile && drop.isSubnode && this.current.getParent().getParent() == el
+					) ? false : true;
+			},
+			onChange: function(){
+				this.updatePath(this.current);
+				that.renameFile(this.current.retrieve('file'), this.getFullPath(this.current));
+			},
+			onRenameComplete: function(){
+				$$('div.rename_branch').removeClass('active');
+			}
+		};
 		
-		this.slideFx[index] = new Fx.Slide(container);
+		// Tree and Collapse initilizations
+		var trees = this.trees = {};
+		var topBranchOptions = {
+			add: this.options.editable,
+			edit: false,
+			remove: false,
+			collapsed: false
+		};
 		
-		// hide side item if the class is 'closed'
-		if (currentToggler.hasClass('closed')){
-			this.slideFx[index].hide();
+		var addon_or_lib_url = window.location.pathname.match(/\/[a-z]+\/\d+\//g)[0]
+				.replace(/\//g, '_');
+		
+		var collapseOptions = {
+			getAttribute: function(element) {
+				return element.get('path') || element.get('id');
+			},
+			getIdentifier: function(element) {
+				return addon_or_lib_url + '_collapse_' + element.get('id')
+			}
+		};
+		
+		if($('LibTree')) {
+			trees.lib = new FileTree('LibTree', treeOptions);
+			trees.lib.collapse = new Collapse.Cookie('LibTree', collapseOptions);
+			trees.lib.addBranch({
+				'rel': 'directory',
+				'title': 'Lib',
+				'id': 'lib_branch',
+				'class': 'top_branch nodrag'
+			}, null, topBranchOptions);
 		}
 		
-		// show site item if it was toggled open before reloading
-		if (this.sideContStatus && this.sideContStatus[index]){
-			this.slideFx[index].show();
-			//this.containers[index].getParent().setStyle('height', 'auto'); //removing this fixes 623353
-			this.togglers[index].getParent().removeClass('closed');
+		if($('DataTree')) {
+			trees.data = new FileTree('DataTree', treeOptions);
+			trees.data.collapse = new Collapse.Cookie('DataTree', collapseOptions);
+			trees.data.addBranch({
+				'rel': 'directory',
+				'title': 'Data',
+				'id': 'data_branch',
+				'class': 'top_branch nodrag'
+			}, null, topBranchOptions);
 		}
+			
+		if($('PluginsTree')) {	
+			trees.plugins = new FileTree('PluginsTree', Object.merge({}, treeOptions, { actions: {
+				edit: false,
+				remove: true
+			}}));
+			trees.plugins.collapse = new Collapse.Cookie('PluginsTree', collapseOptions);
+			var pluginsBranch = trees.plugins.addBranch({
+				'rel': 'directory',
+				'title': 'Plugins',
+				'id': 'plugins_branch',
+				'class': 'top_branch nodrag'
+			}, null, topBranchOptions);
+			
+			var sdkBranch = $('core_library_lib');
+			if(sdkBranch) {
+				pluginsBranch.getElement('ul').grab(sdkBranch);
+				trees.plugins.collapse.prepare();
+			}
+		}
+
+		this.attach();
 		
-		this.togglers[index].addEvents({
-			click: function(e){
-				e.stop();
+		return this;
+	},
+	
+	attach: function() {
+		var that = this,
+			sidebarEl = $(this);
+			
+		// highlight branch on click
+		sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .label)'.substitute(this.options), function(e) {
+			var li = $(e.target).getParent('li'),
+				file = li.retrieve('file');
+			if(file) {
+				if(file.is_editable()) {
+					that.setSelectedFile(li);
+				}
 				
-				this.getParent().toggleClass('closed');
-				self.slideFx[index].toggle();
-				
-				self.showItem = [];
-				
-				self.togglers.getParent().each(function(el){
-					self.showItem.push(!(el.hasClass('closed') && el.hasClass('opened')));
-				});
-				
-				Cookie.write('openedSidebarItems', JSON.encode(self.showItem));
+				file.onSelect();
 			}
 		});
-	}
-});
+		
+		//adding modules to Lib
+		if(this.trees.lib) {
+			$(this.trees.lib).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
+				that.promptNewFile();
+			});
+		}
+		
+		//adding attachments to Data
+		if(this.trees.data) {
+			$(this.trees.data).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
+				that.promptAttachment();
+			});
+		}
+		
+		//adding User Libraries to Plugins
+		if(this.trees.plugins) {
+			$(this.trees.plugins).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
+				that.promptPlugin();
+			});
+		}
+		
+		// delete
+		sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .actions .delete)'.substitute(this.options), function(e) {
+			var file = $(e.target).getParent('li').retrieve('file');
+			if (!file.options.readonly) {
+				that.promptRemoval(file);
+			}
+		});
+		
+		Object.each(this.trees, function(tree, name) {
+			tree.addEvents({
+				'renameComplete': function(li, fullpath) {
+					that.renameFile(li.retrieve('file'), fullpath);
+				},
+				'deleteBranch': function(li) {
+					
+				}
+			});
+		});
+		
+		return this;
+	},
+	
+	renameFile: function(file, fullpath) {
+		var pack = fd.getItem();
+		if (file instanceof Module) {
+			pack.renameModule(file.options.filename, fullpath.replace('.'+file.options.type, ''));
+		} else if (file instanceof Attachment) {
+			pack.renameAttachment(file.options.uid, fullpath.replace('.'+file.options.type, ''));
+		}
+	},
+	
+	removeFileFromTree: function(treeName, file) {
+		var tree = this.trees[treeName],
+			that = this,
+			title;
+			
+		if(file instanceof Library) {
+			title = file.options.full_name;
+		} else {
+			title = file.options.filename + '.' + file.options.type;
+		}
+		
+		$(tree).getElements('li[title="{title}"]'.substitute({title:title})).some(function(el) {
+			if(el.retrieve('file') == file) {
+				el.dispose();
+				return true;
+			}
+		});
+	},
+	
+	addFileToTree: function(treeName, file) {
+		var tree = this.trees[treeName],
+			that = this;
+			
+		if (!tree) {
+			this.buildTree();
+			tree = this.trees[treeName];
+		}
+		
+		var options = {
+			target:	$(tree).getElement('.top_branch'),
+			url: file.options.url
+		};
+	
+		if (!this.options.editable || file.options.main) {
+			options.edit = false;
+			options.remove = false;
+			options.nodrag = true;
+		}
+		
+		
+		var element = tree.addPath(file, options);	
+		tree.collapse.prepare();
+		file.addEvent('destroy', function() {
+			that.removeFileFromTree(treeName, file);
+		});
 
-window.addEvents({
-	domready: function(){
-		new Sidebar();
+		if((file.options.active || file.options.main) && file.is_editable()) {
+			this.setSelectedFile(element);
+		}
+	}.protect(),
+	
+	addLib: function(lib) {
+		this.addFileToTree('lib', lib);
+	},
+	
+	addData: function(attachment) {
+		this.addFileToTree('data', attachment);
+	},
+	
+	addPlugin: function(plugin) {
+		this.addFileToTree('plugins', plugin);
+	},
+	
+	setSelectedFile: function(el) {
+		var options = this.options;
+		
+		$(this).getElements('.{file_listing_class} li'.substitute(options))
+			.removeClass(options.file_selected_class)
+			.addClass(options.file_normal_class);
+		
+		el.removeClass(options.file_normal_class)
+			.addClass(options.file_selected_class);
+		
+		
+		
+		return this;
+	},
+	
+	promptRemoval: function(file) {
+		var question = fd.showQuestion({
+			title: 'Are you sure you want to remove {name}?'.substitute({ name: file.options.path }),
+			message: file instanceof Module ? 'You may always copy it from this revision' : '',
+			ok: 'Remove',
+			id: 'remove_file_button',
+			callback: function() {
+				if (file instanceof Module) {
+					fd.getItem().removeModule(file);
+				} else if (file instanceof Attachment) {
+					fd.getItem().removeAttachment(file);
+				} else if (file instanceof Library) {
+					fd.getItem().removeLibrary(file);
+				}
+				
+				
+				question.destroy();
+			}
+		});
+	},
+	
+	promptNewFile: function() {
+		var prompt = fd.showQuestion({
+			title: 'Create a new file or folder',
+			message: '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>' +
+				'<a href="#" id="new_type_folder" class="radio_btn"><span>Folder</span></a>' +
+				'<input type="text" name="new_file" id="new_file" placeholder="Enter name..." />',
+			ok: 'Create',
+			id: 'create_new_file',
+			callback: function() {
+				// get data
+				var filename = $('new_file').value,
+					pack = fd.getItem();
+				if (!filename) {
+					fd.error.alert('Filename can\'t be empty', 'Please provide the name of the module');
+					return;
+				}
+				if (pack.options.modules.some(function(mod) { return mod.filename == filename; })) {
+					fd.error.alert('Filename has to be unique', 'You already have the module with that name');
+					return;
+				}
+				
+				if (isFolder){
+					$log('need to make an EmptyDir here');
+					pack.addFolder(filename);
+				} else {
+					pack.addModule(filename);
+				}
+				prompt.destroy();
+			}
+		});
+
+		//hookup File / Folder buttons
+		var fileBtn = $('new_type_file'),
+			folderBtn = $('new_type_folder'),
+			isFolder = false;
+			
+		fileBtn.addEvent('click', function(e) {
+			e.stop();
+			folderBtn.removeClass('selected');
+			this.addClass('selected');
+			isFolder = false;
+		});
+		
+		folderBtn.addEvent('click', function(e) {
+			e.stop();
+			fileBtn.removeClass('selected');
+			this.addClass('selected');
+			isFolder = true;
+		});
+	},
+	
+	promptAttachment: function() {
+		var prompt = fd.showQuestion({
+			title: 'Upload an Attachment',
+			message: '<input type="file" name="new_attachment" id="new_attachment" placeholder="Browse for file to attach" />',
+			ok: 'Create File',
+			id: 'new_attachment_button',
+			callback: function() {
+				var fileInput = $('new_attachment'),
+					files = fileInput.files,
+					pack = fd.getItem();
+				
+				//validation
+				if(!(files && files.length)) {
+					fd.error.alert('No file was selected.', 'Please select a file to upload.');
+					return;
+				}
+				
+				for (var f = 0; f < files.length; f++){
+					var filename = files[f].fileName.replace(/\.[^\.]+$/g, ''),
+						ext = files[f].fileName.match(/\.([^\.]+)$/)[1];
+						
+					if (Object.some(pack.attachments, function(att) { return (att.options.filename == filename) && (att.options.type == ext); })) {
+						fd.error.alert('Filename has to be unique', 'You already have an attachment with that name.');
+						return;
+					}
+				}
+				
+				
+				
+				pack.sendMultipleFiles(fileInput.files);
+				prompt.destroy();
+			}
+		});
+	},
+	
+	promptPlugin: function() {
+		var prompt = fd.showQuestion({
+			title: 'Add a User Library',
+			message: '<input type="text" name="new_library" id="new_library" placeholder="Search for libraries to include" />' +
+					 '<input type="hidden" name="library_id_number" id="library_id_number" />',
+			ok: 'Add Library',
+			id: 'new_library_button',
+			callback: function() {
+				var lib_id = $('library_id_number').value;
+				if(!lib_id) {
+					fd.error.alert('No User Library selected', 'Please enter the name of an existing User Library');
+					return;
+				}
+				
+				fd.getItem().assignLibrary(lib_id)
+				prompt.destroy();
+			}
+		});
+		
+		//setup Library autocomplete
+		// autocomplete
+		var autocomplete = new FlightDeck.Autocomplete({
+			'url': settings.library_autocomplete_url
+		});
+	},
+	
+	toElement: function() {
+		return this.element;
 	}
+	
 });

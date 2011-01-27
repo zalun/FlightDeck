@@ -1,0 +1,158 @@
+/* Tree CSS */
+ul.tree, ul.tree li, ul.tree ul {
+	position: relative;
+	cursor: pointer;
+	zoom: 1;
+}
+
+ul.tree li, li.drag, li.drag ul li  {
+	margin: 0;
+	line-height: 20px;
+	list-style-type: none;
+}
+
+ul.tree, ul.tree ul, li.drag ul {
+	margin: 0;
+	padding: 4px 0;
+	clear: both;
+}
+
+ul.tree li .label, li.drag .label {
+	color: #111;
+	display: block;
+}
+
+ul.tree li .icon, li.drag .icon {
+	background-repeat: no-repeat;
+	background-position: left center;
+	background-image: url(/media/jetpack/img/UI_File_Listing/folder_stroke_16x16.png);
+	display:block;
+	height:20px;
+	left:0;
+	position:absolute;
+	top:0;
+	width:20px;
+}
+
+	/*li[rel="directory"]  > .icon
+	{
+		background-image: url(/media/jetpack/img/file.png);
+	}*/
+
+ul.tree li {
+	list-style-type: none;
+	padding-left: 19px;
+	line-height: 18px;
+	margin: 3px 0;
+	/*background: url(../Assets/Bullet.png) no-repeat 0 2px;*/
+}
+
+
+ul.tree li.nodrop {
+	/*background-image: url(../Assets/Blocked.png);*/
+}
+
+ul.tree li.nodrop .label {
+	color: #800;
+}
+
+ul.tree li.nodrag > .label {
+	font-weight: bold;
+}
+
+ul.tree li .label:hover {
+	text-shadow:1px 0 0 #aaa;
+}
+
+ul.tree li .label[contenteditable="true"] {
+	background:#ffd;
+}
+
+div.treeIndicator {
+	position: absolute;
+	width: 100px;
+	height: 1px;
+	background-color: #000;
+	border-top: 1px solid #999;
+	border-bottom: 1px solid #999;
+	z-index: 50;
+
+	/* For IE */
+	overflow: hidden;
+	line-height: 1px;
+}
+
+li.drag {
+	position: absolute;
+	z-index: 50;
+}
+
+li.drag .label
+{
+	padding: 2px 0 2px 24px;
+}
+
+li.drag .label.dispose {
+	display: none;
+}
+
+.label.dispose {
+	float: right;
+	color: #800;
+}
+
+li .actions {
+	background:#fff;
+	box-shadow:-10px 0 2px #fff;
+	display:none;
+	right:5px;
+	position:absolute;
+	top: 6px;
+}
+.holder {
+	position:relative;
+}
+.holder:hover > .actions {
+	display:block;
+}
+
+li .actions > span {
+	background:transparent 0 0 no-repeat;
+	float:left;
+	display:block;
+	height:16px;
+	width:16px;
+	opacity:0.5;
+}
+
+li .actions > span:hover {
+	opacity:1;
+}
+
+li.top_branch > .holder .actions {
+	position:static;
+	margin-top:10px;
+}
+li.top_branch > .holder .actions .add {
+	background-image:url(/media/jetpack/img/UI_File_Listing/plus_alt_16x16.png);
+	height:16px;
+	margin-left:5px;
+	width:16px;
+}
+
+li .actions .add {
+	background-image:url(/media/jetpack/img/UI_File_Listing/plus_alt_12x12.png);
+}
+
+li .actions .edit {
+	background-image:url(/media/jetpack/img/UI_File_Listing/pen_12x12.png);
+}
+
+li .actions .delete {
+	background-image: url(/media/jetpack/img/UI_File_Listing/minus_alt_12x12.png);
+	
+}
+
+#core_library_lib .label {
+	float:left;
+}

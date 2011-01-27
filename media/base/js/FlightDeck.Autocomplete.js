@@ -6,14 +6,13 @@ FlightDeck.Autocomplete = new Class({
 	Implements: [Options],
 	options: {
 		value_el: 'library_id_number',
-		display_el: 'assign_library',
+		display_el: 'new_library',
 		value_field: 'id_number',
 		url: '/autocomplete/library/'
 	},
 	initialize: function(options) {
 		this.setOptions(options);
 		this.create();
-		this.autocomplete;
 	},
 
 	create: function(content) {

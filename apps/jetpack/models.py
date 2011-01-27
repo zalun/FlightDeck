@@ -419,6 +419,12 @@ class PackageRevision(models.Model):
             'jp_%s_revision_add_module' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
+    def get_rename_module_url(self):
+        " returns URL to rename module in the package revision "
+        return reverse(
+            'jp_%s_revision_rename_module' % self.package.get_type_name(),
+            args=[self.package.id_number, self.revision_number])
+
     def get_remove_module_url(self):
         " returns URL to remove module from the package revision "
         return reverse(
@@ -429,6 +435,12 @@ class PackageRevision(models.Model):
         " returns URL to add attachment to the package revision "
         return reverse(
             'jp_%s_revision_add_attachment' % self.package.get_type_name(),
+            args=[self.package.id_number, self.revision_number])
+
+    def get_rename_attachment_url(self):
+        " returns URL to rename module in the package revision "
+        return reverse(
+            'jp_%s_revision_rename_attachment' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
     def get_remove_attachment_url(self):
@@ -846,10 +858,7 @@ class PackageRevision(models.Model):
                 'filename': m.filename,
                 'author': m.author.username,
                 'executable': self.module_main == m.filename,
-                'get_url': reverse('jp_get_module', args=[
-                    self.package.id_number,
-                    self.revision_number,
-                    m.filename])
+                'get_url': reverse('jp_module', args=[m.pk])
                 } for m in self.modules.all()
             ] if self.modules.count() > 0 else []
         return simplejson.dumps(m_list)
@@ -1152,14 +1161,16 @@ class Attachment(models.Model):
         self.create_path()
         self.save()
 
-        directory = os.path.dirname(self.get_file_path())
+        if hasattr(self, 'data'):
 
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+            directory = os.path.dirname(self.get_file_path())
 
-        handle = open(self.get_file_path(), 'wb')
-        handle.write(self.data)
-        handle.close()
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+
+            handle = open(self.get_file_path(), 'wb')
+            handle.write(self.data)
+            handle.close()
 
     def export_file(self, static_dir):
         " copies from uploads to the package's data directory "
