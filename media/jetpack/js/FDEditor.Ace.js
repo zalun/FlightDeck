@@ -9,7 +9,7 @@ Class.refactor(FDEditor, {
 
     modes: {},
 
-    available_modes: ['js', 'txt'], // , 'html', 'css', 'txt'],
+    available_modes: ['js', 'txt', 'html', 'css'],
 
     default_kind: 'txt',
 
