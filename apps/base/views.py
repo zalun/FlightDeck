@@ -73,3 +73,19 @@ def homepage(r):
          'page': page
         },
         context_instance=RequestContext(r))
+
+
+def robots(request):
+    data = "User-agent: *\n"
+    if settings.DEBUG:
+        data += "Disallow: /"
+    else:
+        data += "Allow: /\n"
+        urls = ["/xpi/prepare_test/",
+                "/xpi/prepare_download/",
+                "/xpi/test/",
+                "/xpi/download/",
+                "/xpi/remove/"]
+        for url in urls:
+            data += "Disallow %s\n" % url
+    return HttpResponse(data, content_type='text/plain')
