@@ -84,7 +84,6 @@ Class.refactor(FDEditor, {
             kind = this.default_kind;
         }
         this.addMode(kind);
-        $log('setSyntax ' + kind);
         this.ace.document.setMode(this.modes[kind]);
     }
 });
