@@ -141,15 +141,15 @@ var Sidebar = new Class({
 		
 		//adding modules to Lib
 		if(this.trees.lib) {
-			$(this.trees.lib).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
-				that.promptNewFile();
+			$(this.trees.lib).addEvent('click:relay(.add)', function(e) {
+				that.promptNewFile(e.target.getParent('li'));
 			});
 		}
 		
 		//adding attachments to Data
 		if(this.trees.data) {
-			$(this.trees.data).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
-				that.promptAttachment();
+			$(this.trees.data).addEvent('click:relay(.add)', function(e) {
+				that.promptAttachment(e.target.getParent('li'));
 			});
 		}
 		
@@ -290,7 +290,10 @@ var Sidebar = new Class({
 		});
 	},
 	
-	promptNewFile: function() {
+	promptNewFile: function(folder) {
+		var path = folder.get('path') || '';
+		if (path) path += '/';
+		
 		var prompt = fd.showQuestion({
 			title: 'Create a new file or folder',
 			message: '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>' +
@@ -300,7 +303,7 @@ var Sidebar = new Class({
 			id: 'create_new_file',
 			callback: function() {
 				// get data
-				var filename = $('new_file').value,
+				var filename = path + $('new_file').value,
 					pack = fd.getItem();
 				if (!filename) {
 					fd.error.alert('Filename can\'t be empty', 'Please provide the name of the module');
