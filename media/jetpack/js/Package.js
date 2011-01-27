@@ -424,7 +424,7 @@ var Module = new Class({
         // an uid for the editor
         this.uid = this.options.filename + this.options.suffix;
 		// create editor
-        if (this.options.main || this.options.executable) {
+        if (this.options.main || this.options.active) {
             pack.editor.switchTo(this);
         } else {
             pack.editor.registerItem(this);
