@@ -408,7 +408,7 @@ Events.implement({
             counter = 1;
         }
         var volatileFn = function(){
-            fn.run(arguments);
+            fn.apply(this, arguments);
             counter -= 1;
             if(counter < 1) {
                 this.removeEvent(type, volatileFn);

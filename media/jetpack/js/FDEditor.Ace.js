@@ -7,6 +7,17 @@
 
 Class.refactor(FDEditor, {
 
+    modes: {},
+
+    available_modes: ['js', 'txt'], // , 'html', 'css', 'txt'],
+
+    default_kind: 'txt',
+
+    mode_translate: {
+        'js': 'javascript',
+        'txt': 'text'
+    },
+
     initialize: function(wrapper, options) {
 		this.setOptions(options);
         // create empty editor
@@ -22,6 +33,19 @@ Class.refactor(FDEditor, {
         // prepare change events
         this.boundWhenItemChanged = this.whenItemChanged.bind(this);
         this.boundSetContent = this.setContent.bind(this);
+    },
+
+    addMode: function(mode) {
+        var name;
+        var Mode;
+        if (!this.modes[mode]) {
+            name = mode;
+            if (this.mode_translate[mode]) {
+                name = this.mode_translate[mode];
+            }
+            Mode = require('ace/mode/' + name).Mode;
+            this.modes[mode] = new Mode();
+        }
     },
 
     setEditable: function() {
@@ -55,6 +79,12 @@ Class.refactor(FDEditor, {
         return this;
     },
 
-    setSyntax: function(){
+    setSyntax: function(kind){
+        if (!this.available_modes.contains(kind)) {
+            kind = this.default_kind;
+        }
+        this.addMode(kind);
+        $log('setSyntax ' + kind);
+        this.ace.document.setMode(this.modes[kind]);
     }
 });

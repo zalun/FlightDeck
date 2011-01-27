@@ -53,7 +53,7 @@ var FDEditor = new Class({
         this.current = item;
         this.current.active = true;
         if (!this.current.content) {
-            this.current.addEvent('loadcontent', this.boundSetContent);
+            this.current.addVolatileEvent('loadcontent', this.boundSetContent);
             this.current.loadContent();
         } else {
             this.setContent(this.current.content);
