@@ -46,11 +46,7 @@ var Sidebar = new Class({
 					) ? false : true;
 			},
 			onChange: function(){
-				this.updatePath(this.current);
 				that.renameFile(this.current.retrieve('file'), this.getFullPath(this.current));
-			},
-			onRenameComplete: function(){
-				$$('div.rename_branch').removeClass('active');
 			}
 		};
 		
@@ -77,24 +73,26 @@ var Sidebar = new Class({
 		
 		if($('LibTree')) {
 			trees.lib = new FileTree('LibTree', treeOptions);
-			trees.lib.collapse = new Collapse.Cookie('LibTree', collapseOptions);
+			trees.lib.collapse = new FileTree.Collapse('LibTree', collapseOptions);
 			trees.lib.addBranch({
 				'rel': 'directory',
 				'title': 'Lib',
 				'id': 'lib_branch',
 				'class': 'top_branch nodrag'
 			}, null, topBranchOptions);
+			trees.lib.collapse.prepare();
 		}
 		
 		if($('DataTree')) {
 			trees.data = new FileTree('DataTree', treeOptions);
-			trees.data.collapse = new Collapse.Cookie('DataTree', collapseOptions);
+			trees.data.collapse = new FileTree.Collapse('DataTree', collapseOptions);
 			trees.data.addBranch({
 				'rel': 'directory',
 				'title': 'Data',
 				'id': 'data_branch',
 				'class': 'top_branch nodrag'
 			}, null, topBranchOptions);
+			trees.data.collapse.prepare();
 		}
 			
 		if($('PluginsTree')) {	
@@ -102,7 +100,7 @@ var Sidebar = new Class({
 				edit: false,
 				remove: true
 			}}));
-			trees.plugins.collapse = new Collapse.Cookie('PluginsTree', collapseOptions);
+			trees.plugins.collapse = new FileTree.Collapse('PluginsTree', collapseOptions);
 			var pluginsBranch = trees.plugins.addBranch({
 				'rel': 'directory',
 				'title': 'Plugins',
@@ -113,8 +111,8 @@ var Sidebar = new Class({
 			var sdkBranch = $('core_library_lib');
 			if(sdkBranch) {
 				pluginsBranch.getElement('ul').grab(sdkBranch);
-				trees.plugins.collapse.prepare();
 			}
+			trees.plugins.collapse.prepare();
 		}
 
 		this.attach();
@@ -264,7 +262,13 @@ var Sidebar = new Class({
 		el.removeClass(options.file_normal_class)
 			.addClass(options.file_selected_class);
 		
+		//also be sure to expand all parent folders
+		var tree = new Tree(el.getParent('.tree')),
+			node = el;
 		
+		while (node = node.getParent('li')) {
+			tree.collapse.expand(node);
+		}
 		
 		return this;
 	},

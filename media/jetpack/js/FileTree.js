@@ -168,7 +168,7 @@ FileTree = new Class({
 				
 				elements[i].store('file', obj);
 			} else {
-				target = elements[i] = options.target.getElement(selector += 'li[title='+ name +'] ') || this.addBranch({
+				target = elements[i] = options.target.getElement(selector += '> ul > li[title='+ name +'] ') || this.addBranch({
 					'title': name,
 					'name': name,
 					'rel': 'directory',
@@ -191,6 +191,15 @@ FileTree = new Class({
 		return name;
 	},
 	
+	toElement: function() {
+		return this.element;
+	}
+});
+
+FileTree.Collapse = new Class({
+	
+	Extends: Collapse.Cookie,
+	
 	updateElement: function(element){
 		this.parent(element);
 		this.updatePath(element);
@@ -200,9 +209,6 @@ FileTree = new Class({
 		var parent = element.getParent('li'),
 			path = parent ? parent.get('path') : false;
 		element.set('path', (path ? path + '/' : '') + (element.get('path') || '').split('/').getLast());
-	},
-	
-	toElement: function() {
-		return this.element;
 	}
+	
 });
