@@ -4,5 +4,6 @@
 	"message": "Module {{ module.filename }} added",
 	"code": "{{ module.code|escapejs }}",
 	"filename": "{{ module.filename }}",
-	"author": "{{ module.author.username }}"
+	"author": "{{ module.author.username }}",
+	"get_url": "{% url jp_module module.pk %}"
 }

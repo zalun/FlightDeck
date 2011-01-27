@@ -62,8 +62,8 @@ urlpatterns = patterns('jetpack.views',
         name='jp_library_revision_details'),
     # get full module info
     url(r'^get_module/(?P<id_number>[-\w]+)/(?P<revision_number>\d+)/'
-            '(?P<filename>.*)$',
-        'get_module', name='jp_get_module'),
+            '(?P<filename>.*)$', 'get_module', name='jp_get_module'),
+    url(r'^module/(?P<pk>\d+)/$', 'download_module', name='jp_module'),
 
     # copy a PackageRevision
     url(r'^addon/copy/(?P<id_number>[-\w]+)/revision/'
@@ -141,7 +141,7 @@ urlpatterns = patterns('jetpack.views',
             '(?P<revision_number>\d+)/$',
         'package_remove_attachment',
         {'type_id': 'l'},  name='jp_library_revision_remove_attachment'),
-    
+
      # rename attachment
     url(r'^addon/rename_attachment/(?P<id_number>[-\w]+)/revision/'
             '(?P<revision_number>\d+)/$',

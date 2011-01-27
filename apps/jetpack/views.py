@@ -145,6 +145,14 @@ def package_view(r, revision):
         }, context_instance=RequestContext(r))
 
 
+def download_module(r, pk):
+    """
+    return a JSON with all module info
+    """
+    module = get_object_or_404(Module, pk=pk)
+    return HttpResponse(module.get_json())
+
+
 def get_module(r, id_number, revision_number, filename):
     """
     return a JSON with all module info
@@ -287,26 +295,26 @@ def package_rename_module(r, id_number, type_id, revision_number):
 
     old_name = r.POST.get('old_filename')
     new_name = r.POST.get('new_filename')
-    
+
     if old_name == 'main':
         return HttpResponseForbidden(
             'Sorry, you cannot change the name of the main module.'
         )
-    
+
     if not revision.validate_module_filename(new_name):
         return HttpResponseForbidden(
             ('Sorry, there is already a module in your add-on '
              'with the name "%s". Each module in your add-on '
              'needs to have a unique name.') % new_name
         )
-    
+
     modules = revision.modules.all()
     module = None
-    
+
     for mod in modules:
         if mod.filename == old_name:
             module = mod
-    
+
     if not module:
         log_msg = 'Attempt to delete a non existing module %s from %s.' % (
             filename, id_number)
@@ -314,15 +322,15 @@ def package_rename_module(r, id_number, type_id, revision_number):
         return HttpResponseForbidden(
             'There is no such module in %s' % escape(
                 revision.package.full_name))
-    
+
     module.filename = new_name
     revision.update(module)
-    
+
     return render_to_response("json/module_renamed.json",
                 {'revision': revision, 'module': module},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
-    
+
 
 @require_POST
 @login_required
@@ -436,7 +444,7 @@ def package_rename_attachment(r, id_number, type_id, revision_number):
     uid = r.POST.get('uid', '').strip()
     new_name = r.POST.get('new_filename')
     attachment = latest_by_uid(revision, uid)
-    
+
     if not attachment:
         log_msg = ('Attempt to rename a non existing attachment. attachment: '
                    '%s, package: %s.' % (uid, id_number))
@@ -451,11 +459,11 @@ def package_rename_attachment(r, id_number, type_id, revision_number):
              'with the name "%s.%s". Each attachment in your add-on '
              'needs to have a unique name.') % (new_name, attachment.ext)
         )
-    
-    
+
+
     attachment.filename = new_name
     revision.update(attachment)
-    
+
     return render_to_response("json/attachment_renamed.json",
                 {'revision': revision, 'module': attachment},
                 context_instance=RequestContext(r),
