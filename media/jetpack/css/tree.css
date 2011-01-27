@@ -60,6 +60,14 @@ ul.tree li.nodrag > .label {
 	font-weight: bold;
 }
 
+ul.tree li .label:hover {
+	text-shadow:1px 0 0 #aaa;
+}
+
+ul.tree li .label[contenteditable="true"] {
+	background:#ffd;
+}
+
 div.treeIndicator {
 	position: absolute;
 	width: 100px;
