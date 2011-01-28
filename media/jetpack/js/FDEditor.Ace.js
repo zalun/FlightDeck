@@ -28,7 +28,7 @@ Class.refactor(FDEditor, {
         this.element.inject(wrapper);
         ace.edit(this.element);
         this.ace = this.element.env;
-        $log(this.ace.document);
+        $log(this.ace);
 		this.changed = false;
         // prepare change events
         this.boundWhenItemChanged = this.whenItemChanged.bind(this);
@@ -49,10 +49,12 @@ Class.refactor(FDEditor, {
     },
 
     setEditable: function() {
+        this.ace.editor.setReadOnly(false);
         this.hookChangeIfNeeded();
     },
     
     setReadOnly: function() {
+        this.ace.editor.setReadOnly(true);
         if (this.change_hooked) {
             this.unhookChange();
         }
