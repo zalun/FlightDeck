@@ -26,8 +26,10 @@ from django.utils import simplejson
 
 from base.shortcuts import get_object_with_related_or_404
 from utils import validator
+from utils.helpers import pathify
 
-from jetpack.models import Package, PackageRevision, Module, Attachment, SDK
+from jetpack.models import Package, PackageRevision, Module, Attachment, SDK, \
+                           EmptyDir
 from jetpack.package_helpers import get_package_revision, create_package_from_xpi
 from jetpack.errors import FilenameExistException
 
@@ -260,7 +262,7 @@ def package_add_module(r, id_number, type_id,
             'You are not the author of this %s' % escape(
                 revision.package.get_type_name()))
 
-    filename = re.sub('[^a-zA-Z0-9_\-\/]+', '-', r.POST.get('filename').strip())
+    filename = pathify(r.POST.get('filename'))
 
     mod = Module(
         filename=filename,
@@ -371,6 +373,33 @@ def package_remove_module(r, id_number, type_id, revision_number):
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
+
+@require_POST
+@login_required
+def package_add_folder(r, id_number, type_id, revision_number):
+    " adds an EmptyDir to a revision "
+    revision = get_package_revision(id_number, type_id, revision_number)
+    if r.user.pk != revision.author.pk:
+        log_msg = ('User %s wanted to add a folder to not his own '
+                'Package %s.' % (r.user, id_number))
+        log.warning(log_msg)
+        return HttpResponseForbidden('You are not the author of this Package')
+    
+    foldername = pathify(r.POST.get('name', ''))
+    
+    dir = EmptyDir(name=foldername, author=r.user)
+    try:
+        dir.save()
+        revision.folder_add(dir)
+    except FilenameExistException, err:
+        dir.delete()
+        return HttpResponseForbidden(escape(str(err)))
+
+    return render_to_response("json/folder_added.json",
+                {'revision': revision, 'folder': dir},
+                context_instance=RequestContext(r),
+                mimetype='application/json')
+    
 
 @require_POST
 @login_required
