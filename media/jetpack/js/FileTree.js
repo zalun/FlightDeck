@@ -119,6 +119,10 @@ FileTree = new Class({
 		}
 		
 		label.set('tabIndex', 0).set('contenteditable', true).focus();
+		label.addEvent('blur', function blur(e) {
+			label.removeEvent('blur', blur);
+			this.renameBranch(element);
+		}.bind(this))
 		
 		if(hasExtension){
 			var range = document.createRange(),
@@ -146,7 +150,8 @@ FileTree = new Class({
 			elements = Array.clone(splitted),
 			end = splitted.length - 1,
 			selector = '',
-			el;
+			el,
+			target = options.target;
 		
 		elements.each(function(name, i){
 			var path = splitted.slice(0, i + 1).join('/');
@@ -164,12 +169,13 @@ FileTree = new Class({
 				elements[i].store('file', obj);
 			}
 			else{
-				elements[i] = options.target.getElement(selector += 'li[title='+ name +'] ') || this.addBranch({
+				$log(obj, name);
+				target = elements[i] = options.target.getElement(selector += 'li[title='+ name +'] ') || this.addBranch({
 					'title': name,
 					'name': name,
 					'rel': 'directory',
 					'path': path
-				}, options.target, options);
+				}, target, options);
 			}
 			
 		}, this);
