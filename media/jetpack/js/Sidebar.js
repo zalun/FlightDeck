@@ -309,10 +309,17 @@ var Sidebar = new Class({
 				// get data
 				var filename = path + $('new_file').value,
 					pack = fd.getItem();
+					
 				if (!filename) {
 					fd.error.alert('Filename can\'t be empty', 'Please provide the name of the module');
 					return;
 				}
+				
+				if (filename[filename.length-1] == '/') {
+					isFolder = true;
+					filename = filename.substr(0, filename.length-1);
+				}
+				
 				if (pack.options.modules.some(function(mod) { return mod.filename == filename; })) {
 					fd.error.alert('Filename has to be unique', 'You already have the module with that name');
 					return;
