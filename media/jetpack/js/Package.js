@@ -566,21 +566,7 @@ Package.Edit = new Class({
 
 		// submit Info
 		this.boundSubmitInfo = this.submitInfo.bind(this);
-		
-		//var fakeFileInput = $('add_attachment_fake'), fakeFileSubmit = $('add_attachment_action_fake');
-		//this.add_attachment_el.addEvents({
-		//	change: function(){
-		//		fakeFileInput.set('value', this.get('value'));
-		//	},
-		//
-		//	mouseover: function(){
-		//		fakeFileSubmit.addClass('hover');
-		//	},
-		//
-		//	mouseout: function(){
-		//		fakeFileSubmit.removeClass('hover');
-		//	}
-		//});
+
 		if ($('jetpack_core_sdk_version')) {
 			$('jetpack_core_sdk_version').addEvent('change', function() {
 				new Request.JSON({
@@ -769,7 +755,8 @@ Package.Edit = new Class({
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
-				var folder = new Folder(this, {
+				this.folders[response.name] = new Folder(this, {
+					append: true,
 					name: response.name
 				});
 			}.bind(this)
