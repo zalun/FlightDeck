@@ -197,7 +197,8 @@ authors:
 		color: #6D7880;
 	}
 	
-	.UI_Modal input#new_file {
+	.UI_Modal input#new_file,
+	.UI_Modal input#new_attachment {
 		width:72%;
 		padding:0 5px;
 	}

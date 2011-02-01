@@ -37,6 +37,18 @@ FileTree = new Class({
 	},
 	
 	mousedown: function(element, event) {
+		//tree.js prevents event immediately, when really we only want
+		//the event prevents when it drags. This is because if the element
+		//has contentEditable active, we want the default mousedown action,
+		//which is to move the cursor around the text node. If it's not,
+		//then preventDefault will be called twice, and the dragging will still
+		//work. :)
+		
+		var oldDefault = event.preventDefault;
+		event.preventDefault = function(){
+			event.preventDefault = oldDefault;
+		};
+		
 		this.parent(element, event);
 		if (this.clone) {
 			this.clone.setStyle('display', 'none');
@@ -102,6 +114,7 @@ FileTree = new Class({
 		this.fireEvent('renameStart', [li, label]);
 		
 		if(label.get('contenteditable') == 'true'){
+			label.removeEvent('blur', blur);
 			label.set('contenteditable', false).blur();
 			window.getSelection().removeAllRanges();
 			
