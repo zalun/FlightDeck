@@ -591,15 +591,11 @@ Package.Edit = new Class({
 		this.bind_keyboard();
 	},
 
-	get_add_attachment_url: function() {
-		return this.options.add_attachment_url;
-	},
-
 	sendMultipleFiles: function(files) {
 		var self = this;
 		self.spinner = false;
 		sendMultipleFiles({
-			url: this.get_add_attachment_url.bind(this),
+			url: Function.from(this.options.get_add_attachment_url),
 
 			// list of files to upload
 			files: files,
@@ -654,6 +650,29 @@ Package.Edit = new Class({
                 );
 			}
 		});
+	},
+	
+	addAttachment: function(filename) {
+		var that = this;
+		new Request.JSON({
+			url: this.options.add_attachment_url,
+			data: {filename: filename},
+			onSuccess: function(response) {
+				fd.setURIRedirect(response.view_url);
+				that.registerRevision(response);
+				self.attachments[response.uid] = new Attachment(that, {
+					append: true,
+					active: true,
+					filename: response.filename,
+					ext: response.ext,
+					author: response.author,
+					code: response.code,
+					get_url: response.get_url,
+					uid: response.uid,
+					type: response.ext
+				});
+			}
+		}).send();
 	},
 
 	renameAttachment: function(uid, newName) {

@@ -357,17 +357,23 @@ var Sidebar = new Class({
 	
 	promptAttachment: function() {
 		var prompt = fd.showQuestion({
-			title: 'Upload an Attachment',
-			message: '<input type="file" name="new_attachment" id="new_attachment" placeholder="Browse for file to attach" />',
-			ok: 'Create File',
+			title: 'Create or Upload an Attachment',
+			message: '<input type="file" name="upload_attachment" id="upload_attachment"/>'
+				+ '</p><p style="text-align:center">&mdash; OR &mdash;</p><p>'
+				+ '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>'
+				+ '<a href="#" id="new_type_folder" class="radio_btn"><span>Folder</span></a>'
+				+ '<input type="text" name="new_attachment" id="new_attachment" placeholder="New Attachment name..." />',
+			ok: 'Create Attachment',
 			id: 'new_attachment_button',
+			focus: false, //dont auto focus since first option is to Upload
 			callback: function() {
-				var fileInput = $('new_attachment'),
-					files = fileInput.files,
+				var uploadInput = $('upload_attachment'),
+					createInput = $('new_attachment'),
+					files = uploadInput.files,
 					pack = fd.getItem();
 				
 				//validation
-				if(!(files && files.length)) {
+				if(!(files && files.length) && !createInput.value) {
 					fd.error.alert('No file was selected.', 'Please select a file to upload.');
 					return;
 				}
@@ -383,10 +389,35 @@ var Sidebar = new Class({
 				}
 				
 				
+				if(files.length) {
+					pack.sendMultipleFiles(files);
+				} else if (isFolder) {
+					$log('isfolder', createInput.value);
+				} else {
+					pack.addAttachment(createInput.value);
+				}
 				
-				pack.sendMultipleFiles(fileInput.files);
 				prompt.destroy();
 			}
+		});
+		
+		//hookup File / Folder buttons
+		var fileBtn = $('new_type_file'),
+			folderBtn = $('new_type_folder'),
+			isFolder = false;
+			
+		fileBtn.addEvent('click', function(e) {
+			e.stop();
+			folderBtn.removeClass('selected');
+			this.addClass('selected');
+			isFolder = false;
+		});
+		
+		folderBtn.addEvent('click', function(e) {
+			e.stop();
+			fileBtn.removeClass('selected');
+			this.addClass('selected');
+			isFolder = true;
 		});
 	},
 	

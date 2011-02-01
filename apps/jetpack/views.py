@@ -441,6 +441,12 @@ def package_add_attachment(r, id_number, type_id,
 
     content = r.raw_post_data
     filename = r.META.get('HTTP_X_FILE_NAME')
+    
+    # when creating an attachment, instead of Uploading..
+    if not filename:
+        filename = r.POST.get('filename')
+        content = None
+    
 
     if not filename:
         log_msg = 'Path not found: %s, package: %s.' % (
