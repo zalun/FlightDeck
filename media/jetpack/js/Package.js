@@ -197,6 +197,13 @@ var Package = new Class({
 			}
 			this.modules[module.filename] = new Module(this,module);
 		}, this);
+		
+		//if no main, then activate the first module
+		if (!main_module) {
+			var mod = this.modules[this.options.modules[0].filename];
+			fd.sidebar.setSelectedFile(mod)
+			this.editor.switchTo(mod);
+		}
 	},
 
 	instantiate_attachments: function() {
