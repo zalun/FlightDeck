@@ -150,7 +150,7 @@ def create_package_from_xpi(path, author, libs=[]):
             )
             obj.save()
             obj.latest.set_version('empty.uploaded')
-            new_revision=False
+            new_revision = False
 
         obj.create_revision_from_xpi(packed, manifest, author,
             harness_options['jetpackID'], new_revision=new_revision)

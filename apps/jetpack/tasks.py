@@ -1,5 +1,3 @@
-import commonware.log
-
 from celery.decorators import task
 
 from xpi import xpi_utils

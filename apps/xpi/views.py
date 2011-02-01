@@ -1,13 +1,8 @@
 import os
 import commonware.log
 
-from django.core.urlresolvers import reverse
 from django.views.static import serve
-from django.shortcuts import render_to_response
-from django.http import HttpResponseRedirect, HttpResponse, \
-                        HttpResponseForbidden, HttpResponseServerError
-#                        Http404
-from django.template import RequestContext
+from django.http import HttpResponse, HttpResponseForbidden
 from django.conf import settings
 
 from base.shortcuts import get_object_with_related_or_404

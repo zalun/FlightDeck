@@ -20,7 +20,7 @@ from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db.models import Q, ObjectDoesNotExist
 from django.views.decorators.http import require_POST
-from django.template.defaultfilters import slugify, escape
+from django.template.defaultfilters import escape
 from django.conf import settings
 from django.utils import simplejson
 
@@ -28,7 +28,8 @@ from base.shortcuts import get_object_with_related_or_404
 from utils import validator
 
 from jetpack.models import Package, PackageRevision, Module, Attachment, SDK
-from jetpack.package_helpers import get_package_revision, create_package_from_xpi
+from jetpack.package_helpers import get_package_revision, \
+        create_package_from_xpi
 from jetpack.errors import FilenameExistException
 
 log = commonware.log.getLogger('f.jetpack')
@@ -260,7 +261,8 @@ def package_add_module(r, id_number, type_id,
             'You are not the author of this %s' % escape(
                 revision.package.get_type_name()))
 
-    filename = re.sub('[^a-zA-Z0-9_\-\/]+', '-', r.POST.get('filename').strip())
+    filename = re.sub('[^a-zA-Z0-9_\-\/]+', '-',
+            r.POST.get('filename').strip())
 
     mod = Module(
         filename=filename,
@@ -279,6 +281,7 @@ def package_add_module(r, id_number, type_id,
                 {'revision': revision, 'module': mod},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
+
 
 @require_POST
 @login_required
@@ -316,8 +319,8 @@ def package_rename_module(r, id_number, type_id, revision_number):
             module = mod
 
     if not module:
-        log_msg = 'Attempt to delete a non existing module %s from %s.' % (
-            filename, id_number)
+        log_msg = 'Attempt to rename a non existing module %s from %s.' % (
+            old_name, id_number)
         log.warning(log_msg)
         return HttpResponseForbidden(
             'There is no such module in %s' % escape(
@@ -428,6 +431,7 @@ def package_add_attachment(r, id_number, type_id,
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
+
 @require_POST
 @login_required
 def package_rename_attachment(r, id_number, type_id, revision_number):
@@ -459,8 +463,6 @@ def package_rename_attachment(r, id_number, type_id, revision_number):
              'with the name "%s.%s". Each attachment in your add-on '
              'needs to have a unique name.') % (new_name, attachment.ext)
         )
-
-
     attachment.filename = new_name
     revision.update(attachment)
 
@@ -468,6 +470,7 @@ def package_rename_attachment(r, id_number, type_id, revision_number):
                 {'revision': revision, 'module': attachment},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
+
 
 @require_POST
 @login_required
@@ -798,6 +801,7 @@ def get_revisions_list_html(r, id_number):
             'revisions': revisions
         },
         context_instance=RequestContext(r))
+
 
 def get_latest_revision_number(request, package_id):
     """ returns the latest revision number for given package """

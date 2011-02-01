@@ -25,6 +25,9 @@ source $VENV/bin/activate
 
 pip install -q -r requirements/compiled.txt
 
+# adding eventual SDK
+git submodule update --init
+
 pushd vendor && git pull && git submodule update --init && popd
 
 # Create paths we want for addons

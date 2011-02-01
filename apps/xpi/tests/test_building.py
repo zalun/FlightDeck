@@ -243,4 +243,3 @@ class XPIBuildTest(TestCase):
         eq_(len(find_files()), 1)
         clean_tmp(length=0)
         assert not find_files()
-
