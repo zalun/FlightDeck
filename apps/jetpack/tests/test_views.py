@@ -8,7 +8,7 @@ from nose.tools import eq_
 from nose import SkipTest
 from mock import patch
 
-from pyquery import PyQuery as pq
+#from pyquery import PyQuery as pq
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -18,6 +18,7 @@ from jetpack.models import PackageRevision, Attachment
 from jetpack.errors import FilenameExistException
 from jetpack.views import latest_by_uid
 from base.templatetags.base_helpers import hashtag
+
 
 def next(revision):
     number = revision.revision_number

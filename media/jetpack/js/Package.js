@@ -356,10 +356,20 @@ var Attachment = new Class({
 		if (this.is_editable()) {
 			this.switchTo();
 		} else {
-			var template_start = '<div id="attachment_view"><h3>'+this.options.filename+'</h3><div class="UI_Modal_Section">';
-			var template_end = '</div><div class="UI_Modal_Actions"><ul><li><input type="reset" value="Close" class="closeModal"/></li></ul></div></div>';
-			var template_middle = 'Download <a href="'+this.options.get_url+'">'+this.options.filename+'</a>';
-			if (this.is_image()) template_middle += '<p><img src="'+this.options.get_url+'"/></p>';
+			var template_start = '<div id="attachment_view"><h3>'
+                +this.options.filename+'</h3><div class="UI_Modal_Section">';
+			var template_end = '</div><div class="UI_Modal_Actions"><ul><li>'
+                +'<input type="reset" value="Close" class="closeModal"/>'
+                +'</li></ul></div></div>';
+			var template_middle = 'Download <a href="'
+                +this.options.get_url
+                +'">'
+                +this.options.filename
+                +'</a>';
+			if (this.is_image()) {
+                template_middle += '<p><img src="'+this.options.get_url
+                    +'"/></p>';
+            }
 			this.attachmentWindow = fd.displayModal(template_start+template_middle+template_end);
 		}
 	},

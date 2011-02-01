@@ -1,9 +1,7 @@
-import os
 import simplejson
 
 from test_utils import TestCase
 from nose.tools import eq_
-from nose import SkipTest
 from mock import patch
 
 from django.core.urlresolvers import reverse

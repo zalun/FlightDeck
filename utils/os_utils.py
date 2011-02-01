@@ -27,4 +27,3 @@ def make_path(directory):
     if dir_created:
         log.debug('Directory created for %s', directory)
     return dir_created
-

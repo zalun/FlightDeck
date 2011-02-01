@@ -75,7 +75,7 @@ def _get_hunks(text):
         hunks = list(apiparser.parse_hunks(text))
     except Exception, err:
         log.error(str(err))
-        hunks = [[None,'<p>Sorry. Error in reading the doc. '
+        hunks = [[None, '<p>Sorry. Error in reading the doc. '
             'Please check <a href="https://jetpack.mozillalabs.com/'
             'sdk/1.0b1/docs/#package/addon-kit">official docs</a></p>']]
     return hunks
