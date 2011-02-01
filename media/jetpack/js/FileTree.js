@@ -37,6 +37,11 @@ FileTree = new Class({
 	},
 	
 	mousedown: function(element, event) {
+		var oldDefault = event.preventDefault;
+		event.preventDefault = function(){
+			event.preventDefault = oldDefault;
+		};
+		
 		this.parent(element, event);
 		if (this.clone) {
 			this.clone.setStyle('display', 'none');
@@ -102,6 +107,7 @@ FileTree = new Class({
 		this.fireEvent('renameStart', [li, label]);
 		
 		if(label.get('contenteditable') == 'true'){
+			label.removeEvent('blur', blur);
 			label.set('contenteditable', false).blur();
 			window.getSelection().removeAllRanges();
 			

@@ -32,7 +32,7 @@ var Sidebar = new Class({
 		var that = this;
 		var treeOptions = {
 			checkDrag: function(el){
-				return !el.hasClass('nodrag') && that.options.editable;
+				return !el.hasClass('nodrag') && that.options.editable && !el.getElement('> .holder > .label[contenteditable="true"]');
 			},
 			checkDrop: function(el, drop){
 				var isFile = el.get('rel') == 'file',
@@ -125,7 +125,7 @@ var Sidebar = new Class({
 			sidebarEl = $(this);
 			
 		// highlight branch on click
-		sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .label)'.substitute(this.options), function(e) {
+		sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .label:not([contenteditable="true"]))'.substitute(this.options), function(e) {
 			var li = $(e.target).getParent('li'),
 				file = li.retrieve('file');
 			if(file) {
@@ -170,9 +170,6 @@ var Sidebar = new Class({
 			tree.addEvents({
 				'renameComplete': function(li, fullpath) {
 					that.renameFile(li.retrieve('file'), fullpath);
-				},
-				'deleteBranch': function(li) {
-					
 				}
 			});
 		});
