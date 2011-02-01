@@ -105,7 +105,15 @@
 	     width: 160px;
 		 display: inline;
 	  }
-	  .UI_File_Listing li.Core_library #jetpack_core_sdk_version {
-
+	  .UI_Sidebar li.Core_library #jetpack_core_sdk_version {
+		 background:-moz-linear-gradient(270deg, #EBEFF2, #D4D9DF);
+		 border-color:#BEC5CC #B0B0B0 #ACACAC;
+		 border-radius:3px;
+		 border-style:solid;
+		 border-width:1px;
+		 color:#4D5860;
+		 margin-left:6px;
+		 padding:2px;
+		 text-shadow:0 1px 0 #fff;
 	  } 
 	  
