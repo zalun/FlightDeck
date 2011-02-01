@@ -25,6 +25,7 @@ origin_url: '{{ revision.origin.get_absolute_url }}',
 revision_author: '{{ revision.author }}', 
 modules: {{ revision.get_modules_list_json|safe }},
 attachments: {{ revision.get_attachments_list_json|safe }},
+folders: {{ revision.get_folders_list_json|safe }},
 // Actions
 copy_url: '{{ revision.get_copy_url }}',
 hashtag: '{% hashtag %}'

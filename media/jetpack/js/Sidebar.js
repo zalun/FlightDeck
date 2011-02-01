@@ -46,11 +46,7 @@ var Sidebar = new Class({
 					) ? false : true;
 			},
 			onChange: function(){
-				this.updatePath(this.current);
 				that.renameFile(this.current.retrieve('file'), this.getFullPath(this.current));
-			},
-			onRenameComplete: function(){
-				$$('div.rename_branch').removeClass('active');
 			}
 		};
 		
@@ -77,24 +73,26 @@ var Sidebar = new Class({
 		
 		if($('LibTree')) {
 			trees.lib = new FileTree('LibTree', treeOptions);
-			trees.lib.collapse = new Collapse.Cookie('LibTree', collapseOptions);
+			trees.lib.collapse = new FileTree.Collapse('LibTree', collapseOptions);
 			trees.lib.addBranch({
 				'rel': 'directory',
 				'title': 'Lib',
 				'id': 'lib_branch',
 				'class': 'top_branch nodrag'
 			}, null, topBranchOptions);
+			trees.lib.collapse.prepare();
 		}
 		
 		if($('DataTree')) {
 			trees.data = new FileTree('DataTree', treeOptions);
-			trees.data.collapse = new Collapse.Cookie('DataTree', collapseOptions);
+			trees.data.collapse = new FileTree.Collapse('DataTree', collapseOptions);
 			trees.data.addBranch({
 				'rel': 'directory',
 				'title': 'Data',
 				'id': 'data_branch',
 				'class': 'top_branch nodrag'
 			}, null, topBranchOptions);
+			trees.data.collapse.prepare();
 		}
 			
 		if($('PluginsTree')) {	
@@ -102,7 +100,7 @@ var Sidebar = new Class({
 				edit: false,
 				remove: true
 			}}));
-			trees.plugins.collapse = new Collapse.Cookie('PluginsTree', collapseOptions);
+			trees.plugins.collapse = new FileTree.Collapse('PluginsTree', collapseOptions);
 			var pluginsBranch = trees.plugins.addBranch({
 				'rel': 'directory',
 				'title': 'Plugins',
@@ -113,8 +111,8 @@ var Sidebar = new Class({
 			var sdkBranch = $('core_library_lib');
 			if(sdkBranch) {
 				pluginsBranch.getElement('ul').grab(sdkBranch);
-				trees.plugins.collapse.prepare();
 			}
+			trees.plugins.collapse.prepare();
 		}
 
 		this.attach();
@@ -141,15 +139,15 @@ var Sidebar = new Class({
 		
 		//adding modules to Lib
 		if(this.trees.lib) {
-			$(this.trees.lib).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
-				that.promptNewFile();
+			$(this.trees.lib).addEvent('click:relay(.add)', function(e) {
+				that.promptNewFile(e.target.getParent('li'));
 			});
 		}
 		
 		//adding attachments to Data
 		if(this.trees.data) {
-			$(this.trees.data).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
-				that.promptAttachment();
+			$(this.trees.data).addEvent('click:relay(.add)', function(e) {
+				that.promptAttachment(e.target.getParent('li'));
 			});
 		}
 		
@@ -264,7 +262,13 @@ var Sidebar = new Class({
 		el.removeClass(options.file_normal_class)
 			.addClass(options.file_selected_class);
 		
+		//also be sure to expand all parent folders
+		var tree = new Tree(el.getParent('.tree')),
+			node = el;
 		
+		while (node = node.getParent('li')) {
+			tree.collapse.expand(node);
+		}
 		
 		return this;
 	},
@@ -290,7 +294,10 @@ var Sidebar = new Class({
 		});
 	},
 	
-	promptNewFile: function() {
+	promptNewFile: function(folder) {
+		var path = folder.get('path') || '';
+		if (path) path += '/';
+		
 		var prompt = fd.showQuestion({
 			title: 'Create a new file or folder',
 			message: '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>' +
@@ -300,12 +307,19 @@ var Sidebar = new Class({
 			id: 'create_new_file',
 			callback: function() {
 				// get data
-				var filename = $('new_file').value,
+				var filename = path + $('new_file').value,
 					pack = fd.getItem();
+					
 				if (!filename) {
 					fd.error.alert('Filename can\'t be empty', 'Please provide the name of the module');
 					return;
 				}
+				
+				if (filename[filename.length-1] == '/') {
+					isFolder = true;
+					filename = filename.substr(0, filename.length-1);
+				}
+				
 				if (pack.options.modules.some(function(mod) { return mod.filename == filename; })) {
 					fd.error.alert('Filename has to be unique', 'You already have the module with that name');
 					return;

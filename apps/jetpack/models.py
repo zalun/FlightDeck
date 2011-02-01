@@ -13,7 +13,7 @@ from copy import deepcopy
 from ecdsa import SigningKey, NIST256p
 from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
 
-from django.db.models.signals import pre_save, post_save
+from django.db.models.signals import pre_save, post_save, m2m_changed
 from django.db import models, IntegrityError
 from django.utils import simplejson
 from django.contrib.auth.models import User
@@ -488,6 +488,11 @@ class PackageRevision(models.Model):
         return reverse(
             'jp_addon_switch_sdk_version',
             args=[self.package.id_number, self.revision_number])
+    
+    def get_add_folder_url(self):
+        return reverse(
+            'jp_%s_revision_add_folder' % self.package.get_type_name(),
+            args=[self.package.id_number, self.revision_number])
 
     ######################
     # Manifest
@@ -593,12 +598,16 @@ class PackageRevision(models.Model):
         # reassign all dependencies
         for dep in origin.dependencies.all():
             self.dependencies.add(dep)
+            
+        for dir in origin.folders.all():
+            self.folders.add(dir)
 
         for mod in origin.modules.all():
             self.modules.add(mod)
 
         for att in origin.attachments.all():
             self.attachments.add(att)
+        
 
         self.package.latest = self
         self.package.save()
@@ -658,6 +667,11 @@ class PackageRevision(models.Model):
         if self.attachments.filter(filename=filename, ext=ext).count():
             return False
         return True
+    
+    def validate_folder_name(self, foldername):
+        if self.folders.filter(name=foldername).count():
+            return False
+        return True
 
     def module_create(self, save=True, **kwargs):
         " create module and add to modules "
@@ -690,6 +704,24 @@ class PackageRevision(models.Model):
         " copy to new revision, remove module "
         self.save()
         return self.modules.remove(mod)
+    
+    def folder_add(self, dir, save=True):
+        " copy to new revision, add EmptyDir "
+        if not self.validate_folder_name(dir.name):
+            raise FilenameExistException(
+                ('Sorry, there is already a folder in your add-on '
+                 'with the name "%s". Each folder in your add-on '
+                 'needs to have a unique name.') % dir.name
+            )
+        
+        if save:
+            self.save()
+        return self.folders.add(dir)
+    
+    def folder_remove(self, dir):
+        " copy to new revision, remove folder "
+        self.save()
+        return self.folders.remove(dir)
 
     def update(self, change, save=True):
         " to update a module, new package revision has to be created "
@@ -874,6 +906,15 @@ class PackageRevision(models.Model):
                 } for a in self.attachments.all()
             ] if self.attachments.count() > 0 else []
         return simplejson.dumps(a_list)
+    
+    def get_folders_list_json(self):
+        " returns empty folders list as JSON object "
+        f_list = [{
+                'name': f.name,
+                'author': f.author.username,
+                } for f in self.folders.all()
+            ] if self.folders.count() > 0 else []
+        return simplejson.dumps(f_list)
 
     def get_modules_tree(self):
         " returns modules list as JSON object "
@@ -1062,6 +1103,11 @@ class Module(models.Model):
         package = self.get_package()
         return package.full_name if package else ''
 
+    def get_path(self):
+        " returns the path of directories that would be created from the filename "
+        parts = self.filename.split('/')[0:-1]
+        return ('/'.join(parts)) if parts else None
+
     def get_filename(self):
         " returns the filename with extension (adds .js)"
         return "%s.js" % self.filename
@@ -1186,6 +1232,15 @@ class Attachment(models.Model):
         self.write()
         revision.attachments.add(self)
 
+class EmptyDir(models.Model):
+    revisions = models.ManyToManyField(PackageRevision,
+                                       related_name='folders', blank=True)
+    name = models.CharField(max_length=255)
+    author = models.ForeignKey(User, related_name='folders')
+    
+    def __unicode__(self):
+        return 'Dir: %s (by %s)' % (self.name, self.author.username)
+    
 
 class SDK(models.Model):
     """
@@ -1294,3 +1349,38 @@ exports.main = function() {};""" % instance.full_name
         revision.modules.add(mod)
     instance.save()
 post_save.connect(save_first_revision, sender=Package)
+
+def manage_empty_dirs(instance, action, **kwargs):
+    """
+    create EmptyDirs when all modules in a "dir" are deleted,
+    and remove EmptyDirs when any modules are added into the "dir"
+    """    
+    if not (isinstance(instance, PackageRevision)
+            and action in ('post_add', 'post_remove')):
+        return
+    
+    pk_set = kwargs.get('pk_set', [])
+    
+    if action == 'post_add':
+        for pk in pk_set:
+            mod = Module.objects.get(pk=pk)
+            dirname = mod.get_path()
+            if not dirname:
+                continue
+            for d in instance.folders.filter(name=dirname):
+                instance.folders.remove(d)
+
+    elif action == 'post_remove':
+        for pk in pk_set:
+            mod = Module.objects.get(pk=pk)
+            dirname = mod.get_path()
+            if not dirname:
+                continue
+            
+            if not instance.modules.filter(filename__startswith=dirname).count():
+                emptydir = EmptyDir(name=dirname, author=instance.author)
+                emptydir.save()
+                
+                instance.folders.add(emptydir)
+m2m_changed.connect(manage_empty_dirs, sender=Module.revisions.through)
+    

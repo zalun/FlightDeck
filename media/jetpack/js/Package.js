@@ -47,6 +47,8 @@ var Package = new Class({
 	attachments: {},
 
 	plugins: {},
+	
+	folders: {},
 
 	initialize: function(options) {
 		this.setOptions(options);
@@ -57,6 +59,7 @@ var Package = new Class({
 		fd.sidebar.buildTree();
 		this.instantiate_modules();
 		this.instantiate_attachments();
+		this.instantiate_folders();
 		this.instantiate_dependencies();
 		// hook event to menu items
 		$('revisions_list').addEvent('click', this.show_revision_list);
@@ -213,6 +216,13 @@ var Package = new Class({
 			this.plugins[plugin.full_name] = new Library(this,plugin);
 		}, this);
 	},
+	
+	instantiate_folders: function() {
+		this.options.folders.each(function(folder) {
+			folder.append = true;
+			this.folders[folder.name] = new Folder(this, folder);
+		}, this);
+	},
 
 	show_revision_list: function(e) {
 		if (e) e.stop();
@@ -247,7 +257,7 @@ var File = new Class({
 	destroy: function() {
 		// refactor me
 		if (this.textarea) this.textarea.destroy();
-		delete fd.editor_contents[this.get_editor_id()];
+		//delete fd.editor_contents[this.get_editor_id()];
 		if (this.active) {
 			// switch editor!
 			mod = null;
@@ -465,6 +475,33 @@ var Module = new Class({
 	}
 });
 
+var Folder = new Class({
+	
+	Extends: File,
+	
+	initialize: function(pack, options) {
+		this.parent(pack, options);
+		this.options.path = this.options.name;
+		
+		this.addEvent('destroy', function(){
+			delete fd.getItem().folders[this.options.name];
+		});
+		
+		if (this.options.append) {
+			this.append();
+		}
+	},
+	
+	append: function() {
+		fd.sidebar.addLib(this);
+	},
+	
+	onSelect: function() {
+		$log('selected a Folder');
+	}
+	
+});
+
 
 Package.View = new Class({
 
@@ -539,21 +576,7 @@ Package.Edit = new Class({
 
 		// submit Info
 		this.boundSubmitInfo = this.submitInfo.bind(this);
-		
-		//var fakeFileInput = $('add_attachment_fake'), fakeFileSubmit = $('add_attachment_action_fake');
-		//this.add_attachment_el.addEvents({
-		//	change: function(){
-		//		fakeFileInput.set('value', this.get('value'));
-		//	},
-		//
-		//	mouseover: function(){
-		//		fakeFileSubmit.addClass('hover');
-		//	},
-		//
-		//	mouseout: function(){
-		//		fakeFileSubmit.removeClass('hover');
-		//	}
-		//});
+
 		if ($('jetpack_core_sdk_version')) {
 			$('jetpack_core_sdk_version').addEvent('change', function() {
 				new Request.JSON({
@@ -708,7 +731,6 @@ Package.Edit = new Class({
 				new_filename: newName
 			},
 			onSuccess: function(response) {
-				$log(response);
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
 				fd.message.alert(response.message_title, response.message);
@@ -732,6 +754,21 @@ Package.Edit = new Class({
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
 				module.destroy();
+			}.bind(this)
+		}).send();
+	},
+	
+	addFolder: function(name) {
+		new Request.JSON({
+			url: this.options.add_folder_url,
+			data: {name:name},
+			onSuccess: function(response) {
+				fd.setURIRedirect(response.view_url);
+				this.registerRevision(response);
+				this.folders[response.name] = new Folder(this, {
+					append: true,
+					name: response.name
+				});
 			}.bind(this)
 		}).send();
 	},

@@ -58,7 +58,7 @@ FileTree = new Class({
 			target = target.getElement('ul');
 		}
 		options = Object.merge({}, {
-			add: false,
+			add: attr.rel == 'directory' ? true : false,
 			edit: attr.rel == 'directory' ? false : true,
 			remove: attr.rel == 'directory' ? false : true,
 			collapsed: true
@@ -155,7 +155,7 @@ FileTree = new Class({
 		
 		elements.each(function(name, i){
 			var path = splitted.slice(0, i + 1).join('/');
-			if(i == end){
+			if (i == end){
 				var previous = elements[i - 1] ? elements[i - 1].getElement('ul') : (options.target.getElement('ul') || options.target);
 				el = elements[i] = previous.getChildren(selector += 'li[title='+ name + suffix +'] ')[0] || this.addBranch({
 					'title': name + suffix,
@@ -167,10 +167,8 @@ FileTree = new Class({
 				}, previous, options);
 				
 				elements[i].store('file', obj);
-			}
-			else{
-				$log(obj, name);
-				target = elements[i] = options.target.getElement(selector += 'li[title='+ name +'] ') || this.addBranch({
+			} else {
+				target = elements[i] = options.target.getElement(selector += '> ul > li[title='+ name +'] ') || this.addBranch({
 					'title': name,
 					'name': name,
 					'rel': 'directory',
@@ -193,6 +191,15 @@ FileTree = new Class({
 		return name;
 	},
 	
+	toElement: function() {
+		return this.element;
+	}
+});
+
+FileTree.Collapse = new Class({
+	
+	Extends: Collapse.Cookie,
+	
 	updateElement: function(element){
 		this.parent(element);
 		this.updatePath(element);
@@ -202,9 +209,6 @@ FileTree = new Class({
 		var parent = element.getParent('li'),
 			path = parent ? parent.get('path') : false;
 		element.set('path', (path ? path + '/' : '') + (element.get('path') || '').split('/').getLast());
-	},
-	
-	toElement: function() {
-		return this.element;
 	}
+	
 });
