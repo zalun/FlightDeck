@@ -192,20 +192,10 @@ var Sidebar = new Class({
 	removeFileFromTree: function(treeName, file) {
 		var tree = this.trees[treeName],
 			that = this,
-			title;
+			el;
 			
-		if(file instanceof Library) {
-			title = file.options.full_name;
-		} else {
-			title = file.options.filename + '.' + file.options.type;
-		}
-		
-		$(tree).getElements('li[title="{title}"]'.substitute({title:title})).some(function(el) {
-			if(el.retrieve('file') == file) {
-				el.dispose();
-				return true;
-			}
-		});
+		el = this.getBranchFromFile(file);
+		el.dispose();
 	},
 	
 	addFileToTree: function(treeName, file) {
@@ -252,10 +242,34 @@ var Sidebar = new Class({
 		this.addFileToTree('plugins', plugin);
 	},
 	
+	getBranchFromFile: function(file) {
+		var branch,
+			tree;
+		
+		if(file instanceof Library) {
+			title = file.options.full_name;
+			tree = this.trees.plugins;
+		} else {
+			title = file.options.filename + '.' + file.options.type;
+			
+		}
+		
+		$(this).getElements('.tree li[path="{title}"]'.substitute({title:title})).some(function(el) {
+			if(el.retrieve('file') == file) {
+				branch = el;
+				return true;
+			}
+		});
+		
+		return branch;
+	},
+	
 	setSelectedFile: function(el) {
 		var options = this.options;
 		
-		$(this).getElements('.{file_listing_class} li'.substitute(options))
+		if (el instanceof File) el = this.getBranchFromFile(el);
+		
+		$(this).getElements('.'+options.file_listing_class+' li')
 			.removeClass(options.file_selected_class)
 			.addClass(options.file_normal_class);
 		
