@@ -441,14 +441,17 @@ def package_add_attachment(r, id_number, type_id,
             'You are not the author of this %s' \
                 % escape(revision.package.get_type_name()))
 
+    # Copying to avoid this issue:
+    # http://code.djangoproject.com/ticket/12522
+    meta, post = r.META.copy(), r.POST.copy()
     content = r.raw_post_data
-    filename = r.META.get('HTTP_X_FILE_NAME')
-    
+    filename = meta.get('HTTP_X_FILE_NAME')
+
     # when creating an attachment, instead of Uploading..
     if not filename:
-        filename = r.POST.get('filename')
+        filename = post.get('filename')
         content = None
-    
+
 
     if not filename:
         log_msg = 'Path not found: %s, package: %s.' % (
