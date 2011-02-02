@@ -73,12 +73,10 @@ Class.refactor(FDEditor, {
 
     getContent: function(){
         var value = this.editor.getSession().getValue();
-        $log('FD: DEBUG getContent lines: ' + value.split("\n").length)
         return value;
     },
 
     setContent: function(value){
-        $log('FD: DEBUG setContent lines: ' + value.split("\n").length)
         this.editor.getSession().setValue(value);
         return this;
     },
