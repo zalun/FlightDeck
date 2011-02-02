@@ -55,6 +55,8 @@ UPLOAD_DIR = '/tmp/flightdeck'
 
 SETTINGS
 
+./manage.py syncdb
+
 echo "Starting tests..." `date`
 export FORCE_DB='yes sir'
 
