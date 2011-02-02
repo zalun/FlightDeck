@@ -26,9 +26,8 @@ Class.refactor(FDEditor, {
             'class': 'UI_Editor_Area'
         });
         this.element.inject(wrapper);
-        ace.edit(this.element);
-        this.ace = this.element.env;
-        $log(this.ace);
+        this.editor = ace.edit(this.element);
+        $log(this.editor);
 		this.changed = false;
         // prepare change events
         this.boundWhenItemChanged = this.whenItemChanged.bind(this);
@@ -49,12 +48,12 @@ Class.refactor(FDEditor, {
     },
 
     setEditable: function() {
-        this.ace.editor.setReadOnly(false);
+        this.editor.setReadOnly(false);
         this.hookChangeIfNeeded();
     },
     
     setReadOnly: function() {
-        this.ace.editor.setReadOnly(true);
+        this.editor.setReadOnly(true);
         if (this.change_hooked) {
             this.unhookChange();
         }
@@ -62,22 +61,25 @@ Class.refactor(FDEditor, {
     
     hookChange: function(){
         // hook to onChange Event
-        this.ace.document.addEventListener('change', this.boundWhenItemChanged);
+        this.editor.getSession().on('change', this.boundWhenItemChanged);
         this.change_hooked = true;
 	},
 
     unhookChange: function(){
         // unhook the onChange Event
-        this.ace.document.removeEventListener('change', this.boundWhenItemChanged);
+        this.editor.getSession().removeEventListener('change', this.boundWhenItemChanged);
         this.change_hooked = false;
     },
 
     getContent: function(){
-        return this.ace.document.getValue();
+        var value = this.editor.getSession().getValue();
+        $log('FD: DEBUG getContent lines: ' + value.split("\n").length)
+        return value;
     },
 
     setContent: function(value){
-        this.ace.document.setValue(value);
+        $log('FD: DEBUG setContent lines: ' + value.split("\n").length)
+        this.editor.getSession().setValue(value);
         return this;
     },
 
@@ -86,6 +88,6 @@ Class.refactor(FDEditor, {
             kind = this.default_kind;
         }
         this.addMode(kind);
-        this.ace.document.setMode(this.modes[kind]);
+        this.editor.getSession().setMode(this.modes[kind]);
     }
 });
