@@ -77,7 +77,7 @@ def homepage(r):
 
 def robots(request):
     data = "User-agent: *\n"
-    if settings.DEBUG:
+    if not settings.ENGAGE_ROBOTS:
         data += "Disallow: /"
     else:
         data += "Allow: /\n"
