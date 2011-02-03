@@ -28,3 +28,7 @@ class CuddleTest(TestCase):
             SDKPACKAGESDIR, 'jetpack-core/docs')
         text = open(os.path.join(docs_dir, 'url.md')).read()
         self.failUnless(len(list(apiparser.parse_hunks(text))) > 0)
+
+
+class ImportDocsTest(TestCase):
+    pass

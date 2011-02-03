@@ -9,6 +9,7 @@ from django.conf import settings
 
 from jetpack.models import Package, PackageRevision, SDK
 from person.models import Profile
+from utils.exceptions import SimpleException
 
 
 ALLOWED_CORE_NAMES = {
@@ -90,6 +91,18 @@ def get_or_create_core_author():
                             first_name='Mozilla')
         Profile.objects.create(user=core_author)
     return core_author
+
+
+def import_docs(sdk_source, tar_filename="addon-sdk-docs.tgz"):
+    """import docs from addon-sdk-docs.tgz """
+    tar_path = os.path.join(sdk_source, tar_filename)
+    if not os.path.isfile(tar_path):
+        raise SimpleException(
+                "%s does not exist. Have you forgotten to run `csf sdocs`?" %
+                tar_path)
+    if not tarfile.is_tarfile(tar_path):
+        raise SimpleException("%s is not a tar file" % tar_path)
+
 
 
 def _get_code(path):
@@ -185,9 +198,6 @@ def check_SDK_manifest(manifest):
     except ObjectDoesNotExist:
         pass
 
-
-def check_SDK_docs(sdk_source):
-    """ check if docs are exported """
 
 def _update_lib(package, author, manifest):
     check_SDK_manifest(manifest)
