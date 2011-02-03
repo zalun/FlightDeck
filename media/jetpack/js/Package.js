@@ -405,6 +405,12 @@ var Attachment = new Class({
 	}
 });
 
+Attachment.exists = function(filename, ext) {
+	return Object.some(fd.getItem().attachments, function(att) {
+		return (att.options.filename == filename) &&
+				att.options.type == ext;
+	});
+};
 
 var Module = new Class({
 
@@ -472,6 +478,12 @@ var Module = new Class({
 	}
 });
 
+Module.exists = function(filename) {
+	return Object.some(fd.getItem().modules, function(mod) {
+		return mod.options.filename == filename;
+	});
+};
+
 var Folder = new Class({
 	
 	Extends: File,
@@ -499,6 +511,13 @@ var Folder = new Class({
 	
 });
 
+
+Folder.exists = function(filename, root_dir) {
+	return Object.some(fd.getItem().folders, function(folder) {
+		return (folder.options.root_dir == root_dir &&
+				folder.options.name == filename);
+	});
+};
 
 Package.View = new Class({
 
