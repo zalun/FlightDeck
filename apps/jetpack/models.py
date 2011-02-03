@@ -493,6 +493,11 @@ class PackageRevision(models.Model):
         return reverse(
             'jp_%s_revision_add_folder' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
+    
+    def get_remove_folder_url(self):
+        return reverse(
+            'jp_%s_revision_remove_folder' % self.package.get_type_name(),
+            args=[self.package.id_number, self.revision_number])
 
     ######################
     # Manifest
