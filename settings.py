@@ -285,3 +285,5 @@ djcelery.setup_loader()
 
 # Setting this to true will bypass celeryd and execute tasks in-process
 CELERY_ALWAYS_EAGER = True
+
+ENGAGE_ROBOTS = False
