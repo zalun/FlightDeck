@@ -13,7 +13,7 @@ from django.views.static import serve
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponseRedirect, HttpResponse, \
                         HttpResponseForbidden, HttpResponseServerError, \
-                        HttpResponseNotAllowed, Http404
+                        HttpResponseNotAllowed, Http404, QueryDict
 from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -470,16 +470,18 @@ def package_add_attachment(r, id_number, type_id,
             'You are not the author of this %s' \
                 % escape(revision.package.get_type_name()))
 
-    # Copying to avoid this issue:
-    # http://code.djangoproject.com/ticket/12522
-    meta, post = r.META.copy(), r.POST.copy()
+    
     content = r.raw_post_data
-    filename = meta.get('HTTP_X_FILE_NAME')
+    filename = r.META.get('HTTP_X_FILE_NAME')
 
     # when creating an attachment, instead of Uploading..
     if not filename:
+        # http://code.djangoproject.com/ticket/12522
+        # accessing raw_post_data kinda blows up r.POST
+        # so just build our own using the raw data we got
+        post = QueryDict(content)
         filename = post.get('filename')
-        content = None
+        content = ''
 
 
     if not filename:
