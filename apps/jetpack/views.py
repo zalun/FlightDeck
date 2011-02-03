@@ -405,6 +405,35 @@ def package_add_folder(r, id_number, type_id, revision_number):
 
 @require_POST
 @login_required
+def package_remove_folder(r, id_number, type_id, revision_number):
+    " removes an EmptyDir from a revision "
+    revision = get_package_revision(id_number, type_id, revision_number)
+    if r.user.pk != revision.author.pk:
+        log_msg = ('User %s wanted to remove a folder from not his own '
+                'Package %s.' % (r.user, id_number))
+        log.warning(log_msg)
+        return HttpResponseForbidden('You are not the author of this Package')
+
+    foldername = pathify(r.POST.get('name', ''))
+    try:
+        folder = revision.folders.get(name=foldername)
+    except EmptyDir.DoesNotExist:
+        log_msg = 'Attempt to delete a non existing module %s from %s.' % (
+            filename, id_number)
+        log.warning(log_msg)
+        return HttpResponseForbidden(
+            'There is no such module in %s' % escape(
+                revision.package.full_name))
+    else:
+        revision.folder_remove(folder)
+
+    return render_to_response("json/folder_remove.json",
+                {'revision': revision, 'folder': folder},
+                context_instance=RequestContext(r),
+                mimetype='application/json')
+
+@require_POST
+@login_required
 def package_switch_sdk(r, id_number, revision_number):
     " switch SDK used to create XPI - sdk_id from POST "
     revision = get_package_revision(id_number, 'a', revision_number)
@@ -441,14 +470,17 @@ def package_add_attachment(r, id_number, type_id,
             'You are not the author of this %s' \
                 % escape(revision.package.get_type_name()))
 
+    # Copying to avoid this issue:
+    # http://code.djangoproject.com/ticket/12522
+    meta, post = r.META.copy(), r.POST.copy()
     content = r.raw_post_data
-    filename = r.META.get('HTTP_X_FILE_NAME')
-    
+    filename = meta.get('HTTP_X_FILE_NAME')
+
     # when creating an attachment, instead of Uploading..
     if not filename:
-        filename = r.POST.get('filename')
+        filename = post.get('filename')
         content = None
-    
+
 
     if not filename:
         log_msg = 'Path not found: %s, package: %s.' % (

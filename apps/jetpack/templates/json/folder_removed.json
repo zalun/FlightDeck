@@ -1,0 +1,7 @@
+{
+	{% include "json/_edit_urls.json" %}
+	"message_title": "Success",
+	"message": "Folder {{ folder.name }} removed",
+	"name": "{{ folder.name }}",
+	"author": "{{ folder.author.username }}"
+}

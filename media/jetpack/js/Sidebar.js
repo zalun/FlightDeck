@@ -329,15 +329,20 @@ var Sidebar = new Class({
 				if (filename[filename.length-1] == '/') {
 					isFolder = true;
 					filename = filename.substr(0, filename.length-1);
+				} else {
+					//strip off any .js
+					filename = filename.replace(/\.js$/, '');
 				}
 				
-				if (pack.options.modules.some(function(mod) { return mod.filename == filename; })) {
+				if (!isFolder && Module.exists(filename)) {
 					fd.error.alert('Filename has to be unique', 'You already have the module with that name');
+					return;
+				} else if (isFolder && Folder.exists(filename, Folder.ROOT_DIR_LIB)) {
+					fd.error.alert('Folder has to be unique', 'You already have the folder with that name');
 					return;
 				}
 				
 				if (isFolder){
-					$log('need to make an EmptyDir here');
 					pack.addFolder(filename);
 				} else {
 					pack.addModule(filename);
@@ -393,7 +398,7 @@ var Sidebar = new Class({
 					var filename = files[f].fileName.replace(/\.[^\.]+$/g, ''),
 						ext = files[f].fileName.match(/\.([^\.]+)$/)[1];
 						
-					if (Object.some(pack.attachments, function(att) { return (att.options.filename == filename) && (att.options.type == ext); })) {
+					if (Attachment.exists(filename, ext)) {
 						fd.error.alert('Filename has to be unique', 'You already have an attachment with that name.');
 						return;
 					}
