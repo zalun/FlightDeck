@@ -488,12 +488,12 @@ class PackageRevision(models.Model):
         return reverse(
             'jp_addon_switch_sdk_version',
             args=[self.package.id_number, self.revision_number])
-    
+
     def get_add_folder_url(self):
         return reverse(
             'jp_%s_revision_add_folder' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
-    
+
     def get_remove_folder_url(self):
         return reverse(
             'jp_%s_revision_remove_folder' % self.package.get_type_name(),
@@ -603,7 +603,7 @@ class PackageRevision(models.Model):
         # reassign all dependencies
         for dep in origin.dependencies.all():
             self.dependencies.add(dep)
-            
+
         for dir in origin.folders.all():
             self.folders.add(dir)
 
@@ -612,7 +612,7 @@ class PackageRevision(models.Model):
 
         for att in origin.attachments.all():
             self.attachments.add(att)
-        
+
 
         self.package.latest = self
         self.package.save()
@@ -672,7 +672,7 @@ class PackageRevision(models.Model):
         if self.attachments.filter(filename=filename, ext=ext).count():
             return False
         return True
-    
+
     def validate_folder_name(self, foldername):
         if self.folders.filter(name=foldername).count():
             return False
@@ -709,7 +709,7 @@ class PackageRevision(models.Model):
         " copy to new revision, remove module "
         self.save()
         return self.modules.remove(mod)
-    
+
     def folder_add(self, dir, save=True):
         " copy to new revision, add EmptyDir "
         if not self.validate_folder_name(dir.name):
@@ -718,11 +718,11 @@ class PackageRevision(models.Model):
                  'with the name "%s". Each folder in your add-on '
                  'needs to have a unique name.') % dir.name
             )
-        
+
         if save:
             self.save()
         return self.folders.add(dir)
-    
+
     def folder_remove(self, dir):
         " copy to new revision, remove folder "
         self.save()
@@ -911,7 +911,7 @@ class PackageRevision(models.Model):
                 } for a in self.attachments.all()
             ] if self.attachments.count() > 0 else []
         return simplejson.dumps(a_list)
-    
+
     def get_folders_list_json(self):
         " returns empty folders list as JSON object "
         f_list = [{
@@ -1242,10 +1242,10 @@ class EmptyDir(models.Model):
                                        related_name='folders', blank=True)
     name = models.CharField(max_length=255)
     author = models.ForeignKey(User, related_name='folders')
-    
+
     def __unicode__(self):
         return 'Dir: %s (by %s)' % (self.name, self.author.username)
-    
+
 
 class SDK(models.Model):
     """
@@ -1254,7 +1254,7 @@ class SDK(models.Model):
     """
     version = models.CharField(max_length=10, unique=True)
 
-    # It has to be accompanied with a jetpack-core version
+    # It has to be accompanied with a core library
     # needs to exist before SDK is created
     core_lib = models.OneToOneField(PackageRevision,
             related_name="parent_sdk_core+")
@@ -1280,6 +1280,17 @@ class SDK(models.Model):
 
     def is_deprecated(self):
         return self.version < '0.9'
+
+    def import_docs(self, tar_filename="addon-sdk-docs.tgz"):
+        from api.models import DocPage
+        """import docs from addon-sdk-docs.tgz """
+        tar_path = os.path.join(self.get_sdk_dirource_dir(), tar_filename)
+        if not os.path.isfile(tar_path):
+            raise SimpleException(
+                    "%s does not exist. Have you forgotten to run `cfx sdocs`?" %
+                    tar_path)
+        if not tarfile.is_tarfile(tar_path):
+            raise SimpleException("%s is not a tar file" % tar_path)
 
 
 def _get_next_id_number():
@@ -1359,13 +1370,13 @@ def manage_empty_dirs(instance, action, **kwargs):
     """
     create EmptyDirs when all modules in a "dir" are deleted,
     and remove EmptyDirs when any modules are added into the "dir"
-    """    
+    """
     if not (isinstance(instance, PackageRevision)
             and action in ('post_add', 'post_remove')):
         return
-    
+
     pk_set = kwargs.get('pk_set', [])
-    
+
     if action == 'post_add':
         for pk in pk_set:
             mod = Module.objects.get(pk=pk)
@@ -1381,11 +1392,11 @@ def manage_empty_dirs(instance, action, **kwargs):
             dirname = mod.get_path()
             if not dirname:
                 continue
-            
+
             if not instance.modules.filter(filename__startswith=dirname).count():
                 emptydir = EmptyDir(name=dirname, author=instance.author)
                 emptydir.save()
-                
+
                 instance.folders.add(emptydir)
 m2m_changed.connect(manage_empty_dirs, sender=Module.revisions.through)
-    
+

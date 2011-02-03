@@ -18,16 +18,6 @@ ALLOWED_CORE_NAMES = {
 }
 
 
-class SimpleException(Exception):
-    " Exception to be inherited in more precised Exception "
-
-    def __init__(self, value=None):
-        self.parameter = value
-
-    def __str__(self):
-        return repr(self.parameter)
-
-
 class SDKVersionNotUniqueException(SimpleException):
     " Not unique version of SDK "
 
@@ -91,18 +81,6 @@ def get_or_create_core_author():
                             first_name='Mozilla')
         Profile.objects.create(user=core_author)
     return core_author
-
-
-def import_docs(sdk_source, tar_filename="addon-sdk-docs.tgz"):
-    """import docs from addon-sdk-docs.tgz """
-    tar_path = os.path.join(sdk_source, tar_filename)
-    if not os.path.isfile(tar_path):
-        raise SimpleException(
-                "%s does not exist. Have you forgotten to run `csf sdocs`?" %
-                tar_path)
-    if not tarfile.is_tarfile(tar_path):
-        raise SimpleException("%s is not a tar file" % tar_path)
-
 
 
 def _get_code(path):

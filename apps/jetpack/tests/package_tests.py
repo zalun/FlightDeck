@@ -35,7 +35,7 @@ class PackageTest(TestCase):
         # all add-ons have PackageRevision created
         self.failUnless(package.version and package.latest)
         self.assertEqual(package.version.id, package.latest.id)
-        # name is created automtically if no given
+        # name is created automatically if none given
         self.failUnless(package.full_name)
         self.failUnless(package.name)
         self.assertEqual(package.full_name, self.author.username)
