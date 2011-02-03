@@ -6566,7 +6566,7 @@ var EditSession = function(text, mode) {
      *  }
      */
     this.setAnnotations = function(annotations) {
-        this.$annotations = [];
+        this.$annotations = {};
         for (var i=0; i<annotations.length; i++) {
             var annotation = annotations[i];
             var row = annotation.row;
@@ -6583,7 +6583,7 @@ var EditSession = function(text, mode) {
     };
 
     this.clearAnnotations = function() {
-        this.$annotations = [];
+        this.$annotations = {};
         this._dispatchEvent("changeAnnotation", {});
     };
 
@@ -10615,6 +10615,7 @@ var WorkerClient = function(baseUrl, topLevelNamespaces, packagedJs, module, cla
 
     var _self = this;
     this.$worker.onerror = function(e) {
+        console.log(e);
         throw e;
     };
     this.$worker.onmessage = function(e) {
@@ -11642,12 +11643,15 @@ var Gutter = function(parentEl) {
 
     this.setAnnotations = function(annotations) {
         // iterate over sparse array
-        this.$annotations = [];
+        this.$annotations = [];        
         for (var row in annotations) {
+            var rowAnnotations = annotations[row];
+            if (!rowAnnotations)
+                continue;
+                
             var rowInfo = this.$annotations[row] = {
                 text: []
             };
-            var rowAnnotations = annotations[row];
             for (var i=0; i<rowAnnotations.length; i++) {
                 var annotation = rowAnnotations[i];
                 rowInfo.text.push(annotation.text.replace(/"/g, "&quot;").replace(/'/g, "&rsquo;").replace(/</, "&lt;"));
