@@ -280,7 +280,6 @@ def create_SDK(sdk_dir_name='jetpack-sdk'):
     check_SDK_dir(sdk_dir_name)
 
     sdk_source = os.path.join(settings.SDK_SOURCE_DIR, sdk_dir_name)
-    check_sdk_source(sdk_source)
     core_author = get_or_create_core_author()
     core_manifest, core_name, core_fullname = get_core_manifest(sdk_source)
 

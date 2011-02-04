@@ -48,7 +48,7 @@ def package_browser(r, page_number=1, type_id=None, username=None):
 
     author = None
     if username:
-        author = User.objects.get(username=username)
+        author = get_object_or_404(User, username=username)
         packages = packages.filter(author__username=username)
         template_suffix = '%s_user' % template_suffix
     if type_id:
@@ -470,7 +470,7 @@ def package_add_attachment(r, id_number, type_id,
             'You are not the author of this %s' \
                 % escape(revision.package.get_type_name()))
 
-    
+
     content = r.raw_post_data
     filename = r.META.get('HTTP_X_FILE_NAME')
 
