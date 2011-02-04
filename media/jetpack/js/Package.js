@@ -227,7 +227,7 @@ var Package = new Class({
 	instantiate_folders: function() {
 		this.options.folders.each(function(folder) {
 			folder.append = true;
-			this.folders[folder.name] = new Folder(this, folder);
+			this.folders[folder.root_dir + '/' + folder.name] = new Folder(this, folder);
 		}, this);
 	},
 
@@ -507,7 +507,7 @@ var Folder = new Class({
 		this.options.path = this.options.name;
 		
 		this.addEvent('destroy', function(){
-			delete fd.getItem().folders[this.options.name];
+			delete fd.getItem().folders[this.options.root_dir + '/' +this.options.name];
 		});
 		
 		if (this.options.append) {
@@ -823,7 +823,7 @@ Package.Edit = new Class({
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
-				this.folders[response.name] = new Folder(this, {
+				this.folders[root_dir + '/' + response.name] = new Folder(this, {
 					append: true,
 					name: response.name,
 					root_dir: root_dir
