@@ -27,7 +27,6 @@ Class.refactor(FDEditor, {
         });
         this.element.inject(wrapper);
         this.editor = ace.edit(this.element);
-        $log(this.editor);
 		this.changed = false;
         // prepare change events
         this.boundWhenItemChanged = this.whenItemChanged.bind(this);

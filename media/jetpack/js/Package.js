@@ -498,6 +498,10 @@ var Folder = new Class({
 	
 	Extends: File,
 	
+	options: {
+		root_dir: 'l'
+	},
+	
 	initialize: function(pack, options) {
 		this.parent(pack, options);
 		this.options.path = this.options.name;
@@ -512,7 +516,11 @@ var Folder = new Class({
 	},
 	
 	append: function() {
-		fd.sidebar.addLib(this);
+		if (this.options.root_dir == Folder.ROOT_DIR_LIB) {
+			fd.sidebar.addLib(this);
+		} else if (this.options.root_dir == Folder.ROOT_DIR_DATA) {
+			fd.sidebar.addData(this);
+		}
 	},
 	
 	onSelect: function() {
@@ -521,6 +529,8 @@ var Folder = new Class({
 	
 });
 
+Folder.ROOT_DIR_LIB = 'l';
+Folder.ROOT_DIR_DATA = 'd';
 
 Folder.exists = function(filename, root_dir) {
 	return Object.some(fd.getItem().folders, function(folder) {
@@ -631,7 +641,7 @@ Package.Edit = new Class({
 		var self = this;
 		self.spinner = false;
 		sendMultipleFiles({
-			url: Function.from(this.options.get_add_attachment_url),
+			url: Function.from(this.options.add_attachment_url),
 
 			// list of files to upload
 			files: files,
@@ -803,16 +813,20 @@ Package.Edit = new Class({
 		}).send();
 	},
 	
-	addFolder: function(name) {
+	addFolder: function(name, root_dir) {
 		new Request.JSON({
 			url: this.options.add_folder_url,
-			data: {name:name},
+			data: {
+				name: name,
+				root_dir: root_dir
+			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
 				this.folders[response.name] = new Folder(this, {
 					append: true,
-					name: response.name
+					name: response.name,
+					root_dir: root_dir
 				});
 			}.bind(this)
 		}).send();
@@ -963,6 +977,7 @@ Package.Edit = new Class({
 					// only one add-on of the same id should be allowed on the Helper side
 					this.installAddon();
 				}
+                this.editor.cleanChangeState();
 				fd.fireEvent('save');
 			}.bind(this),
 			addOnFailure: function() {
