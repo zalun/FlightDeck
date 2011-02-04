@@ -109,7 +109,8 @@ FileTree = new Class({
 	
 	renameBranch: function(element, hasExtension){
 		var li = (element.get('tag') == 'li') ? element : element.getParent('li'),
-			label = li.getElement('.label');
+			label = li.getElement('.label'),
+			text = li.get('text').trim();
 		
 		this.fireEvent('renameStart', [li, label]);
 		
@@ -119,13 +120,13 @@ FileTree = new Class({
 			window.getSelection().removeAllRanges();
 			
 			//fire a renameCancel if the name didnt change
-			if (label.get('text').trim() == label.get('title').trim()) {
+			if (text == label.get('title').trim()) {
 				this.fireEvent('renameCancel', li);
 				return this;
 			}
 			
-			label.set('title', label.get('text'));
-			li.set('title', label.get('text'));
+			label.set('title', text);
+			li.set('title', text);
 			
 			this.fireEvent('renameComplete', [li, this.getFullPath(li)]);
 			return false;
@@ -137,15 +138,15 @@ FileTree = new Class({
 			this.renameBranch(element);
 		}.bind(this))
 		
-		if(hasExtension){
-			var range = document.createRange(),
-				node = label.firstChild;
-			range.setStart(node, 0);
-			range.setEnd(node, label.get('text').split('.')[0].length);
-			sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-		}
+		hasExtension = hasExtension || (text.indexOf('.') >= 0);
+		
+		var range = document.createRange(),
+			node = label.firstChild;
+		range.setStart(node, 0);
+		range.setEnd(node, hasExtension ? text.split('.')[0].length : text.length);
+		sel = window.getSelection();
+		sel.removeAllRanges();
+		sel.addRange(range);
 
 		return this;
 	},

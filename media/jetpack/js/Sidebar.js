@@ -343,7 +343,7 @@ var Sidebar = new Class({
 				}
 				
 				if (isFolder){
-					pack.addFolder(filename);
+					pack.addFolder(filename, Folder.ROOT_DIR_LIB);
 				} else {
 					pack.addModule(filename);
 				}
@@ -406,9 +406,9 @@ var Sidebar = new Class({
 				
 				
 				if(files.length) {
-					pack.sendMultipleFiles(files);
+					pack.sendMultipleFiles(uploadInput.files);
 				} else if (isFolder) {
-					$log('isfolder', createInput.value);
+					pack.addFolder(createInput.value, Folder.ROOT_DIR_DATA);
 				} else {
 					pack.addAttachment(createInput.value);
 				}

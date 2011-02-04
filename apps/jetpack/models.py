@@ -673,8 +673,8 @@ class PackageRevision(models.Model):
             return False
         return True
     
-    def validate_folder_name(self, foldername):
-        if self.folders.filter(name=foldername).count():
+    def validate_folder_name(self, foldername, root_dir):
+        if self.folders.filter(name=foldername, root_dir=root_dir).count():
             return False
         return True
 
@@ -712,12 +712,21 @@ class PackageRevision(models.Model):
     
     def folder_add(self, dir, save=True):
         " copy to new revision, add EmptyDir "
-        if not self.validate_folder_name(dir.name):
-            raise FilenameExistException(
-                ('Sorry, there is already a folder in your add-on '
+        errorMsg = ('Sorry, there is already a folder in your add-on '
                  'with the name "%s". Each folder in your add-on '
                  'needs to have a unique name.') % dir.name
-            )
+        
+        if not self.validate_folder_name(dir.name, dir.root_dir):
+            raise FilenameExistException(errorMsg)
+        
+        # don't make EmptyDir for util/ if a file exists as util/example
+        elif (dir.root_dir == 'l' and
+            self.modules.filter(filename__startswith=dir.name).count()):
+            raise FilenameExistException(errorMsg)
+        elif (dir.root_dir == 'd' and
+            self.attachments.filter(filename__startswith=dir.name).count()):
+            raise FilenameExistException(errorMsg)
+        
         
         if save:
             self.save()
@@ -917,6 +926,7 @@ class PackageRevision(models.Model):
         f_list = [{
                 'name': f.name,
                 'author': f.author.username,
+                'root_dir': f.root_dir,
                 } for f in self.folders.all()
             ] if self.folders.count() > 0 else []
         return simplejson.dumps(f_list)
@@ -1237,15 +1247,31 @@ class Attachment(models.Model):
         self.write()
         revision.attachments.add(self)
 
+
+
 class EmptyDir(models.Model):
     revisions = models.ManyToManyField(PackageRevision,
                                        related_name='folders', blank=True)
     name = models.CharField(max_length=255)
     author = models.ForeignKey(User, related_name='folders')
     
+    ROOT_DIR_CHOICES = (
+        ('l', settings.JETPACK_LIB_DIR),
+        ('d', settings.JETPACK_DATA_DIR),
+    )
+    root_dir = models.CharField(max_length=10, choices=ROOT_DIR_CHOICES)
+    
+    
+    
     def __unicode__(self):
         return 'Dir: %s (by %s)' % (self.name, self.author.username)
     
+    #def get_root_dir_display(self):
+    #    " overriding to get get package lib and data dirs "
+    #    return 
+    
+    def export(self, root_dir):
+        pass
 
 class SDK(models.Model):
     """
