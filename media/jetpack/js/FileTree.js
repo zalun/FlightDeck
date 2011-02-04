@@ -72,7 +72,7 @@ FileTree = new Class({
 		options = Object.merge({}, {
 			add: attr.rel == 'directory' ? true : false,
 			edit: attr.rel == 'directory' ? false : true,
-			remove: attr.rel == 'directory' ? false : true,
+			remove: true, //can delete anything
 			collapsed: true
 		}, this.options.actions, options);
 		attr.html = ('<a class="expand" href="#"></a>' +

@@ -161,8 +161,10 @@ var Sidebar = new Class({
 		// delete
 		sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .actions .delete)'.substitute(this.options), function(e) {
 			var file = $(e.target).getParent('li').retrieve('file');
-			if (!file.options.readonly) {
-				that.promptRemoval(file);
+			if (file) {
+				if (!file.options.readonly) {
+					that.promptRemoval(file);
+				}
 			}
 		});
 		
@@ -241,11 +243,12 @@ var Sidebar = new Class({
 	
 	getBranchFromFile: function(file) {
 		var branch,
-			tree;
+			title;
 		
 		if(file instanceof Library) {
 			title = file.options.full_name;
-			tree = this.trees.plugins;
+		} else if (file instanceof Folder) {
+			title = file.options.name;
 		} else {
 			title = file.options.filename + '.' + file.options.type;
 			
@@ -297,6 +300,8 @@ var Sidebar = new Class({
 					fd.getItem().removeAttachment(file);
 				} else if (file instanceof Library) {
 					fd.getItem().removeLibrary(file);
+				} else if (file instanceof Folder) {
+					fd.getItem().removeFolder(file);
 				}
 				
 				

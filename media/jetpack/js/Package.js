@@ -274,7 +274,7 @@ var File = new Class({
 				if (!first) {
 					first = true;
 					mod.switchTo();
-					fd.sidebar.setSelectedFile(mod.trigger.getParent('li'));
+					fd.sidebar.setSelectedFile(mod);
 				}
 			});
 			if (!first) {
@@ -706,6 +706,7 @@ Package.Edit = new Class({
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				that.registerRevision(response);
+				fd.message.alert(response.message_title, response.message);
 				self.attachments[response.uid] = new Attachment(that, {
 					append: true,
 					active: true,
@@ -732,6 +733,7 @@ Package.Edit = new Class({
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				that.registerRevision(response);
+				fd.message.alert(response.message_title, response.message);
 				var attachment = that.attachments[uid];
 				attachment.setOptions({
 					filename: response.filename
@@ -748,6 +750,7 @@ Package.Edit = new Class({
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				self.registerRevision(response);
+				fd.message.alert(response.message_title, response.message);
 				delete self.attachments[attachment.options.uid];
 				attachment.destroy();
 			}
@@ -808,6 +811,7 @@ Package.Edit = new Class({
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
+				fd.message.alert(response.message_title, response.message);
 				module.destroy();
 			}.bind(this)
 		}).send();
@@ -823,11 +827,28 @@ Package.Edit = new Class({
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
+				fd.message.alert(response.message_title, response.message);
 				this.folders[root_dir + '/' + response.name] = new Folder(this, {
 					append: true,
 					name: response.name,
 					root_dir: root_dir
 				});
+			}.bind(this)
+		}).send();
+	},
+	
+	removeFolder: function(folder) {
+		new Request.JSON({
+			url: this.options.remove_folder_url,
+			data: {
+				name: folder.options.name,
+				root_dir: folder.options.root_dir
+			},
+			onSuccess: function(response) {
+				fd.setURIRedirect(response.view_url);
+				this.registerRevision(response);
+				fd.message.alert(response.message_title, response.message);
+				folder.destroy();
 			}.bind(this)
 		}).send();
 	},
@@ -842,7 +863,7 @@ Package.Edit = new Class({
 					fd.setURIRedirect(response.view_url);
 					// set data changed by save
 					this.registerRevision(response);
-					//fd.message.alert('Library assigned', response.message);
+					fd.message.alert(response.message_title, response.message);
 					this.plugins[response.full_name] = new Library(this, {
 						full_name: response.full_name,
 						id_number: response.id_number,
@@ -865,6 +886,7 @@ Package.Edit = new Class({
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
+				fd.message.alert(response.message_title, response.message);
 				lib.destroy();
 			}.bind(this)
 		}).send();
