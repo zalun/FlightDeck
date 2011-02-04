@@ -712,12 +712,21 @@ class PackageRevision(models.Model):
     
     def folder_add(self, dir, save=True):
         " copy to new revision, add EmptyDir "
-        if not self.validate_folder_name(dir.name):
-            raise FilenameExistException(
-                ('Sorry, there is already a folder in your add-on '
+        errorMsg = ('Sorry, there is already a folder in your add-on '
                  'with the name "%s". Each folder in your add-on '
                  'needs to have a unique name.') % dir.name
-            )
+        
+        if not self.validate_folder_name(dir.name, dir.root_dir):
+            raise FilenameExistException(errorMsg)
+        
+        # don't make EmptyDir for util/ if a file exists as util/example
+        elif (dir.root_dir == 'l' and
+            self.modules.filter(filename__startswith=dir.name).count()):
+            raise FilenameExistException(errorMsg)
+        elif (dir.root_dir == 'd' and
+            self.attachments.filter(filename__startswith=dir.name).count()):
+            raise FilenameExistException(errorMsg)
+        
         
         if save:
             self.save()
@@ -1257,6 +1266,12 @@ class EmptyDir(models.Model):
     def __unicode__(self):
         return 'Dir: %s (by %s)' % (self.name, self.author.username)
     
+    #def get_root_dir_display(self):
+    #    " overriding to get get package lib and data dirs "
+    #    return 
+    
+    def export(self, root_dir):
+        pass
 
 class SDK(models.Model):
     """
