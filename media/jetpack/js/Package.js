@@ -641,7 +641,7 @@ Package.Edit = new Class({
 		var self = this;
 		self.spinner = false;
 		sendMultipleFiles({
-			url: Function.from(this.options.get_add_attachment_url),
+			url: Function.from(this.options.add_attachment_url),
 
 			// list of files to upload
 			files: files,
