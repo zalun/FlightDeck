@@ -32,7 +32,7 @@ var Sidebar = new Class({
 		var that = this;
 		var treeOptions = {
 			checkDrag: function(el){
-				return !el.hasClass('nodrag') && that.options.editable;
+				return !el.hasClass('nodrag') && that.options.editable && !el.getElement('> .holder > .label[contenteditable="true"]');
 			},
 			checkDrop: function(el, drop){
 				var isFile = el.get('rel') == 'file',
@@ -46,11 +46,7 @@ var Sidebar = new Class({
 					) ? false : true;
 			},
 			onChange: function(){
-				this.updatePath(this.current);
 				that.renameFile(this.current.retrieve('file'), this.getFullPath(this.current));
-			},
-			onRenameComplete: function(){
-				$$('div.rename_branch').removeClass('active');
 			}
 		};
 		
@@ -77,24 +73,26 @@ var Sidebar = new Class({
 		
 		if($('LibTree')) {
 			trees.lib = new FileTree('LibTree', treeOptions);
-			trees.lib.collapse = new Collapse.Cookie('LibTree', collapseOptions);
+			trees.lib.collapse = new FileTree.Collapse('LibTree', collapseOptions);
 			trees.lib.addBranch({
 				'rel': 'directory',
 				'title': 'Lib',
 				'id': 'lib_branch',
 				'class': 'top_branch nodrag'
 			}, null, topBranchOptions);
+			trees.lib.collapse.prepare();
 		}
 		
 		if($('DataTree')) {
 			trees.data = new FileTree('DataTree', treeOptions);
-			trees.data.collapse = new Collapse.Cookie('DataTree', collapseOptions);
+			trees.data.collapse = new FileTree.Collapse('DataTree', collapseOptions);
 			trees.data.addBranch({
 				'rel': 'directory',
 				'title': 'Data',
 				'id': 'data_branch',
 				'class': 'top_branch nodrag'
 			}, null, topBranchOptions);
+			trees.data.collapse.prepare();
 		}
 			
 		if($('PluginsTree')) {	
@@ -102,7 +100,7 @@ var Sidebar = new Class({
 				edit: false,
 				remove: true
 			}}));
-			trees.plugins.collapse = new Collapse.Cookie('PluginsTree', collapseOptions);
+			trees.plugins.collapse = new FileTree.Collapse('PluginsTree', collapseOptions);
 			var pluginsBranch = trees.plugins.addBranch({
 				'rel': 'directory',
 				'title': 'Plugins',
@@ -113,8 +111,8 @@ var Sidebar = new Class({
 			var sdkBranch = $('core_library_lib');
 			if(sdkBranch) {
 				pluginsBranch.getElement('ul').grab(sdkBranch);
-				trees.plugins.collapse.prepare();
 			}
+			trees.plugins.collapse.prepare();
 		}
 
 		this.attach();
@@ -127,7 +125,7 @@ var Sidebar = new Class({
 			sidebarEl = $(this);
 			
 		// highlight branch on click
-		sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .label)'.substitute(this.options), function(e) {
+		sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .label:not([contenteditable="true"]))'.substitute(this.options), function(e) {
 			var li = $(e.target).getParent('li'),
 				file = li.retrieve('file');
 			if(file) {
@@ -141,15 +139,15 @@ var Sidebar = new Class({
 		
 		//adding modules to Lib
 		if(this.trees.lib) {
-			$(this.trees.lib).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
-				that.promptNewFile();
+			$(this.trees.lib).addEvent('click:relay(.add)', function(e) {
+				that.promptNewFile(e.target.getParent('li'));
 			});
 		}
 		
 		//adding attachments to Data
 		if(this.trees.data) {
-			$(this.trees.data).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
-				that.promptAttachment();
+			$(this.trees.data).addEvent('click:relay(.add)', function(e) {
+				that.promptAttachment(e.target.getParent('li'));
 			});
 		}
 		
@@ -172,9 +170,6 @@ var Sidebar = new Class({
 			tree.addEvents({
 				'renameComplete': function(li, fullpath) {
 					that.renameFile(li.retrieve('file'), fullpath);
-				},
-				'deleteBranch': function(li) {
-					
 				}
 			});
 		});
@@ -194,20 +189,10 @@ var Sidebar = new Class({
 	removeFileFromTree: function(treeName, file) {
 		var tree = this.trees[treeName],
 			that = this,
-			title;
+			el;
 			
-		if(file instanceof Library) {
-			title = file.options.full_name;
-		} else {
-			title = file.options.filename + '.' + file.options.type;
-		}
-		
-		$(tree).getElements('li[title="{title}"]'.substitute({title:title})).some(function(el) {
-			if(el.retrieve('file') == file) {
-				el.dispose();
-				return true;
-			}
-		});
+		el = this.getBranchFromFile(file);
+		el.dispose();
 	},
 	
 	addFileToTree: function(treeName, file) {
@@ -254,17 +239,47 @@ var Sidebar = new Class({
 		this.addFileToTree('plugins', plugin);
 	},
 	
+	getBranchFromFile: function(file) {
+		var branch,
+			tree;
+		
+		if(file instanceof Library) {
+			title = file.options.full_name;
+			tree = this.trees.plugins;
+		} else {
+			title = file.options.filename + '.' + file.options.type;
+			
+		}
+		
+		$(this).getElements('.tree li[path="{title}"]'.substitute({title:title})).some(function(el) {
+			if(el.retrieve('file') == file) {
+				branch = el;
+				return true;
+			}
+		});
+		
+		return branch;
+	},
+	
 	setSelectedFile: function(el) {
 		var options = this.options;
 		
-		$(this).getElements('.{file_listing_class} li'.substitute(options))
+		if (el instanceof File) el = this.getBranchFromFile(el);
+		
+		$(this).getElements('.'+options.file_listing_class+' li')
 			.removeClass(options.file_selected_class)
 			.addClass(options.file_normal_class);
 		
 		el.removeClass(options.file_normal_class)
 			.addClass(options.file_selected_class);
 		
+		//also be sure to expand all parent folders
+		var tree = new Tree(el.getParent('.tree')),
+			node = el;
 		
+		while (node = node.getParent('li')) {
+			tree.collapse.expand(node);
+		}
 		
 		return this;
 	},
@@ -290,7 +305,10 @@ var Sidebar = new Class({
 		});
 	},
 	
-	promptNewFile: function() {
+	promptNewFile: function(folder) {
+		var path = folder.get('path') || '';
+		if (path) path += '/';
+		
 		var prompt = fd.showQuestion({
 			title: 'Create a new file or folder',
 			message: '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>' +
@@ -300,20 +318,32 @@ var Sidebar = new Class({
 			id: 'create_new_file',
 			callback: function() {
 				// get data
-				var filename = $('new_file').value,
+				var filename = path + $('new_file').value,
 					pack = fd.getItem();
+					
 				if (!filename) {
 					fd.error.alert('Filename can\'t be empty', 'Please provide the name of the module');
 					return;
 				}
-				if (pack.options.modules.some(function(mod) { return mod.filename == filename; })) {
+				
+				if (filename[filename.length-1] == '/') {
+					isFolder = true;
+					filename = filename.substr(0, filename.length-1);
+				} else {
+					//strip off any .js
+					filename = filename.replace(/\.js$/, '');
+				}
+				
+				if (!isFolder && Module.exists(filename)) {
 					fd.error.alert('Filename has to be unique', 'You already have the module with that name');
+					return;
+				} else if (isFolder && Folder.exists(filename, Folder.ROOT_DIR_LIB)) {
+					fd.error.alert('Folder has to be unique', 'You already have the folder with that name');
 					return;
 				}
 				
 				if (isFolder){
-					$log('need to make an EmptyDir here');
-					pack.addFolder(filename);
+					pack.addFolder(filename, Folder.ROOT_DIR_LIB);
 				} else {
 					pack.addModule(filename);
 				}
@@ -343,17 +373,23 @@ var Sidebar = new Class({
 	
 	promptAttachment: function() {
 		var prompt = fd.showQuestion({
-			title: 'Upload an Attachment',
-			message: '<input type="file" name="new_attachment" id="new_attachment" placeholder="Browse for file to attach" />',
-			ok: 'Create File',
+			title: 'Create or Upload an Attachment',
+			message: '<input type="file" name="upload_attachment" id="upload_attachment"/>'
+				+ '</p><p style="text-align:center">&mdash; OR &mdash;</p><p>'
+				+ '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>'
+				+ '<a href="#" id="new_type_folder" class="radio_btn"><span>Folder</span></a>'
+				+ '<input type="text" name="new_attachment" id="new_attachment" placeholder="New Attachment name..." />',
+			ok: 'Create Attachment',
 			id: 'new_attachment_button',
+			focus: false, //dont auto focus since first option is to Upload
 			callback: function() {
-				var fileInput = $('new_attachment'),
-					files = fileInput.files,
+				var uploadInput = $('upload_attachment'),
+					createInput = $('new_attachment'),
+					files = uploadInput.files,
 					pack = fd.getItem();
 				
 				//validation
-				if(!(files && files.length)) {
+				if(!(files && files.length) && !createInput.value) {
 					fd.error.alert('No file was selected.', 'Please select a file to upload.');
 					return;
 				}
@@ -362,17 +398,42 @@ var Sidebar = new Class({
 					var filename = files[f].fileName.replace(/\.[^\.]+$/g, ''),
 						ext = files[f].fileName.match(/\.([^\.]+)$/)[1];
 						
-					if (Object.some(pack.attachments, function(att) { return (att.options.filename == filename) && (att.options.type == ext); })) {
+					if (Attachment.exists(filename, ext)) {
 						fd.error.alert('Filename has to be unique', 'You already have an attachment with that name.');
 						return;
 					}
 				}
 				
 				
+				if(files.length) {
+					pack.sendMultipleFiles(uploadInput.files);
+				} else if (isFolder) {
+					pack.addFolder(createInput.value, Folder.ROOT_DIR_DATA);
+				} else {
+					pack.addAttachment(createInput.value);
+				}
 				
-				pack.sendMultipleFiles(fileInput.files);
 				prompt.destroy();
 			}
+		});
+		
+		//hookup File / Folder buttons
+		var fileBtn = $('new_type_file'),
+			folderBtn = $('new_type_folder'),
+			isFolder = false;
+			
+		fileBtn.addEvent('click', function(e) {
+			e.stop();
+			folderBtn.removeClass('selected');
+			this.addClass('selected');
+			isFolder = false;
+		});
+		
+		folderBtn.addEvent('click', function(e) {
+			e.stop();
+			fileBtn.removeClass('selected');
+			this.addClass('selected');
+			isFolder = true;
 		});
 	},
 	

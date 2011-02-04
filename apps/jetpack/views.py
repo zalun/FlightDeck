@@ -13,22 +13,25 @@ from django.views.static import serve
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponseRedirect, HttpResponse, \
                         HttpResponseForbidden, HttpResponseServerError, \
-                        HttpResponseNotAllowed, Http404
+                        HttpResponseNotAllowed, Http404, QueryDict
 from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db.models import Q, ObjectDoesNotExist
 from django.views.decorators.http import require_POST
-from django.template.defaultfilters import slugify, escape
+from django.template.defaultfilters import escape
 from django.conf import settings
 from django.utils import simplejson
 
 from base.shortcuts import get_object_with_related_or_404
 from utils import validator
+from utils.helpers import pathify
 
-from jetpack.models import Package, PackageRevision, Module, Attachment, SDK
-from jetpack.package_helpers import get_package_revision, create_package_from_xpi
+from jetpack.package_helpers import get_package_revision, \
+        create_package_from_xpi
+from jetpack.models import Package, PackageRevision, Module, Attachment, SDK, \
+                           EmptyDir
 from jetpack.errors import FilenameExistException
 
 log = commonware.log.getLogger('f.jetpack')
@@ -45,7 +48,7 @@ def package_browser(r, page_number=1, type_id=None, username=None):
 
     author = None
     if username:
-        author = User.objects.get(username=username)
+        author = get_object_or_404(User, username=username)
         packages = packages.filter(author__username=username)
         template_suffix = '%s_user' % template_suffix
     if type_id:
@@ -260,7 +263,7 @@ def package_add_module(r, id_number, type_id,
             'You are not the author of this %s' % escape(
                 revision.package.get_type_name()))
 
-    filename = re.sub('[^a-zA-Z0-9_\-\/]+', '-', r.POST.get('filename').strip())
+    filename = pathify(r.POST.get('filename'))
 
     mod = Module(
         filename=filename,
@@ -279,6 +282,7 @@ def package_add_module(r, id_number, type_id,
                 {'revision': revision, 'module': mod},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
+
 
 @require_POST
 @login_required
@@ -316,8 +320,8 @@ def package_rename_module(r, id_number, type_id, revision_number):
             module = mod
 
     if not module:
-        log_msg = 'Attempt to delete a non existing module %s from %s.' % (
-            filename, id_number)
+        log_msg = 'Attempt to rename a non existing module %s from %s.' % (
+            old_name, id_number)
         log.warning(log_msg)
         return HttpResponseForbidden(
             'There is no such module in %s' % escape(
@@ -374,6 +378,62 @@ def package_remove_module(r, id_number, type_id, revision_number):
 
 @require_POST
 @login_required
+def package_add_folder(r, id_number, type_id, revision_number):
+    " adds an EmptyDir to a revision "
+    revision = get_package_revision(id_number, type_id, revision_number)
+    if r.user.pk != revision.author.pk:
+        log_msg = ('User %s wanted to add a folder to not his own '
+                'Package %s.' % (r.user, id_number))
+        log.warning(log_msg)
+        return HttpResponseForbidden('You are not the author of this Package')
+
+    foldername, root = pathify(r.POST.get('name', '')), r.POST.get('root_dir')
+
+    dir = EmptyDir(name=foldername, author=r.user, root_dir=root)
+    try:
+        dir.save()
+        revision.folder_add(dir)
+    except FilenameExistException, err:
+        dir.delete()
+        return HttpResponseForbidden(escape(str(err)))
+
+    return render_to_response("json/folder_added.json",
+                {'revision': revision, 'folder': dir},
+                context_instance=RequestContext(r),
+                mimetype='application/json')
+
+
+@require_POST
+@login_required
+def package_remove_folder(r, id_number, type_id, revision_number):
+    " removes an EmptyDir from a revision "
+    revision = get_package_revision(id_number, type_id, revision_number)
+    if r.user.pk != revision.author.pk:
+        log_msg = ('User %s wanted to remove a folder from not his own '
+                'Package %s.' % (r.user, id_number))
+        log.warning(log_msg)
+        return HttpResponseForbidden('You are not the author of this Package')
+
+    foldername = pathify(r.POST.get('name', ''))
+    try:
+        folder = revision.folders.get(name=foldername)
+    except EmptyDir.DoesNotExist:
+        log_msg = 'Attempt to delete a non existing module %s from %s.' % (
+            filename, id_number)
+        log.warning(log_msg)
+        return HttpResponseForbidden(
+            'There is no such module in %s' % escape(
+                revision.package.full_name))
+    else:
+        revision.folder_remove(folder)
+
+    return render_to_response("json/folder_remove.json",
+                {'revision': revision, 'folder': folder},
+                context_instance=RequestContext(r),
+                mimetype='application/json')
+
+@require_POST
+@login_required
 def package_switch_sdk(r, id_number, revision_number):
     " switch SDK used to create XPI - sdk_id from POST "
     revision = get_package_revision(id_number, 'a', revision_number)
@@ -410,8 +470,19 @@ def package_add_attachment(r, id_number, type_id,
             'You are not the author of this %s' \
                 % escape(revision.package.get_type_name()))
 
+
     content = r.raw_post_data
     filename = r.META.get('HTTP_X_FILE_NAME')
+
+    # when creating an attachment, instead of Uploading..
+    if not filename:
+        # http://code.djangoproject.com/ticket/12522
+        # accessing raw_post_data kinda blows up r.POST
+        # so just build our own using the raw data we got
+        post = QueryDict(content)
+        filename = post.get('filename')
+        content = ''
+
 
     if not filename:
         log_msg = 'Path not found: %s, package: %s.' % (
@@ -427,6 +498,7 @@ def package_add_attachment(r, id_number, type_id,
                 {'revision': revision, 'attachment': attachment},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
+
 
 @require_POST
 @login_required
@@ -459,8 +531,6 @@ def package_rename_attachment(r, id_number, type_id, revision_number):
              'with the name "%s.%s". Each attachment in your add-on '
              'needs to have a unique name.') % (new_name, attachment.ext)
         )
-
-
     attachment.filename = new_name
     revision.update(attachment)
 
@@ -468,6 +538,7 @@ def package_rename_attachment(r, id_number, type_id, revision_number):
                 {'revision': revision, 'module': attachment},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
+
 
 @require_POST
 @login_required
@@ -798,6 +869,7 @@ def get_revisions_list_html(r, id_number):
             'revisions': revisions
         },
         context_instance=RequestContext(r))
+
 
 def get_latest_revision_number(request, package_id):
     """ returns the latest revision number for given package """

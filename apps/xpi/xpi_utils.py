@@ -5,7 +5,6 @@ a set of defs used to manage xpi
 import os
 import shutil
 import subprocess
-import time
 import commonware.log
 
 from django.http import HttpResponseServerError

@@ -152,6 +152,31 @@ urlpatterns = patterns('jetpack.views',
         'package_rename_attachment',
         {'type_id': 'l'}, name='jp_library_revision_rename_attachment'),
 
+    #add empty dir
+    url(r'^addon/add_folder/(?P<id_number>[-\w]+)/revision'
+            '(?P<revision_number>\d+)/$',
+        'package_add_folder',
+        {'type_id': 'a'}, name='jp_addon_revision_add_folder',
+        ),
+    url(r'^library/add_folder/(?P<id_number>[-\w]+)/revision'
+            '(?P<revision_number>\d+)/$',
+        'package_add_folder',
+        {'type_id': 'l'}, name='jp_library_revision_add_folder',
+        ),
+    
+    #remove empty dir
+    url(r'^addon/remove_folder/(?P<id_number>[-\w]+)/revision'
+            '(?P<revision_number>\d+)/$',
+        'package_remove_folder',
+        {'type_id': 'a'}, name='jp_addon_revision_remove_folder',
+        ),
+    url(r'^library/remove_folder/(?P<id_number>[-\w]+)/revision'
+            '(?P<revision_number>\d+)/$',
+        'package_remove_folder',
+        {'type_id': 'l'}, name='jp_library_revision_remove_folder',
+        ),
+    
+    
     # display attachment
     url(r'^attachment/(?P<uid>.*)$',
         'download_attachment', name='jp_attachment'),

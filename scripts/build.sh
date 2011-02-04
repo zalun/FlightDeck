@@ -25,6 +25,9 @@ source $VENV/bin/activate
 
 pip install -q -r requirements/compiled.txt
 
+# adding eventual SDK
+git submodule update --init
+
 pushd vendor && git pull && git submodule update --init && popd
 
 # Create paths we want for addons
@@ -51,6 +54,8 @@ CACHE_BACKEND = 'dummy://'
 UPLOAD_DIR = '/tmp/flightdeck'
 
 SETTINGS
+
+./manage.py syncdb
 
 echo "Starting tests..." `date`
 export FORCE_DB='yes sir'

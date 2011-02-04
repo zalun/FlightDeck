@@ -8,7 +8,7 @@ from nose.tools import eq_
 from nose import SkipTest
 from mock import patch
 
-from pyquery import PyQuery as pq
+#from pyquery import PyQuery as pq
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -18,6 +18,7 @@ from jetpack.models import PackageRevision, Attachment
 from jetpack.errors import FilenameExistException
 from jetpack.views import latest_by_uid
 from base.templatetags.base_helpers import hashtag
+
 
 def next(revision):
     number = revision.revision_number
@@ -46,6 +47,13 @@ class TestViews(TestCase):
         r = self.client.get(self.check_download_url)
         eq_(r.status_code, 200)
         eq_(r.content, '{"ready": true}')
+
+    def test_package_browser_no_use(self):
+        """If user does not exist raise 404
+        """
+        r = self.client.get(
+                reverse('jp_browser_user_addons', args=['not_a_user']))
+        eq_(r.status_code, 404)
 
 
 class TestAttachments(TestCase):

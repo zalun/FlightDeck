@@ -11,7 +11,8 @@ FlightDeck = Class.refactor(FlightDeck,{
 		question: {
 			ok: 'OK',
 			id: '',
-			cancel: 'Cancel'
+			cancel: 'Cancel',
+			focus: true
 		}
 	},
 	initialize: function(options) {
@@ -75,7 +76,7 @@ FlightDeck = Class.refactor(FlightDeck,{
 			data.callback();
 		});
 		
-		if (textboxes.length) {
+		if (data.focus && textboxes.length) {
 			setTimeout(function() {
 				textboxes[0].focus();
 			}, 5);

@@ -186,6 +186,9 @@ def check_SDK_manifest(manifest):
         pass
 
 
+def check_SDK_docs(sdk_source):
+    """ check if docs are exported """
+
 def _update_lib(package, author, manifest):
     check_SDK_manifest(manifest)
     contributors = [manifest['author']]

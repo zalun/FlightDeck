@@ -5,7 +5,10 @@
 	<head>
         <link rel="icon" href="/media/base/img/favicon.ico"/>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-		<meta name="author" content="Mozilla Corporation" />
+        <meta name="author" content="Mozilla Corporation" />
+        {% if not settings.ENGAGE_ROBOTS %}
+        <meta name="robots" content="noindex">
+        {% endif %}
 		<link rel="stylesheet" href="/media/jetpack/css/UI.Base.css" type="text/css" media="screen" />
 		<link rel="stylesheet" href="/media/jetpack/css/UI.Editor_Menu.css" type="text/css" media="screen">
 		{% block head_prejs %}{% endblock %}
@@ -28,7 +31,7 @@
 			<link href="/media/lib/roar/Roar.css" rel="stylesheet" type="text/css" />
 			<link rel="stylesheet" href="/media/jetpack/css/FlightDeck.Roar.css" type="text/css" media="screen" />
 		{% endblock %}
-		
+
 		<script type='text/javascript'>
             {% block head_jstop %}{% endblock %}
 			var fd;
@@ -39,7 +42,7 @@
 				jp_addon_create_url: '{% url jp_addon_create %}',
 				jp_library_create_url: '{% url jp_library_create %}',
 				create_modal_template: '{% escape_template "_create.html" %}',
-				user: '{{ user.username }}', 
+				user: '{{ user.username }}',
 				DEBUG: {{ settings.DEBUG|yesno:"true,false" }}
 			};
 			window.addEvent('domready', function() {
@@ -68,7 +71,7 @@
 			{% endfor %}
 		{% endif %}
 		<div id="wrapper">
-		
+
 			<header id="app-header">
 				{% block header %}{% include "_header.html" %}{% endblock %}
 			</header> <!-- /app-header -->
@@ -84,7 +87,7 @@
 			<div id="app-body">
 				{% block app_body %}
 				{% endblock %}
-				
+
 				{% block base_fluid_width %}
 					<div class="UI_middleWrapper page">
 						<aside id="app-sidebar" class="UI_Sidebar">
@@ -95,7 +98,7 @@
 						</section> <!-- /app-content -->
 					</div> <!-- /UI_middleWrapper -->
 				{% endblock %}
-				
+
 			</div> <!-- /app-body -->
 			{% block footer %}
 				<footer id="app-footer">
@@ -104,9 +107,9 @@
 							<div class="section">
 								<div class="primary">
 									<p>
-										Except where otherwise <a href="http://www.mozilla.com/en-US/about/legal.html#site">noted</a>, 
+										Except where otherwise <a href="http://www.mozilla.com/en-US/about/legal.html#site">noted</a>,
 										content on this site is licensed under the
-										<strong><a href="http://creativecommons.org/licenses/by-sa/3.0/">Creative Commons Attribution Share-Alike License v3.0</a></strong> 
+										<strong><a href="http://creativecommons.org/licenses/by-sa/3.0/">Creative Commons Attribution Share-Alike License v3.0</a></strong>
 										or any later version<span title="#">.</span>
 									</p>
 									<ul>
@@ -127,9 +130,9 @@
 					</div> <!-- /footer -->
 				</footer> <!-- /page-info -->
 			{% endblock %}
-			
-		
+
+
 		</div> <!-- /wrapper -->
-		
+
 	</body><!-- /{{ page }} -->
 </html>

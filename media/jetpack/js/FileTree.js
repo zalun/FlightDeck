@@ -37,6 +37,18 @@ FileTree = new Class({
 	},
 	
 	mousedown: function(element, event) {
+		//tree.js prevents event immediately, when really we only want
+		//the event prevents when it drags. This is because if the element
+		//has contentEditable active, we want the default mousedown action,
+		//which is to move the cursor around the text node. If it's not,
+		//then preventDefault will be called twice, and the dragging will still
+		//work. :)
+		
+		var oldDefault = event.preventDefault;
+		event.preventDefault = function(){
+			event.preventDefault = oldDefault;
+		};
+		
 		this.parent(element, event);
 		if (this.clone) {
 			this.clone.setStyle('display', 'none');
@@ -58,7 +70,7 @@ FileTree = new Class({
 			target = target.getElement('ul');
 		}
 		options = Object.merge({}, {
-			add: false,
+			add: attr.rel == 'directory' ? true : false,
 			edit: attr.rel == 'directory' ? false : true,
 			remove: attr.rel == 'directory' ? false : true,
 			collapsed: true
@@ -97,38 +109,44 @@ FileTree = new Class({
 	
 	renameBranch: function(element, hasExtension){
 		var li = (element.get('tag') == 'li') ? element : element.getParent('li'),
-			label = li.getElement('.label');
+			label = li.getElement('.label'),
+			text = li.get('text').trim();
 		
 		this.fireEvent('renameStart', [li, label]);
 		
 		if(label.get('contenteditable') == 'true'){
+			label.removeEvent('blur', blur);
 			label.set('contenteditable', false).blur();
 			window.getSelection().removeAllRanges();
 			
 			//fire a renameCancel if the name didnt change
-			if (label.get('text').trim() == label.get('title').trim()) {
+			if (text == label.get('title').trim()) {
 				this.fireEvent('renameCancel', li);
 				return this;
 			}
 			
-			label.set('title', label.get('text'));
-			li.set('title', label.get('text'));
+			label.set('title', text);
+			li.set('title', text);
 			
 			this.fireEvent('renameComplete', [li, this.getFullPath(li)]);
 			return false;
 		}
 		
 		label.set('tabIndex', 0).set('contenteditable', true).focus();
+		label.addEvent('blur', function blur(e) {
+			label.removeEvent('blur', blur);
+			this.renameBranch(element);
+		}.bind(this))
 		
-		if(hasExtension){
-			var range = document.createRange(),
-				node = label.firstChild;
-			range.setStart(node, 0);
-			range.setEnd(node, label.get('text').split('.')[0].length);
-			sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-		}
+		hasExtension = hasExtension || (text.indexOf('.') >= 0);
+		
+		var range = document.createRange(),
+			node = label.firstChild;
+		range.setStart(node, 0);
+		range.setEnd(node, hasExtension ? text.split('.')[0].length : text.length);
+		sel = window.getSelection();
+		sel.removeAllRanges();
+		sel.addRange(range);
 
 		return this;
 	},
@@ -146,11 +164,12 @@ FileTree = new Class({
 			elements = Array.clone(splitted),
 			end = splitted.length - 1,
 			selector = '',
-			el;
+			el,
+			target = options.target;
 		
 		elements.each(function(name, i){
 			var path = splitted.slice(0, i + 1).join('/');
-			if(i == end){
+			if (i == end){
 				var previous = elements[i - 1] ? elements[i - 1].getElement('ul') : (options.target.getElement('ul') || options.target);
 				el = elements[i] = previous.getChildren(selector += 'li[title='+ name + suffix +'] ')[0] || this.addBranch({
 					'title': name + suffix,
@@ -162,14 +181,13 @@ FileTree = new Class({
 				}, previous, options);
 				
 				elements[i].store('file', obj);
-			}
-			else{
-				elements[i] = options.target.getElement(selector += 'li[title='+ name +'] ') || this.addBranch({
+			} else {
+				target = elements[i] = options.target.getElement(selector += '> ul > li[title='+ name +'] ') || this.addBranch({
 					'title': name,
 					'name': name,
 					'rel': 'directory',
 					'path': path
-				}, options.target, options);
+				}, target, options);
 			}
 			
 		}, this);
@@ -187,6 +205,15 @@ FileTree = new Class({
 		return name;
 	},
 	
+	toElement: function() {
+		return this.element;
+	}
+});
+
+FileTree.Collapse = new Class({
+	
+	Extends: Collapse.Cookie,
+	
 	updateElement: function(element){
 		this.parent(element);
 		this.updatePath(element);
@@ -196,9 +223,6 @@ FileTree = new Class({
 		var parent = element.getParent('li'),
 			path = parent ? parent.get('path') : false;
 		element.set('path', (path ? path + '/' : '') + (element.get('path') || '').split('/').getLast());
-	},
-	
-	toElement: function() {
-		return this.element;
 	}
+	
 });

@@ -47,6 +47,8 @@ var Package = new Class({
 	attachments: {},
 
 	plugins: {},
+	
+	folders: {},
 
 	initialize: function(options) {
 		this.setOptions(options);
@@ -57,6 +59,7 @@ var Package = new Class({
 		fd.sidebar.buildTree();
 		this.instantiate_modules();
 		this.instantiate_attachments();
+		this.instantiate_folders();
 		this.instantiate_dependencies();
 		// hook event to menu items
 		$('revisions_list').addEvent('click', this.show_revision_list);
@@ -194,6 +197,13 @@ var Package = new Class({
 			}
 			this.modules[module.filename] = new Module(this,module);
 		}, this);
+		
+		//if no main, then activate the first module
+		if (!main_module) {
+			var mod = this.modules[this.options.modules[0].filename];
+			fd.sidebar.setSelectedFile(mod)
+			this.editor.switchTo(mod);
+		}
 	},
 
 	instantiate_attachments: function() {
@@ -211,6 +221,13 @@ var Package = new Class({
 			plugin.readonly = this.options.readonly;
 			plugin.append = true;
 			this.plugins[plugin.full_name] = new Library(this,plugin);
+		}, this);
+	},
+	
+	instantiate_folders: function() {
+		this.options.folders.each(function(folder) {
+			folder.append = true;
+			this.folders[folder.name] = new Folder(this, folder);
 		}, this);
 	},
 
@@ -247,7 +264,7 @@ var File = new Class({
 	destroy: function() {
 		// refactor me
 		if (this.textarea) this.textarea.destroy();
-		delete fd.editor_contents[this.get_editor_id()];
+		//delete fd.editor_contents[this.get_editor_id()];
 		if (this.active) {
 			// switch editor!
 			mod = null;
@@ -356,10 +373,20 @@ var Attachment = new Class({
 		if (this.is_editable()) {
 			this.switchTo();
 		} else {
-			var template_start = '<div id="attachment_view"><h3>'+this.options.filename+'</h3><div class="UI_Modal_Section">';
-			var template_end = '</div><div class="UI_Modal_Actions"><ul><li><input type="reset" value="Close" class="closeModal"/></li></ul></div></div>';
-			var template_middle = 'Download <a href="'+this.options.get_url+'">'+this.options.filename+'</a>';
-			if (this.is_image()) template_middle += '<p><img src="'+this.options.get_url+'"/></p>';
+			var template_start = '<div id="attachment_view"><h3>'
+                +this.options.filename+'</h3><div class="UI_Modal_Section">';
+			var template_end = '</div><div class="UI_Modal_Actions"><ul><li>'
+                +'<input type="reset" value="Close" class="closeModal"/>'
+                +'</li></ul></div></div>';
+			var template_middle = 'Download <a href="'
+                +this.options.get_url
+                +'">'
+                +this.options.filename
+                +'</a>';
+			if (this.is_image()) {
+                template_middle += '<p><img src="'+this.options.get_url
+                    +'"/></p>';
+            }
 			this.attachmentWindow = fd.displayModal(template_start+template_middle+template_end);
 		}
 	},
@@ -388,6 +415,12 @@ var Attachment = new Class({
 	}
 });
 
+Attachment.exists = function(filename, ext) {
+	return Object.some(fd.getItem().attachments, function(att) {
+		return (att.options.filename == filename) &&
+				att.options.type == ext;
+	});
+};
 
 var Module = new Class({
 
@@ -455,6 +488,56 @@ var Module = new Class({
 	}
 });
 
+Module.exists = function(filename) {
+	return Object.some(fd.getItem().modules, function(mod) {
+		return mod.options.filename == filename;
+	});
+};
+
+var Folder = new Class({
+	
+	Extends: File,
+	
+	options: {
+		root_dir: 'l'
+	},
+	
+	initialize: function(pack, options) {
+		this.parent(pack, options);
+		this.options.path = this.options.name;
+		
+		this.addEvent('destroy', function(){
+			delete fd.getItem().folders[this.options.name];
+		});
+		
+		if (this.options.append) {
+			this.append();
+		}
+	},
+	
+	append: function() {
+		if (this.options.root_dir == Folder.ROOT_DIR_LIB) {
+			fd.sidebar.addLib(this);
+		} else if (this.options.root_dir == Folder.ROOT_DIR_DATA) {
+			fd.sidebar.addData(this);
+		}
+	},
+	
+	onSelect: function() {
+		$log('selected a Folder');
+	}
+	
+});
+
+Folder.ROOT_DIR_LIB = 'l';
+Folder.ROOT_DIR_DATA = 'd';
+
+Folder.exists = function(filename, root_dir) {
+	return Object.some(fd.getItem().folders, function(folder) {
+		return (folder.options.root_dir == root_dir &&
+				folder.options.name == filename);
+	});
+};
 
 Package.View = new Class({
 
@@ -529,21 +612,7 @@ Package.Edit = new Class({
 
 		// submit Info
 		this.boundSubmitInfo = this.submitInfo.bind(this);
-		
-		//var fakeFileInput = $('add_attachment_fake'), fakeFileSubmit = $('add_attachment_action_fake');
-		//this.add_attachment_el.addEvents({
-		//	change: function(){
-		//		fakeFileInput.set('value', this.get('value'));
-		//	},
-		//
-		//	mouseover: function(){
-		//		fakeFileSubmit.addClass('hover');
-		//	},
-		//
-		//	mouseout: function(){
-		//		fakeFileSubmit.removeClass('hover');
-		//	}
-		//});
+
 		if ($('jetpack_core_sdk_version')) {
 			$('jetpack_core_sdk_version').addEvent('change', function() {
 				new Request.JSON({
@@ -568,15 +637,11 @@ Package.Edit = new Class({
 		this.bind_keyboard();
 	},
 
-	get_add_attachment_url: function() {
-		return this.options.add_attachment_url;
-	},
-
 	sendMultipleFiles: function(files) {
 		var self = this;
 		self.spinner = false;
 		sendMultipleFiles({
-			url: this.get_add_attachment_url.bind(this),
+			url: Function.from(this.options.add_attachment_url),
 
 			// list of files to upload
 			files: files,
@@ -631,6 +696,29 @@ Package.Edit = new Class({
                 );
 			}
 		});
+	},
+	
+	addAttachment: function(filename) {
+		var that = this;
+		new Request.JSON({
+			url: this.options.add_attachment_url,
+			data: {filename: filename},
+			onSuccess: function(response) {
+				fd.setURIRedirect(response.view_url);
+				that.registerRevision(response);
+				self.attachments[response.uid] = new Attachment(that, {
+					append: true,
+					active: true,
+					filename: response.filename,
+					ext: response.ext,
+					author: response.author,
+					code: response.code,
+					get_url: response.get_url,
+					uid: response.uid,
+					type: response.ext
+				});
+			}
+		}).send();
 	},
 
 	renameAttachment: function(uid, newName) {
@@ -698,7 +786,6 @@ Package.Edit = new Class({
 				new_filename: newName
 			},
 			onSuccess: function(response) {
-				$log(response);
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
 				fd.message.alert(response.message_title, response.message);
@@ -722,6 +809,25 @@ Package.Edit = new Class({
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
 				module.destroy();
+			}.bind(this)
+		}).send();
+	},
+	
+	addFolder: function(name, root_dir) {
+		new Request.JSON({
+			url: this.options.add_folder_url,
+			data: {
+				name: name,
+				root_dir: root_dir
+			},
+			onSuccess: function(response) {
+				fd.setURIRedirect(response.view_url);
+				this.registerRevision(response);
+				this.folders[response.name] = new Folder(this, {
+					append: true,
+					name: response.name,
+					root_dir: root_dir
+				});
 			}.bind(this)
 		}).send();
 	},

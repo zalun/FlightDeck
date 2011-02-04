@@ -105,7 +105,7 @@ DEFAULT_PACKAGE_FULLNAME = {
 }
 HOMEPAGE_PACKAGES_NUMBER = 3
 
-SDKDIR_PREFIX = tempfile.gettempdir()   # temporary data - removed after xpi is created
+SDKDIR_PREFIX = tempfile.gettempdir()   # removed after xpi is created
 XPI_TARGETDIR = tempfile.gettempdir()   # target dir - in shared directory
 
 LIBRARY_AUTOCOMPLETE_LIMIT = 20
@@ -285,3 +285,5 @@ djcelery.setup_loader()
 
 # Setting this to true will bypass celeryd and execute tasks in-process
 CELERY_ALWAYS_EAGER = True
+
+ENGAGE_ROBOTS = False
