@@ -40,15 +40,15 @@ authors:
 		padding: 7px 7px 7px 30px;
 		margin: 1px 0 0;
 		font-size: .9em;
-		text-shadow: 0 1px 0 #fff;      
+		text-shadow: 0 1px 0 #fff;
 	}
-   
+
 	/* Starting element */
 	.UI_Editor_Menu_Button:first-child,
 	.UI_Section_Open {
 		-moz-border-radius: 6px;
 		-moz-border-radius-topright: 0;
-		-moz-border-radius-bottomright: 0;      
+		-moz-border-radius-bottomright: 0;
 	}
 
 		.UI_Editor_Menu_Button:first-child a,
@@ -57,13 +57,13 @@ authors:
 			-moz-border-radius-topright: 0;
 			-moz-border-radius-bottomright: 0;
 		}
-      
+
 	/* Ending element */
 	.UI_Editor_Menu_Button:last-child,
 	.UI_Section_Close {
 		-moz-border-radius: 6px;
 		-moz-border-radius-topleft: 0;
-		-moz-border-radius-bottomleft: 0;      
+		-moz-border-radius-bottomleft: 0;
 	}
 
 		.UI_Editor_Menu_Button:last-child a,
@@ -72,7 +72,7 @@ authors:
 			-moz-border-radius-topleft: 0;
 			-moz-border-radius-bottomleft: 0;
 		}
-   
+
 	.UI_Editor_Menu_Button a:hover {
 		background: -moz-linear-gradient(270deg, #FBFBFB, #E6E8EB);
 		text-decoration: none;
@@ -84,15 +84,15 @@ authors:
 		-moz-box-shadow: none;
 		color: #6D7880;
 	}
-	
+
 	.UI_Editor_Menu_Button.UI_Single {
 		-moz-border-radius: 6px;
 	}
-	
+
 		.UI_Editor_Menu_Button.UI_Single a {
 			-moz-border-radius: 5px;
 		}
-   
+
 		/* Lighten the icon when active */
 		.UI_Editor_Menu_Button a:active .UI_Editor_Icon {
 			opacity: 0.7;
@@ -109,7 +109,7 @@ authors:
 		background-image: url(../img/editor-buttons.png);
 		background-repeat: no-repeat;
 	}
-   
+
 	.UI_Editor_Menu_Button.disabled a,
 	.UI_Editor_Menu_Button.disabled-force a {
 		background: -moz-linear-gradient(270deg, #BEC5CC, #D9DDE0);
@@ -117,12 +117,12 @@ authors:
 		cursor: default;
 		-moz-box-shadow: none;
 	}
-   
+
 		.UI_Editor_Menu_Button.disabled a .UI_Editor_Icon,
 		.UI_Editor_Menu_Button.disabled-force a .UI_Editor_Icon {
 			opacity: 0.7;
 		}
-   
+
 	.UI_Editor_Menu_Button.Icon_new_extension a {
 		background: -moz-linear-gradient(270deg, #59A1F2, #1C5AAB);
 		background-position: 0 0;
@@ -130,7 +130,7 @@ authors:
 		text-shadow: 0 1px 0 #011E4F;
 		-moz-box-shadow: 0 -1px 0 #59A1F2;
 	}
-	
+
 		.UI_Editor_Menu_Button.Icon_new.Icon_new_extension a .UI_Editor_Icon {
 			background-position: 0 -17px;
 		}
@@ -142,6 +142,11 @@ authors:
 	.UI_Editor_Menu_Button.Icon_saveNewVersion a .UI_Editor_Icon,
 	.UI_Editor_Menu_Button.Icon_save a .UI_Editor_Icon {
 		background-position: -17px 0;
+	}
+
+	.UI_Editor_Menu_Button.Icon_saveNewVersion a .UI_Editor_Icon,
+	.UI_Editor_Menu_Button.Icon_save_changes a .UI_Editor_Icon {
+		background-position: -17px -17px;
 	}
 
 	.UI_Editor_Menu_Button.Icon_update a .UI_Editor_Icon {
@@ -163,20 +168,20 @@ authors:
 	.UI_Editor_Menu_Button.Icon_delete a .UI_Editor_Icon {
 		background-position: -85px 0;
 	}
-	
+
 	.UI_Editor_Menu_Button.Icon_download a .UI_Editor_Icon {
 		background-position: -101px 0;
 	}
-	
+
 	.UI_Editor_Menu_Button.Icon_try a .UI_Editor_Icon {
 		background-position: -119px 0;
 		width: 20px;
-	}	
-	
+	}
+
 	.UI_Editor_Menu_Button.Icon_revisions a .UI_Editor_Icon {
 		background-position: -141px 0;
 	}
-		
+
 	.UI_Editor_Menu_Button.Icon_copy a .UI_Editor_Icon {
 		background-position: -161px 0;
 	}
