@@ -387,9 +387,9 @@ def package_add_folder(r, id_number, type_id, revision_number):
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
-    foldername = pathify(r.POST.get('name', ''))
+    foldername, root = pathify(r.POST.get('name', '')), r.POST.get('root_dir')
 
-    dir = EmptyDir(name=foldername, author=r.user)
+    dir = EmptyDir(name=foldername, author=r.user, root_dir=root)
     try:
         dir.save()
         revision.folder_add(dir)

@@ -673,8 +673,8 @@ class PackageRevision(models.Model):
             return False
         return True
     
-    def validate_folder_name(self, foldername):
-        if self.folders.filter(name=foldername).count():
+    def validate_folder_name(self, foldername, root_dir):
+        if self.folders.filter(name=foldername, root_dir=root_dir).count():
             return False
         return True
 
@@ -917,6 +917,7 @@ class PackageRevision(models.Model):
         f_list = [{
                 'name': f.name,
                 'author': f.author.username,
+                'root_dir': f.root_dir,
                 } for f in self.folders.all()
             ] if self.folders.count() > 0 else []
         return simplejson.dumps(f_list)
@@ -1237,11 +1238,21 @@ class Attachment(models.Model):
         self.write()
         revision.attachments.add(self)
 
+
+
 class EmptyDir(models.Model):
     revisions = models.ManyToManyField(PackageRevision,
                                        related_name='folders', blank=True)
     name = models.CharField(max_length=255)
     author = models.ForeignKey(User, related_name='folders')
+    
+    ROOT_DIR_CHOICES = (
+        ('l', settings.JETPACK_LIB_DIR),
+        ('d', settings.JETPACK_DATA_DIR),
+    )
+    root_dir = models.CharField(max_length=10, choices=ROOT_DIR_CHOICES)
+    
+    
     
     def __unicode__(self):
         return 'Dir: %s (by %s)' % (self.name, self.author.username)
