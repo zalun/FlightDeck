@@ -977,6 +977,7 @@ Package.Edit = new Class({
 					// only one add-on of the same id should be allowed on the Helper side
 					this.installAddon();
 				}
+                this.editor.cleanChangeState();
 				fd.fireEvent('save');
 			}.bind(this),
 			addOnFailure: function() {

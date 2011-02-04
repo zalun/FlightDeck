@@ -27,7 +27,6 @@ Class.refactor(FDEditor, {
         });
         this.element.inject(wrapper);
         this.editor = ace.edit(this.element);
-        $log(this.editor);
 		this.changed = false;
         // prepare change events
         this.boundWhenItemChanged = this.whenItemChanged.bind(this);
@@ -70,6 +69,7 @@ Class.refactor(FDEditor, {
         this.editor.getSession().removeEventListener('change', this.boundWhenItemChanged);
         this.change_hooked = false;
     },
+                  }
 
     getContent: function(){
         var value = this.editor.getSession().getValue();
