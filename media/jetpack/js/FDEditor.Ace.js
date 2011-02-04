@@ -69,7 +69,6 @@ Class.refactor(FDEditor, {
         this.editor.getSession().removeEventListener('change', this.boundWhenItemChanged);
         this.change_hooked = false;
     },
-                  }
 
     getContent: function(){
         var value = this.editor.getSession().getValue();
