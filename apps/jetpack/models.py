@@ -1194,6 +1194,11 @@ class Attachment(models.Model):
         if self.ext:
             name = "%s.%s" % (name, self.ext)
         return name
+    
+    def get_path(self):
+        " returns the path of directories that would be created from the filename "
+        parts = self.filename.split('/')[0:-1]
+        return ('/'.join(parts)) if parts else None
 
     def get_display_url(self):
         """Returns URL to display the attachment."""
@@ -1381,7 +1386,7 @@ exports.main = function() {};""" % instance.full_name
     instance.save()
 post_save.connect(save_first_revision, sender=Package)
 
-def manage_empty_dirs(instance, action, **kwargs):
+def manage_empty_lib_dirs(instance, action, **kwargs):
     """
     create EmptyDirs when all modules in a "dir" are deleted,
     and remove EmptyDirs when any modules are added into the "dir"
@@ -1398,7 +1403,7 @@ def manage_empty_dirs(instance, action, **kwargs):
             dirname = mod.get_path()
             if not dirname:
                 continue
-            for d in instance.folders.filter(name=dirname):
+            for d in instance.folders.filter(name=dirname, root_dir='l'):
                 instance.folders.remove(d)
 
     elif action == 'post_remove':
@@ -1409,9 +1414,43 @@ def manage_empty_dirs(instance, action, **kwargs):
                 continue
             
             if not instance.modules.filter(filename__startswith=dirname).count():
-                emptydir = EmptyDir(name=dirname, author=instance.author)
+                emptydir = EmptyDir(name=dirname, author=instance.author, root_dir='l')
                 emptydir.save()
                 
                 instance.folders.add(emptydir)
-m2m_changed.connect(manage_empty_dirs, sender=Module.revisions.through)
+m2m_changed.connect(manage_empty_lib_dirs, sender=Module.revisions.through)
+
+def manage_empty_data_dirs(instance, action, **kwargs):
+    """
+    create EmptyDirs when all modules in a "dir" are deleted,
+    and remove EmptyDirs when any modules are added into the "dir"
+    """    
+    if not (isinstance(instance, PackageRevision)
+            and action in ('post_add', 'post_remove')):
+        return
+    
+    pk_set = kwargs.get('pk_set', [])
+    
+    if action == 'post_add':
+        for pk in pk_set:
+            att = Attachment.objects.get(pk=pk)
+            dirname = att.get_path()
+            if not dirname:
+                continue
+            for d in instance.folders.filter(name=dirname, root_dir='d'):
+                instance.folders.remove(d)
+
+    elif action == 'post_remove':
+        for pk in pk_set:
+            att = Attachment.objects.get(pk=pk)
+            dirname = att.get_path()
+            if not dirname:
+                continue
+            
+            if not instance.attachments.filter(filename__startswith=dirname).count():
+                emptydir = EmptyDir(name=dirname, author=instance.author, root_dir='d')
+                emptydir.save()
+                
+                instance.folders.add(emptydir)
+m2m_changed.connect(manage_empty_data_dirs, sender=Attachment.revisions.through)
     
