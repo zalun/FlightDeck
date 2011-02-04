@@ -88,7 +88,7 @@ var FDEditor = new Class({
     cleanChangeState: function(){
         Object.each(this.items, function(item){
             item.changed = false;
-            item.change_hoodes = false;
+            item.change_hooked = false;
         });
         this.hookChangeIfNeeded();
     },
