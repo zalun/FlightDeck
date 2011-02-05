@@ -47,6 +47,10 @@ var Sidebar = new Class({
 			},
 			onChange: function(){
 				that.renameFile(this.current.retrieve('file'), this.getFullPath(this.current));
+				var folder = this.current.getParent('li').retrieve('file');
+				if (folder && folder instanceof Folder) {
+					$log(folder);
+				}
 			}
 		};
 		
@@ -165,6 +169,8 @@ var Sidebar = new Class({
 				if (!file.options.readonly) {
 					that.promptRemoval(file);
 				}
+			} else {
+				$log('a non-empty folder?');
 			}
 		});
 		
@@ -220,10 +226,27 @@ var Sidebar = new Class({
 		
 		var element = tree.addPath(file, options);	
 		tree.collapse.prepare();
-		file.addEvent('destroy', function() {
+		
+		
+		file._removeFromTree = function() {
 			that.removeFileFromTree(treeName, file);
-		});
-
+		};
+		
+		file.addEvent('destroy', file._removeFromTree);
+		file.addEvent('destroy', function() {
+			element.erase('file');
+		})
+		
+		//check all of element's parents for Folders, destroy them
+		var node = element;
+		while (node = node.getParent('li')) {
+			var emptydir = node.retrieve('file');
+			if (emptydir instanceof Folder) {
+				emptydir.removeEvent('destroy', emptydir._removeFromTree);
+				emptydir.destroy();
+			}
+		}
+		
 		if((file.options.active || file.options.main) && file.is_editable()) {
 			this.setSelectedFile(element);
 		}
