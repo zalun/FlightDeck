@@ -29,18 +29,23 @@ class PackageTest(TestCase):
         )
         package.save()
         # all packages have assigned an incremental id_number
-        self.failUnless(package.id_number)
-        self.assertEqual(int(package.id_number),
+        assert package.id_number
+        eq_(int(package.id_number),
                 settings.MINIMUM_PACKAGE_ID + 1)
         # all add-ons have PackageRevision created
-        self.failUnless(package.version and package.latest)
-        self.assertEqual(package.version.id, package.latest.id)
+        assert package.version
+        assert package.latest
+        eq_(package.version.id, package.latest.id)
         # name is created automtically if no given
-        self.failUnless(package.full_name)
-        self.failUnless(package.name)
-        self.assertEqual(package.full_name, self.author.username)
-
-        self.assertRaises(IntegrityError,
+        assert package.full_name
+        assert package.name
+        eq_(package.full_name, self.author.username)
+        # test preventing inserting duplicates
+        assert Package.objects.get(
+                author=self.author,
+                type='a',
+                name=package.name)
+        self.assertRaises(Exception,
                 Package.objects.create,
                 author=self.author,
                 type='a',
