@@ -3,7 +3,8 @@ from test_utils import TestCase
 from django.contrib.auth.models import User
 from nose import SkipTest
 
-from jetpack.models import Package, PackageRevision, Module, EmptyDir
+from jetpack.models import Package, PackageRevision, Module, EmptyDir, \
+        Attachment
 
 
 class FolderTest(TestCase):
@@ -60,7 +61,7 @@ class FolderTest(TestCase):
         revision.module_remove(mod)
         self.assertEqual(1, revision.folders.count())
         self.assertEqual(self.path, revision.folders.all()[0].name)
-    
+
     def test_folder_removed_when_attachments_added(self):
         " EmptyDir's shouldn't exist if there are attachments inside the 'dir' "
         addon = Package(author=self.author, type='a')
