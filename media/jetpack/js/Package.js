@@ -199,10 +199,14 @@ var Package = new Class({
 		}, this);
 		
 		//if no main, then activate the first module
-		if (!main_module) {
-			var mod = this.modules[this.options.modules[0].filename];
-			fd.sidebar.setSelectedFile(mod)
-			this.editor.switchTo(mod);
+		if (!main_module){
+			if (this.options.modules[0]) {
+				var mod = this.modules[this.options.modules[0].filename];
+				fd.sidebar.setSelectedFile(mod)
+				this.editor.switchTo(mod);
+			} else {
+				// XXX: <--- add module first
+			}
 		}
 	},
 
@@ -995,7 +999,7 @@ Package.Edit = new Class({
 					}
 				}, this);
 				if (fd.editPackageInfoModal) fd.editPackageInfoModal.destroy();
-				if ($(this.options.test_el).getParent('li').hasClass('pressed')) {
+				if ($(this.options.test_el) && $(this.options.test_el).getParent('li').hasClass('pressed')) {
 					// only one add-on of the same id should be allowed on the Helper side
 					this.installAddon();
 				}
