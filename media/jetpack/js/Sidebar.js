@@ -237,7 +237,7 @@ var Sidebar = new Class({
 		})
 		
 		//check all of element's parents for Folders, destroy them
-		this.silentlyRemoveFOlders(element);
+		this.silentlyRemoveFolders(element);
 		
 		if((file.options.active || file.options.main) && file.is_editable()) {
 			this.setSelectedFile(element);
