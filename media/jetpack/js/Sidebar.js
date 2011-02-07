@@ -47,6 +47,9 @@ var Sidebar = new Class({
 			},
 			onChange: function(){
 				that.renameFile(this.current.retrieve('file'), this.getFullPath(this.current));
+                // remove this folder, since the back-end already deleted
+                // it in a signal.
+                that.silentlyRemoveFolders(this.current);
 			}
 		};
 		
@@ -161,8 +164,12 @@ var Sidebar = new Class({
 		// delete
 		sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .actions .delete)'.substitute(this.options), function(e) {
 			var file = $(e.target).getParent('li').retrieve('file');
-			if (!file.options.readonly) {
-				that.promptRemoval(file);
+			if (file) {
+				if (!file.options.readonly) {
+					that.promptRemoval(file);
+				}
+			} else {
+				$log('a non-empty folder?');
 			}
 		});
 		
@@ -218,10 +225,20 @@ var Sidebar = new Class({
 		
 		var element = tree.addPath(file, options);	
 		tree.collapse.prepare();
-		file.addEvent('destroy', function() {
+		
+		
+		file._removeFromTree = function() {
 			that.removeFileFromTree(treeName, file);
-		});
-
+		};
+		
+		file.addEvent('destroy', file._removeFromTree);
+		file.addEvent('destroy', function() {
+			element.erase('file');
+		})
+		
+		//check all of element's parents for Folders, destroy them
+		this.silentlyRemoveFOlders(element);
+		
 		if((file.options.active || file.options.main) && file.is_editable()) {
 			this.setSelectedFile(element);
 		}
@@ -241,11 +258,12 @@ var Sidebar = new Class({
 	
 	getBranchFromFile: function(file) {
 		var branch,
-			tree;
+			title;
 		
 		if(file instanceof Library) {
 			title = file.options.full_name;
-			tree = this.trees.plugins;
+		} else if (file instanceof Folder) {
+			title = file.options.name;
 		} else {
 			title = file.options.filename + '.' + file.options.type;
 			
@@ -283,6 +301,17 @@ var Sidebar = new Class({
 		
 		return this;
 	},
+    
+    silentlyRemoveFolders: function(element) {
+        var node = element;
+        while (node = node.getParent('li')) {
+        	var emptydir = node.retrieve('file');
+        	if (emptydir instanceof Folder) {
+        		emptydir.removeEvent('destroy', emptydir._removeFromTree);
+        		emptydir.destroy();
+        	}
+        }
+    },
 	
 	promptRemoval: function(file) {
 		var question = fd.showQuestion({
@@ -297,6 +326,8 @@ var Sidebar = new Class({
 					fd.getItem().removeAttachment(file);
 				} else if (file instanceof Library) {
 					fd.getItem().removeLibrary(file);
+				} else if (file instanceof Folder) {
+					fd.getItem().removeFolder(file);
 				}
 				
 				

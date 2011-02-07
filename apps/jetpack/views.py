@@ -414,12 +414,12 @@ def package_remove_folder(r, id_number, type_id, revision_number):
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
-    foldername = pathify(r.POST.get('name', ''))
+    foldername, root = pathify(r.POST.get('name', '')), r.POST.get('root_dir')
     try:
-        folder = revision.folders.get(name=foldername)
+        folder = revision.folders.get(name=foldername, root_dir=root)
     except EmptyDir.DoesNotExist:
         log_msg = 'Attempt to delete a non existing module %s from %s.' % (
-            filename, id_number)
+            foldername, id_number)
         log.warning(log_msg)
         return HttpResponseForbidden(
             'There is no such module in %s' % escape(
@@ -427,7 +427,7 @@ def package_remove_folder(r, id_number, type_id, revision_number):
     else:
         revision.folder_remove(folder)
 
-    return render_to_response("json/folder_remove.json",
+    return render_to_response("json/folder_removed.json",
                 {'revision': revision, 'folder': folder},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
