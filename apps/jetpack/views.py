@@ -351,13 +351,15 @@ def package_remove_module(r, id_number, type_id, revision_number):
 
     filenames = r.POST.get('filename').split(',')
 
-    modules = revision.modules.all()
-
     module_found = False
     found_modules = []
-    for mod in modules:
-        for filename in filenames:
-            if mod.filename == filename:
+    for filename in filenames:
+        if filename[-1] == '/':
+            modules = revision.modules.filter(filename__starts_with=filename)
+        else:
+            modules = revision.modules.filter(filename=filename)
+        if modules.count() > 0:
+            for mod in modules:
                 found_modules.append(mod)
                 module_found = True
 
