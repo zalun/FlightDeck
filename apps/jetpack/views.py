@@ -349,29 +349,30 @@ def package_remove_module(r, id_number, type_id, revision_number):
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
-    filename = r.POST.get('filename')
+    filenames = r.POST.get('filename').split(',')
 
     modules = revision.modules.all()
 
     module_found = False
-
+    found_modules = []
     for mod in modules:
-        if mod.filename == filename:
-            module = mod
-            module_found = True
+        for filename in filenames:
+            if mod.filename == filename:
+                found_modules.append(mod)
+                module_found = True
 
     if not module_found:
-        log_msg = 'Attempt to delete a non existing module %s from %s.' % (
-            filename, id_number)
+        log_msg = 'Attempt to delete a non existing module(s) %s from %s.' % (
+            str(filenames), id_number)
         log.warning(log_msg)
         return HttpResponseForbidden(
             'There is no such module in %s' % escape(
                 revision.package.full_name))
 
-    revision.module_remove(module)
+    revision.module_remove(*found_modules)
 
     return render_to_response("json/module_removed.json",
-                {'revision': revision, 'module': module},
+                {'revision': revision},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 

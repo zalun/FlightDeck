@@ -488,12 +488,12 @@ class PackageRevision(models.Model):
         return reverse(
             'jp_addon_switch_sdk_version',
             args=[self.package.id_number, self.revision_number])
-    
+
     def get_add_folder_url(self):
         return reverse(
             'jp_%s_revision_add_folder' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
-    
+
     def get_remove_folder_url(self):
         return reverse(
             'jp_%s_revision_remove_folder' % self.package.get_type_name(),
@@ -603,7 +603,7 @@ class PackageRevision(models.Model):
         # reassign all dependencies
         for dep in origin.dependencies.all():
             self.dependencies.add(dep)
-            
+
         for dir in origin.folders.all():
             self.folders.add(dir)
 
@@ -612,7 +612,7 @@ class PackageRevision(models.Model):
 
         for att in origin.attachments.all():
             self.attachments.add(att)
-        
+
 
         self.package.latest = self
         self.package.save()
@@ -672,7 +672,7 @@ class PackageRevision(models.Model):
         if self.attachments.filter(filename=filename, ext=ext).count():
             return False
         return True
-    
+
     def validate_folder_name(self, foldername, root_dir):
         if self.folders.filter(name=foldername, root_dir=root_dir).count():
             return False
@@ -705,20 +705,20 @@ class PackageRevision(models.Model):
             self.save()
         return self.modules.add(mod)
 
-    def module_remove(self, mod):
-        " copy to new revision, remove module "
+    def module_remove(self, *mods):
+        " copy to new revision, remove module(s) "
         self.save()
-        return self.modules.remove(mod)
-    
+        return self.modules.remove(*mods)
+
     def folder_add(self, dir, save=True):
         " copy to new revision, add EmptyDir "
         errorMsg = ('Sorry, there is already a folder in your add-on '
                  'with the name "%s". Each folder in your add-on '
                  'needs to have a unique name.') % dir.name
-        
+
         if not self.validate_folder_name(dir.name, dir.root_dir):
             raise FilenameExistException(errorMsg)
-        
+
         # don't make EmptyDir for util/ if a file exists as util/example
         elif (dir.root_dir == 'l' and
             self.modules.filter(filename__startswith=dir.name).count()):
@@ -726,12 +726,12 @@ class PackageRevision(models.Model):
         elif (dir.root_dir == 'd' and
             self.attachments.filter(filename__startswith=dir.name).count()):
             raise FilenameExistException(errorMsg)
-        
-        
+
+
         if save:
             self.save()
         return self.folders.add(dir)
-    
+
     def folder_remove(self, dir):
         " copy to new revision, remove folder "
         self.save()
@@ -920,7 +920,7 @@ class PackageRevision(models.Model):
                 } for a in self.attachments.all()
             ] if self.attachments.count() > 0 else []
         return simplejson.dumps(a_list)
-    
+
     def get_folders_list_json(self):
         " returns empty folders list as JSON object "
         f_list = [{
@@ -1194,7 +1194,7 @@ class Attachment(models.Model):
         if self.ext:
             name = "%s.%s" % (name, self.ext)
         return name
-    
+
     def get_path(self):
         " returns the path of directories that would be created from the filename "
         parts = self.filename.split('/')[0:-1]
@@ -1259,22 +1259,22 @@ class EmptyDir(models.Model):
                                        related_name='folders', blank=True)
     name = models.CharField(max_length=255)
     author = models.ForeignKey(User, related_name='folders')
-    
+
     ROOT_DIR_CHOICES = (
         ('l', settings.JETPACK_LIB_DIR),
         ('d', settings.JETPACK_DATA_DIR),
     )
     root_dir = models.CharField(max_length=10, choices=ROOT_DIR_CHOICES)
-    
-    
-    
+
+
+
     def __unicode__(self):
         return 'Dir: %s (by %s)' % (self.name, self.author.username)
-    
+
     #def get_root_dir_display(self):
     #    " overriding to get get package lib and data dirs "
-    #    return 
-    
+    #    return
+
     def export(self, root_dir):
         pass
 
@@ -1390,13 +1390,13 @@ def manage_empty_lib_dirs(instance, action, **kwargs):
     """
     create EmptyDirs when all modules in a "dir" are deleted,
     and remove EmptyDirs when any modules are added into the "dir"
-    """    
+    """
     if not (isinstance(instance, PackageRevision)
             and action in ('post_add', 'post_remove')):
         return
-    
+
     pk_set = kwargs.get('pk_set', [])
-    
+
     if action == 'post_add':
         for pk in pk_set:
             mod = Module.objects.get(pk=pk)
@@ -1412,11 +1412,11 @@ def manage_empty_lib_dirs(instance, action, **kwargs):
             dirname = mod.get_path()
             if not dirname:
                 continue
-            
+
             if not instance.modules.filter(filename__startswith=dirname).count():
                 emptydir = EmptyDir(name=dirname, author=instance.author, root_dir='l')
                 emptydir.save()
-                
+
                 instance.folders.add(emptydir)
 m2m_changed.connect(manage_empty_lib_dirs, sender=Module.revisions.through)
 
@@ -1424,13 +1424,13 @@ def manage_empty_data_dirs(instance, action, **kwargs):
     """
     create EmptyDirs when all modules in a "dir" are deleted,
     and remove EmptyDirs when any modules are added into the "dir"
-    """    
+    """
     if not (isinstance(instance, PackageRevision)
             and action in ('post_add', 'post_remove')):
         return
-    
+
     pk_set = kwargs.get('pk_set', [])
-    
+
     if action == 'post_add':
         for pk in pk_set:
             att = Attachment.objects.get(pk=pk)
@@ -1446,11 +1446,11 @@ def manage_empty_data_dirs(instance, action, **kwargs):
             dirname = att.get_path()
             if not dirname:
                 continue
-            
+
             if not instance.attachments.filter(filename__startswith=dirname).count():
                 emptydir = EmptyDir(name=dirname, author=instance.author, root_dir='d')
                 emptydir.save()
-                
+
                 instance.folders.add(emptydir)
 m2m_changed.connect(manage_empty_data_dirs, sender=Attachment.revisions.through)
-    
+
