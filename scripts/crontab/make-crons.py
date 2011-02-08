@@ -5,17 +5,17 @@ from string import Template
 CRONS = {}
 
 COMMON = {
-    'MANAGE': '/data/amo_python/src/builder.preview/flightdeck manage.py',
+    'MANAGE': '/usr/bin/python26 manage.py',
     'F_CRON': '$DJANGO cron',
-}
-
-CRONS['prod'] = {
-    'FLIGHTDECK': '/data/amo_python/src/builder/flightdeck',
-    'DJANGO': 'apache cd $FLIGHTDECK; $MANAGE',
 }
 
 CRONS['preview'] = {
     'FLIGHTDECK': '/data/amo_python/src/builder.preview/flightdeck',
+    'DJANGO': 'cd $FLIGHTDECK; $MANAGE',
+}
+
+CRONS['prod'] = {
+    'FLIGHTDECK': '/data/amo_python/src/builder/flightdeck',
     'DJANGO': 'apache cd $FLIGHTDECK; $MANAGE',
 }
 
@@ -40,9 +40,12 @@ cron = """\
 #
 # !!AUTO-GENERATED!!  Edit scripts/crontab/make-crons.py instead.
 #
+MAILTO=flightdeck-developers@mozilla.org
 
 #once per day
 30 1 * * * $F_CRON clean_tmp
+
+MAILTO=root
 """
 
 
