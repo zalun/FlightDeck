@@ -1,5 +1,7 @@
 import os
+import simplejson
 
+import commonware.log
 from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
 from django.http import HttpResponse
@@ -7,8 +9,10 @@ from django.shortcuts import render_to_response
 from django.template import RequestContext, loader
 from django.views.debug import get_safe_settings
 
-
 from jetpack.models import Package, SDK
+import base.tasks
+
+log = commonware.log.getLogger('f.monitor')
 
 
 @user_passes_test(lambda u: u.is_superuser)
@@ -48,6 +52,19 @@ def monitor(request):
             status = False
         filepath_results.append((path, path_exists, path_perms, notes))
 
+    # free space on XPI_TARGETDIR disk
+    x_path = '%s/' % settings.XPI_TARGETDIR
+    s_path = '%s/' % settings.SDKDIR_PREFIX
+    x = os.statvfs(x_path)
+    s = os.statvfs(s_path)
+    data['free'] = {
+            'xpi_targetdir %s' % x_path: (x.f_bavail * x.f_frsize) / 1024,
+            'sdkdir_prefix %s' % s_path: (s.f_bavail * s.f_frsize) / 1024
+            }
+    monitor_file = os.path.join(x_path, 'monitor.txt')
+    base.tasks.touch_a_file.delay(monitor_file)
+    data['monitor_file'] = monitor_file
+
     data['filepaths'] = filepath_results
     template = loader.get_template('monitor.html')
     context = RequestContext(request, data)
@@ -55,6 +72,16 @@ def monitor(request):
 
     return HttpResponse(template.render(context), status=status)
 
+
+def monitor_file_check(request):
+    monitor_file = request.POST.get('monitor_file')
+    file_existed = False;
+    if os.path.isfile(monitor_file):
+        # delete file
+        os.remove(monitor_file)
+        # return JSON
+        file_existed = True
+    return HttpResponse(simplejson.dumps({"success": file_existed}))
 
 def homepage(r):
     # one more for the main one
