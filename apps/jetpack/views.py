@@ -350,20 +350,10 @@ def package_remove_module(r, id_number, type_id, revision_number):
         return HttpResponseForbidden('You are not the author of this Package')
 
     filenames = r.POST.get('filename').split(',')
-
-    module_found = False
-    found_modules = []
-    for filename in filenames:
-        if filename[-1] == '/':
-            modules = revision.modules.filter(filename__starts_with=filename)
-        else:
-            modules = revision.modules.filter(filename=filename)
-        if modules.count() > 0:
-            for mod in modules:
-                found_modules.append(mod)
-                module_found = True
-
-    if not module_found:
+   
+    try:
+        removed_modules, removed_dirs = revision.modules_remove_by_path(filenames)
+    except Module.DoesNotExist:
         log_msg = 'Attempt to delete a non existing module(s) %s from %s.' % (
             str(filenames), id_number)
         log.warning(log_msg)
@@ -371,10 +361,10 @@ def package_remove_module(r, id_number, type_id, revision_number):
             'There is no such module in %s' % escape(
                 revision.package.full_name))
 
-    revision.module_remove(*found_modules)
-
     return render_to_response("json/module_removed.json",
-                {'revision': revision},
+                {'revision': revision,
+                'removed_modules': simplejson.dumps(removed_modules),
+                'removed_dirs': simplejson.dumps(removed_dirs)},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
