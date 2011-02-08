@@ -1014,9 +1014,8 @@ Package.Edit = new Class({
 
 	bind_keyboard: function() {
 		this.keyboard = new Keyboard({
-			defaultEventType: 'keyup',
 			events: {
-			'ctrl+s': this.boundSaveAction
+				'ctrl+s': this.boundSaveAction
 			}
 		});
 		this.keyboard.activate();
