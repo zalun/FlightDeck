@@ -1035,8 +1035,8 @@ Package.Edit = new Class({
 			data: this.data,
 			onSuccess: function(response) {
 				// set the redirect data to view_url of the new revision
-				if (response.reload) {
-					 window.location.href = response.view_url;
+				if (response.package_full_name) {
+					 $('package-info-name').set('text', response.package_full_name);
 				}
 				fd.setURIRedirect(response.view_url);
 				// set data changed by save

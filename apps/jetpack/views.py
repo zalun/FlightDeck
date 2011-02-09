@@ -612,7 +612,6 @@ def package_save(r, id_number, type_id, revision_number=None,
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
-    should_reload = False
     save_revision = False
     save_package = False
     start_version_name = revision.version_name
@@ -643,7 +642,7 @@ def package_save(r, id_number, type_id, revision_number=None,
                 )
         except:
             save_package = True
-            should_reload = True
+            response_data['package_full_name'] = package_full_name
             revision.package.full_name = package_full_name
             revision.package.name = None
 
@@ -695,9 +694,6 @@ def package_save(r, id_number, type_id, revision_number=None,
 
     response_data['version_name'] = revision.version_name \
             if revision.version_name else ""
-
-    if should_reload:
-        response_data['reload'] = "yes"
 
     return render_to_response("json/package_saved.json", locals(),
                 context_instance=RequestContext(r),
