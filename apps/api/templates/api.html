@@ -3,14 +3,23 @@
 {% block title %}Documentation - {% endblock %}
 
 {% block head %}
-  <script src="/media/lib/lighter/Highlight.js"></script>
-  <script type="text/javascript" src="/media/lib/lighter/Lighter.js"></script>
+    <script src="/media/lib/lighter/Highlight.js"></script>
+    <script type="text/javascript" src="/media/lib/lighter/Lighter.js"></script>
+	<script src="/media/lib/tree.js"></script>
+	<script src="/media/jetpack/js/FileTree.js"></script>
 {% endblock %}
 
 {% block head_jstop %}
-  var doc_list = '{{ folder_list }}';
+  var doc_list = '{{ doc_list|safe }}';
 {% endblock %}
 
 {% block app_sidebar %}
+    <div class="trees-container">
+        <section id="packages">
+            <ul id="PackTree" class="tree collapse">
+
+            </ul>
+        </section>
+    </div>
 {% endblock %}
 

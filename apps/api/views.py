@@ -1,12 +1,14 @@
 import os
 import commonware.log
+import simplejson
 
 from cuddlefish import apiparser
 
-from django.shortcuts import render_to_response
+from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
 from django.conf import settings
-from django.http import Http404
+from django.http import Http404, HttpResponse
+from django.core.urlresolvers import reverse
 
 from jetpack.models import SDK
 from api.models import DocPage
@@ -14,17 +16,17 @@ from api.models import DocPage
 log = commonware.log.getLogger('f.api')
 
 sdks = SDK.objects.all()
-if sdks.count() > 0:
-    MAIN_SDK = sdks[0]
-    SDKPACKAGESDIR = os.path.join(
-            settings.SDK_SOURCE_DIR, MAIN_SDK.dir, 'packages')
-    SDKVERSION = MAIN_SDK.version
-    ADDON_KIT = MAIN_SDK.kit_lib
-    CORELIB_NAME = MAIN_SDK.core_lib.package.name
-    DEFAULTLIB_NAME = ADDON_KIT.package.name \
-            if ADDON_KIT else MAIN_SDK.core_lib.package.name
-else:
+if sdks.count() == 0:
     raise Exception('No SDK imported')
+
+MAIN_SDK = sdks[0]
+SDKPACKAGESDIR = os.path.join(
+        settings.SDK_SOURCE_DIR, MAIN_SDK.dir, 'packages')
+SDKVERSION = MAIN_SDK.version
+ADDON_KIT = MAIN_SDK.kit_lib
+CORELIB_NAME = MAIN_SDK.core_lib.package.name
+DEFAULTLIB_NAME = ADDON_KIT.package.name \
+        if ADDON_KIT else MAIN_SDK.core_lib.package.name
 
 
 def _get_module_filenames(package_name):
@@ -171,5 +173,13 @@ def module(r, package_name, module_name):
 
 
 def show_page(request, path):
-    page = get_object_or_404(DocPage, sdk=MAIN_SDK, path=path)
-    return HttpResponse(simplejson.dumps(page.__dict__))
+    doc_page = get_object_or_404(DocPage, sdk=MAIN_SDK, path=path)
+    DOC_LIST = [{
+            'filename': page.path,
+            'get_url': reverse('api_page', args=[page.path])
+        } for page in DocPage.objects.filter(sdk=MAIN_SDK)]
+    return render_to_response('api_page.html', {
+            'doc_page':doc_page,
+            'path': path,
+            'doc_list': simplejson.dumps(DOC_LIST)
+        }, context_instance=RequestContext(request))

@@ -1401,7 +1401,8 @@ class SDK(models.Model):
                 if '/docs/' in member.name and '.md' in member.name and '.md.' not in member.name:
                     # strip down to the member_path
                     member_path = member.name.split('.md')[0]
-                    member_path = member.name.split('addon-sdk-docs/packages/')[1]
+                    member_path = member_path.split('addon-sdk-docs/packages/')[1]
+                    log.debug(member_path)
                     # extract member_html and member_json
                     try:
                         member_html = tar_file.getmember(member.name + '.div')
