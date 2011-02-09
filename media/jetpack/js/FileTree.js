@@ -139,12 +139,12 @@ FileTree = new Class({
 			this.renameBranch(element);
 		}.bind(this))
 		
-		hasExtension = hasExtension || (text.indexOf('.') >= 0);
+		hasExtension = hasExtension || !!text.getFileExtension();
 		
 		var range = document.createRange(),
 			node = label.firstChild;
 		range.setStart(node, 0);
-		range.setEnd(node, hasExtension ? text.split('.')[0].length : text.length);
+		range.setEnd(node, hasExtension ? text.length - text.getFileExtension().length -1 : text.length);
 		sel = window.getSelection();
 		sel.removeAllRanges();
 		sel.addRange(range);
@@ -233,4 +233,17 @@ FileTree.Collapse = new Class({
 		element.set('path', (path ? path + '/' : '') + (element.get('path') || '').split('/').getLast());
 	}
 	
+});
+
+String.implement('getFileExtension', function() {
+    var parts = this.split('.'),
+        ext = parts.pop(),
+        filename = parts.join('.');
+        
+    return !!filename && !!ext && !ext.match(/[^a-zA-Z0-9]/) && ext;
+});
+
+String.implement('getFileName', function() {
+    var ext = this.getFileExtension();
+    return ext && this.substring(0, this.length - ext.length - 1);
 });
