@@ -8,3 +8,7 @@ class DocPage(models.Model):
     path = models.CharField(max_length=255)
     html = models.TextField()
     json = models.TextField()
+
+    class Meta:
+        unique_together = ('sdk', 'path')
+        ordering = ('sdk', 'path')

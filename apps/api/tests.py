@@ -7,9 +7,13 @@ import commonware.log
 from django.conf import settings
 from django.contrib.auth.models import User
 
+from nose.tools import eq_
 from utils.test import TestCase, get_latest_sdk_dir
+from utils.exceptions import SimpleException
 from jetpack.management import create_SDK
 from jetpack.models import Package, PackageRevision, SDK
+from api.helpers import export_docs
+from api.models import DocPage
 
 log = commonware.log.getLogger('f.api.tests')
 
@@ -30,10 +34,27 @@ class ImportDocsTest(TestCase):
                 version='test-sdk',
                 core_lib=core_lib.latest,
                 dir=self.sdk_filename)
+        self.tar_path = os.path.join(self.sdk.get_source_dir(),
+                "addon-sdk-docs.tgz")
 
+    def test_export_docs(self):
+        # the tgz file should not exist
+        assert not os.path.isfile(self.tar_path)
+        process = export_docs(self.sdk.get_source_dir())
+        eq_(process[1], '')
+        assert os.path.isfile(self.tar_path)
+        # docs should be deleted after import
+        self.assertRaises(SimpleException, self.sdk.import_docs)
+        os.remove(self.tar_path)
+        assert not os.path.isfile(self.tar_path)
 
-    def test_import_files(self):
-        pass
+    def test_import_docs(self):
+        # prepare docs
+        self.sdk.import_docs()
+        assert not os.path.isfile(self.tar_path)
+        assert DocPage.objects.count() > 1
+        self.sdk.import_docs()
+
 
 
 class CuddleTest(TestCase):

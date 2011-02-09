@@ -253,12 +253,13 @@ def update_SDK(sdk_dir_name):
                 core_author, kit_name)
 
     # create SDK
-    SDK.objects.create(
+    sdk = SDK.objects.create(
         version=core_manifest['version'],
         core_lib=core_revision,
         kit_lib=kit_revision if kit_manifest else None,
         dir=sdk_dir_name
     )
+    sdk.import_docs()
 
 
 def create_SDK(sdk_dir_name='jetpack-sdk'):
@@ -289,9 +290,10 @@ def create_SDK(sdk_dir_name='jetpack-sdk'):
                 core_author, kit_name)
 
     # create SDK
-    SDK.objects.create(
+    sdk = SDK.objects.create(
         version=core_manifest['version'],
         core_lib=core_revision,
         kit_lib=kit_revision if kit_manifest else None,
         dir=sdk_dir_name
     )
+    sdk.import_docs()
