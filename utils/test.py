@@ -4,13 +4,13 @@ from test_utils import TestCase as _TestCase
 from django.conf import settings
 
 def get_latest_sdk_dir():
-    sdks = os.listdir(os.path.join(settings.FRAMEWORK_PATH, 'lib'))
+    lib_dir = os.path.join(settings.FRAMEWORK_PATH, 'lib')
+    sdks = os.listdir(lib_dir)
     found = None
     sdk_time = -1
     for sdk in sdks:
-        if sdk != '__init__.py':
-            sdk_inf = os.stat(os.path.join(settings.FRAMEWORK_PATH, 'lib',
-                sdk))
+        if os.path.isdir(os.path.join(lib_dir, sdk)):
+            sdk_inf = os.stat(os.path.join(lib_dir, sdk))
             if sdk_time < 0 or sdk_time < sdk_inf.st_ctime:
                 sdk_time = sdk_inf.st_ctime
                 found = sdk

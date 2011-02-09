@@ -1403,7 +1403,11 @@ class SDK(models.Model):
                     member_path = member.name.split('.md')[0]
                     member_path = member.name.split('addon-sdk-docs/packages/')[1]
                     # extract member_html and member_json
-                    member_html = tar_file.getmember(member.name + '.div')
+                    try:
+                        member_html = tar_file.getmember(member.name + '.div')
+                    except KeyError:
+                        member_html = tar_file.getmember(
+                                member.name + '.div.html')
                     member_html_file = tar_file.extractfile(member_html)
                     member_json = tar_file.getmember(member.name + '.json')
                     member_json_file = tar_file.extractfile(member_json)
