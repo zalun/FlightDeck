@@ -185,3 +185,8 @@ authors:
 	.UI_Editor_Menu_Button.Icon_copy a .UI_Editor_Icon {
 		background-position: -161px 0;
 	}
+	
+	.UI_Editor_Menu_Button.Icon_logs a .UI_Editor_Icon {
+		background-position: -178px 0;
+	}
+	
