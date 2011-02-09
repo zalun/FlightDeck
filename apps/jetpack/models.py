@@ -1266,19 +1266,24 @@ class Attachment(models.Model):
 
     def write(self):
         """Writes the file."""
+        
+        data = self.data if hasattr(self, 'data') else ''
+        if self.path and not data:
+            data = self.read()
+        
         self.create_path()
         self.save()
+        
+        
 
-        if hasattr(self, 'data'):
+        directory = os.path.dirname(self.get_file_path())
 
-            directory = os.path.dirname(self.get_file_path())
+        if not os.path.exists(directory):
+            os.makedirs(directory)
 
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-
-            handle = open(self.get_file_path(), 'wb')
-            handle.write(self.data)
-            handle.close()
+        handle = open(self.get_file_path(), 'wb')
+        handle.write(data)
+        handle.close()
 
     def export_code(self, static_dir):
         " creates a file containing the module "
