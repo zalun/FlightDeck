@@ -9,6 +9,7 @@ from django.conf import settings
 from django.http import Http404
 
 from jetpack.models import SDK
+from api.models import DocPage
 
 log = commonware.log.getLogger('f.api')
 
@@ -167,3 +168,8 @@ def module(r, package_name, module_name):
          'addon_kit': ADDON_KIT
         },
         context_instance=RequestContext(r))
+
+
+def show_page(request, path):
+    page = get_object_or_404(DocPage, sdk=MAIN_SDK, path=path)
+    return HttpResponse(simplejson.dumps(page.__dict__))

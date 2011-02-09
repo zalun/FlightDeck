@@ -84,12 +84,22 @@ var FDEditor = new Class({
         }
         this.hookChangeIfNeeded();
     },
+    
+    cleanChangeState: function(){
+        Object.each(this.items, function(item){
+            item.changed = false;
+            item.change_hooked = false;
+        });
+        this.hookChangeIfNeeded();
+    },
 
     hookChangeIfNeeded: function() {
-        if (!this.current.changed && !this.change_hooked) {
-            this.hookChange();
-        } else if (this.current.changed && this.change_hooked) {
-            this.unhookChange();
+        if (!this.current.options.readonly) {
+            if (!this.current.changed && !this.change_hooked) {
+                this.hookChange();
+            } else if (this.current.changed && this.change_hooked) {
+                this.unhookChange();
+            }
         }
     },
 

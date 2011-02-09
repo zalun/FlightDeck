@@ -13,7 +13,7 @@ from django.views.static import serve
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponseRedirect, HttpResponse, \
                         HttpResponseForbidden, HttpResponseServerError, \
-                        HttpResponseNotAllowed, Http404
+                        HttpResponseNotAllowed, Http404, QueryDict
 from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -48,7 +48,7 @@ def package_browser(r, page_number=1, type_id=None, username=None):
 
     author = None
     if username:
-        author = User.objects.get(username=username)
+        author = get_object_or_404(User, username=username)
         packages = packages.filter(author__username=username)
         template_suffix = '%s_user' % template_suffix
     if type_id:
@@ -349,29 +349,22 @@ def package_remove_module(r, id_number, type_id, revision_number):
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
-    filename = r.POST.get('filename')
-
-    modules = revision.modules.all()
-
-    module_found = False
-
-    for mod in modules:
-        if mod.filename == filename:
-            module = mod
-            module_found = True
-
-    if not module_found:
-        log_msg = 'Attempt to delete a non existing module %s from %s.' % (
-            filename, id_number)
+    filenames = r.POST.get('filename').split(',')
+   
+    try:
+        removed_modules, removed_dirs = revision.modules_remove_by_path(filenames)
+    except Module.DoesNotExist:
+        log_msg = 'Attempt to delete a non existing module(s) %s from %s.' % (
+            str(filenames), id_number)
         log.warning(log_msg)
         return HttpResponseForbidden(
             'There is no such module in %s' % escape(
                 revision.package.full_name))
 
-    revision.module_remove(module)
-
     return render_to_response("json/module_removed.json",
-                {'revision': revision, 'module': module},
+                {'revision': revision,
+                'removed_modules': simplejson.dumps(removed_modules),
+                'removed_dirs': simplejson.dumps(removed_dirs)},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
@@ -387,9 +380,9 @@ def package_add_folder(r, id_number, type_id, revision_number):
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
-    foldername = pathify(r.POST.get('name', ''))
+    foldername, root = pathify(r.POST.get('name', '')), r.POST.get('root_dir')
 
-    dir = EmptyDir(name=foldername, author=r.user)
+    dir = EmptyDir(name=foldername, author=r.user, root_dir=root)
     try:
         dir.save()
         revision.folder_add(dir)
@@ -414,12 +407,12 @@ def package_remove_folder(r, id_number, type_id, revision_number):
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
-    foldername = pathify(r.POST.get('name', ''))
+    foldername, root = pathify(r.POST.get('name', '')), r.POST.get('root_dir')
     try:
-        folder = revision.folders.get(name=foldername)
+        folder = revision.folders.get(name=foldername, root_dir=root)
     except EmptyDir.DoesNotExist:
         log_msg = 'Attempt to delete a non existing module %s from %s.' % (
-            filename, id_number)
+            foldername, id_number)
         log.warning(log_msg)
         return HttpResponseForbidden(
             'There is no such module in %s' % escape(
@@ -427,7 +420,7 @@ def package_remove_folder(r, id_number, type_id, revision_number):
     else:
         revision.folder_remove(folder)
 
-    return render_to_response("json/folder_remove.json",
+    return render_to_response("json/folder_removed.json",
                 {'revision': revision, 'folder': folder},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
@@ -470,16 +463,18 @@ def package_add_attachment(r, id_number, type_id,
             'You are not the author of this %s' \
                 % escape(revision.package.get_type_name()))
 
-    # Copying to avoid this issue:
-    # http://code.djangoproject.com/ticket/12522
-    meta, post = r.META.copy(), r.POST.copy()
+
     content = r.raw_post_data
-    filename = meta.get('HTTP_X_FILE_NAME')
+    filename = r.META.get('HTTP_X_FILE_NAME')
 
     # when creating an attachment, instead of Uploading..
     if not filename:
+        # http://code.djangoproject.com/ticket/12522
+        # accessing raw_post_data kinda blows up r.POST
+        # so just build our own using the raw data we got
+        post = QueryDict(content)
         filename = post.get('filename')
-        content = None
+        content = ''
 
 
     if not filename:
@@ -617,7 +612,6 @@ def package_save(r, id_number, type_id, revision_number=None,
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
-    should_reload = False
     save_revision = False
     save_package = False
     start_version_name = revision.version_name
@@ -648,7 +642,7 @@ def package_save(r, id_number, type_id, revision_number=None,
                 )
         except:
             save_package = True
-            should_reload = True
+            response_data['package_full_name'] = package_full_name
             revision.package.full_name = package_full_name
             revision.package.name = None
 
@@ -700,9 +694,6 @@ def package_save(r, id_number, type_id, revision_number=None,
 
     response_data['version_name'] = revision.version_name \
             if revision.version_name else ""
-
-    if should_reload:
-        response_data['reload'] = "yes"
 
     return render_to_response("json/package_saved.json", locals(),
                 context_instance=RequestContext(r),

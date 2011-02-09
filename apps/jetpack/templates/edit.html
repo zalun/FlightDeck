@@ -85,7 +85,7 @@
 		<ul class="UI_Editor_Menu">
 			{% block app_content_menu_items %}{% endblock %}
 			<li class="UI_Editor_Menu_Button Icon_save">
-				<a id="package-save" title="" href="#">Save
+				<a id="package-save" title="" href="#">Commit
 					<span class="UI_Editor_Icon"></span>
 				</a>
 			</li>
@@ -96,6 +96,12 @@
 					</a>
 				</li>
 			{% endif %}
+			<li class="UI_Editor_Menu_Button Icon_logs">
+				<a id="error-console" title="" href="#">
+					Error Console
+					<span class="UI_Editor_Icon"></span>
+				</a>
+			</li>
 			{% include "_editor_app_menu_items.html" %}
 		</ul>
 	</div> <!-- /editor-menu-wrapper -->

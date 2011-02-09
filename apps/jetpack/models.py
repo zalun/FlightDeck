@@ -673,8 +673,8 @@ class PackageRevision(models.Model):
             return False
         return True
 
-    def validate_folder_name(self, foldername):
-        if self.folders.filter(name=foldername).count():
+    def validate_folder_name(self, foldername, root_dir):
+        if self.folders.filter(name=foldername, root_dir=root_dir).count():
             return False
         return True
 
@@ -705,19 +705,57 @@ class PackageRevision(models.Model):
             self.save()
         return self.modules.add(mod)
 
-    def module_remove(self, mod):
-        " copy to new revision, remove module "
+    def module_remove(self, *mods):
+        " copy to new revision, remove module(s) "
         self.save()
-        return self.modules.remove(mod)
+        return self.modules.remove(*mods)
+
+    def modules_remove_by_path(self, filenames):
+
+        found_modules = []
+        module_found = False
+        empty_dirs_paths = []
+
+        for filename in filenames:
+            if filename[-1] == '/':
+                empty_dirs_paths.append(filename[:-1])
+                modules = self.modules.filter(filename__startswith=filename)
+            else:
+                modules = self.modules.filter(filename=filename)
+            if modules.count() > 0:
+                for mod in modules:
+                    found_modules.append(mod)
+                    module_found = True
+
+        if not module_found:
+            raise Module.DoesNotExist
+
+        self.save()
+        self.modules.remove(*found_modules)
+
+        log.warning(self.folders.all())
+        for path in empty_dirs_paths:
+            folder = self.folders.get(root_dir='l', name=path)
+            self.folders.remove(folder)
+
+        return ([mod.filename for mod in found_modules], empty_dirs_paths)
 
     def folder_add(self, dir, save=True):
         " copy to new revision, add EmptyDir "
-        if not self.validate_folder_name(dir.name):
-            raise FilenameExistException(
-                ('Sorry, there is already a folder in your add-on '
+        errorMsg = ('Sorry, there is already a folder in your add-on '
                  'with the name "%s". Each folder in your add-on '
                  'needs to have a unique name.') % dir.name
-            )
+
+        if not self.validate_folder_name(dir.name, dir.root_dir):
+            raise FilenameExistException(errorMsg)
+
+        # don't make EmptyDir for util/ if a file exists as util/example
+        elif (dir.root_dir == 'l' and
+            self.modules.filter(filename__startswith=dir.name).count()):
+            raise FilenameExistException(errorMsg)
+        elif (dir.root_dir == 'd' and
+            self.attachments.filter(filename__startswith=dir.name).count()):
+            raise FilenameExistException(errorMsg)
 
         if save:
             self.save()
@@ -917,6 +955,7 @@ class PackageRevision(models.Model):
         f_list = [{
                 'name': f.name,
                 'author': f.author.username,
+                'root_dir': f.root_dir,
                 } for f in self.folders.all()
             ] if self.folders.count() > 0 else []
         return simplejson.dumps(f_list)
@@ -969,7 +1008,7 @@ class PackageRevision(models.Model):
 
         return self.sdk.kit_lib if self.sdk.kit_lib else self.sdk.core_lib
 
-    def build_xpi(self, modules=[], hashtag=None, rapid=False):
+    def build_xpi(self, modules=[], attachments=[], hashtag=None, rapid=False):
         """
         prepare and build XPI for test only (unsaved modules)
 
@@ -1004,8 +1043,17 @@ class PackageRevision(models.Model):
                     e_mod.export_code(lib_dir)
             if not mod_edited:
                 mod.export_code(lib_dir)
-        self.export_attachments(
-            '%s/%s' % (package_dir, self.package.get_data_dir()))
+        data_dir = os.path.join(package_dir, self.package.get_data_dir())
+        for att in self.attachments.all():
+            att_edited = False
+            for e_att in attachments:
+                if e_att.pk == att.pk:
+                    att_edited = True
+                    e_att.export_code(data_dir)
+            if not att_edited:
+                att.export_file(data_dir)
+        #self.export_attachments(
+        #    '%s/%s' % (package_dir, self.package.get_data_dir()))
         self.export_dependencies(packages_dir, sdk=self.sdk)
 
         args = [sdk_dir, '%s/packages/%s' % (sdk_dir, self.package.name),
@@ -1126,7 +1174,9 @@ class Module(models.Model):
 
     def export_code(self, lib_dir):
         " creates a file containing the module "
-        handle = open('%s/%s.js' % (lib_dir, self.filename), 'w')
+        path = os.path.join(lib_dir, '%s.js' % self.filename)
+        make_path(os.path.dirname(os.path.abspath(path)))
+        handle = open(path, 'w')
         handle.write(self.code)
         handle.close()
 
@@ -1185,6 +1235,11 @@ class Attachment(models.Model):
             name = "%s.%s" % (name, self.ext)
         return name
 
+    def get_path(self):
+        " returns the path of directories that would be created from the filename "
+        parts = self.filename.split('/')[0:-1]
+        return ('/'.join(parts)) if parts else None
+
     def get_display_url(self):
         """Returns URL to display the attachment."""
         return reverse('jp_attachment', args=[self.get_uid])
@@ -1209,19 +1264,34 @@ class Attachment(models.Model):
 
     def write(self):
         """Writes the file."""
+
+        data = self.data if hasattr(self, 'data') else ''
+        if self.path and not data:
+            data = self.read()
+
         self.create_path()
         self.save()
 
-        if hasattr(self, 'data'):
 
-            directory = os.path.dirname(self.get_file_path())
 
-            if not os.path.exists(directory):
-                os.makedirs(directory)
+        directory = os.path.dirname(self.get_file_path())
 
-            handle = open(self.get_file_path(), 'wb')
-            handle.write(self.data)
-            handle.close()
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        handle = open(self.get_file_path(), 'wb')
+        handle.write(data)
+        handle.close()
+
+    def export_code(self, static_dir):
+        " creates a file containing the module "
+        if not hasattr(self, 'code'):
+            return self.export_file(static_dir)
+        path = os.path.join(static_dir, '%s.%s' % (self.filename, self.ext))
+        make_path(os.path.dirname(os.path.abspath(path)))
+        handle = open(path, 'w')
+        handle.write(self.code)
+        handle.close()
 
     def export_file(self, static_dir):
         " copies from uploads to the package's data directory "
@@ -1237,15 +1307,31 @@ class Attachment(models.Model):
         self.write()
         revision.attachments.add(self)
 
+
+
 class EmptyDir(models.Model):
     revisions = models.ManyToManyField(PackageRevision,
                                        related_name='folders', blank=True)
     name = models.CharField(max_length=255)
     author = models.ForeignKey(User, related_name='folders')
 
+    ROOT_DIR_CHOICES = (
+        ('l', settings.JETPACK_LIB_DIR),
+        ('d', settings.JETPACK_DATA_DIR),
+    )
+    root_dir = models.CharField(max_length=10, choices=ROOT_DIR_CHOICES)
+
+
+
     def __unicode__(self):
         return 'Dir: %s (by %s)' % (self.name, self.author.username)
 
+    #def get_root_dir_display(self):
+    #    " overriding to get get package lib and data dirs "
+    #    return
+
+    def export(self, root_dir):
+        pass
 
 class SDK(models.Model):
     """
@@ -1366,7 +1452,7 @@ exports.main = function() {};""" % instance.full_name
     instance.save()
 post_save.connect(save_first_revision, sender=Package)
 
-def manage_empty_dirs(instance, action, **kwargs):
+def manage_empty_lib_dirs(instance, action, **kwargs):
     """
     create EmptyDirs when all modules in a "dir" are deleted,
     and remove EmptyDirs when any modules are added into the "dir"
@@ -1383,7 +1469,7 @@ def manage_empty_dirs(instance, action, **kwargs):
             dirname = mod.get_path()
             if not dirname:
                 continue
-            for d in instance.folders.filter(name=dirname):
+            for d in instance.folders.filter(name=dirname, root_dir='l'):
                 instance.folders.remove(d)
 
     elif action == 'post_remove':
@@ -1394,9 +1480,42 @@ def manage_empty_dirs(instance, action, **kwargs):
                 continue
 
             if not instance.modules.filter(filename__startswith=dirname).count():
-                emptydir = EmptyDir(name=dirname, author=instance.author)
+                emptydir = EmptyDir(name=dirname, author=instance.author, root_dir='l')
                 emptydir.save()
 
                 instance.folders.add(emptydir)
-m2m_changed.connect(manage_empty_dirs, sender=Module.revisions.through)
+m2m_changed.connect(manage_empty_lib_dirs, sender=Module.revisions.through)
 
+def manage_empty_data_dirs(instance, action, **kwargs):
+    """
+    create EmptyDirs when all modules in a "dir" are deleted,
+    and remove EmptyDirs when any modules are added into the "dir"
+    """
+    if not (isinstance(instance, PackageRevision)
+            and action in ('post_add', 'post_remove')):
+        return
+
+    pk_set = kwargs.get('pk_set', [])
+
+    if action == 'post_add':
+        for pk in pk_set:
+            att = Attachment.objects.get(pk=pk)
+            dirname = att.get_path()
+            if not dirname:
+                continue
+            for d in instance.folders.filter(name=dirname, root_dir='d'):
+                instance.folders.remove(d)
+
+    elif action == 'post_remove':
+        for pk in pk_set:
+            att = Attachment.objects.get(pk=pk)
+            dirname = att.get_path()
+            if not dirname:
+                continue
+
+            if not instance.attachments.filter(filename__startswith=dirname).count():
+                emptydir = EmptyDir(name=dirname, author=instance.author, root_dir='d')
+                emptydir.save()
+
+                instance.folders.add(emptydir)
+m2m_changed.connect(manage_empty_data_dirs, sender=Attachment.revisions.through)

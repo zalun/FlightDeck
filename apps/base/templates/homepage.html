@@ -7,14 +7,6 @@
 	<script src="/media/jetpack/js/FlightDeck.Browser.js"></script>
 {% endblock %}
 
-<script type="text/javascript" charset="utf-8">
-{% block app_domready %}
-    document.id('getSdkTrigger').addEvent('click', function(e) {
-        document.id('getSdkTarget').highlight('#FAF1CD');
-    });
-{% endblock %}
-</script>
-
 {% block app_menu %}{% endblock %}
 
 {% block app_sidebar %}{% endblock %}
@@ -31,7 +23,7 @@
 
                 <div class="left_column">
                     <div class="fd_button">
-                        <a id="create_addon" title="" href="{% url jp_addon_create %}"><span>How to Get Started</span></a>
+                        <a id="create_addon" title="" href="{% url tutorial %}"><span>How to Get Started</span></a>
                     </div>
                 </div>
                 <div class="right_column">
@@ -54,8 +46,8 @@
                 <h3>Learn</h3>
                 <ul>
                     <li><a href="{% url api_home %}">API Documentation</a></li>
-                    <li><a href="{% url api_package "jetpack-core" %}">Core library (Add-on Kit)</a></li>
-                    <li><a id="getSdkTrigger" href="#getSdk">Command-Line Tools (SDK)</a></li>
+                    <li><a href="{% url api_package "addon-kit" %}">Add-on Kit - High-level APIs</a></li>
+                    <li><a href="{% url api_package "api-utils" %}">API Utilities - Low-level SDK code</a></li>
                 </ul>
                 <h3 class="second">Explore</h3>
                 <ul>

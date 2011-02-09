@@ -15,7 +15,8 @@ FileTree = new Class({
 			//edit: false,
 			//remove: false
 		},
-		snap: 3
+		snap: 3,
+		id_prefix: ''
 		//onAddBranch: function(el, attributes, target){}
 		//onRenameStart: function(li, span){}
 		//onRenameComplete: function(li, span){}
@@ -72,7 +73,7 @@ FileTree = new Class({
 		options = Object.merge({}, {
 			add: attr.rel == 'directory' ? true : false,
 			edit: attr.rel == 'directory' ? false : true,
-			remove: attr.rel == 'directory' ? false : true,
+			remove: true, //can delete anything
 			collapsed: true
 		}, this.options.actions, options);
 		attr.html = ('<a class="expand" href="#"></a>' +
@@ -109,7 +110,8 @@ FileTree = new Class({
 	
 	renameBranch: function(element, hasExtension){
 		var li = (element.get('tag') == 'li') ? element : element.getParent('li'),
-			label = li.getElement('.label');
+			label = li.getElement('.label'),
+			text = li.get('text').trim();
 		
 		this.fireEvent('renameStart', [li, label]);
 		
@@ -119,13 +121,13 @@ FileTree = new Class({
 			window.getSelection().removeAllRanges();
 			
 			//fire a renameCancel if the name didnt change
-			if (label.get('text').trim() == label.get('title').trim()) {
+			if (text == label.get('title').trim()) {
 				this.fireEvent('renameCancel', li);
 				return this;
 			}
 			
-			label.set('title', label.get('text'));
-			li.set('title', label.get('text'));
+			label.set('title', text);
+			li.set('title', text);
 			
 			this.fireEvent('renameComplete', [li, this.getFullPath(li)]);
 			return false;
@@ -137,15 +139,15 @@ FileTree = new Class({
 			this.renameBranch(element);
 		}.bind(this))
 		
-		if(hasExtension){
-			var range = document.createRange(),
-				node = label.firstChild;
-			range.setStart(node, 0);
-			range.setEnd(node, label.get('text').split('.')[0].length);
-			sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-		}
+		hasExtension = hasExtension || (text.indexOf('.') >= 0);
+		
+		var range = document.createRange(),
+			node = label.firstChild;
+		range.setStart(node, 0);
+		range.setEnd(node, hasExtension ? text.split('.')[0].length : text.length);
+		sel = window.getSelection();
+		sel.removeAllRanges();
+		sel.addRange(range);
 
 		return this;
 	},
@@ -164,7 +166,12 @@ FileTree = new Class({
 			end = splitted.length - 1,
 			selector = '',
 			el,
-			target = options.target;
+			target = options.target,
+			id_prefix = this.options.id_prefix;
+			
+		if (id_prefix) {
+		    id_prefix += '-';
+		}
 		
 		elements.each(function(name, i){
 			var path = splitted.slice(0, i + 1).join('/');
@@ -175,6 +182,7 @@ FileTree = new Class({
 					'name': name,
 					'path': path,
 					'url': obj.options.url,
+					'id': obj.getID(),
 					'rel': obj.options.type ? 'file' : 'directory',
 					'class': 'UI_File_Normal' + (options.nodrag ? ' nodrag' : '')
 				}, previous, options);
@@ -185,6 +193,7 @@ FileTree = new Class({
 					'title': name,
 					'name': name,
 					'rel': 'directory',
+					'id': id_prefix + path.replace(/\//g, '-'),
 					'path': path
 				}, target, options);
 			}
