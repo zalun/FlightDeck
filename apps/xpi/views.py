@@ -33,7 +33,15 @@ def prepare_test(r, id_number, revision_number=None):
                 if mod.code != code:
                     mod.code = code
                     modules.append(mod)
-        response, rm_xpi_url = revision.build_xpi(modules, hashtag=hashtag)
+        attachments = []
+        for att in revision.attachments.all():
+            if r.POST.get(att.pk, False):
+                code = r.POST.get(att.pk, '')
+                if att.code != code:
+                    att.code = code
+                    attachments.append(att)
+        response, rm_xpi_url = revision.build_xpi(modules, attachments,
+                hashtag=hashtag)
     else:
         response, rm_xpi_url = revision.build_xpi(hashtag=hashtag)
     return HttpResponse('{"delayed": true, "rm_xpi_url": "%s"}' % rm_xpi_url)

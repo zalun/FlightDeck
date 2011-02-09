@@ -979,7 +979,7 @@ class PackageRevision(models.Model):
 
         return self.sdk.kit_lib if self.sdk.kit_lib else self.sdk.core_lib
 
-    def build_xpi(self, modules=[], hashtag=None, rapid=False):
+    def build_xpi(self, modules=[], attachments=[], hashtag=None, rapid=False):
         """
         prepare and build XPI for test only (unsaved modules)
 
@@ -1014,8 +1014,17 @@ class PackageRevision(models.Model):
                     e_mod.export_code(lib_dir)
             if not mod_edited:
                 mod.export_code(lib_dir)
-        self.export_attachments(
-            '%s/%s' % (package_dir, self.package.get_data_dir()))
+        data_dir = self.package.get_data_dir()
+        for att in self.attachments.all():
+            att_edited = False
+            for e_att in attachments:
+                if e_att.pk == att.pk:
+                    att_edited = True
+                    e_att.export_code(data_dir)
+            if not att_edited:
+                att.export_code(data_dir)
+        #self.export_attachments(
+        #    '%s/%s' % (package_dir, self.package.get_data_dir()))
         self.export_dependencies(packages_dir, sdk=self.sdk)
 
         args = [sdk_dir, '%s/packages/%s' % (sdk_dir, self.package.name),
