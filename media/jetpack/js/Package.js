@@ -720,7 +720,7 @@ Package.Edit = new Class({
 				fd.setURIRedirect(response.view_url);
 				that.registerRevision(response);
 				fd.message.alert(response.message_title, response.message);
-				self.attachments[response.uid] = new Attachment(that, {
+				that.attachments[response.uid] = new Attachment(that, {
 					append: true,
 					active: true,
 					filename: response.filename,
