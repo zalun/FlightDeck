@@ -129,7 +129,7 @@ body {
 			font-size: 1.1em;
 		}
 
-		#api-body p.parameter-name
+		#api-body .api_name
 			{
 			font-size: 1.0em;
 			font-family: 'Monaco', Courier, Monospace;
@@ -146,7 +146,7 @@ body {
 			margin-left:40px;
 		}
 
-		#api-body div.function-parameter-list
+		#api-body div.parameter_set
 			{
 			margin-left:20px;
 		}
