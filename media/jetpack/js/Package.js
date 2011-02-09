@@ -1087,22 +1087,4 @@ Package.Edit = new Class({
 		//this.options.assign_library_url = urls.assign_library_url;
 		//this.options.remove_library_url = urls.remove_library_url;
 	}
-});new Request.JSON({
-			url: this.options.remove_module_url,
-			data: {filename: path+'/'},
-			onSuccess: function(response) {
-				fd.setURIRedirect(response.view_url);
-				this.registerRevision(response);
-				fd.message.alert(response.message_title, response.message);
-				response.removed_modules.forEach(function(filename) {
-				    this.modules[filename].destroy();
-				}, this);
-				
-				response.removed_dirs.forEach(function(name) {
-				    $log(name)
-				    
-				    fd.sidebar.removeFile(name, 'l')
-				}, this);
-				
-			}.bind(this)
-		}).send();
+});
