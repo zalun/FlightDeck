@@ -1,4 +1,3 @@
-
 var Sidebar = new Class({
 	
 	Implements: [Options, Events],
