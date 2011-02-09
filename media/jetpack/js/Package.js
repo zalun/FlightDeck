@@ -68,6 +68,9 @@ var Package = new Class({
             this.boundTestAddon = this.testAddon.bind(this);
 			this.options.test_url = $(this.options.test_el).get('href');
 			$(this.options.test_el).addEvent('click', this.boundTestAddon);
+            this.boundDownloadAddon = this.downloadAddon.bind(this);
+			this.download_url = $(this.options.download_el).get('href');
+			$(this.options.download_el).addEvent('click', this.boundDownloadAddon);
 			$(this.options.console_el).addEvent('click', function(){
 				window.mozFlightDeck.send({ cmd: 'toggleConsole', contents: 'open' });
 			});
@@ -137,6 +140,7 @@ var Package = new Class({
 			hashtag: this.options.hashtag, 
 			filename: this.options.name
 		};
+		$log(data);
 		new Request.JSON({
 		  url: this.download_url,
 		  data: data,
