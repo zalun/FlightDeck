@@ -650,7 +650,7 @@ Package.Edit = new Class({
 		this.bind_keyboard();
 	},
 
-	sendMultipleFiles: function(files) {
+	sendMultipleFiles: function(files, onPartialLoad) {
 		var self = this;
 		self.spinner = false;
 		sendMultipleFiles({
@@ -690,6 +690,8 @@ Package.Edit = new Class({
 				});
 				self.registerRevision(response);
 				self.attachments[response.uid] = attachment;
+				
+				Function.from(onPartialLoad)(attachment);
 			},
 
 			// fired when last file has been uploaded
@@ -1037,6 +1039,7 @@ Package.Edit = new Class({
 				// set the redirect data to view_url of the new revision
 				if (response.package_full_name) {
 					 $('package-info-name').set('text', response.package_full_name);
+					 this.options.full_name = response.package_full_name;
 				}
 				fd.setURIRedirect(response.view_url);
 				// set data changed by save
