@@ -329,8 +329,8 @@ var Library = new Class({
 		window.open(this.options.view_url);
 	},
 	
-	get_css_id: function() {
-		return this.options.full_name;
+	getID: function() {
+		return 'Library-' + this.options.name;
 	}
 	
 });
@@ -410,8 +410,8 @@ var Attachment = new Class({
 		}).send();
 	},
 
-	get_css_id: function() {
-		return this.options.uid;
+	getID: function() {
+		return 'Attachment-'+this.uid;
 	},
 
 	append: function() {
@@ -489,6 +489,10 @@ var Module = new Class({
                 this.fireEvent('loadcontent', mod.code);
             }.bind(this)
 		}).send();
+	},
+	
+	getID: function() {
+	    return 'Module-' + this.options.filename.replace(/\//g, '-');
 	}
 });
 
@@ -529,6 +533,11 @@ var Folder = new Class({
 	
 	onSelect: function() {
 		$log('selected a Folder');
+	},
+	
+	getID: function() {
+	    return this.options.root_dir + '-'+ 
+	        this.options.name.replace(/\//g, '-');
 	}
 	
 });
@@ -760,6 +769,26 @@ Package.Edit = new Class({
 			}
 		}).send();
 	},
+	
+	removeAttachments: function(pathname) {
+	    new Request.JSON({
+			url: this.options.remove_attachment_url,
+			data: {filename: path+'/'},
+			onSuccess: function(response) {
+				fd.setURIRedirect(response.view_url);
+				this.registerRevision(response);
+				fd.message.alert(response.message_title, response.message);
+				response.removed_attachments.forEach(function(uid) {
+				    this.attachments[uid].destroy();
+				}, this);
+				
+				response.removed_dirs.forEach(function(name) {				    
+				    fd.sidebar.removeFile(name, 'd')
+				}, this);
+				
+			}.bind(this)
+		}).send();
+	},
 
 	addModule: function(filename) {
 		new Request.JSON({
@@ -817,6 +846,28 @@ Package.Edit = new Class({
 				this.registerRevision(response);
 				fd.message.alert(response.message_title, response.message);
 				module.destroy();
+			}.bind(this)
+		}).send();
+	},
+	
+	removeModules: function(path) {
+	    new Request.JSON({
+			url: this.options.remove_module_url,
+			data: {filename: path+'/'},
+			onSuccess: function(response) {
+				fd.setURIRedirect(response.view_url);
+				this.registerRevision(response);
+				fd.message.alert(response.message_title, response.message);
+				response.removed_modules.forEach(function(filename) {
+				    this.modules[filename].destroy();
+				}, this);
+				
+				response.removed_dirs.forEach(function(name) {
+				    $log(name)
+				    
+				    fd.sidebar.removeFile(name, 'l')
+				}, this);
+				
 			}.bind(this)
 		}).send();
 	},

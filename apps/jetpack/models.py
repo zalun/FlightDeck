@@ -709,6 +709,37 @@ class PackageRevision(models.Model):
         " copy to new revision, remove module(s) "
         self.save()
         return self.modules.remove(*mods)
+    
+    def modules_remove_by_path(self, filenames):
+        
+        found_modules = []
+        module_found = False
+        empty_dirs_paths = []
+        
+        for filename in filenames:
+            if filename[-1] == '/':
+                empty_dirs_paths.append(filename[:-1])
+                modules = self.modules.filter(filename__startswith=filename)
+            else:
+                modules = self.modules.filter(filename=filename)
+            if modules.count() > 0:
+                for mod in modules:
+                    found_modules.append(mod)
+                    module_found = True
+                
+        if not module_found:
+            raise Module.DoesNotExist
+        
+        self.save()
+        self.modules.remove(*found_modules)
+        
+        log.warning(self.folders.all())
+        for path in empty_dirs_paths:
+            folder = self.folders.get(root_dir='l', name=path)
+            self.folders.remove(folder)
+            
+        return ([mod.filename for mod in found_modules], empty_dirs_paths)
+
 
     def folder_add(self, dir, save=True):
         " copy to new revision, add EmptyDir "

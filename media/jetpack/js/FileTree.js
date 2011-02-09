@@ -15,7 +15,8 @@ FileTree = new Class({
 			//edit: false,
 			//remove: false
 		},
-		snap: 3
+		snap: 3,
+		id_prefix: ''
 		//onAddBranch: function(el, attributes, target){}
 		//onRenameStart: function(li, span){}
 		//onRenameComplete: function(li, span){}
@@ -165,7 +166,12 @@ FileTree = new Class({
 			end = splitted.length - 1,
 			selector = '',
 			el,
-			target = options.target;
+			target = options.target,
+			id_prefix = this.options.id_prefix;
+			
+		if (id_prefix) {
+		    id_prefix += '-';
+		}
 		
 		elements.each(function(name, i){
 			var path = splitted.slice(0, i + 1).join('/');
@@ -176,6 +182,7 @@ FileTree = new Class({
 					'name': name,
 					'path': path,
 					'url': obj.options.url,
+					'id': obj.getID(),
 					'rel': obj.options.type ? 'file' : 'directory',
 					'class': 'UI_File_Normal' + (options.nodrag ? ' nodrag' : '')
 				}, previous, options);
@@ -186,6 +193,7 @@ FileTree = new Class({
 					'title': name,
 					'name': name,
 					'rel': 'directory',
+					'id': id_prefix + path.replace(/\//g, '-'),
 					'path': path
 				}, target, options);
 			}

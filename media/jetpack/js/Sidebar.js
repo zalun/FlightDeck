@@ -75,7 +75,9 @@ var Sidebar = new Class({
 		};
 		
 		if($('LibTree')) {
-			trees.lib = new FileTree('LibTree', treeOptions);
+			trees.lib = new FileTree('LibTree', Object.merge({
+			    id_prefix: 'l'
+			}, treeOptions));
 			trees.lib.collapse = new FileTree.Collapse('LibTree', collapseOptions);
 			trees.lib.addBranch({
 				'rel': 'directory',
@@ -87,7 +89,9 @@ var Sidebar = new Class({
 		}
 		
 		if($('DataTree')) {
-			trees.data = new FileTree('DataTree', treeOptions);
+			trees.data = new FileTree('DataTree', Object.merge({
+			    id_prefix: 'd'
+			},treeOptions));
 			trees.data.collapse = new FileTree.Collapse('DataTree', collapseOptions);
 			trees.data.addBranch({
 				'rel': 'directory',
@@ -163,14 +167,18 @@ var Sidebar = new Class({
 		
 		// delete
 		sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .actions .delete)'.substitute(this.options), function(e) {
-			var file = $(e.target).getParent('li').retrieve('file');
+			var li = $(e.target).getParent('li'),
+			    file = li.retrieve('file'),
+			    isModules = li.getParent('.tree').get('id') == 'LibTree';
 			if (file) {
 				if (!file.options.readonly) {
 					that.promptRemoval(file);
 				}
 			} else {
+				that.promptRemoval(li.get('path'), isModules ? Module : Attachment)
 				$log('a non-empty folder?');
 			}
+			
 		});
 		
 		Object.each(this.trees, function(tree, name) {
@@ -248,6 +256,26 @@ var Sidebar = new Class({
 		this.addFileToTree('lib', lib);
 	},
 	
+	removeFile: function(file, prefix) {
+	    
+	    $log('removeFile before: ', file, prefix);
+	    if (file instanceof File) {
+	        file.destroy();
+	        return;
+	    }
+	        
+        $log('removeFile: ', file, prefix);
+        if (prefix) prefix+='-';
+        var li = $(prefix+file.replace(/\//g, '-'));
+        
+        if (li) {
+            li.destroy();
+        }
+	    
+	    
+	    
+	},
+	
 	addData: function(attachment) {
 		this.addFileToTree('data', attachment);
 	},
@@ -313,9 +341,18 @@ var Sidebar = new Class({
         }
     },
 	
-	promptRemoval: function(file) {
+	promptRemoval: function(file, fileType) {
+		var title = 'Are you sure you want to remove "{name}"?',
+		    titleOpts = {};
+		
+		if (fileType != null) {
+		    titleOpts.name = file + " and all its files";
+		} else {
+		    titleOpts.name = file.options.path
+		}
+		
 		var question = fd.showQuestion({
-			title: 'Are you sure you want to remove {name}?'.substitute({ name: file.options.path }),
+			title: title.substitute(titleOpts),
 			message: file instanceof Module ? 'You may always copy it from this revision' : '',
 			ok: 'Remove',
 			id: 'remove_file_button',
@@ -328,6 +365,10 @@ var Sidebar = new Class({
 					fd.getItem().removeLibrary(file);
 				} else if (file instanceof Folder) {
 					fd.getItem().removeFolder(file);
+				} else if (fileType == Module) {
+				    fd.getItem().removeModules(file);
+				} else if (fileType == Attachment) {
+				    fd.getItem().removeAttachments(file);
 				}
 				
 				
@@ -402,7 +443,9 @@ var Sidebar = new Class({
 		});
 	},
 	
-	promptAttachment: function() {
+	promptAttachment: function(folder) {
+        var path = folder.get('path') || '';
+        if (path) path += '/';
 		var prompt = fd.showQuestion({
 			title: 'Create or Upload an Attachment',
 			message: '<input type="file" name="upload_attachment" id="upload_attachment"/>'
@@ -417,10 +460,11 @@ var Sidebar = new Class({
 				var uploadInput = $('upload_attachment'),
 					createInput = $('new_attachment'),
 					files = uploadInput.files,
+					filename = createInput.value,
 					pack = fd.getItem();
 				
 				//validation
-				if(!(files && files.length) && !createInput.value) {
+				if(!(files && files.length) && !filename) {
 					fd.error.alert('No file was selected.', 'Please select a file to upload.');
 					return;
 				}
@@ -435,13 +479,22 @@ var Sidebar = new Class({
 					}
 				}
 				
+				//if passed a folder to put the file in
+				if (filename) {
+				    filename = path + filename;
+				}
+				
+				if (filename && filename[filename.length-1] == '/') {
+					isFolder = true;
+					filename = filename.substr(0, filename.length-1);
+				}
 				
 				if(files.length) {
 					pack.sendMultipleFiles(uploadInput.files);
 				} else if (isFolder) {
-					pack.addFolder(createInput.value, Folder.ROOT_DIR_DATA);
+					pack.addFolder(filename, Folder.ROOT_DIR_DATA);
 				} else {
-					pack.addAttachment(createInput.value);
+					pack.addAttachment(filename);
 				}
 				
 				prompt.destroy();
