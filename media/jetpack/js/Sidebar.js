@@ -443,7 +443,9 @@ var Sidebar = new Class({
 		});
 	},
 	
-	promptAttachment: function() {
+	promptAttachment: function(folder) {
+        var path = folder.get('path') || '';
+        if (path) path += '/';
 		var prompt = fd.showQuestion({
 			title: 'Create or Upload an Attachment',
 			message: '<input type="file" name="upload_attachment" id="upload_attachment"/>'
@@ -458,10 +460,11 @@ var Sidebar = new Class({
 				var uploadInput = $('upload_attachment'),
 					createInput = $('new_attachment'),
 					files = uploadInput.files,
+					filename = createInput.value,
 					pack = fd.getItem();
 				
 				//validation
-				if(!(files && files.length) && !createInput.value) {
+				if(!(files && files.length) && !filename) {
 					fd.error.alert('No file was selected.', 'Please select a file to upload.');
 					return;
 				}
@@ -476,13 +479,22 @@ var Sidebar = new Class({
 					}
 				}
 				
+				//if passed a folder to put the file in
+				if (filename) {
+				    filename = path + filename;
+				}
+				
+				if (filename && filename[filename.length-1] == '/') {
+					isFolder = true;
+					filename = filename.substr(0, filename.length-1);
+				}
 				
 				if(files.length) {
 					pack.sendMultipleFiles(uploadInput.files);
 				} else if (isFolder) {
-					pack.addFolder(createInput.value, Folder.ROOT_DIR_DATA);
+					pack.addFolder(filename, Folder.ROOT_DIR_DATA);
 				} else {
-					pack.addAttachment(createInput.value);
+					pack.addAttachment(filename);
 				}
 				
 				prompt.destroy();
