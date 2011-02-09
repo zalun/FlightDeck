@@ -30,6 +30,15 @@ body {
 
 }
 
+    #api-body h1{
+        border-bottom: solid 1px #E9EDF0;
+        padding: 0 0 5px;
+        margin: 0 0 15px;
+        color: #666;
+        font-size: 1.4em;
+        font-family: Helvetica, Arial, Tahoma, sans-serif;
+    }
+
     #api-body h2{
 		padding-top: 20px;
 		font-weight: bold;
