@@ -39,6 +39,7 @@ var Package = new Class({
 		copy_el: 'package-copy',
 		test_el: 'try_in_browser',
 		download_el: 'download',
+		console_el: 'error-console',
         check_if_latest: true  // switch to false if displaying revisions
 	},
 
@@ -66,7 +67,10 @@ var Package = new Class({
 		if (this.isAddon()) {
             this.boundTestAddon = this.testAddon.bind(this);
 			this.options.test_url = $(this.options.test_el).get('href');
-			$(this.options.test_el).addEvent('click', this.boundTestAddon)
+			$(this.options.test_el).addEvent('click', this.boundTestAddon);
+			$(this.options.console_el).addEvent('click', function(){
+				window.mozFlightDeck.send({ cmd: 'toggleConsole', contents: 'open' });
+			});
 		}
 		this.copy_el = $(this.options.copy_el)
 		if (this.copy_el) {
@@ -573,7 +577,7 @@ Package.View = new Class({
 Package.Edit = new Class({
 
 	Extends: Package,
-
+	
 	options: {
 		// DOM elements
 			save_el: 'package-save',
