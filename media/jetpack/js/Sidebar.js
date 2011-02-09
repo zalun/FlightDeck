@@ -445,6 +445,7 @@ var Sidebar = new Class({
 	promptAttachment: function(folder) {
         var path = folder.get('path') || '';
         if (path) path += '/';
+        var that = this;
 		var prompt = fd.showQuestion({
 			title: 'Create or Upload an Attachment',
 			message: '<input type="file" name="upload_attachment" id="upload_attachment"/>'
@@ -460,7 +461,8 @@ var Sidebar = new Class({
 					createInput = $('new_attachment'),
 					files = uploadInput.files,
 					filename = createInput.value,
-					pack = fd.getItem();
+					pack = fd.getItem(),
+					renameAfterLoad;
 				
 				//validation
 				if(!(files && files.length) && !filename) {
@@ -469,10 +471,10 @@ var Sidebar = new Class({
 				}
 				
 				for (var f = 0; f < files.length; f++){
-					var filename = files[f].fileName.replace(/\.[^\.]+$/g, ''),
+					var fname = files[f].fileName.replace(/\.[^\.]+$/g, ''),
 						ext = files[f].fileName.match(/\.([^\.]+)$/)[1];
 						
-					if (Attachment.exists(filename, ext)) {
+					if (Attachment.exists(fname, ext)) {
 						fd.error.alert('Filename has to be unique', 'You already have an attachment with that name.');
 						return;
 					}
@@ -481,6 +483,19 @@ var Sidebar = new Class({
 				//if passed a folder to put the file in
 				if (filename) {
 				    filename = path + filename;
+				} else if (path) {
+				    renameAfterLoad = function(att) {
+				        var new_name = path + att.options.filename;
+				        
+				        pack.renameAttachment(att.options.uid, new_name);
+				        var el = that.getBranchFromFile(att);
+				        if (el) {
+				            el.destroy();
+				        }
+				        att.options.filename = att.options.path = new_name;
+				        that.addData(att);
+				        
+				    };
 				}
 				
 				if (filename && filename[filename.length-1] == '/') {
@@ -488,8 +503,15 @@ var Sidebar = new Class({
 					filename = filename.substr(0, filename.length-1);
 				}
 				
+				//remove janky characters from filenames
+				if (filename) {
+				    filename = filename.replace(/[^a-zA-Z0-9\-_\/\.]+/g, '-');
+				    filename = filename.replace(/\/{2,}/g, '/');
+				    filename = filename.replace(/\/*$/g, ''); /* */
+				}
+				
 				if(files.length) {
-					pack.sendMultipleFiles(uploadInput.files);
+					pack.sendMultipleFiles(uploadInput.files, renameAfterLoad);
 				} else if (isFolder) {
 					pack.addFolder(filename, Folder.ROOT_DIR_DATA);
 				} else {

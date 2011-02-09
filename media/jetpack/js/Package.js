@@ -658,7 +658,7 @@ Package.Edit = new Class({
 		this.bind_keyboard();
 	},
 
-	sendMultipleFiles: function(files) {
+	sendMultipleFiles: function(files, onPartialLoad) {
 		var self = this;
 		self.spinner = false;
 		sendMultipleFiles({
@@ -698,6 +698,8 @@ Package.Edit = new Class({
 				});
 				self.registerRevision(response);
 				self.attachments[response.uid] = attachment;
+				
+				Function.from(onPartialLoad)(attachment);
 			},
 
 			// fired when last file has been uploaded
@@ -745,11 +747,21 @@ Package.Edit = new Class({
 
 	renameAttachment: function(uid, newName) {
 		var that = this;
+		
+		// break off an extension from the filename
+		var ext = newName.match(/\.([^\.]+$)/);
+		if (ext) {
+		    ext = ext[1];
+		    newName = newName.substring(0, ext.length);
+		}
+		
+		
 		new Request.JSON({
 			url: that.options.rename_attachment_url,
 			data: {
 				uid: uid,
-				new_filename: newName
+				new_filename: newName,
+				new_ext: ext
 			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
@@ -757,7 +769,8 @@ Package.Edit = new Class({
 				fd.message.alert(response.message_title, response.message);
 				var attachment = that.attachments[uid];
 				attachment.setOptions({
-					filename: response.filename
+					filename: response.filename,
+					ext: response.ext
 				});
 			}
 		}).send();
@@ -1045,6 +1058,7 @@ Package.Edit = new Class({
 				// set the redirect data to view_url of the new revision
 				if (response.package_full_name) {
 					 $('package-info-name').set('text', response.package_full_name);
+					 this.options.full_name = response.package_full_name;
 				}
 				fd.setURIRedirect(response.view_url);
 				// set data changed by save
