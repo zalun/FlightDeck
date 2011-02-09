@@ -1010,7 +1010,7 @@ class PackageRevision(models.Model):
 
         return self.sdk.kit_lib if self.sdk.kit_lib else self.sdk.core_lib
 
-    def build_xpi(self, modules=[], hashtag=None, rapid=False):
+    def build_xpi(self, modules=[], attachments=[], hashtag=None, rapid=False):
         """
         prepare and build XPI for test only (unsaved modules)
 
@@ -1045,8 +1045,17 @@ class PackageRevision(models.Model):
                     e_mod.export_code(lib_dir)
             if not mod_edited:
                 mod.export_code(lib_dir)
-        self.export_attachments(
-            '%s/%s' % (package_dir, self.package.get_data_dir()))
+        data_dir = os.path.join(package_dir, self.package.get_data_dir())
+        for att in self.attachments.all():
+            att_edited = False
+            for e_att in attachments:
+                if e_att.pk == att.pk:
+                    att_edited = True
+                    e_att.export_code(data_dir)
+            if not att_edited:
+                att.export_file(data_dir)
+        #self.export_attachments(
+        #    '%s/%s' % (package_dir, self.package.get_data_dir()))
         self.export_dependencies(packages_dir, sdk=self.sdk)
 
         args = [sdk_dir, '%s/packages/%s' % (sdk_dir, self.package.name),
@@ -1167,7 +1176,9 @@ class Module(models.Model):
 
     def export_code(self, lib_dir):
         " creates a file containing the module "
-        handle = open('%s/%s.js' % (lib_dir, self.filename), 'w')
+        path = os.path.join(lib_dir, '%s.js' % self.filename)
+        make_path(os.path.dirname(os.path.abspath(path)))
+        handle = open(path, 'w')
         handle.write(self.code)
         handle.close()
 
@@ -1272,6 +1283,16 @@ class Attachment(models.Model):
 
         handle = open(self.get_file_path(), 'wb')
         handle.write(data)
+        handle.close()
+
+    def export_code(self, static_dir):
+        " creates a file containing the module "
+        if not hasattr(self, 'code'):
+            return self.export_file(static_dir)
+        path = os.path.join(static_dir, '%s.%s' % (self.filename, self.ext))
+        make_path(os.path.dirname(os.path.abspath(path)))
+        handle = open(path, 'w')
+        handle.write(self.code)
         handle.close()
 
     def export_file(self, static_dir):
