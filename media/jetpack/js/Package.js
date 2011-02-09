@@ -274,7 +274,7 @@ var File = new Class({
 			mod = null;
 			// try to switch to first element
 			first = false;
-			Object.each(fd.getItem().modules, function(mod) {
+			Object.each(this.pack.modules, function(mod) {
 				if (!first) {
 					first = true;
 					mod.switchTo();
@@ -282,14 +282,14 @@ var File = new Class({
 				}
 			});
 			if (!first) {
-				fd.item.editor.setContent('');
+				this.pack.editor.setContent('');
 			}
 		}
 		this.fireEvent('destroy');
 	},
 
 	switchTo: function() {
-		fd.item.editor.switchTo(this);
+		this.pack.editor.switchTo(this);
 	}
 });
 
@@ -312,7 +312,7 @@ var Library = new Class({
 		}
 		
 		this.addEvent('destroy', function(){
-			delete fd.getItem().plugins[this.options.full_name];
+			delete pack.plugins[this.options.full_name];
 		})
 		
 		if(this.options.append) {
@@ -452,7 +452,7 @@ var Module = new Class({
 		this.options.path = this.options.filename + '.' + this.options.type;
 		
 		this.addEvent('destroy', function(){
-			delete fd.getItem().modules[this.options.filename];
+			delete pack.modules[this.options.filename];
 		});
 		
 		if (this.options.append) {
