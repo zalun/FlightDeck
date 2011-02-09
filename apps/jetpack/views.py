@@ -508,7 +508,11 @@ def package_rename_attachment(r, id_number, type_id, revision_number):
 
     uid = r.POST.get('uid', '').strip()
     new_name = r.POST.get('new_filename')
+    
+    
     attachment = latest_by_uid(revision, uid)
+    
+    new_ext = r.POST.get('new_ext') or attachment.ext
 
     if not attachment:
         log_msg = ('Attempt to rename a non existing attachment. attachment: '
@@ -525,6 +529,7 @@ def package_rename_attachment(r, id_number, type_id, revision_number):
              'needs to have a unique name.') % (new_name, attachment.ext)
         )
     attachment.filename = new_name
+    attachment.ext = new_ext
     revision.update(attachment)
 
     return render_to_response("json/attachment_renamed.json",

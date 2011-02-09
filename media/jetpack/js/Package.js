@@ -739,11 +739,21 @@ Package.Edit = new Class({
 
 	renameAttachment: function(uid, newName) {
 		var that = this;
+		
+		// break off an extension from the filename
+		var ext = newName.match(/\.([^\.]+$)/);
+		if (ext) {
+		    ext = ext[1];
+		    newName = newName.substring(0, ext.length);
+		}
+		
+		
 		new Request.JSON({
 			url: that.options.rename_attachment_url,
 			data: {
 				uid: uid,
-				new_filename: newName
+				new_filename: newName,
+				new_ext: ext
 			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
@@ -751,7 +761,8 @@ Package.Edit = new Class({
 				fd.message.alert(response.message_title, response.message);
 				var attachment = that.attachments[uid];
 				attachment.setOptions({
-					filename: response.filename
+					filename: response.filename,
+					ext: response.ext
 				});
 			}
 		}).send();
