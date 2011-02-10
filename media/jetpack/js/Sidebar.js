@@ -45,11 +45,15 @@ var Sidebar = new Class({
 					) ? false : true;
 			},
 			onChange: function(){
-				that.renameFile(this.current.retrieve('file'), this.getFullPath(this.current));
+				var file = this.current.retrieve('file');
+				if (file) {
+				    that.renameFile(file, this.getFullPath(this.current));
+				}
                 // remove this folder, since the back-end already deleted
                 // it in a signal.
                 that.silentlyRemoveFolders(this.current);
-			}
+			},
+			editable: this.options.editable
 		};
 		
 		// Tree and Collapse initilizations
@@ -183,7 +187,10 @@ var Sidebar = new Class({
 		Object.each(this.trees, function(tree, name) {
 			tree.addEvents({
 				'renameComplete': function(li, fullpath) {
-					that.renameFile(li.retrieve('file'), fullpath);
+					var file = li.retrieve('file');
+					if (file) {
+					    that.renameFile(li.retrieve('file'), fullpath);
+					} 					
 				}
 			});
 		});
@@ -224,6 +231,7 @@ var Sidebar = new Class({
 		};
 	
 		if (!this.options.editable || file.options.main) {
+			options.add = false
 			options.edit = false;
 			options.remove = false;
 			options.nodrag = true;

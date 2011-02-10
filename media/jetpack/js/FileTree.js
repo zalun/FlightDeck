@@ -77,12 +77,22 @@ FileTree = new Class({
 		if (target.get('tag') !== 'ul') {
 			target = target.getElement('ul');
 		}
+		
+		var isEditable = this.options.editable;
+		
 		options = Object.merge({}, {
-			add: attr.rel == 'directory' ? true : false,
-			edit: attr.rel == 'directory' ? false : true,
+			add: attr.rel == 'directory',
+			edit: attr.rel != 'directory',
 			remove: true, //can delete anything
 			collapsed: true
 		}, this.options.actions, options);
+		
+		if (!isEditable) {
+		    delete options.add;
+		    delete options.edit;
+		    delete options.remove;
+		}
+		
 		attr.html = ('<a class="expand" href="#"></a>' +
 			'<div class="holder">' +
 				'<span id="{id}" class="label" title="{title}">{title}</span><span class="icon"></span>' +
