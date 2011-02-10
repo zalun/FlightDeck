@@ -156,7 +156,7 @@ FileTree = new Class({
 		if (text) {
 		    label.set('text', text);
 		}
-		
+		label.eliminate('$text');
 		li.removeClass('editing');
 		
 	},
@@ -179,7 +179,7 @@ FileTree = new Class({
 			}
 			
 			label.removeEvent('blur', label.retrieve('$blur'));
-			label.erase('$text');
+			label.eliminate('$text');
 			label.set('contenteditable', false).blur();
 			window.getSelection().removeAllRanges();
 			
