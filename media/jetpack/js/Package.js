@@ -976,7 +976,7 @@ Package.Edit = new Class({
 	editInfo: function(e) {
 		e.stop();
 		this.savenow = false;
-		fd.editPackageInfoModal = fd.displayModal(settings.edit_package_info_template.substitute(this.data || this.options));
+		fd.editPackageInfoModal = fd.displayModal(settings.edit_package_info_template.substitute(Object.merge({}, this.data, this.options)));
 		$('package-info_form').addEvent('submit', this.boundSubmitInfo);
 		// XXX: this will change after moving the content to other forms
 		$('version_name').addEvent('change', function() { fd.fireEvent('change'); });
@@ -1057,9 +1057,9 @@ Package.Edit = new Class({
 			data: this.data,
 			onSuccess: function(response) {
 				// set the redirect data to view_url of the new revision
-				if (response.package_full_name) {
-					 $('package-info-name').set('text', response.package_full_name);
-					 this.options.full_name = response.package_full_name;
+				if (response.full_name) {
+					 $('package-info-name').set('text', response.full_name);
+					 this.options.full_name = response.full_name;
 				}
 				fd.setURIRedirect(response.view_url);
 				// set data changed by save

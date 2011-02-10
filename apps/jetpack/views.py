@@ -647,7 +647,7 @@ def package_save(r, id_number, type_id, revision_number=None,
                 )
         except:
             save_package = True
-            response_data['package_full_name'] = package_full_name
+            response_data['full_name'] = package_full_name
             revision.package.full_name = package_full_name
             revision.package.name = None
 
