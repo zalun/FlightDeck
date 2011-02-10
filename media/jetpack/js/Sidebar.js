@@ -408,8 +408,9 @@ var Sidebar = new Class({
 					isFolder = true;
 					filename = filename.substr(0, filename.length-1);
 				} else {
-					//strip off any .js
-					filename = filename.replace(/\.js$/, '');
+					//strip off any extensions
+					filename = filename.replace(/^\//, '');
+					filename = filename.replace(/\.[^\.]+$/, '');
 				}
 				
 				if (!isFolder && Module.exists(filename)) {
@@ -514,6 +515,7 @@ var Sidebar = new Class({
 				if (filename) {
 				    filename = filename.replace(/[^a-zA-Z0-9\-_\/\.]+/g, '-');
 				    filename = filename.replace(/\/{2,}/g, '/');
+				    filename = filename.replace(/^\//, '');
 				    filename = filename.replace(/\/*$/g, ''); /* */
 				    
 				    
