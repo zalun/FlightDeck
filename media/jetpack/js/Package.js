@@ -993,12 +993,20 @@ Package.Edit = new Class({
 	editInfo: function(e) {
 		e.stop();
 		this.savenow = false;
-		fd.editPackageInfoModal = fd.displayModal(settings.edit_package_info_template.substitute(Object.merge({}, this.data, this.options)));
+		fd.editPackageInfoModal = fd.displayModal(
+				settings.edit_package_info_template.substitute(
+					Object.merge({}, this.data, this.options)));
 		$('package-info_form').addEvent('submit', this.boundSubmitInfo);
 		// XXX: this will change after moving the content to other forms
-		$('version_name').addEvent('change', function() { fd.fireEvent('change'); });
-		$('full_name').addEvent('change', function() { fd.fireEvent('change'); });
-		$('package_description').addEvent('change', function() { fd.fireEvent('change'); });
+		$('version_name').addEvent('change', function() { 
+			fd.fireEvent('change'); 
+		});
+		$('full_name').addEvent('change', function() { 
+			fd.fireEvent('change'); 
+		});
+		$('package_description').addEvent('change', function() { 
+			fd.fireEvent('change'); 
+		});
 		if ($('savenow')) {
 			$('savenow').addEvent('click', function() {
 				this.savenow = true;
@@ -1015,7 +1023,9 @@ Package.Edit = new Class({
 		});
 		// XXX: hack to get the right data in the form
 		Object.each(this.data, function(value, key) {
-			if ($(key)) $(key).value = value;
+			if ($(key)) {
+				$(key).value = value;
+			}
 		})
 	},
 
@@ -1028,7 +1038,9 @@ Package.Edit = new Class({
 		e.stop();
 		// collect data from the Modal
 		this.options.package_info_form_elements.each(function(key) {
-			if ($(key)) this.data[key] = $(key).value;
+			if ($(key)) {
+				this.data[key] = $(key).value;
+			}
 		}, this);
 		// check if save should be called
 		if (this.savenow) {
@@ -1075,8 +1087,8 @@ Package.Edit = new Class({
 			onSuccess: function(response) {
 				// set the redirect data to view_url of the new revision
 				if (response.full_name) {
-					 $('package-info-name').set('text', response.full_name);
-					 this.options.full_name = response.full_name;
+					$('package-info-name').set('text', response.full_name);
+					this.options.full_name = response.full_name;
 				}
 				fd.setURIRedirect(response.view_url);
 				// set data changed by save
