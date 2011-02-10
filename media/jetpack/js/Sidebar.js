@@ -350,6 +350,12 @@ var Sidebar = new Class({
 		    titleOpts.name = file.options.path
 		}
 		
+		if (fileType == Attachment) {
+		    $log('FD: TODO: remove entire attachment folders');
+		    fd.alertNotImplemented('Deleting a Data folder with subcontent is under construction. A work around, is to manually delete every single attachment inside the folder before removing the folder. Ya, we know.');
+		    return;
+		}
+		
 		var question = fd.showQuestion({
 			title: title.substitute(titleOpts),
 			message: file instanceof Module ? 'You may always copy it from this revision' : '',
@@ -367,7 +373,7 @@ var Sidebar = new Class({
 				} else if (fileType == Module) {
 				    fd.getItem().removeModules(file);
 				} else if (fileType == Attachment) {
-				    $log('FD: TODO: remove entire attachment folders');
+				    
 				    //fd.getItem().removeAttachments(file);
 				}
 				
