@@ -1115,10 +1115,13 @@ class PackageRevision(models.Model):
 
     def get_version_name(self):
         " returns version name with revision number if needed "
+
         return self.version_name \
                 if self.version_name \
                 else "%s.rev%s" % (
-                    self.package.version_name, self.revision_number)
+                    self.package.revisions.exclude(version_name=None)
+                        .filter(revision_number__lt=self.revision_number)[0]
+                            .version_name, self.revision_number)
 
 
 class Module(models.Model):
