@@ -367,7 +367,8 @@ var Sidebar = new Class({
 				} else if (fileType == Module) {
 				    fd.getItem().removeModules(file);
 				} else if (fileType == Attachment) {
-				    fd.getItem().removeAttachments(file);
+				    $log('FD: TODO: remove entire attachment folders');
+				    //fd.getItem().removeAttachments(file);
 				}
 				
 				
