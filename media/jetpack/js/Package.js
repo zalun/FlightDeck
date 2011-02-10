@@ -104,8 +104,10 @@ var Package = new Class({
 	},
 
 	askForReload: function() {
-		fd.warning.alert("New revision detected", 
-				"There is a newer revision available. You may wish to reload the page.");
+		fd.warning.alert(
+			'New revision detected', 
+			'There is a newer revision available. <a href="'+ this.options.latest +'">Click this link to go to it now.</a>'
+		);
 	},
 
 	/*
