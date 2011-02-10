@@ -26,3 +26,11 @@ authors:
 .ace_scroller { margin-top: 8px; }
 
 body { overflow: hidden; }
+
+#jetpack_core_sdk_version option {
+    font-weight: bold;
+}
+option[disabled] { 
+    font-weight: normal;
+    color: #999; 
+}
