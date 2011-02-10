@@ -22,3 +22,17 @@ authors:
 	width:100%;
 	/* background: url(/img/shadow.png) 0 0 repeat-x; */
 }
+.ace_gutter { padding-top: 8px; }
+.ace_scroller { margin-top: 8px; }
+
+body { overflow: hidden; }
+
+#jetpack_core_sdk_version option {
+    font-weight: bold;
+}
+option[disabled] { 
+    color: #999; 
+}
+#jetpack_core_sdk_version option[disabled] { 
+    font-weight: normal;
+}
