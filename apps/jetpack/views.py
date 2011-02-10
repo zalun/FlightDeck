@@ -533,7 +533,7 @@ def package_rename_attachment(r, id_number, type_id, revision_number):
     revision.update(attachment)
 
     return render_to_response("json/attachment_renamed.json",
-                {'revision': revision, 'module': attachment},
+                {'revision': revision, 'attachment': attachment},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
