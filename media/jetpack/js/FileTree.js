@@ -167,6 +167,17 @@ FileTree = new Class({
 			text = label.get('text').trim();
 		
 	    if(label.get('contenteditable') == 'true'){
+			
+			//validation
+			$log(text);
+			text = text.replace(/[^a-zA-Z0-9\-_\.]+/g, '-');
+		    
+		    
+			if (!text.getFileName()) {
+			    fd.error.alert('Filename must be valid', 'Your file must not contain special characters, and requires a file extension.');
+			    return this;
+			}
+			
 			label.removeEvent('blur', label.retrieve('$blur'));
 			label.erase('$text');
 			label.set('contenteditable', false).blur();
