@@ -98,9 +98,9 @@ class AMOAuthentication:
         #    log.critical("Authentication database connection failure: %s"
         #            % str(err))
         auth_cursor = auth_conn.cursor()
-        SQL = ('SELECT %s FROM %s WHERE email="%%s"') % (
-                ','.join(columns), settings.AUTH_DATABASE['TABLE'])
-        auth_cursor.execute(SQL, (username,))
+        SQL = ('SELECT %s FROM %s WHERE email="%s"') % (
+                ','.join(columns), settings.AUTH_DATABASE['TABLE'], username)
+        auth_cursor.execute(SQL)
         data = auth_cursor.fetchone()
         user_data = {}
         for i in range(len(data)):
