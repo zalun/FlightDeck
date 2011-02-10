@@ -5,7 +5,9 @@
 	"filename": "{{ attachment.filename }}",
 	"ext": "{{ attachment.ext }}",
 	"basename": "{{ attachment.get_filename }}",
+	"author": "{{ attachment.author.username }}",
 	"display_url": "{{ attachment.get_display_url }}",
-	"get_url": "{% url jp_attachment attachment.get_uid %}"
+	"get_url": "{% url jp_attachment attachment.get_uid %}",
+	"uid": "{{ attachment.pk }}"
 }
 

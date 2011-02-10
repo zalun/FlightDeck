@@ -522,7 +522,7 @@ def package_rename_attachment(r, id_number, type_id, revision_number):
             'There is no such attachment in %s' % escape(
                 revision.package.full_name))
 
-    if not revision.validate_attachment_filename(new_name, attachment.ext):
+    if not revision.validate_attachment_filename(new_name, new_ext):
         return HttpResponseForbidden(
             ('Sorry, there is already an attachment in your add-on '
              'with the name "%s.%s". Each attachment in your add-on '
@@ -533,7 +533,7 @@ def package_rename_attachment(r, id_number, type_id, revision_number):
     revision.update(attachment)
 
     return render_to_response("json/attachment_renamed.json",
-                {'revision': revision, 'module': attachment},
+                {'revision': revision, 'attachment': attachment},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
