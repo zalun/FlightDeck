@@ -71,9 +71,6 @@ var Package = new Class({
             this.boundDownloadAddon = this.downloadAddon.bind(this);
 			this.download_url = $(this.options.download_el).get('href');
 			$(this.options.download_el).addEvent('click', this.boundDownloadAddon);
-			$(this.options.console_el).addEvent('click', function(){
-				window.mozFlightDeck.send({ cmd: 'toggleConsole', contents: 'open' });
-			});
 		}
 		this.copy_el = $(this.options.copy_el)
 		if (this.copy_el) {
@@ -575,7 +572,8 @@ Package.View = new Class({
 	initialize: function(options) {
 		this.setOptions(options);
 		this.parent(options);
-		$(this.options.package_info_el).addEvent('click', this.showInfo.bind(this));
+		$(this.options.package_info_el).addEvent('click', 
+			this.showInfo.bind(this));
 	},
 
 	/*
@@ -629,6 +627,13 @@ Package.Edit = new Class({
 		// assign menu items
 		this.appSidebarValidator = new Form.Validator.Inline('app-sidebar-form');
 		$(this.options.package_info_el).addEvent('click', this.editInfo.bind(this));
+
+		if (this.isAddon()) {
+			$(this.options.console_el).addEvent('click', function(){
+				window.mozFlightDeck.send({ cmd: 'toggleConsole', 
+					contents: 'open' });
+			});
+		}
 
 		// save
 		this.boundSaveAction = this.saveAction.bind(this);

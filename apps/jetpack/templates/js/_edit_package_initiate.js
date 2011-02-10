@@ -1,6 +1,5 @@
 {% load base_helpers %}
 // Actions
-  latest_url: '{{ revision.package.get_latest_url }}',
   switch_sdk_url: '{{ revision.get_switch_sdk_url }}',
   save_url: '{{ revision.get_save_url }}',
   add_module_url: '{{ revision.get_add_module_url }}',
