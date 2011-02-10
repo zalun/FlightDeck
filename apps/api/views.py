@@ -74,7 +74,7 @@ def homepage(r, package_name=None):
          #'package_name': package_name,
          #'corelib': (package_name == CORELIB_NAME),
          #'addon_kit': ADDON_KIT,
-         'doc_list': DOC_LIST
+         'doc_list': simplejson.dumps(DOC_LIST)
         }, context_instance=RequestContext(r))
 
 
