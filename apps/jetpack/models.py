@@ -1370,7 +1370,7 @@ class SDK(models.Model):
         return os.path.join(settings.SDK_SOURCE_DIR, self.dir)
 
     def is_deprecated(self):
-        return self.version < '0.9'
+        return self.version < '1.0b1'
 
     def import_docs(self, tar_filename="addon-sdk-docs.tgz", export=True):
         from api.models import DocPage
