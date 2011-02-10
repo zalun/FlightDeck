@@ -57,6 +57,11 @@ def homepage(r, package_name=None):
         package_name = DEFAULTLIB_NAME
     page = 'apibrowser'
 
+    DOC_LIST = [{
+            'filename': page.path,
+            'get_url': reverse('api_page', args=[page.path])
+        } for page in DocPage.objects.filter(sdk=MAIN_SDK)]
+
     sdk_version = SDKVERSION
     package = {'name': _get_package_fullname(package_name),
                'modules': _get_module_names(package_name)}
@@ -65,10 +70,11 @@ def homepage(r, package_name=None):
         'api_homepage.html',
         {'page': page,
          'sdk_version': sdk_version,
-         'package': package,
-         'package_name': package_name,
-         'corelib': (package_name == CORELIB_NAME),
-         'addon_kit': ADDON_KIT
+         #'package': package,
+         #'package_name': package_name,
+         #'corelib': (package_name == CORELIB_NAME),
+         #'addon_kit': ADDON_KIT,
+         'doc_list': DOC_LIST
         }, context_instance=RequestContext(r))
 
 
@@ -176,6 +182,7 @@ def show_page(request, path):
     doc_page = get_object_or_404(DocPage, sdk=MAIN_SDK, path=path)
     DOC_LIST = [{
             'filename': page.path,
+            'selected': page.path == path,
             'get_url': reverse('api_page', args=[page.path])
         } for page in DocPage.objects.filter(sdk=MAIN_SDK)]
     return render_to_response('api_page.html', {

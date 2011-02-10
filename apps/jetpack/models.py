@@ -1396,7 +1396,10 @@ class SDK(models.Model):
                 # filter package description
                 if 'README.md' in member.name:
                     """ consider using description for packages """
-                    pass
+                    log.debug(member.name)
+                    member_file = tar_file.extractfile(member)
+                    log.debug(member_file.read())
+                    member_file.close()
                 # filter module description
                 if '/docs/' in member.name and '.md' in member.name and '.md.' not in member.name:
                     # strip down to the member_path
