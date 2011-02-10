@@ -7,4 +7,5 @@ def get_random_string(length=10):
     return ''.join([choice(allowed_chars) for i in range(length)])
 
 def pathify(path):
-    return re.sub('[^a-zA-Z0-9_\-\/]+', '-', path.strip())
+    """ Strips all characters except alpanum, dash, underscore, and slash """
+    return re.sub('[^a-zA-Z0-9_\-\/\.]+', '-', path.strip())

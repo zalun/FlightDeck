@@ -298,7 +298,10 @@ def package_rename_module(r, id_number, type_id, revision_number):
         return HttpResponseForbidden('You are not the author of this Package')
 
     old_name = r.POST.get('old_filename')
-    new_name = r.POST.get('new_filename')
+    new_name = pathify(r.POST.get('new_filename'))
+    
+    # modules should never have an extension, for now
+    new_name = re.sub('/\..*$', '', new_name)
 
     if old_name == 'main':
         return HttpResponseForbidden(
@@ -381,6 +384,9 @@ def package_add_folder(r, id_number, type_id, revision_number):
         return HttpResponseForbidden('You are not the author of this Package')
 
     foldername, root = pathify(r.POST.get('name', '')), r.POST.get('root_dir')
+    
+    #folders should also not have periods in them
+    foldername = foldername.replace('.', '')
 
     dir = EmptyDir(name=foldername, author=r.user, root_dir=root)
     try:
@@ -482,6 +488,9 @@ def package_add_attachment(r, id_number, type_id,
             filename, id_number)
         log.error(log_msg)
         return HttpResponseServerError('Path not found.')
+        
+    # some sanitation
+    filename = pathify(filename)
 
     attachment = revision.attachment_create_by_filename(r.user, filename)
     attachment.data = content
@@ -507,12 +516,12 @@ def package_rename_attachment(r, id_number, type_id, revision_number):
         return HttpResponseForbidden('You are not the author of this Package')
 
     uid = r.POST.get('uid', '').strip()
-    new_name = r.POST.get('new_filename')
+    new_name = pathify(r.POST.get('new_filename'))
     
     
     attachment = latest_by_uid(revision, uid)
     
-    new_ext = r.POST.get('new_ext') or attachment.ext
+    new_ext = pathify(r.POST.get('new_ext')) or attachment.ext
 
     if not attachment:
         log_msg = ('Attempt to rename a non existing attachment. attachment: '
