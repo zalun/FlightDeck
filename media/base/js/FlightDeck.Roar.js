@@ -46,18 +46,18 @@ FlightDeck = Class.refactor(FlightDeck,{
 		this.roar = new Roar({position:'topRight'});
 		this.warning = {
 		    alert: function(title, message) {
-			fd.roar.alert(title, message, {className: 'roar warning', duration: 8000});
-		    }
+			this.roar.alert(title, message, {className: 'roar warning', duration: 8000});
+		    }.bind(this)
 		};
 		this.error = {
 		    alert: function(title, message) {
-			fd.roar.alert(title, message, {className: 'roar error', duration: 20000});
-		    }
+			this.roar.alert(title, message, {className: 'roar error', duration: 20000});
+		    }.bind(this)
 		};
 		this.message = {
 		    alert: function(title, message) {
-			fd.roar.alert(title, message, {className: 'roar message', duration: 8000});
-		    }
+			this.roar.alert(title, message, {className: 'roar message', duration: 8000});
+		    }.bind(this)
 		};
 		// compatibility with Django messages
 		// http://docs.djangoproject.com/en/dev/ref/contrib/messages/#message-tags
