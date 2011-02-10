@@ -22,7 +22,7 @@ authors:
 	width:100%;
 	/* background: url(/img/shadow.png) 0 0 repeat-x; */
 }
-.ace_gutter,
-.ace_scroller { padding-top: 8px; }
+.ace_gutter { padding-top: 8px; }
+.ace_scroller { margin-top: 8px; }
 
 body { overflow: hidden; }
