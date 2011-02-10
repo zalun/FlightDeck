@@ -257,13 +257,11 @@ var Sidebar = new Class({
 	
 	removeFile: function(file, prefix) {
 	    
-	    $log('removeFile before: ', file, prefix);
 	    if (file instanceof File) {
 	        file.destroy();
 	        return;
 	    }
 	        
-        $log('removeFile: ', file, prefix);
         if (prefix) prefix+='-';
         var li = $(prefix+file.replace(/\//g, '-'));
         
@@ -332,9 +330,11 @@ var Sidebar = new Class({
     silentlyRemoveFolders: function(element) {
         var node = element;
         while (node = node.getParent('li')) {
+            
         	var emptydir = node.retrieve('file');
         	if (emptydir instanceof Folder) {
         		emptydir.removeEvent('destroy', emptydir._removeFromTree);
+        		node.eliminate('file');
         		emptydir.destroy();
         	}
         }
