@@ -7,8 +7,12 @@ ul.tree, ul.tree li, ul.tree ul {
 
 ul.tree li, li.drag, li.drag ul li  {
 	margin: 0;
-	line-height: 20px;
+	min-height:22px;
 	list-style-type: none;
+}
+
+ul.tree li .label {
+    min-height:18px;
 }
 
 ul.tree, ul.tree ul, li.drag ul {
