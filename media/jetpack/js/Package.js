@@ -752,11 +752,9 @@ Package.Edit = new Class({
 		var that = this;
 		
 		// break off an extension from the filename
-		var ext = newName.match(/\.([^\.]+$)/);
-		if (ext) {
-		    ext = ext[1];
-		    newName = newName.substring(0, ext.length);
-		}
+		var ext = newName.getFileExtension();
+		newName = newName.getFileName();
+		
 		
 		
 		new Request.JSON({
