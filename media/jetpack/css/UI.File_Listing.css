@@ -83,9 +83,8 @@
          }
       
       /* Selected file */
-      .tree li.UI_File_Selected {
-        
-         color: #fff;
+      .tree li.UI_File_Selected > .holder > .label {
+         color: #111;
          text-shadow: 1px 0 0 #011E4F;
       }
       

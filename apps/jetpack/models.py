@@ -8,6 +8,7 @@ import shutil
 import time
 import commonware
 import tarfile
+import markdown
 
 from copy import deepcopy
 
@@ -1402,7 +1403,9 @@ class SDK(models.Model):
                         docpage = DocPage.objects.get(sdk=self, path=member_path)
                     except ObjectDoesNotExist:
                         docpage = DocPage(sdk=self, path=member_path)
-                    docpage.html = member_file.read()
+                    docpage.html = '<h1>%s</h1>%s' % (
+                            member_path,
+                            markdown.markdown(member_file.read()))
                     docpage.json = ''
                     docpage.save()
                     member_file.close()

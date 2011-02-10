@@ -68,7 +68,7 @@ FlightDeck = Class.refactor(FlightDeck, {
         $('PackTree').addEvent('click:relay(li:not(top_branch) > .holder > .label)', function(e, label) {
             var page = label.getParent('li').retrieve('page');
             if(page) {
-                window.open(page.options.get_url);
+                window.location.href = page.options.get_url;
             }
         });
     },
