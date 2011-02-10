@@ -118,6 +118,11 @@ var Package = new Class({
 			fd.alertNotAuthenticated();
 			return;
 		}
+		
+		if (fd.edited) {
+		    fd.error.alert("There are unsaved changes", "To makea copy, please save your changes.");
+		    return;
+		}
 		new Request.JSON({
 			url: this.options.copy_url,
 			onSuccess: function(response) {
