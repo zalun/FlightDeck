@@ -169,7 +169,6 @@ FileTree = new Class({
 	    if(label.get('contenteditable') == 'true'){
 			
 			//validation
-			$log(text);
 			text = text.replace(/[^a-zA-Z0-9\-_\.]+/g, '-');
 		    
 		    
@@ -183,6 +182,7 @@ FileTree = new Class({
 			label.set('contenteditable', false).blur();
 			window.getSelection().removeAllRanges();
 			
+			
 			li.removeClass('editing');
 			//fire a renameCancel if the name didnt change
 			if (text == label.get('title').trim()) {
@@ -191,6 +191,7 @@ FileTree = new Class({
 			}
 			
 			label.set('title', text);
+			label.set('text', text);
 			li.set('title', text);
 			
 			
