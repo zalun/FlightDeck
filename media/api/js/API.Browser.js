@@ -1,1 +1,3 @@
-var API = {};
+var API = {
+    pages: {}
+};
