@@ -741,7 +741,6 @@ class PackageRevision(models.Model):
         for path in empty_dirs_paths:
             folder = self.folders.get(root_dir='l', name=path)
             self.folders.remove(folder)
-
         return ([mod.filename for mod in found_modules], empty_dirs_paths)
 
     def folder_add(self, dir, save=True):
@@ -1494,13 +1493,18 @@ def save_first_revision(instance, **kwargs):
     instance.version = revision
     instance.latest = revision
     if instance.is_addon():
-        mod = Module.objects.create(
-            filename=revision.module_main,
-            author=instance.author,
-            code="""// This is an active module of the %s Add-on
-exports.main = function() {};""" % instance.full_name
-        )
-        revision.modules.add(mod)
+        first_module_name = revision.module_main
+        first_module_code = """// This is an active module of the %s Add-on
+exports.main = function() {};"""
+    else:
+        first_module_name = 'index'
+        first_module_code = "// This is first module of the %s Library"
+    mod = Module.objects.create(
+        filename=first_module_name,
+        author=instance.author,
+        code=first_module_code % instance.full_name
+    )
+    revision.modules.add(mod)
     instance.save()
 post_save.connect(save_first_revision, sender=Package)
 

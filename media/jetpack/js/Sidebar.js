@@ -367,7 +367,8 @@ var Sidebar = new Class({
 				} else if (fileType == Module) {
 				    fd.getItem().removeModules(file);
 				} else if (fileType == Attachment) {
-				    fd.getItem().removeAttachments(file);
+				    $log('FD: TODO: remove entire attachment folders');
+				    //fd.getItem().removeAttachments(file);
 				}
 				
 				
@@ -471,10 +472,10 @@ var Sidebar = new Class({
 				}
 				
 				for (var f = 0; f < files.length; f++){
-					var fname = files[f].fileName.replace(/\.[^\.]+$/g, ''),
-						ext = files[f].fileName.match(/\.([^\.]+)$/)[1];
+					var fname = files[f].fileName.getFileName(),
+						ex = files[f].fileName.getFileExtension();
 						
-					if (Attachment.exists(fname, ext)) {
+					if (Attachment.exists(fname, ex)) {
 						fd.error.alert('Filename has to be unique', 'You already have an attachment with that name.');
 						return;
 					}
@@ -508,6 +509,12 @@ var Sidebar = new Class({
 				    filename = filename.replace(/[^a-zA-Z0-9\-_\/\.]+/g, '-');
 				    filename = filename.replace(/\/{2,}/g, '/');
 				    filename = filename.replace(/\/*$/g, ''); /* */
+				    
+				    
+				    if (!isFolder && !filename.getFileExtension()) {
+				        
+				        filename = filename.replace(/\./, '') + '.js'; //we're defaulting to .js files if the user doesnt enter an extension
+				    }
 				}
 				
 				if(files.length) {

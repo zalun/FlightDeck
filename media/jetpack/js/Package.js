@@ -71,9 +71,6 @@ var Package = new Class({
             this.boundDownloadAddon = this.downloadAddon.bind(this);
 			this.download_url = $(this.options.download_el).get('href');
 			$(this.options.download_el).addEvent('click', this.boundDownloadAddon);
-			$(this.options.console_el).addEvent('click', function(){
-				window.mozFlightDeck.send({ cmd: 'toggleConsole', contents: 'open' });
-			});
 		}
 		this.copy_el = $(this.options.copy_el)
 		if (this.copy_el) {
@@ -104,8 +101,11 @@ var Package = new Class({
 	},
 
 	askForReload: function() {
-		fd.warning.alert("New revision detected", 
-				"There is a newer revision available. You may wish to reload the page.");
+		fd.warning.alert(
+			'New revision detected', 
+			'There is a newer revision available. <a href="'+ 
+			this.options.latest_url +'">Click this link to go to it now.</a>'
+		);
 	},
 
 	/*
@@ -572,7 +572,8 @@ Package.View = new Class({
 	initialize: function(options) {
 		this.setOptions(options);
 		this.parent(options);
-		$(this.options.package_info_el).addEvent('click', this.showInfo.bind(this));
+		$(this.options.package_info_el).addEvent('click', 
+			this.showInfo.bind(this));
 	},
 
 	/*
@@ -626,6 +627,13 @@ Package.Edit = new Class({
 		// assign menu items
 		this.appSidebarValidator = new Form.Validator.Inline('app-sidebar-form');
 		$(this.options.package_info_el).addEvent('click', this.editInfo.bind(this));
+
+		if (this.isAddon()) {
+			$(this.options.console_el).addEvent('click', function(){
+				window.mozFlightDeck.send({ cmd: 'toggleConsole', 
+					contents: 'open' });
+			});
+		}
 
 		// save
 		this.boundSaveAction = this.saveAction.bind(this);
@@ -749,11 +757,9 @@ Package.Edit = new Class({
 		var that = this;
 		
 		// break off an extension from the filename
-		var ext = newName.match(/\.([^\.]+$)/);
-		if (ext) {
-		    ext = ext[1];
-		    newName = newName.substring(0, ext.length);
-		}
+		var ext = newName.getFileExtension();
+		newName = newName.getFileName();
+		
 		
 		
 		new Request.JSON({
@@ -975,7 +981,7 @@ Package.Edit = new Class({
 	editInfo: function(e) {
 		e.stop();
 		this.savenow = false;
-		fd.editPackageInfoModal = fd.displayModal(settings.edit_package_info_template.substitute(this.data || this.options));
+		fd.editPackageInfoModal = fd.displayModal(settings.edit_package_info_template.substitute(Object.merge({}, this.data, this.options)));
 		$('package-info_form').addEvent('submit', this.boundSubmitInfo);
 		// XXX: this will change after moving the content to other forms
 		$('version_name').addEvent('change', function() { fd.fireEvent('change'); });
@@ -1056,9 +1062,9 @@ Package.Edit = new Class({
 			data: this.data,
 			onSuccess: function(response) {
 				// set the redirect data to view_url of the new revision
-				if (response.package_full_name) {
-					 $('package-info-name').set('text', response.package_full_name);
-					 this.options.full_name = response.package_full_name;
+				if (response.full_name) {
+					 $('package-info-name').set('text', response.full_name);
+					 this.options.full_name = response.full_name;
 				}
 				fd.setURIRedirect(response.view_url);
 				// set data changed by save
