@@ -71,7 +71,9 @@ def prepare_download(r, id_number, revision_number=None):
                         revision_number=revision_number)
     hashtag = r.POST.get('hashtag')
     if not hashtag:
-        return HttpResponseForbidden('Error: Try reload the page')
+        return HttpResponseForbidden('Add-on Builder has been updated!'
+                'We have updated this part of the pplication, please '
+                'empty your cache and reload to get changes.')
     revision.build_xpi(hashtag=hashtag)
     return HttpResponse('{"delayed": true}')
 
