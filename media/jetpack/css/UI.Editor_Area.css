@@ -31,6 +31,8 @@ body { overflow: hidden; }
     font-weight: bold;
 }
 option[disabled] { 
-    font-weight: normal;
     color: #999; 
+}
+#jetpack_core_sdk_version option[disabled] { 
+    font-weight: normal;
 }
