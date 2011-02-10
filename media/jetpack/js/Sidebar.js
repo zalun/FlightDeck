@@ -194,9 +194,9 @@ var Sidebar = new Class({
 	renameFile: function(file, fullpath) {
 		var pack = fd.getItem();
 		if (file instanceof Module) {
-			pack.renameModule(file.options.filename, fullpath.replace('.'+file.options.type, ''));
+			pack.renameModule(file.options.filename, fullpath);
 		} else if (file instanceof Attachment) {
-			pack.renameAttachment(file.options.uid, fullpath.replace('.'+file.options.type, ''));
+			pack.renameAttachment(file.options.uid, fullpath);
 		}
 	},
 	

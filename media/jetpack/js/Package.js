@@ -773,10 +773,22 @@ Package.Edit = new Class({
 				fd.setURIRedirect(response.view_url);
 				that.registerRevision(response);
 				fd.message.alert(response.message_title, response.message);
+				
+				// destroy old attachment, since renaming creates a 
+				// whole new one anyways. then it has the updated uid,
+				// and we dont get weird extra files created
 				var attachment = that.attachments[uid];
-				attachment.setOptions({
+				attachment.destroy();
+				that.attachments[response.uid] = new Attachment(that, {
+					append: true,
+					active: true,
 					filename: response.filename,
-					ext: response.ext
+					ext: response.ext,
+					author: response.author,
+					code: response.code,
+					get_url: response.get_url,
+					uid: response.uid,
+					type: response.ext
 				});
 			}
 		}).send();

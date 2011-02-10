@@ -27,11 +27,18 @@ FileTree = new Class({
 		this.parent();
 		var that = this;
 		this.element.addEvents({
-			'click:relay(.actions .edit)': function(e) {
-				that.renameBranch($(e.target).getParent('li'));
+			'mousedown:relay(.actions .edit)': function(e) {
+				var li = e.target.getParent('li');
+				if (li.hasClass('editing')) {
+	    			that.renameBranchEnd($(e.target).getParent('li'));
+				} else {
+    				that.renameBranch($(e.target).getParent('li'));
+				}
+				
+				
 			},
 			'keypress:relay(span)': function(e){
-				if(e.key == 'enter') that.renameBranch(e.target);
+				if(e.key == 'enter') that.renameBranchEnd($(e.target).getParent('li'));
 			}
 		});
 		return this;
@@ -111,33 +118,21 @@ FileTree = new Class({
 	renameBranch: function(element, hasExtension){
 		var li = (element.get('tag') == 'li') ? element : element.getParent('li'),
 			label = li.getElement('.label'),
-			text = li.get('text').trim();
+			text = label.get('text').trim();
 		
 		this.fireEvent('renameStart', [li, label]);
 		
-		if(label.get('contenteditable') == 'true'){
-			label.removeEvent('blur', blur);
-			label.set('contenteditable', false).blur();
-			window.getSelection().removeAllRanges();
-			
-			//fire a renameCancel if the name didnt change
-			if (text == label.get('title').trim()) {
-				this.fireEvent('renameCancel', li);
-				return this;
-			}
-			
-			label.set('title', text);
-			li.set('title', text);
-			
-			this.fireEvent('renameComplete', [li, this.getFullPath(li)]);
-			return false;
-		}
 		
 		label.set('tabIndex', 0).set('contenteditable', true).focus();
-		label.addEvent('blur', function blur(e) {
+		li.addClass('editing');
+		label.store('$text', text);
+		
+		label.store('$blur', function blur(e) {
 			label.removeEvent('blur', blur);
-			this.renameBranch(element);
+			this.renameBranchCancel(element);
 		}.bind(this))
+		
+		label.addEvent('blur', label.retrieve('$blur'))
 		
 		hasExtension = hasExtension || !!text.getFileExtension();
 		
@@ -150,6 +145,48 @@ FileTree = new Class({
 		sel.addRange(range);
 
 		return this;
+	},
+	
+	renameBranchCancel: function(element) {
+        var li = (element.get('tag') == 'li') ? element : element.getParent('li'),
+			label = li.getElement('.label'),
+			text = label.retrieve('$text').trim();
+		
+		label.set('contenteditable', false);
+		if (text) {
+		    label.set('text', text);
+		}
+		
+		li.removeClass('editing');
+		
+	},
+	
+	renameBranchEnd: function(element) {
+	    var li = (element.get('tag') == 'li') ? element : element.getParent('li'),
+			label = li.getElement('.label'),
+			text = label.get('text').trim();
+		
+	    if(label.get('contenteditable') == 'true'){
+			label.removeEvent('blur', label.retrieve('$blur'));
+			label.erase('$text');
+			label.set('contenteditable', false).blur();
+			window.getSelection().removeAllRanges();
+			
+			li.removeClass('editing');
+			//fire a renameCancel if the name didnt change
+			if (text == label.get('title').trim()) {
+				this.fireEvent('renameCancel', li);
+				return this;
+			}
+			
+			label.set('title', text);
+			li.set('title', text);
+			
+			
+			this.fireEvent('renameComplete', [li, this.getFullPath(li)]);
+			return false;
+		}
+		
 	},
 	
 	deleteBranch: function(element) {
