@@ -709,13 +709,13 @@ class PackageRevision(models.Model):
         " copy to new revision, remove module(s) "
         self.save()
         return self.modules.remove(*mods)
-    
+
     def modules_remove_by_path(self, filenames):
-        
+
         found_modules = []
         module_found = False
         empty_dirs_paths = []
-        
+
         for filename in filenames:
             if filename[-1] == '/':
                 empty_dirs_paths.append(filename[:-1])
@@ -726,18 +726,18 @@ class PackageRevision(models.Model):
                 for mod in modules:
                     found_modules.append(mod)
                     module_found = True
-                
+
         if not module_found:
             raise Module.DoesNotExist
-        
+
         self.save()
         self.modules.remove(*found_modules)
-        
+
         log.warning(self.folders.all())
         for path in empty_dirs_paths:
             folder = self.folders.get(root_dir='l', name=path)
             self.folders.remove(folder)
-            
+
         return ([mod.filename for mod in found_modules], empty_dirs_paths)
 
 
@@ -1266,15 +1266,15 @@ class Attachment(models.Model):
 
     def write(self):
         """Writes the file."""
-        
+
         data = self.data if hasattr(self, 'data') else ''
         if self.path and not data:
             data = self.read()
-        
+
         self.create_path()
         self.save()
-        
-        
+
+
 
         directory = os.path.dirname(self.get_file_path())
 
@@ -1433,13 +1433,18 @@ def save_first_revision(instance, **kwargs):
     instance.version = revision
     instance.latest = revision
     if instance.is_addon():
-        mod = Module.objects.create(
-            filename=revision.module_main,
-            author=instance.author,
-            code="""// This is an active module of the %s Add-on
-exports.main = function() {};""" % instance.full_name
-        )
-        revision.modules.add(mod)
+        first_module_name = revision.module_main
+        first_module_code = """// This is an active module of the %s Add-on
+exports.main = function() {};"""
+    else:
+        first_module_name = 'index'
+        first_module_code = "// This is first module of the %s Library"
+    mod = Module.objects.create(
+        filename=first_module_name,
+        author=instance.author,
+        code=first_module_code % instance.full_name
+    )
+    revision.modules.add(mod)
     instance.save()
 post_save.connect(save_first_revision, sender=Package)
 
