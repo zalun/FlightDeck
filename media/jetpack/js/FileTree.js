@@ -156,7 +156,7 @@ FileTree = new Class({
 		if (text) {
 		    label.set('text', text);
 		}
-		
+		label.eliminate('$text');
 		li.removeClass('editing');
 		
 	},
@@ -169,7 +169,6 @@ FileTree = new Class({
 	    if(label.get('contenteditable') == 'true'){
 			
 			//validation
-			$log(text);
 			text = text.replace(/[^a-zA-Z0-9\-_\.]+/g, '-');
 		    
 		    
@@ -179,9 +178,10 @@ FileTree = new Class({
 			}
 			
 			label.removeEvent('blur', label.retrieve('$blur'));
-			label.erase('$text');
+			label.eliminate('$text');
 			label.set('contenteditable', false).blur();
 			window.getSelection().removeAllRanges();
+			
 			
 			li.removeClass('editing');
 			//fire a renameCancel if the name didnt change
@@ -191,6 +191,7 @@ FileTree = new Class({
 			}
 			
 			label.set('title', text);
+			label.set('text', text);
 			li.set('title', text);
 			
 			

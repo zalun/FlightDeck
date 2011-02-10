@@ -854,6 +854,7 @@ Package.Edit = new Class({
 	},
 
 	renameModule: function(oldName, newName) {
+		newName = newName.replace(/\..*$/, '');
 		new Request.JSON({
 			url: this.options.rename_module_url,
 			data: {
