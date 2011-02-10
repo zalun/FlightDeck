@@ -1395,9 +1395,16 @@ class SDK(models.Model):
                 # filter package description
                 if 'README.md' in member.name:
                     """ consider using description for packages """
-                    log.debug(member.name)
+                    member_path = member.name.split('/README.md')[0]
+                    member_path = member_path.split('addon-sdk-docs/packages/')[1]
                     member_file = tar_file.extractfile(member)
-                    log.debug(member_file.read())
+                    try:
+                        docpage = DocPage.objects.get(sdk=self, path=member_path)
+                    except ObjectDoesNotExist:
+                        docpage = DocPage(sdk=self, path=member_path)
+                    docpage.html = member_file.read()
+                    docpage.json = ''
+                    docpage.save()
                     member_file.close()
                 # filter module description
                 if '/docs/' in member.name and '.md' in member.name and '.md.' not in member.name:
