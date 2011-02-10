@@ -1,0 +1,10 @@
+{% extends "api.html" %}
+{% load base_helpers %}
+
+{% block title %}API {{ path }} - {% endblock %}
+
+{% block app_content %}
+    <div id="api-body">
+        {{ doc_page.html|safe }}
+    </div>
+{% endblock %}

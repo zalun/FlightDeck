@@ -41,7 +41,6 @@
 				person_login_url: '{{ settings.LOGIN_URL }}',
 				jp_addon_create_url: '{% url jp_addon_create %}',
 				jp_library_create_url: '{% url jp_library_create %}',
-				create_modal_template: '{% escape_template "_create.html" %}',
 				user: '{{ user.username }}',
 				DEBUG: {{ settings.DEBUG|yesno:"true,false" }}
 			};

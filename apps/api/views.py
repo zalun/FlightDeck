@@ -1,29 +1,32 @@
 import os
 import commonware.log
+import simplejson
 
 from cuddlefish import apiparser
 
-from django.shortcuts import render_to_response
+from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
 from django.conf import settings
-from django.http import Http404
+from django.http import Http404, HttpResponse
+from django.core.urlresolvers import reverse
 
 from jetpack.models import SDK
+from api.models import DocPage
 
 log = commonware.log.getLogger('f.api')
 
 sdks = SDK.objects.all()
-if sdks.count() > 0:
-    MAIN_SDK = sdks[0]
-    SDKPACKAGESDIR = os.path.join(
-            settings.SDK_SOURCE_DIR, MAIN_SDK.dir, 'packages')
-    SDKVERSION = MAIN_SDK.version
-    ADDON_KIT = MAIN_SDK.kit_lib
-    CORELIB_NAME = MAIN_SDK.core_lib.package.name
-    DEFAULTLIB_NAME = ADDON_KIT.package.name \
-            if ADDON_KIT else MAIN_SDK.core_lib.package.name
-else:
+if sdks.count() == 0:
     raise Exception('No SDK imported')
+
+MAIN_SDK = sdks[0]
+SDKPACKAGESDIR = os.path.join(
+        settings.SDK_SOURCE_DIR, MAIN_SDK.dir, 'packages')
+SDKVERSION = MAIN_SDK.version
+ADDON_KIT = MAIN_SDK.kit_lib
+CORELIB_NAME = MAIN_SDK.core_lib.package.name
+DEFAULTLIB_NAME = ADDON_KIT.package.name \
+        if ADDON_KIT else MAIN_SDK.core_lib.package.name
 
 
 def _get_module_filenames(package_name):
@@ -54,6 +57,11 @@ def homepage(r, package_name=None):
         package_name = DEFAULTLIB_NAME
     page = 'apibrowser'
 
+    DOC_LIST = [{
+            'filename': page.path,
+            'get_url': reverse('api_page', args=[page.path])
+        } for page in DocPage.objects.filter(sdk=MAIN_SDK)]
+
     sdk_version = SDKVERSION
     package = {'name': _get_package_fullname(package_name),
                'modules': _get_module_names(package_name)}
@@ -62,10 +70,11 @@ def homepage(r, package_name=None):
         'api_homepage.html',
         {'page': page,
          'sdk_version': sdk_version,
-         'package': package,
-         'package_name': package_name,
-         'corelib': (package_name == CORELIB_NAME),
-         'addon_kit': ADDON_KIT
+         #'package': package,
+         #'package_name': package_name,
+         #'corelib': (package_name == CORELIB_NAME),
+         #'addon_kit': ADDON_KIT,
+         'doc_list': simplejson.dumps(DOC_LIST)
         }, context_instance=RequestContext(r))
 
 
@@ -167,3 +176,17 @@ def module(r, package_name, module_name):
          'addon_kit': ADDON_KIT
         },
         context_instance=RequestContext(r))
+
+
+def show_page(request, path):
+    doc_page = get_object_or_404(DocPage, sdk=MAIN_SDK, path=path)
+    DOC_LIST = [{
+            'filename': page.path,
+            'selected': page.path == path,
+            'get_url': reverse('api_page', args=[page.path])
+        } for page in DocPage.objects.filter(sdk=MAIN_SDK)]
+    return render_to_response('api_page.html', {
+            'doc_page':doc_page,
+            'path': path,
+            'doc_list': simplejson.dumps(DOC_LIST)
+        }, context_instance=RequestContext(request))

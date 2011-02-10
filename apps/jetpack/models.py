@@ -7,12 +7,14 @@ import csv
 import shutil
 import time
 import commonware
+import tarfile
 
 from copy import deepcopy
 
 from ecdsa import SigningKey, NIST256p
 from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.signals import pre_save, post_save, m2m_changed
 from django.db import models, IntegrityError
 from django.utils import simplejson
@@ -21,6 +23,8 @@ from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
 from django.conf import settings
 
+from api.helpers import export_docs
+from utils.exceptions import SimpleException
 from jetpack.managers import PackageManager
 from jetpack.errors import SelfDependencyException, FilenameExistException, \
         UpdateDeniedException, SingletonCopyException, DependencyException
@@ -737,9 +741,7 @@ class PackageRevision(models.Model):
         for path in empty_dirs_paths:
             folder = self.folders.get(root_dir='l', name=path)
             self.folders.remove(folder)
-
         return ([mod.filename for mod in found_modules], empty_dirs_paths)
-
 
     def folder_add(self, dir, save=True):
         " copy to new revision, add EmptyDir "
@@ -757,7 +759,6 @@ class PackageRevision(models.Model):
         elif (dir.root_dir == 'd' and
             self.attachments.filter(filename__startswith=dir.name).count()):
             raise FilenameExistException(errorMsg)
-
 
         if save:
             self.save()
@@ -1323,8 +1324,6 @@ class EmptyDir(models.Model):
     )
     root_dir = models.CharField(max_length=10, choices=ROOT_DIR_CHOICES)
 
-
-
     def __unicode__(self):
         return 'Dir: %s (by %s)' % (self.name, self.author.username)
 
@@ -1342,7 +1341,7 @@ class SDK(models.Model):
     """
     version = models.CharField(max_length=10, unique=True)
 
-    # It has to be accompanied with a jetpack-core version
+    # It has to be accompanied with a core library
     # needs to exist before SDK is created
     core_lib = models.OneToOneField(PackageRevision,
             related_name="parent_sdk_core+")
@@ -1368,6 +1367,67 @@ class SDK(models.Model):
 
     def is_deprecated(self):
         return self.version < '0.9'
+
+    def import_docs(self, tar_filename="addon-sdk-docs.tgz", export=True):
+        from api.models import DocPage
+        """import docs from addon-sdk-docs.tgz """
+        tar_path = os.path.join(self.get_source_dir(), tar_filename)
+        sdk_dir = self.get_source_dir()
+        if export:
+            if os.path.isfile(tar_path):
+                raise SimpleException(
+                        "%s does exist. Have you forgotten to remove it?" %
+                        tar_path)
+            export_docs(sdk_dir)
+        if not os.path.isfile(tar_path):
+            raise SimpleException(
+                    "%s does not exist. It should be here?" %
+                    tar_path)
+        if not tarfile.is_tarfile(tar_path):
+            raise SimpleException("%s is not a tar file" % tar_path)
+        # import data
+        tar_file = tarfile.open(tar_path)
+
+
+
+        for member in tar_file.getmembers():
+            if 'addon-sdk-docs/packages/' in member.name:
+                # filter package description
+                if 'README.md' in member.name:
+                    """ consider using description for packages """
+                    log.debug(member.name)
+                    member_file = tar_file.extractfile(member)
+                    log.debug(member_file.read())
+                    member_file.close()
+                # filter module description
+                if '/docs/' in member.name and '.md' in member.name and '.md.' not in member.name:
+                    # strip down to the member_path
+                    member_path = member.name.split('.md')[0]
+                    member_path = ''.join(member_path.split('/docs'))
+                    member_path = member_path.split('addon-sdk-docs/packages/')[1]
+                    # extract member_html and member_json
+                    try:
+                        member_html = tar_file.getmember(member.name + '.div')
+                    except KeyError:
+                        member_html = tar_file.getmember(
+                                member.name + '.div.html')
+                    member_html_file = tar_file.extractfile(member_html)
+                    member_json = tar_file.getmember(member.name + '.json')
+                    member_json_file = tar_file.extractfile(member_json)
+                    # create or load docs
+                    try:
+                        docpage = DocPage.objects.get(sdk=self, path=member_path)
+                    except ObjectDoesNotExist:
+                        docpage = DocPage(sdk=self, path=member_path)
+                    docpage.html = member_html_file.read()
+                    docpage.json = member_json_file.read()
+                    docpage.save()
+                    member_html_file.close()
+                    member_json_file.close()
+
+        tar_file.close()
+        # remove docs file
+        os.remove(tar_path)
 
 
 def _get_next_id_number():
@@ -1515,4 +1575,3 @@ def manage_empty_data_dirs(instance, action, **kwargs):
 
                 instance.folders.add(emptydir)
 m2m_changed.connect(manage_empty_data_dirs, sender=Attachment.revisions.through)
-
