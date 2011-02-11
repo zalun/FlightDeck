@@ -47,7 +47,7 @@ FlightDeck = Class.refactor(FlightDeck, {
 			'title': 'Docs',
 			'id': 'lib_branch',
 			'class': 'top_branch nodrag'
-		}, null, { actions: actions });
+		}, null, { actions: actions, collapsed: false });
 		API.Tree.collapse.prepare();
         
         
@@ -86,6 +86,8 @@ FlightDeck = Class.refactor(FlightDeck, {
 		//also be sure to expand all parent folders
 		var tree = API.Tree;
 			node = el;
+			
+		tree.collapse.expand(node);
 		
 		while (node = node.getParent('li')) {
 			tree.collapse.expand(node);
