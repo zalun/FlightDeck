@@ -69,6 +69,7 @@ class TestAttachments(TestCase):
 
         self.package = self.author.packages_originated.addons()[0:1].get()
         self.revision = self.package.revisions.all()[0]
+        self.revision_number = 0
 
         self.add_url = self.get_add_url(self.revision.revision_number)
         self.change_url = self.get_change_url(self.revision.revision_number)
@@ -78,10 +79,11 @@ class TestAttachments(TestCase):
         res = self.client.post(self.add_url, {})
         eq_(res.status_code, 500)
 
-    def add_one(self):
-        self.post(self.add_url, 'foo', 'some.txt')
-        return PackageRevision.objects.get(package=self.package,
-                                           revision_number=1)
+    def add_one(self, data = 'foo', filename='some.txt'):
+        self.post(self.get_add_url(self.revision.revision_number), data, filename)
+        self.revision = PackageRevision.objects.get(package=self.package,
+                                           revision_number=self.revision.revision_number+1)
+        return self.revision
 
     def get_add_url(self, revision):
         args = [self.package.id_number, revision]
@@ -270,3 +272,28 @@ class TestAttachments(TestCase):
         revision = PackageRevision.objects.get(package=self.package,
                                                revision_number=3)
         assert not revision.attachments.all().count()
+    
+    def test_attachment_filename_sanitization(self):
+        revision = self.add_one(filename='My Photo of j0hnny.jpg')
+        att = revision.attachments.all()[0]
+        eq_(att.filename, 'My-Photo-of-j0hnny')
+        
+        revision = self.add_one(filename='^you*()"[]"are-_crazy')
+        att = revision.attachments.all()[0]
+        eq_(att.filename, '-you-are-_crazy')
+        revision.attachment_remove(att)
+        
+        revision = self.add_one(filename='"><a href="">test')
+        att = revision.attachments.all()[0]
+        eq_(att.filename, '-a-href-test')
+        
+        revision = self.add_one(filename='template.html.js')
+        att = revision.attachments.all()[0]
+        eq_(att.filename, 'template.html')
+        
+        revision = self.add_one(filename='image.-png^*(@&#$)')
+        att = revision.attachments.all()[0]
+        eq_(att.filename, 'image')
+        eq_(att.ext, 'png')
+        
+        
