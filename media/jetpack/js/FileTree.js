@@ -71,6 +71,17 @@ FileTree = new Class({
 		}
 	},
 	
+	removeBranch: function(branch) {
+	    var parent = branch.getParent('li');
+	    
+	    branch.dispose();
+	    
+	    if (parent && !parent.getElements('li').length && this.collapse) {
+	        this.collapse.collapse(parent);
+	    }
+	    
+	},
+	
 	addBranch: function(attr, target, options){
 		attr = Object.merge({}, this.options.branch, attr);
 		target = $(target) || this.element;
