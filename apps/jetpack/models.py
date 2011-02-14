@@ -1123,6 +1123,11 @@ class PackageRevision(models.Model):
                         .filter(revision_number__lt=self.revision_number)[0]
                             .version_name, self.revision_number)
 
+    @property
+    def is_latest(self):
+        return self.pk == self.package.latest.pk
+
+
 
 class Module(models.Model):
     """
