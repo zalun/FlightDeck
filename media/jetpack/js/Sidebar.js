@@ -213,7 +213,7 @@ var Sidebar = new Class({
 			el;
 			
 		el = this.getBranchFromFile(file);
-		el.dispose();
+		tree.removeBranch(el);
 	},
 	
 	addFileToTree: function(treeName, file) {
