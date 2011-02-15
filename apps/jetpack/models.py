@@ -1199,6 +1199,11 @@ class Module(models.Model):
         self.pk = None
         self.save()
         revision.modules.add(self)
+    
+    def clean(self):
+        first_period = self.filename.find('.')
+        if first_period > -1:
+            self.filename = self.filename[:first_period]
 
 
 class Attachment(models.Model):
@@ -1311,7 +1316,10 @@ class Attachment(models.Model):
         self.save()
         self.write()
         revision.attachments.add(self)
-
+    
+    def clean(self):
+        self.filename = pathify(self.filename)
+        self.ext = alphanum(self.ext) if self.ext else None
 
 
 class EmptyDir(models.Model):

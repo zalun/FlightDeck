@@ -1,4 +1,5 @@
 import os
+import commonware
 import json
 import StringIO
 from datetime import datetime
@@ -19,10 +20,12 @@ from jetpack.errors import FilenameExistException
 from jetpack.views import latest_by_uid
 from base.templatetags.base_helpers import hashtag
 
+log = commonware.log.getLogger('f.jetpack')
 
 def next(revision):
     number = revision.revision_number
-    return (PackageRevision.objects.filter(revision_number__gt=number)
+    return (PackageRevision.objects.filter(revision_number__gt=number,
+                                           package=revision.package)
                                    .order_by('-revision_number')[:1])[0]
 
 
@@ -81,8 +84,7 @@ class TestAttachments(TestCase):
 
     def add_one(self, data = 'foo', filename='some.txt'):
         self.post(self.get_add_url(self.revision.revision_number), data, filename)
-        self.revision = PackageRevision.objects.get(package=self.package,
-                                           revision_number=self.revision.revision_number+1)
+        self.revision = next(self.revision)
         return self.revision
 
     def get_add_url(self, revision):
@@ -133,6 +135,10 @@ class TestAttachments(TestCase):
         revision = PackageRevision.objects.get(package=self.package,
                                                revision_number=1)
         eq_(revision.attachments.count(), 1)
+    
+    def test_attachment_default_extension(self):
+        revision = self.add_one(data='foo', filename='some')
+        eq_(revision.attachments.all()[0].ext, 'js')
 
     def test_attachment_large(self):
         raise SkipTest()
@@ -273,10 +279,15 @@ class TestAttachments(TestCase):
                                                revision_number=3)
         assert not revision.attachments.all().count()
     
+    def test_attachment_extension_too_long(self):
+        res = self.post(self.get_add_url(self.revision.revision_number), 'foo', 'file.toolongofanextension')
+        eq_(res.status_code, 403)
+    
     def test_attachment_filename_sanitization(self):
         revision = self.add_one(filename='My Photo of j0hnny.jpg')
         att = revision.attachments.all()[0]
         eq_(att.filename, 'My-Photo-of-j0hnny')
+        revision.attachment_remove(att)
         
         revision = self.add_one(filename='^you*()"[]"are-_crazy')
         att = revision.attachments.all()[0]
@@ -286,14 +297,68 @@ class TestAttachments(TestCase):
         revision = self.add_one(filename='"><a href="">test')
         att = revision.attachments.all()[0]
         eq_(att.filename, '-a-href-test')
+        revision.attachment_remove(att)
         
         revision = self.add_one(filename='template.html.js')
         att = revision.attachments.all()[0]
         eq_(att.filename, 'template.html')
+        revision.attachment_remove(att)
         
-        revision = self.add_one(filename='image.-png^*(@&#$)')
+        revision = self.add_one(filename='image.-png^*(@&#')
         att = revision.attachments.all()[0]
         eq_(att.filename, 'image')
         eq_(att.ext, 'png')
+        revision.attachment_remove(att)
         
+        revision = self.add_one(filename='image.<a href=""')
+        att = revision.attachments.all()[0]
+        eq_(att.filename, 'image')
+        eq_(att.ext, 'ahref')
+        revision.attachment_remove(att)
+
+class TestModules(TestCase):
+    
+    fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']
+    
+    def setUp(self):
+        if not os.path.exists(settings.UPLOAD_DIR):
+            os.makedirs(settings.UPLOAD_DIR)
+
+        self.author = User.objects.get(username='john')
+        self.author.set_password('password')
+        self.author.save()
+
+        self.package = self.author.packages_originated.addons()[0:1].get()
+        self.revision = self.package.revisions.all()[0]
         
+        self.client.login(username=self.author.username, password='password')
+    
+    def add_one(self, filename='tester'):
+        self.client.post(self.get_add_url(self.revision.revision_number), { 'filename': filename })
+        self.revision = next(self.revision)
+        return self.revision
+
+    def get_add_url(self, revision):
+        args = [self.package.id_number, revision]
+        return reverse('jp_addon_revision_add_module', args=args)
+
+    def get_delete_url(self, revision):
+        args = [self.package.id_number, revision]
+        return reverse('jp_addon_revision_remove_module', args=args)
+
+    def get_revision(self):
+        return PackageRevision.objects.get(pk=self.revision.pk)
+    
+    def test_module_add(self):
+        revision = self.add_one('a-module')
+        # 1 for main, 1 for added, so 2
+        eq_(revision.modules.all().count(), 2)
+        eq_(revision.modules.all().order_by('id')[1].filename, 'a-module')
+    
+    def test_module_add_with_extension(self):
+        revision = self.add_one('test.js')
+        eq_(revision.modules.all().order_by('id')[1].filename, 'test')
+    
+    def test_module_name_sanitization(self):
+        #revision = self.add_one(filename='test.js')
+        raise SkipTest()

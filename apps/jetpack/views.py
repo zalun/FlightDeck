@@ -18,6 +18,7 @@ from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
+from django.core.exceptions import ValidationError
 from django.db.models import Q, ObjectDoesNotExist
 from django.views.decorators.http import require_POST
 from django.template.defaultfilters import escape
@@ -488,13 +489,14 @@ def package_add_attachment(r, id_number, type_id,
             filename, id_number)
         log.error(log_msg)
         return HttpResponseServerError('Path not found.')
-        
-    # some sanitation
-    filename = pathify(filename)
 
-    attachment = revision.attachment_create_by_filename(r.user, filename)
-    attachment.data = content
-    attachment.write()
+    try:
+        attachment = revision.attachment_create_by_filename(r.user, filename)
+    except ValidationError, e:
+        return HttpResponseForbidden('Validation error.')
+    else:
+        attachment.data = content
+        attachment.write()
 
     return render_to_response("json/attachment_added.json",
                 {'revision': revision, 'attachment': attachment},
