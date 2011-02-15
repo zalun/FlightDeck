@@ -31,6 +31,7 @@ from jetpack.errors import SelfDependencyException, FilenameExistException, \
         UpdateDeniedException, SingletonCopyException, DependencyException
 #        ManifestNotValid
 
+from base.models import BaseModel
 from jetpack import tasks
 from xpi import xpi_utils
 from utils.os_utils import make_path
@@ -50,8 +51,7 @@ TYPE_CHOICES = (
     ('a', 'Add-on')
 )
 
-
-class Package(models.Model):
+class Package(BaseModel):
     """
     Holds the meta data shared across all PackageRevisions
     """
@@ -185,6 +185,9 @@ class Package(models.Model):
         # it stays as method as it could be saved in instance in the future
         # TODO: YAGNI!
         return settings.JETPACK_DATA_DIR
+    
+    def default_full_name(self):
+        self.set_full_name()
 
     def set_full_name(self):
         """
@@ -218,6 +221,9 @@ class Package(models.Model):
 
         name = settings.DEFAULT_PACKAGE_FULLNAME.get(self.type, username)
         self.full_name = _get_full_name(name, self.author.username, self.type)
+    
+    def default_name(self):
+        self.set_name();
 
     def set_name(self):
         " set's the name from full_name "
@@ -351,7 +357,7 @@ class Package(models.Model):
         return revision
 
 
-class PackageRevision(models.Model):
+class PackageRevision(BaseModel):
     """
     contains data which may be changed and rolled back
     """
@@ -835,11 +841,16 @@ class PackageRevision(models.Model):
         """ find out the filename and ext and call attachment_create """
         filename, ext = os.path.splitext(filename)
         ext = ext.split('.')[1].lower() if ext else None
+        
+        kwargs = {
+            'author': author,
+            'filename': filename
+        }
+        
+        if ext:
+            kwargs['ext'] = ext
 
-        return self.attachment_create(
-                author=author,
-                filename=filename,
-                ext=ext)
+        return self.attachment_create(**kwargs)
 
     def attachment_create(self, save=True, **kwargs):
         """ create attachment and add to attachments """
@@ -1125,7 +1136,7 @@ class PackageRevision(models.Model):
                             .version_name, self.revision_number)
 
 
-class Module(models.Model):
+class Module(BaseModel):
     """
     Code used by Package.
     It's assigned to PackageRevision.
@@ -1206,7 +1217,7 @@ class Module(models.Model):
             self.filename = self.filename[:first_period]
 
 
-class Attachment(models.Model):
+class Attachment(BaseModel):
     """
     File (image, css, etc.) updated by the author of the PackageRevision
     When exported should be placed in a special directory - usually "data"
@@ -1220,7 +1231,7 @@ class Attachment(models.Model):
     ext = models.CharField(max_length=10, blank=True, default='js')
 
     # access to the file within upload/ directory
-    path = models.CharField(max_length=255, blank=True)
+    path = models.CharField(max_length=255)
 
     # user who has uploaded the file
     author = models.ForeignKey(User, related_name='attachments')
@@ -1257,6 +1268,9 @@ class Attachment(models.Model):
         """Returns URL to display the attachment."""
         return reverse('jp_attachment', args=[self.get_uid])
 
+    def default_path(self):
+        self.create_path()
+    
     def create_path(self):
         args = (self.pk, self.filename, self.ext)
         self.path = os.path.join(time.strftime('%Y/%m/%d'), '%s-%s.%s' % args)
@@ -1319,10 +1333,11 @@ class Attachment(models.Model):
     
     def clean(self):
         self.filename = pathify(self.filename)
-        self.ext = alphanum(self.ext) if self.ext else None
+        if self.ext:
+            self.ext = alphanum(self.ext)
 
 
-class EmptyDir(models.Model):
+class EmptyDir(BaseModel):
     revisions = models.ManyToManyField(PackageRevision,
                                        related_name='folders', blank=True)
     name = models.CharField(max_length=255)
@@ -1344,7 +1359,7 @@ class EmptyDir(models.Model):
     def export(self, root_dir):
         pass
 
-class SDK(models.Model):
+class SDK(BaseModel):
     """
     Jetpack SDK representation in database
     Add-ons have to depend on an SDK, by default on the latest one.
@@ -1460,36 +1475,12 @@ def _get_next_id_number():
 
 
 # Catching Signals
-def clean_up(instance, **kwargs):
-    " try callng instance.full_clean before saved "
-    if kwargs.get('raw', False):
-        return
-    instance.full_clean()
-pre_save.connect(clean_up)
-
 def set_package_id_number(instance, **kwargs):
     " sets package's id_number before creating the new one "
     if kwargs.get('raw', False) or instance.id or instance.id_number:
         return
     instance.id_number = _get_next_id_number()
 pre_save.connect(set_package_id_number, sender=Package)
-
-
-def make_full_name(instance, **kwargs):
-    " creates an automated full_name when not given "
-    if kwargs.get("raw", False) or instance.full_name:
-        return
-    instance.set_full_name()
-pre_save.connect(make_full_name, sender=Package)
-
-
-def make_name(instance, **kwargs):
-    " make the name (AMO friendly) "
-    if kwargs.get('raw', False) or instance.name:
-        return
-    instance.set_name()
-pre_save.connect(make_name, sender=Package)
-
 
 def make_keypair_on_create(instance, **kwargs):
     " creates public and private keys for JID "
