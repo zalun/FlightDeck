@@ -34,6 +34,7 @@ from jetpack.errors import SelfDependencyException, FilenameExistException, \
 from jetpack import tasks
 from xpi import xpi_utils
 from utils.os_utils import make_path
+from utils.helpers import pathify, alphanum
 
 log = commonware.log.getLogger('f.jetpack')
 
@@ -61,7 +62,7 @@ class Package(models.Model):
     id_number = models.CharField(max_length=255, unique=True, blank=True)
 
     # name of the Package
-    full_name = models.CharField(max_length=255)
+    full_name = models.CharField(max_length=255, blank=True)
     # made from the full_name
     # it is used to create Package directory for export
     name = models.CharField(max_length=255, blank=True)
@@ -833,7 +834,7 @@ class PackageRevision(models.Model):
     def attachment_create_by_filename(self, author, filename):
         """ find out the filename and ext and call attachment_create """
         filename, ext = os.path.splitext(filename)
-        ext = ext.split('.')[1].lower() if ext else ''
+        ext = ext.split('.')[1].lower() if ext else None
 
         return self.attachment_create(
                 author=author,
@@ -1211,10 +1212,10 @@ class Attachment(models.Model):
     # filename of the attachment
     filename = models.CharField(max_length=255)
     # extension name
-    ext = models.CharField(max_length=10)
+    ext = models.CharField(max_length=10, blank=True, default='js')
 
     # access to the file within upload/ directory
-    path = models.CharField(max_length=255)
+    path = models.CharField(max_length=255, blank=True)
 
     # user who has uploaded the file
     author = models.ForeignKey(User, related_name='attachments')
@@ -1272,10 +1273,7 @@ class Attachment(models.Model):
     def write(self):
         """Writes the file."""
 
-        data = self.data if hasattr(self, 'data') else ''
-        if self.path and not data:
-            data = self.read()
-
+        data = self.data if hasattr(self, 'data') else self.read()
         self.create_path()
         self.save()
 
@@ -1454,6 +1452,13 @@ def _get_next_id_number():
 
 
 # Catching Signals
+def clean_up(instance, **kwargs):
+    " try callng instance.full_clean before saved "
+    if kwargs.get('raw', False):
+        return
+    instance.full_clean()
+pre_save.connect(clean_up)
+
 def set_package_id_number(instance, **kwargs):
     " sets package's id_number before creating the new one "
     if kwargs.get('raw', False) or instance.id or instance.id_number:
