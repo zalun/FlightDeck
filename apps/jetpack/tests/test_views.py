@@ -353,12 +353,16 @@ class TestModules(TestCase):
         revision = self.add_one('a-module')
         # 1 for main, 1 for added, so 2
         eq_(revision.modules.all().count(), 2)
-        eq_(revision.modules.all().order_by('id')[1].filename, 'a-module')
+        eq_(revision.modules.all().order_by('-id')[0].filename, 'a-module')
     
     def test_module_add_with_extension(self):
         revision = self.add_one('test.js')
-        eq_(revision.modules.all().order_by('id')[1].filename, 'test')
+        eq_(revision.modules.all().order_by('-id')[0].filename, 'test')
     
     def test_module_name_sanitization(self):
-        #revision = self.add_one(filename='test.js')
-        raise SkipTest()
+        revision = self.add_one(filename='A"> <a href="google.com">malicious module')
+        eq_(revision.modules.all().order_by('-id')[0].filename, 'A-a-href-google')
+        
+        revision = self.add_one(filename='void:myXSSFunction(fd.item)')
+        eq_(revision.modules.all().order_by('-id')[0].filename, 'void-myXSSFunction-fd')
+        
