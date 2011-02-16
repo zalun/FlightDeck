@@ -14,3 +14,4 @@ Markdown==2.0.3
 python-dateutil
 django-celery
 importlib
+-e git://github.com/mozilla/nuggets.git#egg=nuggets

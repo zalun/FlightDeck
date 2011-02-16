@@ -7,7 +7,6 @@ from nose.tools import eq_
 
 from django.contrib.auth.models import User
 from django.conf import settings
-from django.db import IntegrityError
 
 from jetpack.models import Package, PackageRevision
 from jetpack.package_helpers import create_from_archive, \
