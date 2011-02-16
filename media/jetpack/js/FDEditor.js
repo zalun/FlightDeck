@@ -11,7 +11,9 @@ var FDEditor = new Class({
 
 	Implements: [Options, Events],
 
-    options: {},
+    options: {
+        element_type: 'textarea'
+    },
 
 	$name: 'FlightDeckEditor',
 
@@ -22,7 +24,7 @@ var FDEditor = new Class({
 	initialize: function(wrapper, options) {
 		this.setOptions(options);
         // create empty editor
-        this.element = new Element('textarea',{
+        this.element = new Element(this.options.element_type,{
             'text': '',
             'class': 'UI_Editor_Area'
         });
@@ -102,6 +104,7 @@ var FDEditor = new Class({
         Object.each(this.items, function(item){
             item.changed = false;
             item.change_hooked = false;
+            // refresh original content
             item.original_content = item.content;
         });
         this.hookChangeIfNeeded();

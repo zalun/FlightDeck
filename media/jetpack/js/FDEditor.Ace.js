@@ -8,6 +8,9 @@
 (function() {
 
     var stripDeltas = function(stack) {
+        // Change Stack (undo/redo) in Ace is represented as 
+        // [[DeltaObject1], [DeltaObject2], ... ]
+        // these objects have to be copied - not referenced
         var deltas = [];
         stack.each(function(single){
             deltas.push(Object.merge({}, single[0]));
@@ -16,6 +19,7 @@
     };
 
     var buildStack = function(deltas) {
+        // Extract stored deltas into the stack
         var stack = [];
         deltas.each(function(delta){
             stack.push([Object.merge({}, delta)]);
@@ -24,6 +28,10 @@
     };
 
     Class.refactor(FDEditor, {
+
+        options: {
+            element_type: 'div'
+        },
 
         modes: {},
 
@@ -37,18 +45,8 @@
         },
 
         initialize: function(wrapper, options) {
-            this.setOptions(options);
-            // create empty editor
-            this.element = new Element('div',{
-                'text': '',
-                'class': 'UI_Editor_Area'
-            });
-            this.element.inject(wrapper);
+            this.previous(wrapper, options);
             this.editor = ace.edit(this.element);
-            this.changed = false;
-            // prepare change events
-            this.boundWhenItemChanged = this.whenItemChanged.bind(this);
-            this.boundSetContent = this.setContent.bind(this);
         },
 
         addMode: function(mode) {
