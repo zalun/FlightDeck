@@ -37,19 +37,19 @@ var FDEditor = new Class({
         this.items[item.uid] = item; 
     },
 
-    switchTo: function(item){
-        $log('FD: DEBUG: FDEditor.switchTo ' + item.uid);
-        var self = this;
-        this.switching = true;
-        if (!this.items[item.uid]) {
-            this.registerItem(item);
-        }
-        if (this.current) {
-            // deactivate
-            this.current.active = false;
-            // store changes
-            this.dumpCurrent();
-        }
+    getItem: function(uid){
+        return this.items[uid];
+    },
+
+    deactivateCurrent: function(){
+        // deactivate and store changes                   
+        this.current.active = false;
+        // store changes
+        this.dumpCurrent();
+    },
+
+    activateItem: function(item){
+        // activate load and hook events
         this.current = item;
         this.current.active = true;
         if (!this.current.content) {
@@ -63,7 +63,20 @@ var FDEditor = new Class({
         } else {
             this.setEditable();
         }
-        this.setSyntax(item.options.type);
+        this.setSyntax(this.current.options.type);
+    },
+
+    switchTo: function(item){
+        $log('FD: DEBUG: FDEditor.switchTo ' + item.uid);
+        var self = this;
+        this.switching = true;
+        if (!this.getItem(item.uid)) {
+            this.registerItem(item);
+        }
+        if (this.current) {
+            this.deactivateCurrent();
+        }
+        this.activateItem(item);
         this.switching = false;
     },
 
@@ -89,6 +102,7 @@ var FDEditor = new Class({
         Object.each(this.items, function(item){
             item.changed = false;
             item.change_hooked = false;
+            item.original_content = item.content;
         });
         this.hookChangeIfNeeded();
     },
