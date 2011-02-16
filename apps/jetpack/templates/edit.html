@@ -8,7 +8,7 @@
 	<link rel="stylesheet" href="/media/jetpack/css/FlightDeck.Autocomplete.css" type="text/css" media="screen" />
 	<link rel="stylesheet" href="/media/jetpack/css/tree.css" type="text/css" media="screen" />
 	<link rel="stylesheet" href="/media/jetpack/css/collapse.css" type="text/css" media="screen" />
-	<link rel="stylesheet" href="/media/lib/bespin/BespinEmbedded.css" type="text/css" media="screen" />
+    {#}<link rel="stylesheet" href="/media/lib/bespin/BespinEmbedded.css" type="text/css" media="screen" />#}
 	<script src="/media/jetpack/js/FlightDeck.Editor.js"></script>
 	<script src="/media/lib/ace/ace.js"></script>
 	<script src="/media/jetpack/js/FDEditor.js"></script>
@@ -96,6 +96,12 @@
 					</a>
 				</li>
 			{% endif %}
+			<li class="UI_Editor_Menu_Button Icon_logs">
+				<a id="error-console" title="" href="#">
+					Error Console
+					<span class="UI_Editor_Icon"></span>
+				</a>
+			</li>
 			{% include "_editor_app_menu_items.html" %}
 		</ul>
 	</div> <!-- /editor-menu-wrapper -->

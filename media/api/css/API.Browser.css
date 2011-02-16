@@ -30,6 +30,15 @@ body {
 
 }
 
+    #api-body h1{
+        border-bottom: solid 1px #E9EDF0;
+        padding: 0 0 5px;
+        margin: 0 0 15px;
+        color: #666;
+        font-size: 1.4em;
+        font-family: Helvetica, Arial, Tahoma, sans-serif;
+    }
+
     #api-body h2{
 		padding-top: 20px;
 		font-weight: bold;
@@ -120,7 +129,7 @@ body {
 			font-size: 1.1em;
 		}
 
-		#api-body p.parameter-name
+		#api-body .api_name
 			{
 			font-size: 1.0em;
 			font-family: 'Monaco', Courier, Monospace;
@@ -137,7 +146,7 @@ body {
 			margin-left:40px;
 		}
 
-		#api-body div.function-parameter-list
+		#api-body div.parameter_set
 			{
 			margin-left:20px;
 		}

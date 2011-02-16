@@ -293,10 +293,12 @@ Request = Class.refactor(Request, {
             if (this.options.addOnFailure) {
               this.options.addOnFailure();
             }
-            fd.error.alert(
-                'Error {status}'.substitute(xhr), 
-                '{statusText}<br/>{responseText}'.substitute(xhr)
-                );
+			if (xhr.status != 0 && xhr.responseText) {
+				fd.error.alert(
+					'Error {status}'.substitute(xhr), 
+					'{statusText}<br/>{responseText}'.substitute(xhr)
+					);
+			}
         }
     },
     initialize: function(options) {

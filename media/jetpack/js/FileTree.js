@@ -15,7 +15,8 @@ FileTree = new Class({
 			//edit: false,
 			//remove: false
 		},
-		snap: 3
+		snap: 3,
+		id_prefix: ''
 		//onAddBranch: function(el, attributes, target){}
 		//onRenameStart: function(li, span){}
 		//onRenameComplete: function(li, span){}
@@ -26,11 +27,18 @@ FileTree = new Class({
 		this.parent();
 		var that = this;
 		this.element.addEvents({
-			'click:relay(.actions .edit)': function(e) {
-				that.renameBranch($(e.target).getParent('li'));
+			'mousedown:relay(.actions .edit)': function(e) {
+				var li = e.target.getParent('li');
+				if (li.hasClass('editing')) {
+	    			that.renameBranchEnd($(e.target).getParent('li'));
+				} else {
+    				that.renameBranch($(e.target).getParent('li'));
+				}
+				
+				
 			},
 			'keypress:relay(span)': function(e){
-				if(e.key == 'enter') that.renameBranch(e.target);
+				if(e.key == 'enter') that.renameBranchEnd($(e.target).getParent('li'));
 			}
 		});
 		return this;
@@ -63,18 +71,39 @@ FileTree = new Class({
 		}
 	},
 	
+	removeBranch: function(branch) {
+	    var parent = branch.getParent('li');
+	    
+	    branch.dispose();
+	    
+	    if (parent && !parent.getElements('li').length && this.collapse) {
+	        this.collapse.collapse(parent);
+	    }
+	    
+	},
+	
 	addBranch: function(attr, target, options){
 		attr = Object.merge({}, this.options.branch, attr);
 		target = $(target) || this.element;
 		if (target.get('tag') !== 'ul') {
 			target = target.getElement('ul');
 		}
+		
+		var isEditable = this.options.editable;
+		
 		options = Object.merge({}, {
-			add: attr.rel == 'directory' ? true : false,
-			edit: attr.rel == 'directory' ? false : true,
-			remove: attr.rel == 'directory' ? false : true,
+			add: attr.rel == 'directory',
+			edit: attr.rel != 'directory',
+			remove: true, //can delete anything
 			collapsed: true
 		}, this.options.actions, options);
+		
+		if (!isEditable) {
+		    delete options.add;
+		    delete options.edit;
+		    delete options.remove;
+		}
+		
 		attr.html = ('<a class="expand" href="#"></a>' +
 			'<div class="holder">' +
 				'<span id="{id}" class="label" title="{title}">{title}</span><span class="icon"></span>' +
@@ -109,45 +138,88 @@ FileTree = new Class({
 	
 	renameBranch: function(element, hasExtension){
 		var li = (element.get('tag') == 'li') ? element : element.getParent('li'),
-			label = li.getElement('.label');
+			label = li.getElement('.label'),
+			text = label.get('text').trim();
 		
 		this.fireEvent('renameStart', [li, label]);
 		
-		if(label.get('contenteditable') == 'true'){
+		
+		label.set('tabIndex', 0).set('contenteditable', true).focus();
+		li.addClass('editing');
+		label.store('$text', text);
+		
+		label.store('$blur', function blur(e) {
 			label.removeEvent('blur', blur);
+			this.renameBranchCancel(element);
+		}.bind(this))
+		
+		label.addEvent('blur', label.retrieve('$blur'))
+		
+		hasExtension = hasExtension || !!text.getFileExtension();
+		
+		var range = document.createRange(),
+			node = label.firstChild;
+		range.setStart(node, 0);
+		range.setEnd(node, hasExtension ? text.length - text.getFileExtension().length -1 : text.length);
+		sel = window.getSelection();
+		sel.removeAllRanges();
+		sel.addRange(range);
+
+		return this;
+	},
+	
+	renameBranchCancel: function(element) {
+        var li = (element.get('tag') == 'li') ? element : element.getParent('li'),
+			label = li.getElement('.label'),
+			text = label.retrieve('$text').trim();
+		
+		label.set('contenteditable', false);
+		if (text) {
+		    label.set('text', text);
+		}
+		label.eliminate('$text');
+		li.removeClass('editing');
+		
+	},
+	
+	renameBranchEnd: function(element) {
+	    var li = (element.get('tag') == 'li') ? element : element.getParent('li'),
+			label = li.getElement('.label'),
+			text = label.get('text').trim();
+		
+	    if(label.get('contenteditable') == 'true'){
+			
+			//validation
+			text = text.replace(/[^a-zA-Z0-9\-_\.]+/g, '-');
+		    
+		    
+			if (!text.getFileName()) {
+			    fd.error.alert('Filename must be valid', 'Your file must not contain special characters, and requires a file extension.');
+			    return this;
+			}
+			
+			label.removeEvent('blur', label.retrieve('$blur'));
+			label.eliminate('$text');
 			label.set('contenteditable', false).blur();
 			window.getSelection().removeAllRanges();
 			
+			
+			li.removeClass('editing');
 			//fire a renameCancel if the name didnt change
-			if (label.get('text').trim() == label.get('title').trim()) {
+			if (text == label.get('title').trim()) {
 				this.fireEvent('renameCancel', li);
 				return this;
 			}
 			
-			label.set('title', label.get('text'));
-			li.set('title', label.get('text'));
+			label.set('title', text);
+			label.set('text', text);
+			li.set('title', text);
+			
 			
 			this.fireEvent('renameComplete', [li, this.getFullPath(li)]);
 			return false;
 		}
 		
-		label.set('tabIndex', 0).set('contenteditable', true).focus();
-		label.addEvent('blur', function blur(e) {
-			label.removeEvent('blur', blur);
-			this.renameBranch(element);
-		}.bind(this))
-		
-		if(hasExtension){
-			var range = document.createRange(),
-				node = label.firstChild;
-			range.setStart(node, 0);
-			range.setEnd(node, label.get('text').split('.')[0].length);
-			sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-		}
-
-		return this;
 	},
 	
 	deleteBranch: function(element) {
@@ -164,7 +236,12 @@ FileTree = new Class({
 			end = splitted.length - 1,
 			selector = '',
 			el,
-			target = options.target;
+			target = options.target,
+			id_prefix = this.options.id_prefix;
+			
+		if (id_prefix) {
+		    id_prefix += '-';
+		}
 		
 		elements.each(function(name, i){
 			var path = splitted.slice(0, i + 1).join('/');
@@ -175,6 +252,7 @@ FileTree = new Class({
 					'name': name,
 					'path': path,
 					'url': obj.options.url,
+					'id': obj.getID(),
 					'rel': obj.options.type ? 'file' : 'directory',
 					'class': 'UI_File_Normal' + (options.nodrag ? ' nodrag' : '')
 				}, previous, options);
@@ -185,6 +263,7 @@ FileTree = new Class({
 					'title': name,
 					'name': name,
 					'rel': 'directory',
+					'id': id_prefix + path.replace(/\//g, '-'),
 					'path': path
 				}, target, options);
 			}
@@ -224,4 +303,17 @@ FileTree.Collapse = new Class({
 		element.set('path', (path ? path + '/' : '') + (element.get('path') || '').split('/').getLast());
 	}
 	
+});
+
+String.implement('getFileExtension', function() {
+    var parts = this.split('.'),
+        ext = parts.pop(),
+        filename = parts.join('.');
+        
+    return !!filename && !!ext && !ext.match(/[^a-zA-Z0-9]/) && ext;
+});
+
+String.implement('getFileName', function() {
+    var ext = this.getFileExtension();
+    return ext && this.substring(0, this.length - ext.length - 1);
 });

@@ -7,12 +7,15 @@ import csv
 import shutil
 import time
 import commonware
+import tarfile
+import markdown
 
 from copy import deepcopy
 
 from ecdsa import SigningKey, NIST256p
 from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.signals import pre_save, post_save, m2m_changed
 from django.db import models, IntegrityError
 from django.utils import simplejson
@@ -21,6 +24,8 @@ from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
 from django.conf import settings
 
+from api.helpers import export_docs
+from utils.exceptions import SimpleException
 from jetpack.managers import PackageManager
 from jetpack.errors import SelfDependencyException, FilenameExistException, \
         UpdateDeniedException, SingletonCopyException, DependencyException
@@ -488,12 +493,12 @@ class PackageRevision(models.Model):
         return reverse(
             'jp_addon_switch_sdk_version',
             args=[self.package.id_number, self.revision_number])
-    
+
     def get_add_folder_url(self):
         return reverse(
             'jp_%s_revision_add_folder' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
-    
+
     def get_remove_folder_url(self):
         return reverse(
             'jp_%s_revision_remove_folder' % self.package.get_type_name(),
@@ -603,7 +608,7 @@ class PackageRevision(models.Model):
         # reassign all dependencies
         for dep in origin.dependencies.all():
             self.dependencies.add(dep)
-            
+
         for dir in origin.folders.all():
             self.folders.add(dir)
 
@@ -612,7 +617,7 @@ class PackageRevision(models.Model):
 
         for att in origin.attachments.all():
             self.attachments.add(att)
-        
+
 
         self.package.latest = self
         self.package.save()
@@ -672,9 +677,9 @@ class PackageRevision(models.Model):
         if self.attachments.filter(filename=filename, ext=ext).count():
             return False
         return True
-    
-    def validate_folder_name(self, foldername):
-        if self.folders.filter(name=foldername).count():
+
+    def validate_folder_name(self, foldername, root_dir):
+        if self.folders.filter(name=foldername, root_dir=root_dir).count():
             return False
         return True
 
@@ -705,24 +710,61 @@ class PackageRevision(models.Model):
             self.save()
         return self.modules.add(mod)
 
-    def module_remove(self, mod):
-        " copy to new revision, remove module "
+    def module_remove(self, *mods):
+        " copy to new revision, remove module(s) "
         self.save()
-        return self.modules.remove(mod)
-    
+        return self.modules.remove(*mods)
+
+    def modules_remove_by_path(self, filenames):
+
+        found_modules = []
+        module_found = False
+        empty_dirs_paths = []
+
+        for filename in filenames:
+            if filename[-1] == '/':
+                empty_dirs_paths.append(filename[:-1])
+                modules = self.modules.filter(filename__startswith=filename)
+            else:
+                modules = self.modules.filter(filename=filename)
+            if modules.count() > 0:
+                for mod in modules:
+                    found_modules.append(mod)
+                    module_found = True
+
+        if not module_found:
+            raise Module.DoesNotExist
+
+        self.save()
+        self.modules.remove(*found_modules)
+
+        log.warning(self.folders.all())
+        for path in empty_dirs_paths:
+            folder = self.folders.get(root_dir='l', name=path)
+            self.folders.remove(folder)
+        return ([mod.filename for mod in found_modules], empty_dirs_paths)
+
     def folder_add(self, dir, save=True):
         " copy to new revision, add EmptyDir "
-        if not self.validate_folder_name(dir.name):
-            raise FilenameExistException(
-                ('Sorry, there is already a folder in your add-on '
+        errorMsg = ('Sorry, there is already a folder in your add-on '
                  'with the name "%s". Each folder in your add-on '
                  'needs to have a unique name.') % dir.name
-            )
-        
+
+        if not self.validate_folder_name(dir.name, dir.root_dir):
+            raise FilenameExistException(errorMsg)
+
+        # don't make EmptyDir for util/ if a file exists as util/example
+        elif (dir.root_dir == 'l' and
+            self.modules.filter(filename__startswith=dir.name).count()):
+            raise FilenameExistException(errorMsg)
+        elif (dir.root_dir == 'd' and
+            self.attachments.filter(filename__startswith=dir.name).count()):
+            raise FilenameExistException(errorMsg)
+
         if save:
             self.save()
         return self.folders.add(dir)
-    
+
     def folder_remove(self, dir):
         " copy to new revision, remove folder "
         self.save()
@@ -911,12 +953,13 @@ class PackageRevision(models.Model):
                 } for a in self.attachments.all()
             ] if self.attachments.count() > 0 else []
         return simplejson.dumps(a_list)
-    
+
     def get_folders_list_json(self):
         " returns empty folders list as JSON object "
         f_list = [{
                 'name': f.name,
                 'author': f.author.username,
+                'root_dir': f.root_dir,
                 } for f in self.folders.all()
             ] if self.folders.count() > 0 else []
         return simplejson.dumps(f_list)
@@ -969,7 +1012,7 @@ class PackageRevision(models.Model):
 
         return self.sdk.kit_lib if self.sdk.kit_lib else self.sdk.core_lib
 
-    def build_xpi(self, modules=[], hashtag=None, rapid=False):
+    def build_xpi(self, modules=[], attachments=[], hashtag=None, rapid=False):
         """
         prepare and build XPI for test only (unsaved modules)
 
@@ -1004,8 +1047,17 @@ class PackageRevision(models.Model):
                     e_mod.export_code(lib_dir)
             if not mod_edited:
                 mod.export_code(lib_dir)
-        self.export_attachments(
-            '%s/%s' % (package_dir, self.package.get_data_dir()))
+        data_dir = os.path.join(package_dir, self.package.get_data_dir())
+        for att in self.attachments.all():
+            att_edited = False
+            for e_att in attachments:
+                if e_att.pk == att.pk:
+                    att_edited = True
+                    e_att.export_code(data_dir)
+            if not att_edited:
+                att.export_file(data_dir)
+        #self.export_attachments(
+        #    '%s/%s' % (package_dir, self.package.get_data_dir()))
         self.export_dependencies(packages_dir, sdk=self.sdk)
 
         args = [sdk_dir, '%s/packages/%s' % (sdk_dir, self.package.name),
@@ -1063,10 +1115,18 @@ class PackageRevision(models.Model):
 
     def get_version_name(self):
         " returns version name with revision number if needed "
+
         return self.version_name \
                 if self.version_name \
                 else "%s.rev%s" % (
-                    self.package.version_name, self.revision_number)
+                    self.package.revisions.exclude(version_name=None)
+                        .filter(revision_number__lt=self.revision_number)[0]
+                            .version_name, self.revision_number)
+
+    @property
+    def is_latest(self):
+        return self.pk == self.package.latest.pk
+
 
 
 class Module(models.Model):
@@ -1126,7 +1186,9 @@ class Module(models.Model):
 
     def export_code(self, lib_dir):
         " creates a file containing the module "
-        handle = open('%s/%s.js' % (lib_dir, self.filename), 'w')
+        path = os.path.join(lib_dir, '%s.js' % self.filename)
+        make_path(os.path.dirname(os.path.abspath(path)))
+        handle = open(path, 'w')
         handle.write(self.code)
         handle.close()
 
@@ -1185,6 +1247,11 @@ class Attachment(models.Model):
             name = "%s.%s" % (name, self.ext)
         return name
 
+    def get_path(self):
+        " returns the path of directories that would be created from the filename "
+        parts = self.filename.split('/')[0:-1]
+        return ('/'.join(parts)) if parts else None
+
     def get_display_url(self):
         """Returns URL to display the attachment."""
         return reverse('jp_attachment', args=[self.get_uid])
@@ -1209,19 +1276,34 @@ class Attachment(models.Model):
 
     def write(self):
         """Writes the file."""
+
+        data = self.data if hasattr(self, 'data') else ''
+        if self.path and not data:
+            data = self.read()
+
         self.create_path()
         self.save()
 
-        if hasattr(self, 'data'):
 
-            directory = os.path.dirname(self.get_file_path())
 
-            if not os.path.exists(directory):
-                os.makedirs(directory)
+        directory = os.path.dirname(self.get_file_path())
 
-            handle = open(self.get_file_path(), 'wb')
-            handle.write(self.data)
-            handle.close()
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        handle = open(self.get_file_path(), 'wb')
+        handle.write(data)
+        handle.close()
+
+    def export_code(self, static_dir):
+        " creates a file containing the module "
+        if not hasattr(self, 'code'):
+            return self.export_file(static_dir)
+        path = os.path.join(static_dir, '%s.%s' % (self.filename, self.ext))
+        make_path(os.path.dirname(os.path.abspath(path)))
+        handle = open(path, 'w')
+        handle.write(self.code)
+        handle.close()
 
     def export_file(self, static_dir):
         " copies from uploads to the package's data directory "
@@ -1237,15 +1319,29 @@ class Attachment(models.Model):
         self.write()
         revision.attachments.add(self)
 
+
+
 class EmptyDir(models.Model):
     revisions = models.ManyToManyField(PackageRevision,
                                        related_name='folders', blank=True)
     name = models.CharField(max_length=255)
     author = models.ForeignKey(User, related_name='folders')
-    
+
+    ROOT_DIR_CHOICES = (
+        ('l', settings.JETPACK_LIB_DIR),
+        ('d', settings.JETPACK_DATA_DIR),
+    )
+    root_dir = models.CharField(max_length=10, choices=ROOT_DIR_CHOICES)
+
     def __unicode__(self):
         return 'Dir: %s (by %s)' % (self.name, self.author.username)
-    
+
+    #def get_root_dir_display(self):
+    #    " overriding to get get package lib and data dirs "
+    #    return
+
+    def export(self, root_dir):
+        pass
 
 class SDK(models.Model):
     """
@@ -1254,7 +1350,7 @@ class SDK(models.Model):
     """
     version = models.CharField(max_length=10, unique=True)
 
-    # It has to be accompanied with a jetpack-core version
+    # It has to be accompanied with a core library
     # needs to exist before SDK is created
     core_lib = models.OneToOneField(PackageRevision,
             related_name="parent_sdk_core+")
@@ -1279,7 +1375,77 @@ class SDK(models.Model):
         return os.path.join(settings.SDK_SOURCE_DIR, self.dir)
 
     def is_deprecated(self):
-        return self.version < '0.9'
+        return self.version < '1.0b1'
+
+    def import_docs(self, tar_filename="addon-sdk-docs.tgz", export=True):
+        from api.models import DocPage
+        """import docs from addon-sdk-docs.tgz """
+        tar_path = os.path.join(self.get_source_dir(), tar_filename)
+        sdk_dir = self.get_source_dir()
+        if export:
+            if os.path.isfile(tar_path):
+                raise SimpleException(
+                        "%s does exist. Have you forgotten to remove it?" %
+                        tar_path)
+            export_docs(sdk_dir)
+        if not os.path.isfile(tar_path):
+            raise SimpleException(
+                    "%s does not exist. It should be here?" %
+                    tar_path)
+        if not tarfile.is_tarfile(tar_path):
+            raise SimpleException("%s is not a tar file" % tar_path)
+        # import data
+        tar_file = tarfile.open(tar_path)
+
+
+
+        for member in tar_file.getmembers():
+            if 'addon-sdk-docs/packages/' in member.name:
+                # filter package description
+                if 'README.md' in member.name:
+                    """ consider using description for packages """
+                    member_path = member.name.split('/README.md')[0]
+                    member_path = member_path.split('addon-sdk-docs/packages/')[1]
+                    member_file = tar_file.extractfile(member)
+                    try:
+                        docpage = DocPage.objects.get(sdk=self, path=member_path)
+                    except ObjectDoesNotExist:
+                        docpage = DocPage(sdk=self, path=member_path)
+                    docpage.html = '<h1>%s</h1>%s' % (
+                            member_path,
+                            markdown.markdown(member_file.read()))
+                    docpage.json = ''
+                    docpage.save()
+                    member_file.close()
+                # filter module description
+                if '/docs/' in member.name and '.md' in member.name and '.md.' not in member.name:
+                    # strip down to the member_path
+                    member_path = member.name.split('.md')[0]
+                    member_path = ''.join(member_path.split('/docs'))
+                    member_path = member_path.split('addon-sdk-docs/packages/')[1]
+                    # extract member_html and member_json
+                    try:
+                        member_html = tar_file.getmember(member.name + '.div')
+                    except KeyError:
+                        member_html = tar_file.getmember(
+                                member.name + '.div.html')
+                    member_html_file = tar_file.extractfile(member_html)
+                    member_json = tar_file.getmember(member.name + '.json')
+                    member_json_file = tar_file.extractfile(member_json)
+                    # create or load docs
+                    try:
+                        docpage = DocPage.objects.get(sdk=self, path=member_path)
+                    except ObjectDoesNotExist:
+                        docpage = DocPage(sdk=self, path=member_path)
+                    docpage.html = member_html_file.read()
+                    docpage.json = member_json_file.read()
+                    docpage.save()
+                    member_html_file.close()
+                    member_json_file.close()
+
+        tar_file.close()
+        # remove docs file
+        os.remove(tar_path)
 
 
 def _get_next_id_number():
@@ -1345,34 +1511,39 @@ def save_first_revision(instance, **kwargs):
     instance.version = revision
     instance.latest = revision
     if instance.is_addon():
-        mod = Module.objects.create(
-            filename=revision.module_main,
-            author=instance.author,
-            code="""// This is an active module of the %s Add-on
-exports.main = function() {};""" % instance.full_name
-        )
-        revision.modules.add(mod)
+        first_module_name = revision.module_main
+        first_module_code = """// This is an active module of the %s Add-on
+exports.main = function() {};"""
+    else:
+        first_module_name = 'index'
+        first_module_code = "// This is first module of the %s Library"
+    mod = Module.objects.create(
+        filename=first_module_name,
+        author=instance.author,
+        code=first_module_code % instance.full_name
+    )
+    revision.modules.add(mod)
     instance.save()
 post_save.connect(save_first_revision, sender=Package)
 
-def manage_empty_dirs(instance, action, **kwargs):
+def manage_empty_lib_dirs(instance, action, **kwargs):
     """
     create EmptyDirs when all modules in a "dir" are deleted,
     and remove EmptyDirs when any modules are added into the "dir"
-    """    
+    """
     if not (isinstance(instance, PackageRevision)
             and action in ('post_add', 'post_remove')):
         return
-    
+
     pk_set = kwargs.get('pk_set', [])
-    
+
     if action == 'post_add':
         for pk in pk_set:
             mod = Module.objects.get(pk=pk)
             dirname = mod.get_path()
             if not dirname:
                 continue
-            for d in instance.folders.filter(name=dirname):
+            for d in instance.folders.filter(name=dirname, root_dir='l'):
                 instance.folders.remove(d)
 
     elif action == 'post_remove':
@@ -1381,11 +1552,44 @@ def manage_empty_dirs(instance, action, **kwargs):
             dirname = mod.get_path()
             if not dirname:
                 continue
-            
+
             if not instance.modules.filter(filename__startswith=dirname).count():
-                emptydir = EmptyDir(name=dirname, author=instance.author)
+                emptydir = EmptyDir(name=dirname, author=instance.author, root_dir='l')
                 emptydir.save()
-                
+
                 instance.folders.add(emptydir)
-m2m_changed.connect(manage_empty_dirs, sender=Module.revisions.through)
-    
+m2m_changed.connect(manage_empty_lib_dirs, sender=Module.revisions.through)
+
+def manage_empty_data_dirs(instance, action, **kwargs):
+    """
+    create EmptyDirs when all modules in a "dir" are deleted,
+    and remove EmptyDirs when any modules are added into the "dir"
+    """
+    if not (isinstance(instance, PackageRevision)
+            and action in ('post_add', 'post_remove')):
+        return
+
+    pk_set = kwargs.get('pk_set', [])
+
+    if action == 'post_add':
+        for pk in pk_set:
+            att = Attachment.objects.get(pk=pk)
+            dirname = att.get_path()
+            if not dirname:
+                continue
+            for d in instance.folders.filter(name=dirname, root_dir='d'):
+                instance.folders.remove(d)
+
+    elif action == 'post_remove':
+        for pk in pk_set:
+            att = Attachment.objects.get(pk=pk)
+            dirname = att.get_path()
+            if not dirname:
+                continue
+
+            if not instance.attachments.filter(filename__startswith=dirname).count():
+                emptydir = EmptyDir(name=dirname, author=instance.author, root_dir='d')
+                emptydir.save()
+
+                instance.folders.add(emptydir)
+m2m_changed.connect(manage_empty_data_dirs, sender=Attachment.revisions.through)

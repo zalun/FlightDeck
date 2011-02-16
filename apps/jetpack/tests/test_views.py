@@ -48,6 +48,13 @@ class TestViews(TestCase):
         eq_(r.status_code, 200)
         eq_(r.content, '{"ready": true}')
 
+    def test_package_browser_no_use(self):
+        """If user does not exist raise 404
+        """
+        r = self.client.get(
+                reverse('jp_browser_user_addons', args=['not_a_user']))
+        eq_(r.status_code, 404)
+
 
 class TestAttachments(TestCase):
     fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']

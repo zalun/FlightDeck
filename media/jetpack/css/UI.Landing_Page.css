@@ -37,8 +37,7 @@ body .UI_middleWrapper.page {
 	#features-wrapper .UI_Feature_Copy {
 		float: left;
         padding-top: 1em;
-		margin-right: 240px;
-		padding-right: 20px;
+		padding-right: 40px;
 		border-right: solid 1px #D0D5DB;
 		-moz-box-shadow: 1px 0 0 #fff;
 	}
@@ -66,10 +65,10 @@ body .UI_middleWrapper.page {
 
 	#features-wrapper .UI_Feature_Side {
 		width: 220px;
-		float: right;
-		position: absolute;
+		float: left;
 		top: 0;
-        padding-top: 1em;
+        padding-top: 22px;
+        padding-left: 35px;
 		right: 3%;
         line-height: 1.4em;
 	}

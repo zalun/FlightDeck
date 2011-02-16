@@ -16,5 +16,12 @@
             "email": "", 
             "date_joined": "2010-09-27 05:39:25"
         }
+    },
+    {
+        "pk": 1,
+        "model": "person.profile",
+        "fields": {
+            "user": 1
+        }
     }
 ]

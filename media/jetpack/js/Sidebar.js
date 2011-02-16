@@ -1,4 +1,3 @@
-
 var Sidebar = new Class({
 	
 	Implements: [Options, Events],
@@ -46,8 +45,15 @@ var Sidebar = new Class({
 					) ? false : true;
 			},
 			onChange: function(){
-				that.renameFile(this.current.retrieve('file'), this.getFullPath(this.current));
-			}
+				var file = this.current.retrieve('file');
+				if (file) {
+				    that.renameFile(file, this.getFullPath(this.current));
+				}
+                // remove this folder, since the back-end already deleted
+                // it in a signal.
+                that.silentlyRemoveFolders(this.current);
+			},
+			editable: this.options.editable
 		};
 		
 		// Tree and Collapse initilizations
@@ -72,7 +78,9 @@ var Sidebar = new Class({
 		};
 		
 		if($('LibTree')) {
-			trees.lib = new FileTree('LibTree', treeOptions);
+			trees.lib = new FileTree('LibTree', Object.merge({
+			    id_prefix: 'l'
+			}, treeOptions));
 			trees.lib.collapse = new FileTree.Collapse('LibTree', collapseOptions);
 			trees.lib.addBranch({
 				'rel': 'directory',
@@ -84,7 +92,9 @@ var Sidebar = new Class({
 		}
 		
 		if($('DataTree')) {
-			trees.data = new FileTree('DataTree', treeOptions);
+			trees.data = new FileTree('DataTree', Object.merge({
+			    id_prefix: 'd'
+			},treeOptions));
 			trees.data.collapse = new FileTree.Collapse('DataTree', collapseOptions);
 			trees.data.addBranch({
 				'rel': 'directory',
@@ -160,16 +170,27 @@ var Sidebar = new Class({
 		
 		// delete
 		sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .actions .delete)'.substitute(this.options), function(e) {
-			var file = $(e.target).getParent('li').retrieve('file');
-			if (!file.options.readonly) {
-				that.promptRemoval(file);
+			var li = $(e.target).getParent('li'),
+			    file = li.retrieve('file'),
+			    isModules = li.getParent('.tree').get('id') == 'LibTree';
+			if (file) {
+				if (!file.options.readonly) {
+					that.promptRemoval(file);
+				}
+			} else {
+				that.promptRemoval(li.get('path'), isModules ? Module : Attachment)
+				$log('a non-empty folder?');
 			}
+			
 		});
 		
 		Object.each(this.trees, function(tree, name) {
 			tree.addEvents({
 				'renameComplete': function(li, fullpath) {
-					that.renameFile(li.retrieve('file'), fullpath);
+					var file = li.retrieve('file');
+					if (file) {
+					    that.renameFile(li.retrieve('file'), fullpath);
+					} 					
 				}
 			});
 		});
@@ -180,9 +201,9 @@ var Sidebar = new Class({
 	renameFile: function(file, fullpath) {
 		var pack = fd.getItem();
 		if (file instanceof Module) {
-			pack.renameModule(file.options.filename, fullpath.replace('.'+file.options.type, ''));
+			pack.renameModule(file.options.filename, fullpath);
 		} else if (file instanceof Attachment) {
-			pack.renameAttachment(file.options.uid, fullpath.replace('.'+file.options.type, ''));
+			pack.renameAttachment(file.options.uid, fullpath);
 		}
 	},
 	
@@ -192,7 +213,7 @@ var Sidebar = new Class({
 			el;
 			
 		el = this.getBranchFromFile(file);
-		el.dispose();
+		tree.removeBranch(el);
 	},
 	
 	addFileToTree: function(treeName, file) {
@@ -210,6 +231,7 @@ var Sidebar = new Class({
 		};
 	
 		if (!this.options.editable || file.options.main) {
+			options.add = false
 			options.edit = false;
 			options.remove = false;
 			options.nodrag = true;
@@ -218,10 +240,20 @@ var Sidebar = new Class({
 		
 		var element = tree.addPath(file, options);	
 		tree.collapse.prepare();
-		file.addEvent('destroy', function() {
+		
+		
+		file._removeFromTree = function() {
 			that.removeFileFromTree(treeName, file);
-		});
-
+		};
+		
+		file.addEvent('destroy', file._removeFromTree);
+		file.addEvent('destroy', function() {
+			element.erase('file');
+		})
+		
+		//check all of element's parents for Folders, destroy them
+		this.silentlyRemoveFolders(element);
+		
 		if((file.options.active || file.options.main) && file.is_editable()) {
 			this.setSelectedFile(element);
 		}
@@ -229,6 +261,24 @@ var Sidebar = new Class({
 	
 	addLib: function(lib) {
 		this.addFileToTree('lib', lib);
+	},
+	
+	removeFile: function(file, prefix) {
+	    
+	    if (file instanceof File) {
+	        file.destroy();
+	        return;
+	    }
+	        
+        if (prefix) prefix+='-';
+        var li = $(prefix+file.replace(/\//g, '-'));
+        
+        if (li) {
+            li.destroy();
+        }
+	    
+	    
+	    
 	},
 	
 	addData: function(attachment) {
@@ -241,11 +291,12 @@ var Sidebar = new Class({
 	
 	getBranchFromFile: function(file) {
 		var branch,
-			tree;
+			title;
 		
 		if(file instanceof Library) {
 			title = file.options.full_name;
-			tree = this.trees.plugins;
+		} else if (file instanceof Folder) {
+			title = file.options.name;
 		} else {
 			title = file.options.filename + '.' + file.options.type;
 			
@@ -283,10 +334,38 @@ var Sidebar = new Class({
 		
 		return this;
 	},
+    
+    silentlyRemoveFolders: function(element) {
+        var node = element;
+        while (node = node.getParent('li')) {
+            
+        	var emptydir = node.retrieve('file');
+        	if (emptydir instanceof Folder) {
+        		emptydir.removeEvent('destroy', emptydir._removeFromTree);
+        		node.eliminate('file');
+        		emptydir.destroy();
+        	}
+        }
+    },
 	
-	promptRemoval: function(file) {
+	promptRemoval: function(file, fileType) {
+		var title = 'Are you sure you want to remove "{name}"?',
+		    titleOpts = {};
+		
+		if (fileType != null) {
+		    titleOpts.name = file + " and all its files";
+		} else {
+		    titleOpts.name = file.options.path
+		}
+		
+		if (fileType == Attachment) {
+		    $log('FD: TODO: remove entire attachment folders');
+		    fd.alertNotImplemented('Deleting a Data folder with subcontent is under construction. A work around, is to manually delete every single attachment inside the folder before removing the folder. Ya, we know.');
+		    return;
+		}
+		
 		var question = fd.showQuestion({
-			title: 'Are you sure you want to remove {name}?'.substitute({ name: file.options.path }),
+			title: title.substitute(titleOpts),
 			message: file instanceof Module ? 'You may always copy it from this revision' : '',
 			ok: 'Remove',
 			id: 'remove_file_button',
@@ -297,6 +376,13 @@ var Sidebar = new Class({
 					fd.getItem().removeAttachment(file);
 				} else if (file instanceof Library) {
 					fd.getItem().removeLibrary(file);
+				} else if (file instanceof Folder) {
+					fd.getItem().removeFolder(file);
+				} else if (fileType == Module) {
+				    fd.getItem().removeModules(file);
+				} else if (fileType == Attachment) {
+				    
+				    //fd.getItem().removeAttachments(file);
 				}
 				
 				
@@ -330,8 +416,9 @@ var Sidebar = new Class({
 					isFolder = true;
 					filename = filename.substr(0, filename.length-1);
 				} else {
-					//strip off any .js
-					filename = filename.replace(/\.js$/, '');
+					//strip off any extensions
+					filename = filename.replace(/^\//, '');
+					filename = filename.replace(/\.[^\.]+$/, '');
 				}
 				
 				if (!isFolder && Module.exists(filename)) {
@@ -343,7 +430,7 @@ var Sidebar = new Class({
 				}
 				
 				if (isFolder){
-					pack.addFolder(filename);
+					pack.addFolder(filename, Folder.ROOT_DIR_LIB);
 				} else {
 					pack.addModule(filename);
 				}
@@ -371,7 +458,10 @@ var Sidebar = new Class({
 		});
 	},
 	
-	promptAttachment: function() {
+	promptAttachment: function(folder) {
+        var path = folder.get('path') || '';
+        if (path) path += '/';
+        var that = this;
 		var prompt = fd.showQuestion({
 			title: 'Create or Upload an Attachment',
 			message: '<input type="file" name="upload_attachment" id="upload_attachment"/>'
@@ -386,31 +476,69 @@ var Sidebar = new Class({
 				var uploadInput = $('upload_attachment'),
 					createInput = $('new_attachment'),
 					files = uploadInput.files,
-					pack = fd.getItem();
+					filename = createInput.value,
+					pack = fd.getItem(),
+					renameAfterLoad;
 				
 				//validation
-				if(!(files && files.length) && !createInput.value) {
+				if(!(files && files.length) && !filename) {
 					fd.error.alert('No file was selected.', 'Please select a file to upload.');
 					return;
 				}
 				
 				for (var f = 0; f < files.length; f++){
-					var filename = files[f].fileName.replace(/\.[^\.]+$/g, ''),
-						ext = files[f].fileName.match(/\.([^\.]+)$/)[1];
+					var fname = files[f].fileName.getFileName(),
+						ex = files[f].fileName.getFileExtension();
 						
-					if (Attachment.exists(filename, ext)) {
+					if (Attachment.exists(fname, ex)) {
 						fd.error.alert('Filename has to be unique', 'You already have an attachment with that name.');
 						return;
 					}
 				}
 				
+				//if passed a folder to put the file in
+				if (filename) {
+				    filename = path + filename;
+				} else if (path) {
+				    renameAfterLoad = function(att) {
+				        var new_name = path + att.options.filename;
+				        
+				        pack.renameAttachment(att.options.uid, new_name);
+				        var el = that.getBranchFromFile(att);
+				        if (el) {
+				            el.destroy();
+				        }
+				        att.options.filename = att.options.path = new_name;
+				        that.addData(att);
+				        
+				    };
+				}
+				
+				if (filename && filename[filename.length-1] == '/') {
+					isFolder = true;
+					filename = filename.substr(0, filename.length-1);
+				}
+				
+				//remove janky characters from filenames
+				if (filename) {
+				    filename = filename.replace(/[^a-zA-Z0-9\-_\/\.]+/g, '-');
+				    filename = filename.replace(/\/{2,}/g, '/');
+				    filename = filename.replace(/^\//, '');
+				    filename = filename.replace(/\/*$/g, ''); /* */
+				    
+				    
+				    if (!isFolder && !filename.getFileExtension()) {
+				        
+				        filename = filename.replace(/\./, '') + '.js'; //we're defaulting to .js files if the user doesnt enter an extension
+				    }
+				}
 				
 				if(files.length) {
-					pack.sendMultipleFiles(files);
+					pack.sendMultipleFiles(uploadInput.files, renameAfterLoad);
 				} else if (isFolder) {
-					$log('isfolder', createInput.value);
+					pack.addFolder(filename, Folder.ROOT_DIR_DATA);
 				} else {
-					pack.addAttachment(createInput.value);
+					pack.addAttachment(filename);
 				}
 				
 				prompt.destroy();

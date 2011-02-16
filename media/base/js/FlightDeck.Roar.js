@@ -46,18 +46,18 @@ FlightDeck = Class.refactor(FlightDeck,{
 		this.roar = new Roar({position:'topRight'});
 		this.warning = {
 		    alert: function(title, message) {
-			fd.roar.alert(title, message, {className: 'roar warning', duration: 8000});
-		    }
+			this.roar.alert(title, message, {className: 'roar warning', duration: 8000});
+		    }.bind(this)
 		};
 		this.error = {
 		    alert: function(title, message) {
-			fd.roar.alert(title, message, {className: 'roar error', duration: 20000});
-		    }
+			this.roar.alert(title, message, {className: 'roar error', duration: 20000});
+		    }.bind(this)
 		};
 		this.message = {
 		    alert: function(title, message) {
-			fd.roar.alert(title, message, {className: 'roar message', duration: 8000});
-		    }
+			this.roar.alert(title, message, {className: 'roar message', duration: 8000});
+		    }.bind(this)
 		};
 		// compatibility with Django messages
 		// http://docs.djangoproject.com/en/dev/ref/contrib/messages/#message-tags
@@ -84,6 +84,11 @@ FlightDeck = Class.refactor(FlightDeck,{
 			e.stop();
 			fd.warning.alert('Not Implemented',this.get('rel') || 'This feature is under construction');
 		});
+	},
+	/* default messages and errors */
+	alertNotImplemented: function(msg){
+		var message = msg || 'This feature is under construction';
+		this.warning.alert('We\'re working on it', message);
 	},
 	/* default messages and errors */
 	alertNotAuthenticated: function(msg){

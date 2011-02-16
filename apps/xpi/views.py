@@ -33,7 +33,14 @@ def prepare_test(r, id_number, revision_number=None):
                 if mod.code != code:
                     mod.code = code
                     modules.append(mod)
-        response, rm_xpi_url = revision.build_xpi(modules, hashtag=hashtag)
+        attachments = []
+        for att in revision.attachments.all():
+            if r.POST.get(str(att.pk), False):
+                code = r.POST.get(str(att.pk))
+                att.code = code
+                attachments.append(att)
+        response, rm_xpi_url = revision.build_xpi(modules, attachments,
+                hashtag=hashtag)
     else:
         response, rm_xpi_url = revision.build_xpi(hashtag=hashtag)
     return HttpResponse('{"delayed": true, "rm_xpi_url": "%s"}' % rm_xpi_url)
@@ -63,6 +70,10 @@ def prepare_download(r, id_number, revision_number=None):
                         package__id_number=id_number, package__type='a',
                         revision_number=revision_number)
     hashtag = r.POST.get('hashtag')
+    if not hashtag:
+        return HttpResponseForbidden('Add-on Builder has been updated!'
+                'We have updated this part of the pplication, please '
+                'empty your cache and reload to get changes.')
     revision.build_xpi(hashtag=hashtag)
     return HttpResponse('{"delayed": true}')
 

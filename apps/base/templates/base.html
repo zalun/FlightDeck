@@ -22,7 +22,7 @@
 		<script src="/media/base/js/Clientcide.ModalWindow.js"></script>
 		<script src="/media/base/js/FlightDeck.Modal.js"></script>
 		<script src="/media/base/js/FlightDeck.Utils.js"></script>
-		<script src="/media/base/js/FlightDeck.Dropdown.js"></script>
+        {# <script src="/media/base/js/FlightDeck.Dropdown.js"></script>#}
 		<script src="/media/base/js/FlightDeck.PickVersion.js"></script>
 		<script src="/media/jetpack/js/Create.js"></script>
 		<title>{% block title %}{% endblock %}{{ settings.SITE_TITLE }}</title>
@@ -41,7 +41,6 @@
 				person_login_url: '{{ settings.LOGIN_URL }}',
 				jp_addon_create_url: '{% url jp_addon_create %}',
 				jp_library_create_url: '{% url jp_library_create %}',
-				create_modal_template: '{% escape_template "_create.html" %}',
 				user: '{{ user.username }}',
 				DEBUG: {{ settings.DEBUG|yesno:"true,false" }}
 			};

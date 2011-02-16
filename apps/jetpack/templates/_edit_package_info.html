@@ -1,9 +1,9 @@
 <form class="UI_Forms" id="package-info_form" method="post" accept-charset="utf-8">
-	<h3>Edit {{ revision.package.full_name }} info</h3>
+	<h3>Edit {full_name} info</h3>
 	<fieldset>
 		<p class="UI_Field">
 			<label for="full_name">{{ revision.package.get_type_name|capfirst }} Name</label>
-			<input type="text" name="full_name" id="full_name" class="validate-alphanum_plus_space" value="{{ revision.package.full_name }}"/>
+            <input type="text" name="full_name" id="full_name" class="validate-alphanum_plus_space" value="{full_name}"/>
 		</p>
 		<p class="UI_Field">
 			<label for="package_description">{{ revision.package.get_type_name|capfirst }} description</label>
