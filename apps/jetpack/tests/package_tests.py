@@ -45,11 +45,8 @@ class PackageTest(TestCase):
                 author=self.author,
                 type='a',
                 full_name=package.name)
-        self.assertRaises(Exception,
-                Package.objects.create,
-                author=self.author,
-                type='a',
-                full_name=package.name)
+        self.assertRaises(Exception, Package.objects.create,
+                          author=self.author, type='a', full_name=package.name)
 
     def test_addon_creation_with_nickname(self):
         """In production if you log in with an AMO user, the username
