@@ -345,9 +345,6 @@ class TestModules(TestCase):
     def get_delete_url(self, revision):
         args = [self.package.id_number, revision]
         return reverse('jp_addon_revision_remove_module', args=args)
-
-    def get_revision(self):
-        return PackageRevision.objects.get(pk=self.revision.pk)
     
     def test_module_add(self):
         revision = self.add_one('a-module')
@@ -365,4 +362,64 @@ class TestModules(TestCase):
         
         revision = self.add_one(filename='void:myXSSFunction(fd.item)')
         eq_(revision.modules.all().order_by('-id')[0].filename, 'void-myXSSFunction-fd')
+
+class TestEmptyDirs(TestCase):
+    fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']
+    
+    def setUp(self):
+        if not os.path.exists(settings.UPLOAD_DIR):
+            os.makedirs(settings.UPLOAD_DIR)
+
+        self.author = User.objects.get(username='john')
+        self.author.set_password('password')
+        self.author.save()
+
+        self.package = self.author.packages_originated.addons()[0:1].get()
+        self.revision = self.package.revisions.all()[0]
         
+        self.client.login(username=self.author.username, password='password')
+    
+    def post(self, url, data):
+        return self.client.post(url, data);
+    
+    def add_one(self, name='tester', root_dir='l'):
+        self.post(self.get_add_url(self.revision.revision_number),
+                  { 'name': name, 'root_dir': root_dir })
+        self.revision = next(self.revision)
+        return self.revision
+
+    def get_add_url(self, revision):
+        args = [self.package.id_number, revision]
+        return reverse('jp_addon_revision_add_folder', args=args)
+
+    def get_delete_url(self, revision):
+        args = [self.package.id_number, revision]
+        return reverse('jp_addon_revision_remove_folder', args=args)
+
+    def test_add_folder(self):
+        res = self.post(self.get_add_url(self.revision.revision_number),
+                        { 'name': 'tester', 'root_dir': 'l' })
+        eq_(res.status_code, 200)
+        json.loads(res.content)
+        
+        revision = next(self.revision)
+        folder = revision.folders.all()[0]
+        eq_(folder.name, 'tester')
+    
+    def test_remove_folder(self):
+        self.add_one()
+        res = self.post(self.get_delete_url(self.revision.revision_number),
+                        { 'name': 'tester', 'root_dir': 'l' })
+        eq_(res.status_code, 200)
+        json.loads(res.content)
+        
+        revision = next(self.revision)
+        eq_(revision.folders.count(), 0)
+    
+    def test_folder_sanitization(self):
+        revision = self.add_one(name='A"> <script src="google.com">/m@l!c!ous')
+        eq_(revision.folders.all()[0].name, 'A-script-src-googlecom-/m-l-c-ous')
+        revision.folder_remove(revision.folders.all()[0])
+        
+        revision = self.add_one(name='/absolute///and/triple/')
+        eq_(revision.folders.all()[0].name, 'absolute/and/triple')

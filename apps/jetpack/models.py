@@ -36,7 +36,7 @@ from base.models import BaseModel
 from jetpack import tasks
 from xpi import xpi_utils
 from utils.os_utils import make_path
-from utils.helpers import pathify, alphanum
+from utils.helpers import pathify, alphanum, alphanum_plus
 
 log = commonware.log.getLogger('f.jetpack')
 
@@ -356,6 +356,13 @@ class Package(BaseModel):
 
         revision.set_version(manifest['version'])
         return revision
+    
+    def clean(self):
+        self.full_name = alphanum_plus(self.full_name)
+        if self.description:
+            self.description = alphanum_plus(self.description)
+        if self.version_name:
+            self.version_name = alphanum_plus(self.version_name)
 
 
 class PackageRevision(BaseModel):
@@ -707,6 +714,7 @@ class PackageRevision(BaseModel):
     def module_add(self, mod, save=True):
         " copy to new revision, add module "
         # validate if given filename is valid
+        mod.clean()
         if not self.validate_module_filename(mod.filename):
             raise FilenameExistException(
                 ('Sorry, there is already a module in your add-on '
@@ -757,6 +765,7 @@ class PackageRevision(BaseModel):
         errorMsg = ('Sorry, there is already a folder in your add-on '
                  'with the name "%s". Each folder in your add-on '
                  'needs to have a unique name.') % dir.name
+        dir.clean()
 
         if not self.validate_folder_name(dir.name, dir.root_dir):
             raise FilenameExistException(errorMsg)
@@ -855,15 +864,17 @@ class PackageRevision(BaseModel):
 
     def attachment_create(self, save=True, **kwargs):
         """ create attachment and add to attachments """
-        filename, ext = kwargs['filename'], kwargs.get('ext', '')
+        att = Attachment(**kwargs)
+        att.clean()
 
-        if not self.validate_attachment_filename(filename, ext):
+        if not self.validate_attachment_filename(att.filename, att.ext):
             raise FilenameExistException(
                 ('Sorry, there is already an attachment in your add-on with '
                  'the name "%s.%s". Each attachment in your add-on needs to '
-                 'have a unique name.') % (filename, ext)
+                 'have a unique name.') % (att.filename, att.ext)
             )
-        att = Attachment.objects.create(**kwargs)
+        
+        att.save()
         self.attachment_add(att, save=save)
         return att
 
@@ -1353,12 +1364,8 @@ class EmptyDir(BaseModel):
     def __unicode__(self):
         return 'Dir: %s (by %s)' % (self.name, self.author.username)
 
-    #def get_root_dir_display(self):
-    #    " overriding to get get package lib and data dirs "
-    #    return
-
-    def export(self, root_dir):
-        pass
+    def clean(self):
+        self.name = pathify(self.name).replace('.', '')
 
 class SDK(BaseModel):
     """
