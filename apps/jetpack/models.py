@@ -19,6 +19,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.signals import pre_save, post_save, m2m_changed
 from django.db import models, IntegrityError
 from django.utils import simplejson
+from django.utils.html import escape
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
@@ -937,7 +938,7 @@ class PackageRevision(BaseModel):
     def get_dependencies_list_json(self):
         " returns dependencies list as JSON object "
         d_list = [{
-                'full_name': d.package.full_name,
+                'full_name': escape(d.package.full_name),
                 'view_url': d.get_absolute_url()
                 } for d in self.dependencies.all()
             ] if self.dependencies.count() > 0 else []
@@ -946,8 +947,8 @@ class PackageRevision(BaseModel):
     def get_modules_list_json(self):
         " returns modules list as JSON object "
         m_list = [{
-                'filename': m.filename,
-                'author': m.author.username,
+                'filename': escape(m.filename),
+                'author': escape(m.author.username),
                 'executable': self.module_main == m.filename,
                 'get_url': reverse('jp_module', args=[m.pk])
                 } for m in self.modules.all()
@@ -958,9 +959,9 @@ class PackageRevision(BaseModel):
         " returns attachments list as JSON object "
         a_list = [{
                 'uid': a.get_uid,
-                'filename': a.filename,
-                'author': a.author.username,
-                'type': a.ext,
+                'filename': escape(a.filename),
+                'author': escape(a.author.username),
+                'type': escape(a.ext),
                 'get_url': reverse('jp_attachment', args=[a.get_uid])
                 } for a in self.attachments.all()
             ] if self.attachments.count() > 0 else []
@@ -969,9 +970,9 @@ class PackageRevision(BaseModel):
     def get_folders_list_json(self):
         " returns empty folders list as JSON object "
         f_list = [{
-                'name': f.name,
-                'author': f.author.username,
-                'root_dir': f.root_dir,
+                'name': escape(f.name),
+                'author': escape(f.author.username),
+                'root_dir': escape(f.root_dir),
                 } for f in self.folders.all()
             ] if self.folders.count() > 0 else []
         return simplejson.dumps(f_list)
