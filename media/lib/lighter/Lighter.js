@@ -7,8 +7,11 @@ license: MIT-style
 authors:
 - Jose Prado
 
+contributors:
+- Daniel Buchner (Updated script for MooTools 1.3)
+
 requires:
-  core/1.2.4: '*'
+  core/1.3.0: '*'
 
 provides: [Lighter]
 
@@ -32,7 +35,7 @@ provides: [Lighter]
 			indent: -1,
 			matchType: "standard",
 			mode: "pre",
-			path: null,
+			path: '/media/lib/lighter/',
 			strict: false
 		},
 	

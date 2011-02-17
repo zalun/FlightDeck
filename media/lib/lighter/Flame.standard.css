@@ -10,7 +10,7 @@ authors:
 ...
 */
 .standardLighter {
-	font-family: Monaco, Courier, Monospace;
+	font-family: Monaco, Courier New, Monospace;
 	font-size: 12px;
 	overflow: auto;
 	white-space: pre-wrap;
@@ -49,11 +49,9 @@ authors:
 
 /** Pre specific styles */
 pre.standardLighter {
-	background-color: #fff;
-	padding-left: 15px;
-	padding-right: 5px;
-	padding-top: 5px;
-	padding-bottom: 5px;
+	background-color: #f8f8ff;
+	border: 1px solid #ddd;
+	padding: 11px 11px 10px;
 }
 
 /** OL specific styles */
