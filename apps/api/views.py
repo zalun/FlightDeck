@@ -63,17 +63,11 @@ def homepage(r, package_name=None):
         } for page in DocPage.objects.filter(sdk=MAIN_SDK)]
 
     sdk_version = SDKVERSION
-    package = {'name': _get_package_fullname(package_name),
-               'modules': _get_module_names(package_name)}
 
     return render_to_response(
         'api_homepage.html',
         {'page': page,
          'sdk_version': sdk_version,
-         #'package': package,
-         #'package_name': package_name,
-         #'corelib': (package_name == CORELIB_NAME),
-         #'addon_kit': ADDON_KIT,
          'doc_list': simplejson.dumps(DOC_LIST)
         }, context_instance=RequestContext(r))
 
