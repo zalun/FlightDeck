@@ -34,8 +34,9 @@ body {
         border-bottom: solid 1px #E9EDF0;
         padding: 0 0 5px;
         margin: 0 0 15px;
-        color: #666;
-        font-size: 1.4em;
+        color: #2e5186;
+        font-size: 2em;
+        font-weight: bold;
         font-family: Helvetica, Arial, Tahoma, sans-serif;
     }
 
@@ -80,15 +81,14 @@ body {
 	}
 
 	#api-body p {
-		line-height: 20px;
 		color: #666;
-		margin: 10px 0;
+		margin: 12px 0;
 		font-size: .95em;
 	}
 
 		#api-body p code {
 			font-size: .95em;
-			font-family: 'Monaco', Courier, Monospace;
+			font-family: 'Monaco', Courier New, Monospace;
 		}
 
 		#api-body p.api-header
@@ -108,7 +108,7 @@ body {
 			margin-top: 30px;
 			font-size: 1.1em;
 			margin-bottom: -10px;
-			font-family: 'Monaco', Courier, Monospace;
+			font-family: 'Monaco', Courier New, Monospace;
 			border: 1px #ECEFF5;
 			border-style: none none solid none;
 		}
@@ -119,7 +119,7 @@ body {
 			margin-top: 30px;
 			margin-bottom: -10px;
 			font-size: 1.1em;
-			font-family: 'Monaco', Courier, Monospace;
+			font-family: 'Monaco', Courier New, Monospace;
 		}
 
 		#api-body p.api-element-header
@@ -132,8 +132,8 @@ body {
 		#api-body .api_name
 			{
 			font-size: 1.0em;
-			font-family: 'Monaco', Courier, Monospace;
-			margin-bottom: -10px;
+			font-family: 'Monaco', Courier New, Monospace;
+			margin: 10px 0 2px;
 		}
 
 		#api-body div.parameter
@@ -147,7 +147,8 @@ body {
 		}
 
 		#api-body div.parameter_set
-			{
+		{
+			margin: 6px 0;
 			margin-left:20px;
 		}
 
@@ -171,7 +172,7 @@ body {
 		margin-top:10px;
 		margin-bottom: -10px;
 		color: #666;
-		font-family: 'Monaco', Courier, Monospace;
+		font-family: 'Monaco', Courier New, Monospace;
 	}
 
 		#api-body dd {
@@ -181,5 +182,23 @@ body {
 					margin-top:10px;
 					margin-bottom: -10px;
 					color: #666;
-					font-family: 'Monaco', Courier, Monospace;
-}
+					font-family: 'Monaco', Courier New, Monospace;
+				}
+	
+	.api_header
+	{
+		margin-bottom: 10px;
+	}
+	
+	.api_component
+	{
+		margin-left: 10px;
+	}
+	
+		.api_component p
+		{
+			color: #888 !important;
+			margin: 2px 0 !important;
+		}
+	
+	

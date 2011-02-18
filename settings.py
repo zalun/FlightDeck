@@ -56,6 +56,9 @@ SYSLOG_TAG = "http_app_builder"
 # unless propagate: True is set.
 LOGGING = {
     'loggers': {
+        'amqplib': {'handlers': ['null']},
+        'celery': {'level': logging.ERROR},
+        'nose.plugins.manager': {'level': logging.INFO},
         'f.jetpack': {'level': logging.INFO},
     },
 }
