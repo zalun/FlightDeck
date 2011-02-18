@@ -471,7 +471,6 @@ def package_upload_attachment(r, id_number, type_id,
         log.error(log_msg)
         return HttpResponseServerError('Path not found.')
 
-    log.debug("creating attachment with content %s" % content)
     attachment = revision.attachment_create_by_filename(
             r.user, filename, content)
 
@@ -595,6 +594,7 @@ def download_attachment(request, uid):
     Display attachment from PackageRevision
     """
     attachment = get_object_or_404(Attachment, id=uid)
+    log.debug(attachment.__dict__)
     response = serve(request, attachment.path,
                      settings.UPLOAD_DIR, show_indexes=False)
     response['Content-Disposition'] = 'filename=%s' % attachment.filename

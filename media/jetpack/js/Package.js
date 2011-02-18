@@ -674,8 +674,9 @@ Package.Edit = new Class({
 	sendMultipleFiles: function(files, onPartialLoad) {
 		var self = this;
 		self.spinner = false;
+        $log('FD:DEBUG: ' + this.options.upload_attachment_url);
 		sendMultipleFiles({
-			url: Function.from(this.options.add_attachment_url),
+			url: Function.from(this.options.upload_attachment_url),
 
 			// list of files to upload
 			files: files,
@@ -735,6 +736,7 @@ Package.Edit = new Class({
 	},
 	
 	addAttachment: function(filename) {
+        // add empty attachment
 		var that = this;
 		new Request.JSON({
 			url: this.options.add_attachment_url,
@@ -1003,7 +1005,6 @@ Package.Edit = new Class({
 				settings.edit_package_info_template.substitute(
 					Object.merge({}, this.data, this.options)));
 		$('package-info_form').addEvent('submit', this.boundSubmitInfo);
-		// XXX: this will change after moving the content to other forms
 		$('version_name').addEvent('change', function() { 
 			fd.fireEvent('change'); 
 		});
@@ -1027,7 +1028,7 @@ Package.Edit = new Class({
 				}
 			});
 		});
-		// XXX: hack to get the right data in the form
+		// Update modal from data (if not saved yet)
 		Object.each(this.data, function(value, key) {
 			if ($(key)) {
 				$(key).value = value;
@@ -1132,16 +1133,5 @@ Package.Edit = new Class({
 
 	registerRevision: function(urls) {
         this.setOptions(urls);
-		//this.options.revision_number = urls.revision_number;
-		//this.options.save_url = urls.save_url;
-		//this.options.test_url = urls.test_url;
-		//this.options.add_module_url = urls.add_module_url;
-		//this.options.rename_module_url = urls.rename_module_url;
-		//this.options.remove_module_url = urls.remove_module_url;
-		//this.options.add_attachment_url = urls.add_attachment_url;
-		//this.options.rename_attachment_url = urls.rename_attachment_url;
-		//this.options.remove_attachment_url = urls.remove_attachment_url;
-		//this.options.assign_library_url = urls.assign_library_url;
-		//this.options.remove_library_url = urls.remove_library_url;
 	}
 });

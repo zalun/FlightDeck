@@ -307,4 +307,5 @@ class TestAttachments(TestCase):
         att = revision.attachments.filter(filename=filename).get()
         log.debug(att.__dict__)
         eq_(att.read(), content)
-
+        response = self.client.get(reverse('jp_attachment', args=[att.pk]))
+        eq_(response.content, content)

@@ -858,7 +858,7 @@ class PackageRevision(models.Model):
                 filename=filename,
                 ext=ext)
 
-        if content:
+        if content or content == '':
             attachment.data = content
             attachment.write()
         return attachment
