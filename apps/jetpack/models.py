@@ -1349,7 +1349,19 @@ class Attachment(models.Model):
                     path)
 
     def increment(self, revision):
-        revision.attachments.remove(self)
+        # revision is already incremented
+        # attachment's filename is unique in revision
+        query = revision.attachments.filter(filename=self.filename)
+        if query.count():
+            try:
+                old = query.get()
+            except:
+                log.warning(
+                    "Fixing revision by removing all duplicate attachments")
+                for old in query.all():
+                    revision.attachments.remove(old)
+            else:
+                revision.attachments.remove(old)
         self.pk = None
         self.save()
         self.write()
