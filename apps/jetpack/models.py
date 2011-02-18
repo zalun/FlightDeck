@@ -1358,7 +1358,7 @@ class Attachment(models.Model):
             except:
                 log.warning(
                     "Fixing revision by removing all duplicate attachments")
-                for old in query.all():
+                for old in query:
                     revision.attachments.remove(old)
             else:
                 revision.attachments.remove(old)

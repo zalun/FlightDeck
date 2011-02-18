@@ -315,5 +315,4 @@ class TestAttachments(TestCase):
         revision3 = self.package.revisions.filter(
                 revision_number=response['revision_number']).get()
         eq_(revision3.revision_number, 3)
-        log.debug([a.filename for a in revision3.attachments.all()])
         eq_(revision3.attachments.count(), 1)
