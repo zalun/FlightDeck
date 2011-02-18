@@ -594,7 +594,6 @@ def download_attachment(request, uid):
     Display attachment from PackageRevision
     """
     attachment = get_object_or_404(Attachment, id=uid)
-    log.debug(attachment.__dict__)
     response = serve(request, attachment.path,
                      settings.UPLOAD_DIR, show_indexes=False)
     response['Content-Disposition'] = 'filename=%s' % attachment.filename

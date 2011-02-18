@@ -410,16 +410,17 @@ var Attachment = new Class({
 
 	loadContent: function() {
 		// load data synchronously
+        var that = this;
 		new Request({
 			url: this.options.get_url,
 			async: false,
 			useSpinner: true,
 			spinnerTarget: 'editor-wrapper',
-			onSuccess: function(text) {
-                this.content = text;
-                this.original_content = text;
-				this.fireEvent('loadcontent', text);
-			}.bind(this)
+			onSuccess: function() {
+                that.content = this.response.text;
+                that.original_content = this.response.text;
+				that.fireEvent('loadcontent', this.response.text);
+			}
 		}).send();
 	},
 

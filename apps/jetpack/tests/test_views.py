@@ -288,7 +288,6 @@ class TestAttachments(TestCase):
                     "filename": "%s.html" % filename}).content)
         revision = self.package.revisions.filter(
                 revision_number=response['revision_number']).get()
-        log.debug(revision)
         content = """<html>
 <head>
     <script>
@@ -303,9 +302,7 @@ class TestAttachments(TestCase):
                     ).content)
         revision = self.package.revisions.filter(
                 revision_number=response['revision_number']).get()
-        log.debug(revision)
         att = revision.attachments.filter(filename=filename).get()
-        log.debug(att.__dict__)
         eq_(att.read(), content)
         response = self.client.get(reverse('jp_attachment', args=[att.pk]))
         eq_(response.content, content)
