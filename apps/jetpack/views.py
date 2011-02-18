@@ -5,7 +5,7 @@ import commonware.log
 import time
 import os
 import shutil
-import re
+#import re
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -13,7 +13,7 @@ from django.views.static import serve
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponseRedirect, HttpResponse, \
                         HttpResponseForbidden, HttpResponseServerError, \
-                        HttpResponseNotAllowed, Http404, QueryDict
+                        HttpResponseNotAllowed, Http404  #, QueryDict
 from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
