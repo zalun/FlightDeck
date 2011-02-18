@@ -316,3 +316,7 @@ class TestAttachments(TestCase):
                 revision_number=response['revision_number']).get()
         eq_(revision3.revision_number, 3)
         eq_(revision3.attachments.count(), 1)
+        att = revision3.attachments.filter(filename=filename).get()
+        eq_(att.read(), content2)
+        response = self.client.get(reverse('jp_attachment', args=[att.pk]))
+        eq_(response.content, content2)
