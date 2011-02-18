@@ -1,6 +1,9 @@
 import os
+import commonware
 import json
 import StringIO
+import simplejson
+
 from datetime import datetime
 
 from test_utils import TestCase
@@ -18,6 +21,8 @@ from jetpack.models import PackageRevision, Attachment
 from jetpack.errors import FilenameExistException
 from jetpack.views import latest_by_uid
 from base.templatetags.base_helpers import hashtag
+
+log = commonware.log.getLogger('f.test')
 
 
 def next(revision):
@@ -71,6 +76,7 @@ class TestAttachments(TestCase):
         self.revision = self.package.revisions.all()[0]
 
         self.add_url = self.get_add_url(self.revision.revision_number)
+        self.upload_url = self.get_upload_url(self.revision.revision_number)
         self.change_url = self.get_change_url(self.revision.revision_number)
         self.client.login(username=self.author.username, password='password')
 
@@ -79,9 +85,13 @@ class TestAttachments(TestCase):
         eq_(res.status_code, 500)
 
     def add_one(self):
-        self.post(self.add_url, 'foo', 'some.txt')
+        self.upload(self.upload_url, 'foo', 'some.txt')
         return PackageRevision.objects.get(package=self.package,
                                            revision_number=1)
+
+    def get_upload_url(self, revision):
+        args = [self.package.id_number, revision]
+        return reverse('jp_addon_revision_upload_attachment', args=args)
 
     def get_add_url(self, revision):
         args = [self.package.id_number, revision]
@@ -98,14 +108,14 @@ class TestAttachments(TestCase):
     def get_revision(self):
         return PackageRevision.objects.get(pk=self.revision.pk)
 
-    def post(self, url, data, filename):
+    def upload(self, url, data, filename):
         # A post that matches the JS and uses raw_post_data.
         return self.client.post(url, data,
                                 content_type='text/plain',
                                 HTTP_X_FILE_NAME=filename)
 
     def test_attachment_path(self):
-        res = self.post(self.add_url, 'foo', 'some.txt')
+        res = self.upload(self.upload_url, 'foo', 'some.txt')
         eq_(res.status_code, 200)
         revision = PackageRevision.objects.get(package=self.package,
                                                revision_number=1)
@@ -115,7 +125,7 @@ class TestAttachments(TestCase):
         eq_(bits[-4:-1], now.strftime('%Y-%m-%d').split('-'))
 
     def test_attachment_add_read(self):
-        res = self.post(self.add_url, 'foo', 'some.txt')
+        res = self.upload(self.upload_url, 'foo', 'some.txt')
         eq_(res.status_code, 200)
 
         revision = PackageRevision.objects.get(package=self.package,
@@ -124,7 +134,7 @@ class TestAttachments(TestCase):
         eq_(revision.attachments.all()[0].read(), 'foo')
 
     def test_attachment_add(self):
-        res = self.post(self.add_url, 'foo', 'some.txt')
+        res = self.upload(self.upload_url, 'foo', 'some.txt')
         eq_(res.status_code, 200)
         json.loads(res.content)
 
@@ -141,12 +151,12 @@ class TestAttachments(TestCase):
         for x in range(0, 1024 * 32):
             temp.write("x" * 1024)
 
-        self.post(self.add_url, temp.getvalue(), 'some-big-file.txt')
+        self.upload(self.upload_url, temp.getvalue(), 'some-big-file.txt')
 
     def test_attachment_same_fails(self):
         self.test_attachment_add()
-        self.assertRaises(FilenameExistException, self.post,
-                          self.get_add_url(1), 'foo bar', 'some.txt')
+        self.assertRaises(FilenameExistException, self.upload,
+                          self.get_upload_url(1), 'foo bar', 'some.txt')
 
     def test_attachment_revision_count(self):
         revisions = PackageRevision.objects.filter(package=self.package)
@@ -176,7 +186,7 @@ class TestAttachments(TestCase):
         revision = self.add_one()
         assert revision.attachments.count(), 1
 
-        self.post(self.add_url, 'foo', 'some-other.txt')
+        self.upload(self.upload_url, 'foo', 'some-other.txt')
         assert revision.attachments.count(), 2
 
     def test_attachment_latest(self):
@@ -270,3 +280,32 @@ class TestAttachments(TestCase):
         revision = PackageRevision.objects.get(package=self.package,
                                                revision_number=3)
         assert not revision.attachments.all().count()
+
+    def test_attachment_with_script_block(self):
+        filename = "html/test"
+        response = simplejson.loads(
+                self.client.post(self.add_url, {
+                    "filename": "%s.html" % filename}).content)
+        revision = self.package.revisions.filter(
+                revision_number=response['revision_number']).get()
+        log.debug(revision)
+        content = """<html>
+<head>
+    <script>
+        (function(){})();
+    </script>
+</head>
+<body>
+</body>
+</html>"""
+        response = simplejson.loads(
+                self.client.post(self.change_url, {response['uid']: content}
+                    ).content)
+        revision = self.package.revisions.filter(
+                revision_number=response['revision_number']).get()
+        log.debug(revision)
+        att = revision.attachments.filter(filename=filename).get()
+        log.debug(att.__dict__)
+        eq_(att.read(), content)
+        response = self.client.get(reverse('jp_attachment', args=[att.pk]))
+        eq_(response.content, content)

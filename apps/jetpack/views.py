@@ -448,10 +448,43 @@ def package_switch_sdk(r, id_number, revision_number):
 
 @require_POST
 @login_required
-def package_add_attachment(r, id_number, type_id,
+def package_upload_attachment(r, id_number, type_id,
                            revision_number=None, version_name=None):
+    """ Upload new attachment to the PackageRevision
     """
-    Add new attachment to the PackageRevision
+    revision = get_package_revision(id_number, type_id, revision_number,
+                                    version_name)
+    if r.user.pk != revision.author.pk:
+        log_msg = ("[security] Attempt to upload attachment to package (%s) by "
+                   "non-owner (%s)" % (id_number, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden(
+            'You are not the author of this %s' \
+                % escape(revision.package.get_type_name()))
+
+    content = r.raw_post_data
+    filename = r.META.get('HTTP_X_FILE_NAME')
+
+    if not filename:
+        log_msg = 'Path not found: %s, package: %s.' % (
+            filename, id_number)
+        log.error(log_msg)
+        return HttpResponseServerError('Path not found.')
+
+    attachment = revision.attachment_create_by_filename(
+            r.user, filename, content)
+
+    return render_to_response("json/attachment_added.json",
+                {'revision': revision, 'attachment': attachment},
+                context_instance=RequestContext(r),
+                mimetype='application/json')
+
+
+@require_POST
+@login_required
+def package_add_empty_attachment(r, id_number, type_id,
+                           revision_number=None, version_name=None):
+    """ Add new empty attachment to the PackageRevision
     """
     revision = get_package_revision(id_number, type_id, revision_number,
                                     version_name)
@@ -463,19 +496,7 @@ def package_add_attachment(r, id_number, type_id,
             'You are not the author of this %s' \
                 % escape(revision.package.get_type_name()))
 
-
-    content = r.raw_post_data
-    filename = r.META.get('HTTP_X_FILE_NAME')
-
-    # when creating an attachment, instead of Uploading..
-    if not filename:
-        # http://code.djangoproject.com/ticket/12522
-        # accessing raw_post_data kinda blows up r.POST
-        # so just build our own using the raw data we got
-        post = QueryDict(content)
-        filename = post.get('filename')
-        content = ''
-
+    filename = r.POST.get('filename', False)
 
     if not filename:
         log_msg = 'Path not found: %s, package: %s.' % (
@@ -483,9 +504,7 @@ def package_add_attachment(r, id_number, type_id,
         log.error(log_msg)
         return HttpResponseServerError('Path not found.')
 
-    attachment = revision.attachment_create_by_filename(r.user, filename)
-    attachment.data = content
-    attachment.write()
+    attachment = revision.attachment_create_by_filename(r.user, filename, '')
 
     return render_to_response("json/attachment_added.json",
                 {'revision': revision, 'attachment': attachment},
@@ -508,10 +527,10 @@ def package_rename_attachment(r, id_number, type_id, revision_number):
 
     uid = r.POST.get('uid', '').strip()
     new_name = r.POST.get('new_filename')
-    
-    
+
+
     attachment = latest_by_uid(revision, uid)
-    
+
     new_ext = r.POST.get('new_ext') or attachment.ext
 
     if not attachment:
@@ -575,6 +594,7 @@ def download_attachment(request, uid):
     Display attachment from PackageRevision
     """
     attachment = get_object_or_404(Attachment, id=uid)
+    log.debug(attachment.__dict__)
     response = serve(request, attachment.path,
                      settings.UPLOAD_DIR, show_indexes=False)
     response['Content-Disposition'] = 'filename=%s' % attachment.filename

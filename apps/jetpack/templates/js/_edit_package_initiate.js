@@ -6,6 +6,7 @@
   rename_module_url: '{{ revision.get_rename_module_url }}',
   remove_module_url: '{{ revision.get_remove_module_url }}',
   add_attachment_url: '{{ revision.get_add_attachment_url }}',
+  upload_attachment_url: "{{ revision.get_upload_attachment_url }}",
   rename_attachment_url: '{{ revision.get_rename_attachment_url }}',
   remove_attachment_url: '{{ revision.get_remove_attachment_url }}',
   assign_library_url: '{{ revision.get_assign_library_url }}',

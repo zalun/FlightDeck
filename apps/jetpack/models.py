@@ -437,6 +437,12 @@ class PackageRevision(models.Model):
             'jp_%s_revision_remove_module' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
+    def get_upload_attachment_url(self):
+        " returns URL to upload attachment to the package revision "
+        return reverse(
+            'jp_%s_revision_upload_attachment' % self.package.get_type_name(),
+            args=[self.package.id_number, self.revision_number])
+
     def get_add_attachment_url(self):
         " returns URL to add attachment to the package revision "
         return reverse(
@@ -842,15 +848,21 @@ class PackageRevision(models.Model):
                         att.write()
                         self.attachments.add(att)
 
-    def attachment_create_by_filename(self, author, filename):
+    def attachment_create_by_filename(self, author, filename, content=None):
         """ find out the filename and ext and call attachment_create """
         filename, ext = os.path.splitext(filename)
         ext = ext.split('.')[1].lower() if ext else ''
 
-        return self.attachment_create(
+        attachment = self.attachment_create(
                 author=author,
                 filename=filename,
                 ext=ext)
+
+        if content or content == '':
+            attachment.data = content
+            attachment.write()
+        return attachment
+
 
     def attachment_create(self, save=True, **kwargs):
         """ create attachment and add to attachments """
@@ -1290,7 +1302,10 @@ class Attachment(models.Model):
     def read(self):
         """Reads the file, if it doesn't exist return empty."""
         if self.path and os.path.exists(self.get_file_path()):
-            return open(self.get_file_path(), 'rb').read()
+            f = open(self.get_file_path(), 'rb')
+            content = f.read()
+            f.close()
+            return content
         return ""
 
     def changed(self):

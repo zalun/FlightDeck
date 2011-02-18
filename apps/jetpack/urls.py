@@ -125,13 +125,21 @@ urlpatterns = patterns('jetpack.views',
         'package_switch_sdk', name='jp_addon_switch_sdk_version'),
 
     # add/remove attachment
+    url(r'^addon/upload_attachment/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
+        'package_upload_attachment',
+        {'type_id': 'a'}, name='jp_addon_revision_upload_attachment'),
+    url(r'^library/upload_attachment/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
+        'package_upload_attachment',
+        {'type_id': 'l'},  name='jp_library_revision_upload_attachment'),
     url(r'^addon/add_attachment/(?P<id_number>[-\w]+)/revision/'
             '(?P<revision_number>\d+)/$',
-        'package_add_attachment',
+        'package_add_empty_attachment',
         {'type_id': 'a'}, name='jp_addon_revision_add_attachment'),
     url(r'^library/add_attachment/(?P<id_number>[-\w]+)/revision/'
             '(?P<revision_number>\d+)/$',
-        'package_add_attachment',
+        'package_add_empty_attachment',
         {'type_id': 'l'},  name='jp_library_revision_add_attachment'),
     url(r'^addon/remove_attachment/(?P<id_number>[-\w]+)/revision/'
             '(?P<revision_number>\d+)/$',
@@ -163,7 +171,7 @@ urlpatterns = patterns('jetpack.views',
         'package_add_folder',
         {'type_id': 'l'}, name='jp_library_revision_add_folder',
         ),
-    
+
     #remove empty dir
     url(r'^addon/remove_folder/(?P<id_number>[-\w]+)/revision'
             '(?P<revision_number>\d+)/$',
@@ -175,8 +183,8 @@ urlpatterns = patterns('jetpack.views',
         'package_remove_folder',
         {'type_id': 'l'}, name='jp_library_revision_remove_folder',
         ),
-    
-    
+
+
     # display attachment
     url(r'^attachment/(?P<uid>.*)$',
         'download_attachment', name='jp_attachment'),
