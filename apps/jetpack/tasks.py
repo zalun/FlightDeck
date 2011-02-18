@@ -1,4 +1,4 @@
-import commonware
+import commonware.log
 
 from celery.decorators import task
 
