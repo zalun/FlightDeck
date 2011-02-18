@@ -60,7 +60,7 @@ def build(sdk_dir, package_dir, filename, hashtag):
 
     log.info('[xpi:%s] Created xpi: %s (time: %0.3fms)' % (hashtag,
                                                            xpi_targetpath,
-                                                           ((t2-t1)*1000)))
+                                                           ((t2 - t1) * 1000)))
 
     return ret
 

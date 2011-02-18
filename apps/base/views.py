@@ -75,13 +75,14 @@ def monitor(request):
 
 def monitor_file_check(request):
     monitor_file = request.POST.get('monitor_file')
-    file_existed = False;
+    file_existed = False
     if os.path.isfile(monitor_file):
         # delete file
         os.remove(monitor_file)
         # return JSON
         file_existed = True
     return HttpResponse(simplejson.dumps({"success": file_existed}))
+
 
 def homepage(r):
     # one more for the main one

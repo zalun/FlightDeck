@@ -1,6 +1,10 @@
+import commonware.log
+
 from celery.decorators import task
 
 from xpi import xpi_utils
+
+log = commonware.log.getLogger('f.celery')
 
 
 @task(rate_limit='30/m')

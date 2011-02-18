@@ -3,6 +3,7 @@ import subprocess
 
 from django.conf import settings
 
+
 def export_docs(sdk_dir):
     # export docs
     os.chdir(sdk_dir)

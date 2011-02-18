@@ -5,7 +5,7 @@ import commonware.log
 import time
 import os
 import shutil
-import re
+#import re
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -13,7 +13,7 @@ from django.views.static import serve
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponseRedirect, HttpResponse, \
                         HttpResponseForbidden, HttpResponseServerError, \
-                        HttpResponseNotAllowed, Http404, QueryDict
+                        HttpResponseNotAllowed, Http404  # , QueryDict
 from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -344,15 +344,16 @@ def package_remove_module(r, id_number, type_id, revision_number):
     """
     revision = get_package_revision(id_number, type_id, revision_number)
     if r.user.pk != revision.author.pk:
-        log_msg = ("[security] Attempt to remove a module from package (%s) by "
-                   "non-owner (%s)" % (id_number, r.user))
+        log_msg = ("[security] Attempt to remove a module from package (%s) "
+                "by non-owner (%s)" % (id_number, r.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
     filenames = r.POST.get('filename').split(',')
 
     try:
-        removed_modules, removed_dirs = revision.modules_remove_by_path(filenames)
+        removed_modules, removed_dirs = revision.modules_remove_by_path(
+                filenames)
     except Module.DoesNotExist:
         log_msg = 'Attempt to delete a non existing module(s) %s from %s.' % (
             str(filenames), id_number)
@@ -402,8 +403,8 @@ def package_remove_folder(r, id_number, type_id, revision_number):
     " removes an EmptyDir from a revision "
     revision = get_package_revision(id_number, type_id, revision_number)
     if r.user.pk != revision.author.pk:
-        log_msg = ("[security] Attempt to remove a folder from package (%s) by "
-                   "non-owner (%s)" % (id_number, r.user))
+        log_msg = ("[security] Attempt to remove a folder from package (%s) "
+                "by non-owner (%s)" % (id_number, r.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -424,6 +425,7 @@ def package_remove_folder(r, id_number, type_id, revision_number):
                 {'revision': revision, 'folder': folder},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
+
 
 @require_POST
 @login_required
@@ -455,8 +457,8 @@ def package_upload_attachment(r, id_number, type_id,
     revision = get_package_revision(id_number, type_id, revision_number,
                                     version_name)
     if r.user.pk != revision.author.pk:
-        log_msg = ("[security] Attempt to upload attachment to package (%s) by "
-                   "non-owner (%s)" % (id_number, r.user))
+        log_msg = ("[security] Attempt to upload attachment to package (%s) "
+                "by non-owner (%s)" % (id_number, r.user))
         log.warning(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' \
@@ -520,14 +522,13 @@ def package_rename_attachment(r, id_number, type_id, revision_number):
     """
     revision = get_package_revision(id_number, type_id, revision_number)
     if r.user.pk != revision.author.pk:
-        log_msg = ("[security] Attempt to rename attachment in package (%s) by "
-                   "non-owner (%s)" % (id_number, r.user))
+        log_msg = ("[security] Attempt to rename attachment in package (%s) "
+                "by non-owner (%s)" % (id_number, r.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
     uid = r.POST.get('uid', '').strip()
     new_name = r.POST.get('new_filename')
-
 
     attachment = latest_by_uid(revision, uid)
 
@@ -565,8 +566,8 @@ def package_remove_attachment(r, id_number, type_id, revision_number):
     """
     revision = get_package_revision(id_number, type_id, revision_number)
     if r.user.pk != revision.author.pk:
-        log_msg = ("[security] Attempt to remove attachment from package (%s) by "
-                   "non-owner (%s)" % (id_number, r.user))
+        log_msg = ("[security] Attempt to remove attachment from package (%s) "
+                "by non-owner (%s)" % (id_number, r.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 

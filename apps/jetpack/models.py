@@ -596,7 +596,6 @@ class PackageRevision(models.Model):
                         .filter(revision_number__lt=self.revision_number)[0]
                             .version_name, self.revision_number)
 
-
     ######################
     # revision save methods
 
@@ -635,7 +634,6 @@ class PackageRevision(models.Model):
 
         for att in origin.attachments.all():
             self.attachments.add(att)
-
 
         self.package.latest = self
         self.package.save()
@@ -863,7 +861,6 @@ class PackageRevision(models.Model):
             attachment.write()
         return attachment
 
-
     def attachment_create(self, save=True, **kwargs):
         """ create attachment and add to attachments """
         filename, ext = kwargs['filename'], kwargs.get('ext', '')
@@ -1046,8 +1043,8 @@ class PackageRevision(models.Model):
         """
         if self.package.type == 'l':
             log.error("Attempt to build xpi (%s), but package is not an "
-                      "add-on. Expected (l) but got (%s)." % (self.package.type,
-                      self.get_version_name()))
+                      "add-on. Expected (l) but got (%s)." % (
+                          self.package.type, self.get_version_name()))
             raise Exception("Only add-ons may build an xpi.")
 
         if not hashtag:
@@ -1198,7 +1195,9 @@ class Module(models.Model):
         return package.full_name if package else ''
 
     def get_path(self):
-        " returns the path of directories that would be created from the filename "
+        """returns the path of directories that would be created from
+        the filename
+        """
         parts = self.filename.split('/')[0:-1]
         return ('/'.join(parts)) if parts else None
 
@@ -1281,7 +1280,9 @@ class Attachment(models.Model):
         return name
 
     def get_path(self):
-        " returns the path of directories that would be created from the filename "
+        """ returns the path of directories that would be created from
+        the filename
+        """
         parts = self.filename.split('/')[0:-1]
         return ('/'.join(parts)) if parts else None
 
@@ -1377,9 +1378,9 @@ class EmptyDir(models.Model):
     def export(self, root_dir):
         pass
 
+
 class SDK(models.Model):
-    """
-    Jetpack SDK representation in database
+    """ Jetpack SDK representation in database
     Add-ons have to depend on an SDK, by default on the latest one.
     """
     version = models.CharField(max_length=10, unique=True)
@@ -1433,18 +1434,18 @@ class SDK(models.Model):
         # import data
         tar_file = tarfile.open(tar_path)
 
-
-
         for member in tar_file.getmembers():
             if 'addon-sdk-docs/packages/' in member.name:
                 # filter package description
                 if 'README.md' in member.name:
                     """ consider using description for packages """
                     member_path = member.name.split('/README.md')[0]
-                    member_path = member_path.split('addon-sdk-docs/packages/')[1]
+                    member_path = member_path.split(
+                            'addon-sdk-docs/packages/')[1]
                     member_file = tar_file.extractfile(member)
                     try:
-                        docpage = DocPage.objects.get(sdk=self, path=member_path)
+                        docpage = DocPage.objects.get(
+                                sdk=self, path=member_path)
                     except ObjectDoesNotExist:
                         docpage = DocPage(sdk=self, path=member_path)
                     docpage.html = '<h1>%s</h1>%s' % (
@@ -1454,11 +1455,14 @@ class SDK(models.Model):
                     docpage.save()
                     member_file.close()
                 # filter module description
-                if '/docs/' in member.name and '.md' in member.name and '.md.' not in member.name:
+                if '/docs/' in member.name \
+                        and '.md' in member.name \
+                        and '.md.' not in member.name:
                     # strip down to the member_path
                     member_path = member.name.split('.md')[0]
                     member_path = ''.join(member_path.split('/docs'))
-                    member_path = member_path.split('addon-sdk-docs/packages/')[1]
+                    member_path = member_path.split(
+                            'addon-sdk-docs/packages/')[1]
                     # extract member_html and member_json
                     try:
                         member_html = tar_file.getmember(member.name + '.div')
@@ -1470,7 +1474,8 @@ class SDK(models.Model):
                     member_json_file = tar_file.extractfile(member_json)
                     # create or load docs
                     try:
-                        docpage = DocPage.objects.get(sdk=self, path=member_path)
+                        docpage = DocPage.objects.get(
+                                sdk=self, path=member_path)
                     except ObjectDoesNotExist:
                         docpage = DocPage(sdk=self, path=member_path)
                     docpage.html = member_html_file.read()
@@ -1562,6 +1567,7 @@ exports.main = function() {};"""
     instance.save()
 post_save.connect(save_first_revision, sender=Package)
 
+
 def manage_empty_lib_dirs(instance, action, **kwargs):
     """
     create EmptyDirs when all modules in a "dir" are deleted,
@@ -1589,12 +1595,15 @@ def manage_empty_lib_dirs(instance, action, **kwargs):
             if not dirname:
                 continue
 
-            if not instance.modules.filter(filename__startswith=dirname).count():
-                emptydir = EmptyDir(name=dirname, author=instance.author, root_dir='l')
+            if not instance.modules.filter(
+                    filename__startswith=dirname).count():
+                emptydir = EmptyDir(
+                        name=dirname, author=instance.author, root_dir='l')
                 emptydir.save()
 
                 instance.folders.add(emptydir)
 m2m_changed.connect(manage_empty_lib_dirs, sender=Module.revisions.through)
+
 
 def manage_empty_data_dirs(instance, action, **kwargs):
     """
@@ -1623,9 +1632,12 @@ def manage_empty_data_dirs(instance, action, **kwargs):
             if not dirname:
                 continue
 
-            if not instance.attachments.filter(filename__startswith=dirname).count():
-                emptydir = EmptyDir(name=dirname, author=instance.author, root_dir='d')
+            if not instance.attachments.filter(
+                    filename__startswith=dirname).count():
+                emptydir = EmptyDir(
+                        name=dirname, author=instance.author, root_dir='d')
                 emptydir.save()
 
                 instance.folders.add(emptydir)
-m2m_changed.connect(manage_empty_data_dirs, sender=Attachment.revisions.through)
+m2m_changed.connect(
+        manage_empty_data_dirs, sender=Attachment.revisions.through)
