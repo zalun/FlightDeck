@@ -66,6 +66,24 @@ class PackageTest(TestCase):
         package.save()
 
         eq_(package.full_name, 'Gordon')
+    
+    def test_package_sanitization(self):
+        bad_text = 'Te$t"><script src="google.com"></script>!#'
+        good_text = 'Te$tscript srcgoogle.comscript!#'
+        
+        package = Package(
+            author=self.author,
+            type='a',
+            full_name=bad_text,
+            description=bad_text,
+            version_name=bad_text
+        )
+        package.save()
+        
+        eq_(package.full_name, good_text)
+        eq_(package.description, good_text)
+        eq_(package.version_name, good_text)
+        
 
     def test_automatic_numbering(self):
         Package(

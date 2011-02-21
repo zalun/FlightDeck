@@ -24,10 +24,10 @@ from base.templatetags.base_helpers import hashtag
 
 log = commonware.log.getLogger('f.test')
 
-
 def next(revision):
     number = revision.revision_number
-    return (PackageRevision.objects.filter(revision_number__gt=number)
+    return (PackageRevision.objects.filter(revision_number__gt=number,
+                                           package=revision.package)
                                    .order_by('-revision_number')[:1])[0]
 
 
@@ -74,6 +74,7 @@ class TestAttachments(TestCase):
 
         self.package = self.author.packages_originated.addons()[0:1].get()
         self.revision = self.package.revisions.all()[0]
+        self.revision_number = 0
 
         self.add_url = self.get_add_url(self.revision.revision_number)
         self.upload_url = self.get_upload_url(self.revision.revision_number)
@@ -84,10 +85,10 @@ class TestAttachments(TestCase):
         res = self.client.post(self.add_url, {})
         eq_(res.status_code, 500)
 
-    def add_one(self):
-        self.upload(self.upload_url, 'foo', 'some.txt')
-        return PackageRevision.objects.get(package=self.package,
-                                           revision_number=1)
+    def add_one(self, data = 'foo', filename='some.txt'):
+        self.upload(self.get_upload_url(self.revision.revision_number), data, filename)
+        self.revision = next(self.revision)
+        return self.revision
 
     def get_upload_url(self, revision):
         args = [self.package.id_number, revision]
@@ -141,6 +142,10 @@ class TestAttachments(TestCase):
         revision = PackageRevision.objects.get(package=self.package,
                                                revision_number=1)
         eq_(revision.attachments.count(), 1)
+
+    def test_attachment_default_extension(self):
+        revision = self.add_one(data='foo', filename='some')
+        eq_(revision.attachments.all()[0].ext, 'js')
 
     def test_attachment_large(self):
         raise SkipTest()
@@ -320,3 +325,149 @@ class TestAttachments(TestCase):
         eq_(att.read(), content2)
         response = self.client.get(reverse('jp_attachment', args=[att.pk]))
         eq_(response.content, content2)
+
+    def test_attachment_extension_too_long(self):
+        res = self.upload(self.get_upload_url(self.revision.revision_number), 'foo', 'file.toolongofanextension')
+        eq_(res.status_code, 403)
+
+    def test_attachment_filename_sanitization(self):
+        revision = self.add_one(filename='My Photo of j0hnny.jpg')
+        att = revision.attachments.all()[0]
+        eq_(att.filename, 'My-Photo-of-j0hnny')
+        revision.attachment_remove(att)
+
+        revision = self.add_one(filename='^you*()"[]"are-_crazy')
+        att = revision.attachments.all()[0]
+        eq_(att.filename, '-you-are-_crazy')
+        revision.attachment_remove(att)
+
+        revision = self.add_one(filename='"><a href="">test')
+        att = revision.attachments.all()[0]
+        eq_(att.filename, '-a-href-test')
+        revision.attachment_remove(att)
+
+        revision = self.add_one(filename='template.html.js')
+        att = revision.attachments.all()[0]
+        eq_(att.filename, 'template.html')
+        revision.attachment_remove(att)
+
+        revision = self.add_one(filename='image.-png^*(@&#')
+        att = revision.attachments.all()[0]
+        eq_(att.filename, 'image')
+        eq_(att.ext, 'png')
+        revision.attachment_remove(att)
+
+        revision = self.add_one(filename='image.<a href=""')
+        att = revision.attachments.all()[0]
+        eq_(att.filename, 'image')
+        eq_(att.ext, 'ahref')
+        revision.attachment_remove(att)
+
+class TestModules(TestCase):
+
+    fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']
+
+    def setUp(self):
+        if not os.path.exists(settings.UPLOAD_DIR):
+            os.makedirs(settings.UPLOAD_DIR)
+
+        self.author = User.objects.get(username='john')
+        self.author.set_password('password')
+        self.author.save()
+
+        self.package = self.author.packages_originated.addons()[0:1].get()
+        self.revision = self.package.revisions.all()[0]
+
+        self.client.login(username=self.author.username, password='password')
+
+    def add_one(self, filename='tester'):
+        self.client.post(self.get_add_url(self.revision.revision_number), { 'filename': filename })
+        self.revision = next(self.revision)
+        return self.revision
+
+    def get_add_url(self, revision):
+        args = [self.package.id_number, revision]
+        return reverse('jp_addon_revision_add_module', args=args)
+
+    def get_delete_url(self, revision):
+        args = [self.package.id_number, revision]
+        return reverse('jp_addon_revision_remove_module', args=args)
+
+    def test_module_add(self):
+        revision = self.add_one('a-module')
+        # 1 for main, 1 for added, so 2
+        eq_(revision.modules.all().count(), 2)
+        eq_(revision.modules.all().order_by('-id')[0].filename, 'a-module')
+
+    def test_module_add_with_extension(self):
+        revision = self.add_one('test.js')
+        eq_(revision.modules.all().order_by('-id')[0].filename, 'test')
+
+    def test_module_name_sanitization(self):
+        revision = self.add_one(filename='A"> <a href="google.com">malicious module')
+        eq_(revision.modules.all().order_by('-id')[0].filename, 'A-a-href-google')
+
+        revision = self.add_one(filename='void:myXSSFunction(fd.item)')
+        eq_(revision.modules.all().order_by('-id')[0].filename, 'void-myXSSFunction-fd')
+
+class TestEmptyDirs(TestCase):
+    fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']
+
+    def setUp(self):
+        if not os.path.exists(settings.UPLOAD_DIR):
+            os.makedirs(settings.UPLOAD_DIR)
+
+        self.author = User.objects.get(username='john')
+        self.author.set_password('password')
+        self.author.save()
+
+        self.package = self.author.packages_originated.addons()[0:1].get()
+        self.revision = self.package.revisions.all()[0]
+
+        self.client.login(username=self.author.username, password='password')
+
+    def post(self, url, data):
+        return self.client.post(url, data);
+
+    def add_one(self, name='tester', root_dir='l'):
+        self.post(self.get_add_url(self.revision.revision_number),
+                  { 'name': name, 'root_dir': root_dir })
+        self.revision = next(self.revision)
+        return self.revision
+
+    def get_add_url(self, revision):
+        args = [self.package.id_number, revision]
+        return reverse('jp_addon_revision_add_folder', args=args)
+
+    def get_delete_url(self, revision):
+        args = [self.package.id_number, revision]
+        return reverse('jp_addon_revision_remove_folder', args=args)
+
+    def test_add_folder(self):
+        res = self.post(self.get_add_url(self.revision.revision_number),
+                        { 'name': 'tester', 'root_dir': 'l' })
+        eq_(res.status_code, 200)
+        json.loads(res.content)
+
+        revision = next(self.revision)
+        folder = revision.folders.all()[0]
+        eq_(folder.name, 'tester')
+
+    def test_remove_folder(self):
+        self.add_one()
+        res = self.post(self.get_delete_url(self.revision.revision_number),
+                        { 'name': 'tester', 'root_dir': 'l' })
+        eq_(res.status_code, 200)
+        json.loads(res.content)
+
+        revision = next(self.revision)
+        eq_(revision.folders.count(), 0)
+
+    def test_folder_sanitization(self):
+        revision = self.add_one(name='A"> <script src="google.com">/m@l!c!ous')
+        eq_(revision.folders.all()[0].name, 'A-script-src-googlecom-/m-l-c-ous')
+        revision.folder_remove(revision.folders.all()[0])
+
+        revision = self.add_one(name='/absolute///and/triple/')
+        eq_(revision.folders.all()[0].name, 'absolute/and/triple')
+
