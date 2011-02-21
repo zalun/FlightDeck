@@ -9,9 +9,12 @@ from django.db import models
 class PackageManager(models.Manager):
     " manager for Package object "
 
-    def active(self):
+    def active(self, viewer=None):
         " filter out inactive packages "
-        return self.filter(active=True)
+        q = (models.Q(active=True))
+        if viewer:
+            q = (q | models.Q(author=viewer))
+        return self.filter(deleted=False).filter(q)
 
     def disabled(self):
         " filter out active packages "

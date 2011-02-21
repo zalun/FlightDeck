@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 from django.conf import settings
 from django.db import IntegrityError
 
-from jetpack.models import Package
+from jetpack.models import Package, PackageRevision
 from jetpack.package_helpers import create_from_archive, \
         create_package_from_xpi
 
@@ -106,9 +106,6 @@ class PackageTest(TestCase):
         Package(author=self.author, type='a').save()
         self.assertEqual(self.author.packages_originated.count(), 1)
 
-    def test_disable_activate(self):
-        raise SkipTest()
-
     def test_create_adddon_from_archive(self):
         path_addon = os.path.join(
                 settings.ROOT, 'apps/jetpack/tests/sample_addon.zip')
@@ -170,3 +167,30 @@ class PackageTest(TestCase):
         eq_(('attachment', 'txt'), (att.filename, att.ext))
         self.failUnless(os.path.isfile(
             os.path.join(settings.UPLOAD_DIR, att.path)))
+
+    def test_disable(self):
+        addon = Package.objects.create(author=self.author, type='a')
+        # disabling addon
+        addon.active = False
+        addon.save()
+        eq_(Package.objects.active().filter(type='a').count(), 0)
+        eq_(Package.objects.active(author=self.author).filter(type='a').count(), 1)
+
+    def test_delete(self):
+        addon = Package.objects.create(author=self.author, type='a')
+        # deleting addon
+        addon.delete()
+        eq_(Package.objects.active().filter(type='a').count(), 0)
+        eq_(Package.objects.active(viewer=self.author).filter(type='a').count(), 0)
+        eq_(PackageRevision.objects.filter(package=addon).count(), 0)
+
+    def test_delete_with_a_copy(self):
+        addon = Package.objects.create(author=self.author, type='a')
+        addon_copy = addon.copy(self.author)
+        # check copy
+        eq_(Package.objects.addons().exclude(pk=addon.pk).count(), 1)
+        # deleting addon
+        addon.delete()
+        eq_(Package.objects.active().filter(type='a').count(), 1)
+        eq_(Package.objects.active(viewer=self.author).filter(type='a').count(), 1)
+        eq_(PackageRevision.objects.filter(package=addon).count(), 1)

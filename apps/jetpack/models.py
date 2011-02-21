@@ -54,50 +54,49 @@ class Package(models.Model):
     """
     Holds the meta data shared across all PackageRevisions
     """
-    # identification
-    # it can be the same as database id, but if we want to copy the database
-    # some day or change to a document-oriented database it would be bad
-    # to have this relied on any database model
+    #: identification,
+    #: it can be the same as database id, but if we want to copy the database
+    #: some day or change to a document-oriented database it would be bad
+    #: to have this relied on any database model
     id_number = models.CharField(max_length=255, unique=True, blank=True)
 
-    # name of the Package
+    #: name of the Package
     full_name = models.CharField(max_length=255)
-    # made from the full_name
-    # it is used to create Package directory for export
+    #: made from the full_name, used to create Package directory for export
     name = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True)
 
-    # type - determining ability to specific options
+    #: type - determining ability to specific options
     type = models.CharField(max_length=30, choices=TYPE_CHOICES)
 
-    # author is the first person who created the Package
+    #: author is the first person who created the Package
     author = models.ForeignKey(User, related_name='packages_originated')
 
-    # is the Package visible for public?
+    #: is the Package visible for public?
     public_permission = models.IntegerField(
                                     choices=PERMISSION_CHOICES,
                                     default=1, blank=True)
 
-    # url for the Manifest
+    #: url for the Manifest
     url = models.URLField(verify_exists=False, blank=True, default='')
 
-    # license on which this package is released to the public
+    #: license on which this package is released to the public
     license = models.CharField(max_length=255, blank=True, default='')
 
-    # where to export modules
+    #: where to export modules
     lib_dir = models.CharField(max_length=100, blank=True, null=True)
 
-    # this is set in the PackageRevision.set_version
+    #: this is set in the PackageRevision.set_version
     version_name = models.CharField(max_length=250, blank=True, null=True,
                                     default=settings.INITIAL_VERSION_NAME)
 
-    # Revision which is setting the version name
+    #: Revision which is setting the version name
     version = models.ForeignKey('PackageRevision', blank=True, null=True,
-                                related_name='package_deprecated')
+                                related_name='+')
 
-    # latest saved PackageRevision
+    #: latest saved PackageRevision
     latest = models.ForeignKey('PackageRevision', blank=True, null=True,
-                               related_name='package_deprecated2')
+                               related_name='+')
 
     # signing an add-on
     private_key = models.TextField(blank=True, null=True)
@@ -110,6 +109,8 @@ class Package(models.Model):
 
     # active do not show the package to others
     active = models.BooleanField(default=True, blank=True)
+    # deleted is the limbo state
+    deleted = models.BooleanField(default=False, blank=True)
 
     class Meta:
         " Set the ordering of objects "
@@ -280,6 +281,30 @@ class Package(models.Model):
         )
         new_p.save()
         return new_p
+
+    def disable(self):
+        """Set active tp False
+        """
+        self.active = False
+        self.save()
+
+    def remove(self):
+        """Remove from the system if possible, otherwise mark as deleted
+        """
+        if self.is_addon():
+            return self.delete()
+        self.delete()
+
+    def delete(self):
+        """Unhook from copies and perform database delete
+        """
+        for rev_mutation in PackageRevision.objects.filter(origin__package=self):
+            rev_mutation.origin=None
+            # save without creating a new revision
+            super(PackageRevision, rev_mutation).save()
+            log.debug('deleting mutation: %s' % rev_mutation)
+        return super(Package, self).delete()
+
 
     def create_revision_from_xpi(self, packed, manifest, author, jid,
             new_revision=False):
