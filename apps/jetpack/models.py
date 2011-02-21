@@ -876,7 +876,7 @@ class PackageRevision(BaseModel):
         if ext:
             kwargs['ext'] = ext
 
-        return self.attachment_create(**kwargs)
+        attachment = self.attachment_create(**kwargs)
 
         if content or content == '':
             attachment.data = content

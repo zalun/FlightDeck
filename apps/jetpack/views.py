@@ -477,8 +477,11 @@ def package_upload_attachment(r, id_number, type_id,
         log.error(log_msg)
         return HttpResponseServerError('Path not found.')
 
-    attachment = revision.attachment_create_by_filename(
+    try:
+        attachment = revision.attachment_create_by_filename(
             r.user, filename, content)
+    except ValidationError, e:
+        return HttpResponseForbidden('Validation errors.')
 
     return render_to_response("json/attachment_added.json",
                 {'revision': revision, 'attachment': attachment},
@@ -511,13 +514,9 @@ def package_add_empty_attachment(r, id_number, type_id,
         return HttpResponseServerError('Path not found.')
 
     try:
-        attachment = revision.attachment_create_by_filename(r.user, filename)
+        attachment = revision.attachment_create_by_filename(r.user, filename,'')
     except ValidationError, e:
         return HttpResponseForbidden('Validation error.')
-    else:
-        attachment.data = content
-        attachment.write()
-    attachment = revision.attachment_create_by_filename(r.user, filename, '')
 
     return render_to_response("json/attachment_added.json",
                 {'revision': revision, 'attachment': attachment},

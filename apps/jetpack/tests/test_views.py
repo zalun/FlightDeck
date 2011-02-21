@@ -286,8 +286,48 @@ class TestAttachments(TestCase):
                                                revision_number=3)
         assert not revision.attachments.all().count()
 
+    def test_attachment_unwanted_duplication(self):
+        # https://bugzilla.mozilla.org/show_bug.cgi?id=633939#c2
+        # create attachment
+        filename = "html/test"
+        response = simplejson.loads(
+                self.client.post(self.add_url, {
+                    "filename": "%s.html" % filename}).content)
+        revision1 = self.package.revisions.filter(
+                revision_number=response['revision_number']).get()
+        eq_(revision1.revision_number, 1)
+        att_uid = response['uid']
+        # add content to attachment
+        content = "some content"
+        response = simplejson.loads(
+                self.client.post(
+                    self.get_change_url(revision1.revision_number),
+                    {att_uid: content}
+                    ).content)
+        revision2 = self.package.revisions.filter(
+                revision_number=response['revision_number']).get()
+        eq_(revision2.revision_number, 2)
+        att = revision2.attachments.filter(filename=filename).get()
+        response = self.client.get(reverse('jp_attachment', args=[att.pk]))
+        eq_(response.content, content)
+        # updating the attachment in revision1
+        content2 = "some other content"
+        response = simplejson.loads(
+                self.client.post(
+                    self.get_change_url(revision1.revision_number),
+                    {att_uid: content2}
+                    ).content)
+        revision3 = self.package.revisions.filter(
+                revision_number=response['revision_number']).get()
+        eq_(revision3.revision_number, 3)
+        eq_(revision3.attachments.count(), 1)
+        att = revision3.attachments.filter(filename=filename).get()
+        eq_(att.read(), content2)
+        response = self.client.get(reverse('jp_attachment', args=[att.pk]))
+        eq_(response.content, content2)
+
     def test_attachment_extension_too_long(self):
-        res = self.post(self.get_add_url(self.revision.revision_number), 'foo', 'file.toolongofanextension')
+        res = self.upload(self.get_upload_url(self.revision.revision_number), 'foo', 'file.toolongofanextension')
         eq_(res.status_code, 403)
 
     def test_attachment_filename_sanitization(self):
@@ -431,42 +471,3 @@ class TestEmptyDirs(TestCase):
         revision = self.add_one(name='/absolute///and/triple/')
         eq_(revision.folders.all()[0].name, 'absolute/and/triple')
 
-    def test_attachment_unwanted_duplication(self):
-        # https://bugzilla.mozilla.org/show_bug.cgi?id=633939#c2
-        # create attachment
-        filename = "html/test"
-        response = simplejson.loads(
-                self.client.post(self.add_url, {
-                    "filename": "%s.html" % filename}).content)
-        revision1 = self.package.revisions.filter(
-                revision_number=response['revision_number']).get()
-        eq_(revision1.revision_number, 1)
-        att_uid = response['uid']
-        # add content to attachment
-        content = "some content"
-        response = simplejson.loads(
-                self.client.post(
-                    self.get_change_url(revision1.revision_number),
-                    {att_uid: content}
-                    ).content)
-        revision2 = self.package.revisions.filter(
-                revision_number=response['revision_number']).get()
-        eq_(revision2.revision_number, 2)
-        att = revision2.attachments.filter(filename=filename).get()
-        response = self.client.get(reverse('jp_attachment', args=[att.pk]))
-        eq_(response.content, content)
-        # updating the attachment in revision1
-        content2 = "some other content"
-        response = simplejson.loads(
-                self.client.post(
-                    self.get_change_url(revision1.revision_number),
-                    {att_uid: content2}
-                    ).content)
-        revision3 = self.package.revisions.filter(
-                revision_number=response['revision_number']).get()
-        eq_(revision3.revision_number, 3)
-        eq_(revision3.attachments.count(), 1)
-        att = revision3.attachments.filter(filename=filename).get()
-        eq_(att.read(), content2)
-        response = self.client.get(reverse('jp_attachment', args=[att.pk]))
-        eq_(response.content, content2)
