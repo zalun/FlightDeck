@@ -1166,10 +1166,39 @@ Package.Edit = new Class({
 		}).send();
 	},
 
+    blur: function() {
+        this.keyboard.deactivate();
+        this.fireEvent('blur');
+    },
+
+    focus: function() {
+        this.keyboard.activate();
+        this.fireEvent('focus');
+    },
+
 	bind_keyboard: function() {
-		this.keyboard = new Keyboard({
+	    var that = this;
+        this.keyboard = new Keyboard({
 			events: {
-				'ctrl+s': this.boundSaveAction
+				'ctrl+s': this.boundSaveAction,
+                'ctrl+enter': function(e) {
+                    e.preventDefault();
+                    that.testAddon();
+                },
+                'ctrl+n': function(e) {
+                    e.preventDefault();
+                    fd.sidebar.promptAttachment();
+                },
+                'ctrl+shift+n': function(e) {
+                    e.preventDefault();
+                    fd.sidebar.promptNewFile();
+                },
+                'ctrl+\\': function(e) {
+                    e.preventDefault();
+                    that.blur();
+                    fd.sidebar.focus();
+                } 
+
 			}
 		});
 		this.keyboard.activate();

@@ -14,7 +14,8 @@ var Sidebar = new Class({
 	initialize: function(options){
 		this.setOptions(options);
 		this.element = $('app-sidebar');
-		
+		this.bind_keyboard();
+
 		this.resizeTreeContainer();
 		window.addEvent('resize', this.resizeTreeContainer.bind(this));
 	},
@@ -394,7 +395,7 @@ var Sidebar = new Class({
 	},
 	
 	promptNewFile: function(folder) {
-		var path = folder.get('path') || '';
+		var path = (folder && folder.get('path')) || '';
 		if (path) path += '/';
 		
 		var prompt = fd.showQuestion({
@@ -461,7 +462,7 @@ var Sidebar = new Class({
 	},
 	
 	promptAttachment: function(folder) {
-        var path = folder.get('path') || '';
+        var path = (folder && folder.get('path')) || '';
         if (path) path += '/';
         var that = this;
 		var prompt = fd.showQuestion({
@@ -591,6 +592,110 @@ var Sidebar = new Class({
 			'url': settings.library_autocomplete_url
 		});
 	},
+
+    focus: function() {
+        $log('focus the sidebar, yo');
+        this.keyboard.activate();
+        
+        $(this).getElements('.focused').removeClass('focused');
+
+        //set top most branch as current if never focused before
+        this._current_focus = this._current_focus || $(this).getElement('li');
+
+        if (this._current_focus) {
+            this._current_focus.addClass('focused');
+        }
+    },
+
+    blur: function() {
+        this.keyboard.deactivate();
+        if (this._current_focus) {
+            this._current_focus.removeClass('focused');
+        }
+    },
+
+    focusPrevious: function() {
+        var current = this._current_focus,
+            el;
+
+        if (!current) {
+            this.focus();
+            return;
+        }
+        $log('focus previous: current found')
+        //sorta opposite for "next"
+        //1. if previous sibling has children
+        //2. previous sibling
+        //3. parent
+        
+        if (!el) {
+            el = current.getPrevious();
+        }
+
+        if (!el) {
+            el = current.getParent('li');
+        }
+
+        if (el) {
+            this._current_focus = el;
+            this.focus();
+        }
+    },
+
+    focusNext: function() {
+        var current  = this._current_focus,
+            el;
+        if (!current) {
+            this.focus();
+            return;
+        }
+
+        //try to find the next branch that isn't hidden
+        //1. Is this branch open, and have children?
+        //2. Does this branch have siblings?
+        el = current.getElement('ul:visible li');
+        if (!el) {
+            el = current.getNext('li');
+        }
+        if (!el) {
+
+        }
+
+
+
+        if (el) {
+            this._current_focus = el;
+            this.focus();
+        }
+
+    },
+
+    bind_keyboard: function() {
+        var that = this;
+        this.keyboard = new Keyboard({
+            events: {
+                'left': function(e) {
+               //     $log('left from the sidebar')
+                },
+                'right': function(e) {
+                
+                },
+                'up': function(e) {
+                    that.focusPrevious(); 
+                },
+                'down': function(e) {
+                    that.focusNext();
+                },
+                'enter': function(e) {
+                
+                },
+                'ctrl+\\': function(e) {
+                    that.blur();
+                    fd.getItem().focus();
+                }
+            } 
+        });
+    },
 	
 	toElement: function() {
 		return this.element;
