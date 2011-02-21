@@ -186,7 +186,7 @@ class Package(BaseModel):
         # it stays as method as it could be saved in instance in the future
         # TODO: YAGNI!
         return settings.JETPACK_DATA_DIR
-    
+
     def default_full_name(self):
         self.set_full_name()
 
@@ -222,7 +222,7 @@ class Package(BaseModel):
 
         name = settings.DEFAULT_PACKAGE_FULLNAME.get(self.type, username)
         self.full_name = _get_full_name(name, self.author.username, self.type)
-    
+
     def default_name(self):
         self.set_name();
 
@@ -254,6 +254,7 @@ class Package(BaseModel):
         return package directory name
         """
         package_dir = '%s/%s' % (packages_dir, self.name)
+        log.debug("Building add-on package directory (%s)" % package_dir)
         os.mkdir(package_dir)
         os.mkdir('%s/%s' % (package_dir, self.get_lib_dir()))
         if not os.path.isdir('%s/%s' % (package_dir, self.get_data_dir())):
@@ -356,7 +357,7 @@ class Package(BaseModel):
 
         revision.set_version(manifest['version'])
         return revision
-    
+
     def clean(self):
         self.full_name = alphanum_plus(self.full_name)
         if self.description:
@@ -449,6 +450,12 @@ class PackageRevision(BaseModel):
         " returns URL to remove module from the package revision "
         return reverse(
             'jp_%s_revision_remove_module' % self.package.get_type_name(),
+            args=[self.package.id_number, self.revision_number])
+
+    def get_upload_attachment_url(self):
+        " returns URL to upload attachment to the package revision "
+        return reverse(
+            'jp_%s_revision_upload_attachment' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
     def get_add_attachment_url(self):
@@ -594,6 +601,16 @@ class PackageRevision(BaseModel):
                 'Every Add-on needs to be linked with an executable Module')
         return main[0]
 
+    def get_version_name(self):
+        """Returns version name with revision number if needed."""
+
+        return self.version_name \
+                if self.version_name \
+                else "%s.rev%s" % (
+                    self.package.revisions.exclude(version_name=None)
+                        .filter(revision_number__lt=self.revision_number)[0]
+                            .version_name, self.revision_number)
+
     ######################
     # revision save methods
 
@@ -632,7 +649,6 @@ class PackageRevision(BaseModel):
 
         for att in origin.attachments.all():
             self.attachments.add(att)
-
 
         self.package.latest = self
         self.package.save()
@@ -847,20 +863,25 @@ class PackageRevision(BaseModel):
                         att.write()
                         self.attachments.add(att)
 
-    def attachment_create_by_filename(self, author, filename):
+    def attachment_create_by_filename(self, author, filename, content=None):
         """ find out the filename and ext and call attachment_create """
         filename, ext = os.path.splitext(filename)
         ext = ext.split('.')[1].lower() if ext else None
-        
+
         kwargs = {
             'author': author,
             'filename': filename
         }
-        
+
         if ext:
             kwargs['ext'] = ext
 
         return self.attachment_create(**kwargs)
+
+        if content or content == '':
+            attachment.data = content
+            attachment.write()
+        return attachment
 
     def attachment_create(self, save=True, **kwargs):
         """ create attachment and add to attachments """
@@ -873,7 +894,7 @@ class PackageRevision(BaseModel):
                  'the name "%s.%s". Each attachment in your add-on needs to '
                  'have a unique name.') % (att.filename, att.ext)
             )
-        
+
         att.save()
         self.attachment_add(att, save=save)
         return att
@@ -1045,24 +1066,35 @@ class PackageRevision(BaseModel):
         :rtype: dict containing load xpi information if rapid else AsyncResult
         """
         if self.package.type == 'l':
-            raise Exception('only Add-ons may build a XPI')
+            log.error("Attempt to build xpi (%s), but package is not an "
+                      "add-on. Expected (l) but got (%s)." % (
+                          self.package.type, self.get_version_name()))
+            raise Exception("Only add-ons may build an xpi.")
 
         if not hashtag:
-            raise IntegrityError('hashtag is required to create xpi')
+            log.error("Attempt to build add-on (%s) but it's missing a "
+                      "hashtag.  Failing." % self.get_version_name())
+            raise IntegrityError("Hashtag is required to create an xpi.")
 
         sdk_dir = self.get_sdk_dir(hashtag)
         sdk_source = self.sdk.get_source_dir()
+
         # This SDK is always different! - working on unsaved data
         if os.path.isdir(sdk_dir):
+            log.info("Attempt to build add-on (%s) using hashtag (%s) but the"
+                     "file already exists.  Removing existing file. (%s)" %
+                     (self.get_version_name(), hashtag, sdk_dir))
             shutil.rmtree(sdk_dir)
+
         xpi_utils.sdk_copy(sdk_source, sdk_dir)
         self.export_keys(sdk_dir)
 
-        packages_dir = '%s/packages' % sdk_dir
+        packages_dir = os.path.join(sdk_dir, 'packages')
         package_dir = self.package.make_dir(packages_dir)
         self.export_manifest(package_dir)
+
         # instead of export modules
-        lib_dir = '%s/%s' % (package_dir, self.package.get_lib_dir())
+        lib_dir = os.path.join(package_dir, self.package.get_lib_dir())
         for mod in self.modules.all():
             mod_edited = False
             for e_mod in modules:
@@ -1071,6 +1103,7 @@ class PackageRevision(BaseModel):
                     e_mod.export_code(lib_dir)
             if not mod_edited:
                 mod.export_code(lib_dir)
+
         data_dir = os.path.join(package_dir, self.package.get_data_dir())
         for att in self.attachments.all():
             att_edited = False
@@ -1084,7 +1117,7 @@ class PackageRevision(BaseModel):
         #    '%s/%s' % (package_dir, self.package.get_data_dir()))
         self.export_dependencies(packages_dir, sdk=self.sdk)
 
-        args = [sdk_dir, '%s/packages/%s' % (sdk_dir, self.package.name),
+        args = [sdk_dir, os.path.join(sdk_dir, 'packages', self.package.name),
                 self.package.name, hashtag]
         if rapid:
             return xpi_utils.build(*args)
@@ -1093,59 +1126,57 @@ class PackageRevision(BaseModel):
                 reverse('jp_rm_xpi', args=[hashtag]))
 
     def export_keys(self, sdk_dir):
-        " export private and public keys "
-        keydir = '%s/%s' % (sdk_dir, settings.KEYDIR)
+        """Export private and public keys to file."""
+        keydir = os.path.join(sdk_dir, settings.KEYDIR)
         if not os.path.isdir(keydir):
             os.mkdir(keydir)
-        handle = open('%s/%s' % (keydir, self.package.jid), 'w')
-        handle.write('private-key:%s\n' % self.package.private_key)
-        handle.write('public-key:%s' % self.package.public_key)
-        handle.close()
+
+        keyfile = os.path.join(keydir, self.package.jid)
+        log.debug("Writing key file (%s) for add-on (%s)" % (keyfile,
+                  self.get_version_name()))
+        with open(keyfile, 'w') as f:
+            f.write('private-key:%s\n' % self.package.private_key)
+            f.write('public-key:%s' % self.package.public_key)
 
     def export_manifest(self, package_dir, sdk=None):
-        " creates a file with an Add-on's manifest "
-        handle = open('%s/package.json' % package_dir, 'w')
-        handle.write(self.get_manifest_json(sdk=sdk))
-        handle.close()
+        """Creates a file with an Add-on's manifest."""
+        manifest_file = "%s/package.json" % package_dir
+        log.debug("Building add-on manifest (%s)" % manifest_file)
+        with open(manifest_file, 'w') as f:
+            f.write(self.get_manifest_json(sdk=sdk))
 
     def export_modules(self, lib_dir):
-        " creates module file for each module "
+        """Creates a module file for each module."""
         for mod in self.modules.all():
             mod.export_code(lib_dir)
 
     def export_attachments(self, data_dir):
-        " creates attachment file for each attachment "
+        """Creates an attachment file for each attachment."""
         for att in self.attachments.all():
             att.export_file(data_dir)
 
     def export_dependencies(self, packages_dir, sdk=None):
-        " creates dependency package directory for each dependency "
+        """Creates dependency package directory for each dependency."""
         for lib in self.dependencies.all():
             lib.export_files_with_dependencies(packages_dir, sdk=sdk)
 
     def export_files(self, packages_dir, sdk=None):
-        " calls all export functions - creates all packages files "
+        """Calls all export functions - creates all packages files."""
         package_dir = self.package.make_dir(packages_dir)
         self.export_manifest(package_dir, sdk=sdk)
         self.export_modules(
-            '%s/%s' % (package_dir, self.package.get_lib_dir()))
+            os.path.join(package_dir, self.package.get_lib_dir()))
         self.export_attachments(
-            '%s/%s' % (package_dir, self.package.get_data_dir()))
+            os.path.join(package_dir, self.package.get_data_dir()))
 
     def export_files_with_dependencies(self, packages_dir, sdk=None):
-        " export dependency packages "
+        """Export dependency packages."""
         self.export_files(packages_dir, sdk=sdk)
         self.export_dependencies(packages_dir, sdk=sdk)
 
-    def get_version_name(self):
-        " returns version name with revision number if needed "
-
-        return self.version_name \
-                if self.version_name \
-                else "%s.rev%s" % (
-                    self.package.revisions.exclude(version_name=None)
-                        .filter(revision_number__lt=self.revision_number)[0]
-                            .version_name, self.revision_number)
+    @property
+    def is_latest(self):
+        return self.pk == self.package.latest.pk
 
 
 class Module(BaseModel):
@@ -1154,10 +1185,10 @@ class Module(BaseModel):
     It's assigned to PackageRevision.
 
     The only way to 'change' the module is to assign it to
-    different PackageRevision
+    a different PackageRevision
     """
     revisions = models.ManyToManyField(PackageRevision,
-                                    related_name='modules', blank=True)
+                                       related_name='modules', blank=True)
     # name of the Module - it will be used as javascript file name
     filename = models.CharField(max_length=255)
     # Code of the module
@@ -1188,7 +1219,9 @@ class Module(BaseModel):
         return package.full_name if package else ''
 
     def get_path(self):
-        " returns the path of directories that would be created from the filename "
+        """returns the path of directories that would be created from
+        the filename
+        """
         parts = self.filename.split('/')[0:-1]
         return ('/'.join(parts)) if parts else None
 
@@ -1204,12 +1237,15 @@ class Module(BaseModel):
         return super(Module, self).save(*args, **kwargs)
 
     def export_code(self, lib_dir):
-        " creates a file containing the module "
-        path = os.path.join(lib_dir, '%s.js' % self.filename)
+        """Creates a file containing the module."""
+
+        path = os.path.join(lib_dir, self.get_filename())
         make_path(os.path.dirname(os.path.abspath(path)))
-        handle = open(path, 'w')
-        handle.write(self.code)
-        handle.close()
+
+        log.debug("Writing code for (%s) to file (%s)" % (self, path))
+
+        with open(path, 'w') as f:
+            f.write(self.code)
 
     def get_json(self):
         return simplejson.dumps({
@@ -1222,7 +1258,7 @@ class Module(BaseModel):
         self.pk = None
         self.save()
         revision.modules.add(self)
-    
+
     def clean(self):
         first_period = self.filename.find('.')
         if first_period > -1:
@@ -1239,6 +1275,7 @@ class Attachment(BaseModel):
                                     related_name='attachments', blank=True)
     # filename of the attachment
     filename = models.CharField(max_length=255)
+
     # extension name
     ext = models.CharField(max_length=10, blank=True, default='js')
 
@@ -1272,7 +1309,9 @@ class Attachment(BaseModel):
         return name
 
     def get_path(self):
-        " returns the path of directories that would be created from the filename "
+        """ returns the path of directories that would be created from
+        the filename
+        """
         parts = self.filename.split('/')[0:-1]
         return ('/'.join(parts)) if parts else None
 
@@ -1282,9 +1321,10 @@ class Attachment(BaseModel):
 
     def default_path(self):
         self.create_path()
-    
+
     def create_path(self):
         args = (self.pk, self.filename, self.ext)
+        # @TODO: Verify this is good enough entropy
         self.path = os.path.join(time.strftime('%Y/%m/%d'), '%s-%s.%s' % args)
 
     def get_file_path(self):
@@ -1295,7 +1335,10 @@ class Attachment(BaseModel):
     def read(self):
         """Reads the file, if it doesn't exist return empty."""
         if self.path and os.path.exists(self.get_file_path()):
-            return open(self.get_file_path(), 'rb').read()
+            f = open(self.get_file_path(), 'rb')
+            content = f.read()
+            f.close()
+            return content
         return ""
 
     def changed(self):
@@ -1308,16 +1351,14 @@ class Attachment(BaseModel):
         self.create_path()
         self.save()
 
-
-
         directory = os.path.dirname(self.get_file_path())
 
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        handle = open(self.get_file_path(), 'wb')
-        handle.write(data)
-        handle.close()
+        log.debug("Writing (%s)" % self.get_file_path())
+        with open(self.get_file_path(), 'wb') as f:
+            f.write(data)
 
     def export_code(self, static_dir):
         " creates a file containing the module "
@@ -1325,9 +1366,9 @@ class Attachment(BaseModel):
             return self.export_file(static_dir)
         path = os.path.join(static_dir, '%s.%s' % (self.filename, self.ext))
         make_path(os.path.dirname(os.path.abspath(path)))
-        handle = open(path, 'w')
-        handle.write(self.code)
-        handle.close()
+        log.debug("Writing (%s)" % path)
+        with open(path, 'w') as f:
+            f.write(self.code)
 
     def export_file(self, static_dir):
         " copies from uploads to the package's data directory "
@@ -1337,12 +1378,24 @@ class Attachment(BaseModel):
                     path)
 
     def increment(self, revision):
-        revision.attachments.remove(self)
+        # revision is already incremented
+        # attachment's filename is unique in revision
+        query = revision.attachments.filter(filename=self.filename)
+        if query.count():
+            try:
+                old = query.get()
+            except:
+                log.warning(
+                    "Fixing revision by removing all duplicate attachments")
+                for old in query:
+                    revision.attachments.remove(old)
+            else:
+                revision.attachments.remove(old)
         self.pk = None
         self.save()
         self.write()
         revision.attachments.add(self)
-    
+
     def clean(self):
         self.filename = pathify(self.filename)
         if self.ext:
@@ -1370,6 +1423,7 @@ class EmptyDir(BaseModel):
 class SDK(BaseModel):
     """
     Jetpack SDK representation in database
+
     Add-ons have to depend on an SDK, by default on the latest one.
     """
     version = models.CharField(max_length=10, unique=True)
@@ -1389,7 +1443,7 @@ class SDK(BaseModel):
     dir = models.CharField(max_length=255, unique=True)
 
     class Meta:
-        " orderin of SDK instances"
+        """Ordering of SDK instances."""
         ordering = ["-id"]
 
     def __unicode__(self):
@@ -1399,7 +1453,9 @@ class SDK(BaseModel):
         return os.path.join(settings.SDK_SOURCE_DIR, self.dir)
 
     def is_deprecated(self):
-        return self.version < '0.9'
+        # TODO: This should be in the settings file as a config var (or in the
+        # db and editable on the web)
+        return self.version < '1.0b1'
 
     def import_docs(self, tar_filename="addon-sdk-docs.tgz", export=True):
         from api.models import DocPage
@@ -1421,18 +1477,18 @@ class SDK(BaseModel):
         # import data
         tar_file = tarfile.open(tar_path)
 
-
-
         for member in tar_file.getmembers():
             if 'addon-sdk-docs/packages/' in member.name:
                 # filter package description
                 if 'README.md' in member.name:
                     """ consider using description for packages """
                     member_path = member.name.split('/README.md')[0]
-                    member_path = member_path.split('addon-sdk-docs/packages/')[1]
+                    member_path = member_path.split(
+                            'addon-sdk-docs/packages/')[1]
                     member_file = tar_file.extractfile(member)
                     try:
-                        docpage = DocPage.objects.get(sdk=self, path=member_path)
+                        docpage = DocPage.objects.get(
+                                sdk=self, path=member_path)
                     except ObjectDoesNotExist:
                         docpage = DocPage(sdk=self, path=member_path)
                     docpage.html = '<h1>%s</h1>%s' % (
@@ -1442,11 +1498,14 @@ class SDK(BaseModel):
                     docpage.save()
                     member_file.close()
                 # filter module description
-                if '/docs/' in member.name and '.md' in member.name and '.md.' not in member.name:
+                if '/docs/' in member.name \
+                        and '.md' in member.name \
+                        and '.md.' not in member.name:
                     # strip down to the member_path
                     member_path = member.name.split('.md')[0]
                     member_path = ''.join(member_path.split('/docs'))
-                    member_path = member_path.split('addon-sdk-docs/packages/')[1]
+                    member_path = member_path.split(
+                            'addon-sdk-docs/packages/')[1]
                     # extract member_html and member_json
                     try:
                         member_html = tar_file.getmember(member.name + '.div')
@@ -1458,7 +1517,8 @@ class SDK(BaseModel):
                     member_json_file = tar_file.extractfile(member_json)
                     # create or load docs
                     try:
-                        docpage = DocPage.objects.get(sdk=self, path=member_path)
+                        docpage = DocPage.objects.get(
+                                sdk=self, path=member_path)
                     except ObjectDoesNotExist:
                         docpage = DocPage(sdk=self, path=member_path)
                     docpage.html = member_html_file.read()
@@ -1533,6 +1593,7 @@ exports.main = function() {};"""
     instance.save()
 post_save.connect(save_first_revision, sender=Package)
 
+
 def manage_empty_lib_dirs(instance, action, **kwargs):
     """
     create EmptyDirs when all modules in a "dir" are deleted,
@@ -1560,12 +1621,15 @@ def manage_empty_lib_dirs(instance, action, **kwargs):
             if not dirname:
                 continue
 
-            if not instance.modules.filter(filename__startswith=dirname).count():
-                emptydir = EmptyDir(name=dirname, author=instance.author, root_dir='l')
+            if not instance.modules.filter(
+                    filename__startswith=dirname).count():
+                emptydir = EmptyDir(
+                        name=dirname, author=instance.author, root_dir='l')
                 emptydir.save()
 
                 instance.folders.add(emptydir)
 m2m_changed.connect(manage_empty_lib_dirs, sender=Module.revisions.through)
+
 
 def manage_empty_data_dirs(instance, action, **kwargs):
     """
@@ -1594,9 +1658,12 @@ def manage_empty_data_dirs(instance, action, **kwargs):
             if not dirname:
                 continue
 
-            if not instance.attachments.filter(filename__startswith=dirname).count():
-                emptydir = EmptyDir(name=dirname, author=instance.author, root_dir='d')
+            if not instance.attachments.filter(
+                    filename__startswith=dirname).count():
+                emptydir = EmptyDir(
+                        name=dirname, author=instance.author, root_dir='d')
                 emptydir.save()
 
                 instance.folders.add(emptydir)
-m2m_changed.connect(manage_empty_data_dirs, sender=Attachment.revisions.through)
+m2m_changed.connect(
+        manage_empty_data_dirs, sender=Attachment.revisions.through)

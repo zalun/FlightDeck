@@ -25,4 +25,5 @@ attachments: {{ revision.get_attachments_list_json|safe }},
 folders: {{ revision.get_folders_list_json|safe }},
 // Actions
 copy_url: '{{ revision.get_copy_url }}',
-hashtag: '{% hashtag %}'
+hashtag: '{% hashtag %}',
+check_if_latest: {{ revision.is_latest|yesno:"true,false" }}

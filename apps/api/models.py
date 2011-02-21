@@ -1,7 +1,8 @@
-from django.db import models, IntegrityError
+from django.db import models  # , IntegrityError
 
 from jetpack.models import SDK
-from utils.exceptions import SimpleException
+#from utils.exceptions import SimpleException
+
 
 class DocPage(models.Model):
     sdk = models.ForeignKey(SDK)

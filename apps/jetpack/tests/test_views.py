@@ -2,6 +2,8 @@ import os
 import commonware
 import json
 import StringIO
+import simplejson
+
 from datetime import datetime
 
 from test_utils import TestCase
@@ -20,7 +22,7 @@ from jetpack.errors import FilenameExistException
 from jetpack.views import latest_by_uid
 from base.templatetags.base_helpers import hashtag
 
-log = commonware.log.getLogger('f.jetpack')
+log = commonware.log.getLogger('f.test')
 
 def next(revision):
     number = revision.revision_number
@@ -75,6 +77,7 @@ class TestAttachments(TestCase):
         self.revision_number = 0
 
         self.add_url = self.get_add_url(self.revision.revision_number)
+        self.upload_url = self.get_upload_url(self.revision.revision_number)
         self.change_url = self.get_change_url(self.revision.revision_number)
         self.client.login(username=self.author.username, password='password')
 
@@ -83,9 +86,13 @@ class TestAttachments(TestCase):
         eq_(res.status_code, 500)
 
     def add_one(self, data = 'foo', filename='some.txt'):
-        self.post(self.get_add_url(self.revision.revision_number), data, filename)
+        self.upload(self.get_upload_url(self.revision.revision_number), data, filename)
         self.revision = next(self.revision)
         return self.revision
+
+    def get_upload_url(self, revision):
+        args = [self.package.id_number, revision]
+        return reverse('jp_addon_revision_upload_attachment', args=args)
 
     def get_add_url(self, revision):
         args = [self.package.id_number, revision]
@@ -102,14 +109,14 @@ class TestAttachments(TestCase):
     def get_revision(self):
         return PackageRevision.objects.get(pk=self.revision.pk)
 
-    def post(self, url, data, filename):
+    def upload(self, url, data, filename):
         # A post that matches the JS and uses raw_post_data.
         return self.client.post(url, data,
                                 content_type='text/plain',
                                 HTTP_X_FILE_NAME=filename)
 
     def test_attachment_path(self):
-        res = self.post(self.add_url, 'foo', 'some.txt')
+        res = self.upload(self.upload_url, 'foo', 'some.txt')
         eq_(res.status_code, 200)
         revision = PackageRevision.objects.get(package=self.package,
                                                revision_number=1)
@@ -119,7 +126,7 @@ class TestAttachments(TestCase):
         eq_(bits[-4:-1], now.strftime('%Y-%m-%d').split('-'))
 
     def test_attachment_add_read(self):
-        res = self.post(self.add_url, 'foo', 'some.txt')
+        res = self.upload(self.upload_url, 'foo', 'some.txt')
         eq_(res.status_code, 200)
 
         revision = PackageRevision.objects.get(package=self.package,
@@ -128,14 +135,14 @@ class TestAttachments(TestCase):
         eq_(revision.attachments.all()[0].read(), 'foo')
 
     def test_attachment_add(self):
-        res = self.post(self.add_url, 'foo', 'some.txt')
+        res = self.upload(self.upload_url, 'foo', 'some.txt')
         eq_(res.status_code, 200)
         json.loads(res.content)
 
         revision = PackageRevision.objects.get(package=self.package,
                                                revision_number=1)
         eq_(revision.attachments.count(), 1)
-    
+
     def test_attachment_default_extension(self):
         revision = self.add_one(data='foo', filename='some')
         eq_(revision.attachments.all()[0].ext, 'js')
@@ -149,12 +156,12 @@ class TestAttachments(TestCase):
         for x in range(0, 1024 * 32):
             temp.write("x" * 1024)
 
-        self.post(self.add_url, temp.getvalue(), 'some-big-file.txt')
+        self.upload(self.upload_url, temp.getvalue(), 'some-big-file.txt')
 
     def test_attachment_same_fails(self):
         self.test_attachment_add()
-        self.assertRaises(FilenameExistException, self.post,
-                          self.get_add_url(1), 'foo bar', 'some.txt')
+        self.assertRaises(FilenameExistException, self.upload,
+                          self.get_upload_url(1), 'foo bar', 'some.txt')
 
     def test_attachment_revision_count(self):
         revisions = PackageRevision.objects.filter(package=self.package)
@@ -184,7 +191,7 @@ class TestAttachments(TestCase):
         revision = self.add_one()
         assert revision.attachments.count(), 1
 
-        self.post(self.add_url, 'foo', 'some-other.txt')
+        self.upload(self.upload_url, 'foo', 'some-other.txt')
         assert revision.attachments.count(), 2
 
     def test_attachment_latest(self):
@@ -278,38 +285,38 @@ class TestAttachments(TestCase):
         revision = PackageRevision.objects.get(package=self.package,
                                                revision_number=3)
         assert not revision.attachments.all().count()
-    
+
     def test_attachment_extension_too_long(self):
         res = self.post(self.get_add_url(self.revision.revision_number), 'foo', 'file.toolongofanextension')
         eq_(res.status_code, 403)
-    
+
     def test_attachment_filename_sanitization(self):
         revision = self.add_one(filename='My Photo of j0hnny.jpg')
         att = revision.attachments.all()[0]
         eq_(att.filename, 'My-Photo-of-j0hnny')
         revision.attachment_remove(att)
-        
+
         revision = self.add_one(filename='^you*()"[]"are-_crazy')
         att = revision.attachments.all()[0]
         eq_(att.filename, '-you-are-_crazy')
         revision.attachment_remove(att)
-        
+
         revision = self.add_one(filename='"><a href="">test')
         att = revision.attachments.all()[0]
         eq_(att.filename, '-a-href-test')
         revision.attachment_remove(att)
-        
+
         revision = self.add_one(filename='template.html.js')
         att = revision.attachments.all()[0]
         eq_(att.filename, 'template.html')
         revision.attachment_remove(att)
-        
+
         revision = self.add_one(filename='image.-png^*(@&#')
         att = revision.attachments.all()[0]
         eq_(att.filename, 'image')
         eq_(att.ext, 'png')
         revision.attachment_remove(att)
-        
+
         revision = self.add_one(filename='image.<a href=""')
         att = revision.attachments.all()[0]
         eq_(att.filename, 'image')
@@ -317,9 +324,9 @@ class TestAttachments(TestCase):
         revision.attachment_remove(att)
 
 class TestModules(TestCase):
-    
+
     fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']
-    
+
     def setUp(self):
         if not os.path.exists(settings.UPLOAD_DIR):
             os.makedirs(settings.UPLOAD_DIR)
@@ -330,9 +337,9 @@ class TestModules(TestCase):
 
         self.package = self.author.packages_originated.addons()[0:1].get()
         self.revision = self.package.revisions.all()[0]
-        
+
         self.client.login(username=self.author.username, password='password')
-    
+
     def add_one(self, filename='tester'):
         self.client.post(self.get_add_url(self.revision.revision_number), { 'filename': filename })
         self.revision = next(self.revision)
@@ -345,27 +352,27 @@ class TestModules(TestCase):
     def get_delete_url(self, revision):
         args = [self.package.id_number, revision]
         return reverse('jp_addon_revision_remove_module', args=args)
-    
+
     def test_module_add(self):
         revision = self.add_one('a-module')
         # 1 for main, 1 for added, so 2
         eq_(revision.modules.all().count(), 2)
         eq_(revision.modules.all().order_by('-id')[0].filename, 'a-module')
-    
+
     def test_module_add_with_extension(self):
         revision = self.add_one('test.js')
         eq_(revision.modules.all().order_by('-id')[0].filename, 'test')
-    
+
     def test_module_name_sanitization(self):
         revision = self.add_one(filename='A"> <a href="google.com">malicious module')
         eq_(revision.modules.all().order_by('-id')[0].filename, 'A-a-href-google')
-        
+
         revision = self.add_one(filename='void:myXSSFunction(fd.item)')
         eq_(revision.modules.all().order_by('-id')[0].filename, 'void-myXSSFunction-fd')
 
 class TestEmptyDirs(TestCase):
     fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']
-    
+
     def setUp(self):
         if not os.path.exists(settings.UPLOAD_DIR):
             os.makedirs(settings.UPLOAD_DIR)
@@ -376,12 +383,12 @@ class TestEmptyDirs(TestCase):
 
         self.package = self.author.packages_originated.addons()[0:1].get()
         self.revision = self.package.revisions.all()[0]
-        
+
         self.client.login(username=self.author.username, password='password')
-    
+
     def post(self, url, data):
         return self.client.post(url, data);
-    
+
     def add_one(self, name='tester', root_dir='l'):
         self.post(self.get_add_url(self.revision.revision_number),
                   { 'name': name, 'root_dir': root_dir })
@@ -401,25 +408,65 @@ class TestEmptyDirs(TestCase):
                         { 'name': 'tester', 'root_dir': 'l' })
         eq_(res.status_code, 200)
         json.loads(res.content)
-        
+
         revision = next(self.revision)
         folder = revision.folders.all()[0]
         eq_(folder.name, 'tester')
-    
+
     def test_remove_folder(self):
         self.add_one()
         res = self.post(self.get_delete_url(self.revision.revision_number),
                         { 'name': 'tester', 'root_dir': 'l' })
         eq_(res.status_code, 200)
         json.loads(res.content)
-        
+
         revision = next(self.revision)
         eq_(revision.folders.count(), 0)
-    
+
     def test_folder_sanitization(self):
         revision = self.add_one(name='A"> <script src="google.com">/m@l!c!ous')
         eq_(revision.folders.all()[0].name, 'A-script-src-googlecom-/m-l-c-ous')
         revision.folder_remove(revision.folders.all()[0])
-        
+
         revision = self.add_one(name='/absolute///and/triple/')
         eq_(revision.folders.all()[0].name, 'absolute/and/triple')
+
+    def test_attachment_unwanted_duplication(self):
+        # https://bugzilla.mozilla.org/show_bug.cgi?id=633939#c2
+        # create attachment
+        filename = "html/test"
+        response = simplejson.loads(
+                self.client.post(self.add_url, {
+                    "filename": "%s.html" % filename}).content)
+        revision1 = self.package.revisions.filter(
+                revision_number=response['revision_number']).get()
+        eq_(revision1.revision_number, 1)
+        att_uid = response['uid']
+        # add content to attachment
+        content = "some content"
+        response = simplejson.loads(
+                self.client.post(
+                    self.get_change_url(revision1.revision_number),
+                    {att_uid: content}
+                    ).content)
+        revision2 = self.package.revisions.filter(
+                revision_number=response['revision_number']).get()
+        eq_(revision2.revision_number, 2)
+        att = revision2.attachments.filter(filename=filename).get()
+        response = self.client.get(reverse('jp_attachment', args=[att.pk]))
+        eq_(response.content, content)
+        # updating the attachment in revision1
+        content2 = "some other content"
+        response = simplejson.loads(
+                self.client.post(
+                    self.get_change_url(revision1.revision_number),
+                    {att_uid: content2}
+                    ).content)
+        revision3 = self.package.revisions.filter(
+                revision_number=response['revision_number']).get()
+        eq_(revision3.revision_number, 3)
+        eq_(revision3.attachments.count(), 1)
+        att = revision3.attachments.filter(filename=filename).get()
+        eq_(att.read(), content2)
+        response = self.client.get(reverse('jp_attachment', args=[att.pk]))
+        eq_(response.content, content2)

@@ -4,14 +4,14 @@ Testing the cuddlefish engine to export API
 import os
 import commonware.log
 
-from django.conf import settings
+#from django.conf import settings
 from django.contrib.auth.models import User
 
 from nose.tools import eq_
 from utils.test import TestCase, get_latest_sdk_dir
 from utils.exceptions import SimpleException
-from jetpack.management import create_SDK
-from jetpack.models import Package, PackageRevision, SDK
+#from jetpack.management import create_SDK
+from jetpack.models import Package, SDK  # , PackageRevision
 from api.helpers import export_docs
 from api.models import DocPage
 
@@ -56,7 +56,6 @@ class ImportDocsTest(TestCase):
         self.sdk.import_docs()
 
 
-
 class CuddleTest(TestCase):
 
     fixtures = ['mozilla', 'core_sdk']
@@ -78,4 +77,3 @@ class CuddleTest(TestCase):
             SDKPACKAGESDIR, 'jetpack-core/docs')
         text = open(os.path.join(docs_dir, 'url.md')).read()
         self.failUnless(len(list(apiparser.parse_hunks(text))) > 0)
-

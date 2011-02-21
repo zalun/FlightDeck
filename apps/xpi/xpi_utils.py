@@ -5,6 +5,8 @@ a set of defs used to manage xpi
 import os
 import shutil
 import subprocess
+import time
+
 import commonware.log
 
 from django.http import HttpResponseServerError
@@ -14,13 +16,19 @@ log = commonware.log.getLogger('f.xpi_utils')
 
 
 def sdk_copy(sdk_source, sdk_dir=None):
+    log.debug("Copying tree (%s) to (%s)" % (sdk_source, sdk_dir))
     shutil.copytree(sdk_source, sdk_dir)
 
 
 def build(sdk_dir, package_dir, filename, hashtag):
     """Build xpi from source in sdk_dir."""
+
+    t1 = time.time()
+
     # create XPI
     os.chdir(package_dir)
+
+    # @TODO xulrunner should be a config variable
     cfx = [settings.PYTHON_EXEC, '%s/bin/cfx' % sdk_dir,
            '--binary=/usr/bin/xulrunner',
            '--keydir=%s/%s' % (sdk_dir, settings.KEYDIR), 'xpi']
@@ -28,15 +36,15 @@ def build(sdk_dir, package_dir, filename, hashtag):
     env = dict(PATH='%s/bin:%s' % (sdk_dir, os.environ['PATH']),
                VIRTUAL_ENV=sdk_dir,
                CUDDLEFISH_ROOT=sdk_dir,
-               PYTHONPATH='%s/python-lib' % sdk_dir)
+               PYTHONPATH=os.path.join(sdk_dir, 'python-lib'))
     try:
         process = subprocess.Popen(cfx, shell=False, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE, env=env)
+        response = process.communicate()
     except subprocess.CalledProcessError:
+        log.critical("Failed to build xpi: %s.  Command(%s)" % (cfx,
+                     subprocess.CalledProcessError, cfx))
         return HttpResponseServerError
-
-    response = process.communicate()
-    # This process is now run in celery - find a way to display errors
 
     # move the XPI created to the XPI_TARGETDIR
     xpi_targetfilename = "%s.xpi" % hashtag
@@ -47,10 +55,17 @@ def build(sdk_dir, package_dir, filename, hashtag):
 
     ret = [xpi_targetfilename]
     ret.extend(response)
-    log.info('Created: %s' % xpi_targetpath)
+
+    t2 = time.time()
+
+    log.info('[xpi:%s] Created xpi: %s (time: %0.3fms)' % (hashtag,
+                                                           xpi_targetpath,
+                                                           ((t2 - t1) * 1000)))
+
     return ret
 
 
 def remove(path):
     " clear directory "
+    log.debug("Removing directory (%s)" % path)
     os.remove(path)
