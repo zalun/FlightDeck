@@ -174,7 +174,7 @@ class PackageTest(TestCase):
         addon.active = False
         addon.save()
         eq_(Package.objects.active().filter(type='a').count(), 0)
-        eq_(Package.objects.active(author=self.author).filter(type='a').count(), 1)
+        eq_(Package.objects.active(viewer=self.author).filter(type='a').count(), 1)
 
     def test_delete(self):
         addon = Package.objects.create(author=self.author, type='a')
@@ -193,4 +193,15 @@ class PackageTest(TestCase):
         addon.delete()
         eq_(Package.objects.active().filter(type='a').count(), 1)
         eq_(Package.objects.active(viewer=self.author).filter(type='a').count(), 1)
-        eq_(PackageRevision.objects.filter(package=addon).count(), 1)
+        eq_(PackageRevision.objects.filter(package=addon).count(), 0)
+        eq_(PackageRevision.objects.filter(package=addon_copy).count(), 1)
+
+    def test_delete_with_dependency(self):
+        addon = Package.objects.create(author=self.author, type='a')
+        lib = Package.objects.create(author=self.author, type='l')
+        addon.latest.dependency_add(lib.latest)
+        # deleting lib
+        lib.delete()
+        eq_(Package.objects.addons().count(), 1)
+        eq_(Package.objects.libraries().filter(author=self.author).count(), 0)
+

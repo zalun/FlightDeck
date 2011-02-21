@@ -280,6 +280,9 @@ class Package(models.Model):
             lib_dir=self.lib_dir
         )
         new_p.save()
+        # Saving the track of forks
+        new_p.latest.origin = self.latest
+        super(PackageRevision, new_p.latest).save()
         return new_p
 
     def disable(self):
@@ -288,21 +291,23 @@ class Package(models.Model):
         self.active = False
         self.save()
 
-    def remove(self):
-        """Remove from the system if possible, otherwise mark as deleted
-        """
-        if self.is_addon():
-            return self.delete()
-        self.delete()
-
     def delete(self):
-        """Unhook from copies and perform database delete
+        """Remove from the system if possible, otherwise mark as deleted
+        Unhook from copies if needed and perform database delete
         """
-        for rev_mutation in PackageRevision.objects.filter(origin__package=self):
+        for rev_mutation in PackageRevision.objects.filter(
+                origin__package=self):
             rev_mutation.origin=None
             # save without creating a new revision
             super(PackageRevision, rev_mutation).save()
-            log.debug('deleting mutation: %s' % rev_mutation)
+
+        if not self.is_addon() and \
+                PackageRevision.dependencies.through.objects.filter(
+                        to_packagerevision__package=self):
+            self.deleted = True
+            log.info("Package (%s) marked as deleted" % self)
+            return self.save()
+        log.info("Package (%s) deleted" % self)
         return super(Package, self).delete()
 
 
@@ -1133,8 +1138,6 @@ class PackageRevision(models.Model):
             os.mkdir(keydir)
 
         keyfile = os.path.join(keydir, self.package.jid)
-        log.debug("Writing key file (%s) for add-on (%s)" % (keyfile,
-                  self.get_version_name()))
         with open(keyfile, 'w') as f:
             f.write('private-key:%s\n' % self.package.private_key)
             f.write('public-key:%s' % self.package.public_key)
@@ -1242,9 +1245,6 @@ class Module(models.Model):
 
         path = os.path.join(lib_dir, self.get_filename())
         make_path(os.path.dirname(os.path.abspath(path)))
-
-        log.debug("Writing code for (%s) to file (%s)" % (self, path))
-
         with open(path, 'w') as f:
             f.write(self.code)
 
@@ -1352,7 +1352,6 @@ class Attachment(models.Model):
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        log.debug("Writing (%s)" % self.get_file_path())
         with open(self.get_file_path(), 'wb') as f:
             f.write(data)
 
@@ -1362,7 +1361,6 @@ class Attachment(models.Model):
             return self.export_file(static_dir)
         path = os.path.join(static_dir, '%s.%s' % (self.filename, self.ext))
         make_path(os.path.dirname(os.path.abspath(path)))
-        log.debug("Writing (%s)" % path)
         with open(path, 'w') as f:
             f.write(self.code)
 
