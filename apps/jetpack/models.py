@@ -1382,16 +1382,11 @@ class Attachment(BaseModel):
         # revision is already incremented
         # attachment's filename is unique in revision
         query = revision.attachments.filter(filename=self.filename)
-        if query.count():
-            try:
-                old = query.get()
-            except:
-                log.warning(
-                    "Fixing revision by removing all duplicate attachments")
-                for old in query:
-                    revision.attachments.remove(old)
-            else:
-                revision.attachments.remove(old)
+        if query.count() > 1:
+            log.warning(
+                "Fixing revision by removing all duplicate attachments")
+        for old in query:
+            revision.attachments.remove(old)
         self.pk = None
         self.save()
         self.write()
