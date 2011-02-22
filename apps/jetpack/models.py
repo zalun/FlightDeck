@@ -825,7 +825,6 @@ class PackageRevision(BaseModel):
     def export_manifest(self, package_dir, sdk=None):
         """Creates a file with an Add-on's manifest."""
         manifest_file = "%s/package.json" % package_dir
-        log.debug("Building add-on manifest (%s)" % manifest_file)
         with open(manifest_file, 'w') as f:
             f.write(self.get_manifest_json(sdk=sdk))
 
@@ -1041,7 +1040,7 @@ class Package(BaseModel):
         name = settings.DEFAULT_PACKAGE_FULLNAME.get(self.type, username)
         self.full_name = _get_full_name(name, self.author.username, self.type)
 
-    def default_name(self):
+    def update_name(self):
         self.set_name();
 
     def set_name(self):
@@ -1072,7 +1071,6 @@ class Package(BaseModel):
         return package directory name
         """
         package_dir = '%s/%s' % (packages_dir, self.name)
-        log.debug("Building add-on package directory (%s)" % package_dir)
         os.mkdir(package_dir)
         os.mkdir('%s/%s' % (package_dir, self.get_lib_dir()))
         if not os.path.isdir('%s/%s' % (package_dir, self.get_data_dir())):

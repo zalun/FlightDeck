@@ -7,7 +7,7 @@ import os
 import shutil
 #import re
 
-from django.template.defaultfilters import slugify
+#from django.template.defaultfilters import slugify
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.views.static import serve
@@ -19,8 +19,9 @@ from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
 from django.db.models import Q, ObjectDoesNotExist
+from django.db import IntegrityError
 from django.views.decorators.http import require_POST
 from django.template.defaultfilters import escape
 from django.conf import settings
@@ -722,7 +723,6 @@ def package_save(r, id_number, type_id, revision_number=None,
             save_package = True
             response_data['full_name'] = package_full_name
             revision.package.full_name = package_full_name
-            revision.package.name = slugify(package_full_name)
 
     package_description = r.POST.get('package_description', False)
     if package_description:
@@ -785,27 +785,24 @@ def package_create(r, type_id):
     Usually no full_name used
     """
 
-    full_name = r.POST.get("full_name", False)
+    full_name = r.POST.get("full_name", None)
     description = r.POST.get("description", "")
-
-    if full_name:
-        packages = Package.objects.filter(
-            author__username=r.user.username, full_name=full_name,
-            type=type_id)
-        if len(packages.all()) > 0:
-            return HttpResponseForbidden(
-                "You already have a %s with that name" % escape(
-                    settings.PACKAGE_SINGULAR_NAMES[type_id]))
-    else:
-        description = ""
 
     item = Package(
         author=r.user,
         full_name=full_name,
         description=description,
-        type=type_id
-        )
-    item.save()
+        type=type_id)
+
+    try:
+        item.save()
+    except ValidationError, err:
+        if NON_FIELD_ERRORS in err.message_dict:
+            return HttpResponseForbidden(
+                "You already have a %s with that name (%s)" % (
+                    escape(settings.PACKAGE_SINGULAR_NAMES[type_id]),
+                    item.full_name))
+        return HttpResponseForbidden(str(err))
 
     return HttpResponseRedirect(reverse(
         'jp_%s_latest' % item.get_type_name(), args=[item.id_number]))

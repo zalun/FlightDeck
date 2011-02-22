@@ -1,5 +1,7 @@
+import commonware
 from django.db import models
 
+#log = commonware.log.getLogger('f.jetpack')
 
 class BaseModel(models.Model):
     class Meta:

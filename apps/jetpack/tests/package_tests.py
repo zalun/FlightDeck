@@ -44,12 +44,12 @@ class PackageTest(TestCase):
         assert Package.objects.get(
                 author=self.author,
                 type='a',
-                name=package.name)
+                full_name=package.name)
         self.assertRaises(Exception,
                 Package.objects.create,
                 author=self.author,
                 type='a',
-                name=package.name)
+                full_name=package.name)
 
     def test_addon_creation_with_nickname(self):
         """In production if you log in with an AMO user, the username
@@ -66,11 +66,11 @@ class PackageTest(TestCase):
         package.save()
 
         eq_(package.full_name, 'Gordon')
-    
+
     def test_package_sanitization(self):
         bad_text = 'Te$t"><script src="google.com"></script>!#'
         good_text = 'Te$tscript srcgoogle.comscript!#'
-        
+
         package = Package(
             author=self.author,
             type='a',
@@ -79,11 +79,11 @@ class PackageTest(TestCase):
             version_name=bad_text
         )
         package.save()
-        
+
         eq_(package.full_name, good_text)
         eq_(package.description, good_text)
         eq_(package.version_name, good_text)
-        
+
 
     def test_automatic_numbering(self):
         Package(
