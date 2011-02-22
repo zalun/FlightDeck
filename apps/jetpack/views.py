@@ -769,6 +769,7 @@ def package_save(r, id_number, type_id, revision_number=None,
 
     if save_package:
         revision.package.save()
+        response_data['name'] = revision.package.name
 
     response_data['version_name'] = revision.version_name \
             if revision.version_name else ""
