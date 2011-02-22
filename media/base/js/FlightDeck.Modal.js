@@ -65,15 +65,19 @@ FlightDeck = Class.refactor(FlightDeck,{
 							'</div>'+
 						'</div>';
 		var display = this.displayModal(template.substitute(data));
-		if (data.callback && data.id) {
+		if (data.callback && $(data.id)) {
 			$(data.id).addEvent('click', data.callback);
+			$(data.id).addEvent('click', display.destroy.bind(display));
 		}
 		
 		//auto focus first input if it exists
 		//also listen for the enter key if a text input exists
-		var textboxes = $(display).getElements('input[type="text"]').addEvent('keyup:keys(enter)', function(e) {
+		var textboxes = $(display).getElements('input[type="text"]').addEvent(
+                'keyup:keys(enter)', function(e) {
 			e.preventDefault();
-			data.callback();
+            if (data.callback) {
+    			data.callback();
+            }
 		});
 		
 		if (data.focus && textboxes.length) {
