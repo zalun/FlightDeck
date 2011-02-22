@@ -9,6 +9,7 @@ import time
 import commonware
 import tarfile
 import markdown
+import hashlib
 
 from copy import deepcopy
 
@@ -19,6 +20,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.signals import pre_save, post_save, m2m_changed
 from django.db import models, IntegrityError
 from django.utils import simplejson
+from django.utils.html import escape
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
@@ -31,9 +33,11 @@ from jetpack.errors import SelfDependencyException, FilenameExistException, \
         UpdateDeniedException, SingletonCopyException, DependencyException
 #        ManifestNotValid
 
+from base.models import BaseModel
 from jetpack import tasks
 from xpi import xpi_utils
 from utils.os_utils import make_path
+from utils.helpers import pathify, alphanum, alphanum_plus
 
 log = commonware.log.getLogger('f.jetpack')
 
@@ -49,8 +53,7 @@ TYPE_CHOICES = (
     ('a', 'Add-on')
 )
 
-
-class Package(models.Model):
+class Package(BaseModel):
     """
     Holds the meta data shared across all PackageRevisions
     """
@@ -61,7 +64,7 @@ class Package(models.Model):
     id_number = models.CharField(max_length=255, unique=True, blank=True)
 
     #: name of the Package
-    full_name = models.CharField(max_length=255)
+    full_name = models.CharField(max_length=255, blank=True)
     #: made from the full_name, used to create Package directory for export
     name = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True)
@@ -186,6 +189,9 @@ class Package(models.Model):
         # TODO: YAGNI!
         return settings.JETPACK_DATA_DIR
 
+    def default_full_name(self):
+        self.set_full_name()
+
     def set_full_name(self):
         """
         setting automated full name of the Package item
@@ -218,6 +224,9 @@ class Package(models.Model):
 
         name = settings.DEFAULT_PACKAGE_FULLNAME.get(self.type, username)
         self.full_name = _get_full_name(name, self.author.username, self.type)
+
+    def default_name(self):
+        self.set_name();
 
     def set_name(self):
         " set's the name from full_name "
@@ -380,8 +389,15 @@ class Package(models.Model):
         revision.set_version(manifest['version'])
         return revision
 
+    def clean(self):
+        self.full_name = alphanum_plus(self.full_name)
+        if self.description:
+            self.description = alphanum_plus(self.description)
+        if self.version_name:
+            self.version_name = alphanum_plus(self.version_name)
 
-class PackageRevision(models.Model):
+
+class PackageRevision(BaseModel):
     """
     contains data which may be changed and rolled back
     """
@@ -745,6 +761,7 @@ class PackageRevision(models.Model):
     def module_add(self, mod, save=True):
         " copy to new revision, add module "
         # validate if given filename is valid
+        mod.clean()
         if not self.validate_module_filename(mod.filename):
             raise FilenameExistException(
                 ('Sorry, there is already a module in your add-on '
@@ -795,6 +812,7 @@ class PackageRevision(models.Model):
         errorMsg = ('Sorry, there is already a folder in your add-on '
                  'with the name "%s". Each folder in your add-on '
                  'needs to have a unique name.') % dir.name
+        dir.clean()
 
         if not self.validate_folder_name(dir.name, dir.root_dir):
             raise FilenameExistException(errorMsg)
@@ -879,12 +897,17 @@ class PackageRevision(models.Model):
     def attachment_create_by_filename(self, author, filename, content=None):
         """ find out the filename and ext and call attachment_create """
         filename, ext = os.path.splitext(filename)
-        ext = ext.split('.')[1].lower() if ext else ''
+        ext = ext.split('.')[1].lower() if ext else None
 
-        attachment = self.attachment_create(
-                author=author,
-                filename=filename,
-                ext=ext)
+        kwargs = {
+            'author': author,
+            'filename': filename
+        }
+
+        if ext:
+            kwargs['ext'] = ext
+
+        attachment = self.attachment_create(**kwargs)
 
         if content or content == '':
             attachment.data = content
@@ -893,15 +916,17 @@ class PackageRevision(models.Model):
 
     def attachment_create(self, save=True, **kwargs):
         """ create attachment and add to attachments """
-        filename, ext = kwargs['filename'], kwargs.get('ext', '')
+        att = Attachment(**kwargs)
+        att.clean()
 
-        if not self.validate_attachment_filename(filename, ext):
+        if not self.validate_attachment_filename(att.filename, att.ext):
             raise FilenameExistException(
                 ('Sorry, there is already an attachment in your add-on with '
                  'the name "%s.%s". Each attachment in your add-on needs to '
-                 'have a unique name.') % (filename, ext)
+                 'have a unique name.') % (att.filename, att.ext)
             )
-        att = Attachment.objects.create(**kwargs)
+
+        att.save()
         self.attachment_add(att, save=save)
         return att
 
@@ -976,7 +1001,7 @@ class PackageRevision(models.Model):
     def get_dependencies_list_json(self):
         " returns dependencies list as JSON object "
         d_list = [{
-                'full_name': d.package.full_name,
+                'full_name': escape(d.package.full_name),
                 'view_url': d.get_absolute_url()
                 } for d in self.dependencies.all()
             ] if self.dependencies.count() > 0 else []
@@ -985,8 +1010,8 @@ class PackageRevision(models.Model):
     def get_modules_list_json(self):
         " returns modules list as JSON object "
         m_list = [{
-                'filename': m.filename,
-                'author': m.author.username,
+                'filename': escape(m.filename),
+                'author': escape(m.author.username),
                 'executable': self.module_main == m.filename,
                 'get_url': reverse('jp_module', args=[m.pk])
                 } for m in self.modules.all()
@@ -997,9 +1022,9 @@ class PackageRevision(models.Model):
         " returns attachments list as JSON object "
         a_list = [{
                 'uid': a.get_uid,
-                'filename': a.filename,
-                'author': a.author.username,
-                'type': a.ext,
+                'filename': escape(a.filename),
+                'author': escape(a.author.username),
+                'type': escape(a.ext),
                 'get_url': reverse('jp_attachment', args=[a.get_uid])
                 } for a in self.attachments.all()
             ] if self.attachments.count() > 0 else []
@@ -1008,9 +1033,9 @@ class PackageRevision(models.Model):
     def get_folders_list_json(self):
         " returns empty folders list as JSON object "
         f_list = [{
-                'name': f.name,
-                'author': f.author.username,
-                'root_dir': f.root_dir,
+                'name': escape(f.name),
+                'author': escape(f.author.username),
+                'root_dir': escape(f.root_dir),
                 } for f in self.folders.all()
             ] if self.folders.count() > 0 else []
         return simplejson.dumps(f_list)
@@ -1183,7 +1208,7 @@ class PackageRevision(models.Model):
         return self.pk == self.package.latest.pk
 
 
-class Module(models.Model):
+class Module(BaseModel):
     """
     Code used by Package.
     It's assigned to PackageRevision.
@@ -1260,8 +1285,13 @@ class Module(models.Model):
         self.save()
         revision.modules.add(self)
 
+    def clean(self):
+        first_period = self.filename.find('.')
+        if first_period > -1:
+            self.filename = self.filename[:first_period]
 
-class Attachment(models.Model):
+
+class Attachment(BaseModel):
     """
     File (image, css, etc.) updated by the author of the PackageRevision
     When exported should be placed in a special directory - usually "data"
@@ -1273,7 +1303,7 @@ class Attachment(models.Model):
     filename = models.CharField(max_length=255)
 
     # extension name
-    ext = models.CharField(max_length=10)
+    ext = models.CharField(max_length=10, blank=True, default='js')
 
     # access to the file within upload/ directory
     path = models.CharField(max_length=255)
@@ -1315,10 +1345,13 @@ class Attachment(models.Model):
         """Returns URL to display the attachment."""
         return reverse('jp_attachment', args=[self.get_uid])
 
+    def default_path(self):
+        self.create_path()
+
     def create_path(self):
-        args = (self.pk, self.filename, self.ext)
-        # @TODO: Verify this is good enough entropy
-        self.path = os.path.join(time.strftime('%Y/%m/%d'), '%s-%s.%s' % args)
+        filename = hashlib.md5(self.filename + self.ext).hexdigest()
+        args = (self.pk, filename, )
+        self.path = os.path.join(time.strftime('%Y/%m/%d'), '%s-%s' % args)
 
     def get_file_path(self):
         if self.path:
@@ -1340,10 +1373,7 @@ class Attachment(models.Model):
     def write(self):
         """Writes the file."""
 
-        data = self.data if hasattr(self, 'data') else ''
-        if self.path and not data:
-            data = self.read()
-
+        data = self.data if hasattr(self, 'data') else self.read()
         self.create_path()
         self.save()
 
@@ -1375,23 +1405,23 @@ class Attachment(models.Model):
         # revision is already incremented
         # attachment's filename is unique in revision
         query = revision.attachments.filter(filename=self.filename)
-        if query.count():
-            try:
-                old = query.get()
-            except:
-                log.warning(
-                    "Fixing revision by removing all duplicate attachments")
-                for old in query:
-                    revision.attachments.remove(old)
-            else:
-                revision.attachments.remove(old)
+        if query.count() > 1:
+            log.warning(
+                "Fixing revision by removing all duplicate attachments")
+        for old in query:
+            revision.attachments.remove(old)
         self.pk = None
         self.save()
         self.write()
         revision.attachments.add(self)
 
+    def clean(self):
+        self.filename = pathify(self.filename)
+        if self.ext:
+            self.ext = alphanum(self.ext)
 
-class EmptyDir(models.Model):
+
+class EmptyDir(BaseModel):
     revisions = models.ManyToManyField(PackageRevision,
                                        related_name='folders', blank=True)
     name = models.CharField(max_length=255)
@@ -1406,16 +1436,13 @@ class EmptyDir(models.Model):
     def __unicode__(self):
         return 'Dir: %s (by %s)' % (self.name, self.author.username)
 
-    #def get_root_dir_display(self):
-    #    " overriding to get get package lib and data dirs "
-    #    return
+    def clean(self):
+        self.name = pathify(self.name).replace('.', '')
 
-    def export(self, root_dir):
-        pass
+class SDK(BaseModel):
+    """
+    Jetpack SDK representation in database
 
-
-class SDK(models.Model):
-    """ Jetpack SDK representation in database
     Add-ons have to depend on an SDK, by default on the latest one.
     """
     version = models.CharField(max_length=10, unique=True)
@@ -1541,23 +1568,6 @@ def set_package_id_number(instance, **kwargs):
         return
     instance.id_number = _get_next_id_number()
 pre_save.connect(set_package_id_number, sender=Package)
-
-
-def make_full_name(instance, **kwargs):
-    " creates an automated full_name when not given "
-    if kwargs.get("raw", False) or instance.full_name:
-        return
-    instance.set_full_name()
-pre_save.connect(make_full_name, sender=Package)
-
-
-def make_name(instance, **kwargs):
-    " make the name (AMO friendly) "
-    if kwargs.get('raw', False) or instance.name:
-        return
-    instance.set_name()
-pre_save.connect(make_name, sender=Package)
-
 
 def make_keypair_on_create(instance, **kwargs):
     " creates public and private keys for JID "

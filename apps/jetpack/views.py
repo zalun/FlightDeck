@@ -18,6 +18,7 @@ from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
+from django.core.exceptions import ValidationError
 from django.db.models import Q, ObjectDoesNotExist
 from django.views.decorators.http import require_POST
 from django.template.defaultfilters import escape
@@ -298,7 +299,10 @@ def package_rename_module(r, id_number, type_id, revision_number):
         return HttpResponseForbidden('You are not the author of this Package')
 
     old_name = r.POST.get('old_filename')
-    new_name = r.POST.get('new_filename')
+    new_name = pathify(r.POST.get('new_filename'))
+
+    # modules should never have an extension, for now
+    new_name = re.sub('/\..*$', '', new_name)
 
     if old_name == 'main':
         return HttpResponseForbidden(
@@ -381,7 +385,7 @@ def package_add_folder(r, id_number, type_id, revision_number):
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
-    foldername, root = pathify(r.POST.get('name', '')), r.POST.get('root_dir')
+    foldername, root = r.POST.get('name', ''), r.POST.get('root_dir')
 
     dir = EmptyDir(name=foldername, author=r.user, root_dir=root)
     try:
@@ -473,8 +477,11 @@ def package_upload_attachment(r, id_number, type_id,
         log.error(log_msg)
         return HttpResponseServerError('Path not found.')
 
-    attachment = revision.attachment_create_by_filename(
+    try:
+        attachment = revision.attachment_create_by_filename(
             r.user, filename, content)
+    except ValidationError, e:
+        return HttpResponseForbidden('Validation errors.')
 
     return render_to_response("json/attachment_added.json",
                 {'revision': revision, 'attachment': attachment},
@@ -506,7 +513,10 @@ def package_add_empty_attachment(r, id_number, type_id,
         log.error(log_msg)
         return HttpResponseServerError('Path not found.')
 
-    attachment = revision.attachment_create_by_filename(r.user, filename, '')
+    try:
+        attachment = revision.attachment_create_by_filename(r.user, filename,'')
+    except ValidationError, e:
+        return HttpResponseForbidden('Validation error.')
 
     return render_to_response("json/attachment_added.json",
                 {'revision': revision, 'attachment': attachment},
