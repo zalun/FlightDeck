@@ -26,23 +26,23 @@
 
   <ul class="UI_Action_List">
     <li>
-      <a title="Your Add-ons" href="{% url person_addons %}">Your Add-ons</a> 
-      <strong>({{ addons|length }})</strong>
+      <a title="Public Add-ons" href="{% url person_addons %}">Your Add-ons</a> 
+      <strong id="public_addons_no">({{ addons|length }})</strong>
     </li>
     <li>
-      <a title="Your Libraries" href="{% url person_libraries %}">Your Libraries</a> 
-      <strong>({{ libraries|length }})</strong>
+      <a title="Public Libraries" href="{% url person_libraries %}">Your Libraries</a> 
+      <strong id="public_libs_no">({{ libraries|length }})</strong>
     </li>
   </ul>
 
   <ul class="UI_Action_List">
     <li>
-      <a title="Private Add-ons" href="{% url person_disabled_addons %}">Disabled Add-ons</a> 
-      <strong>({{ disabled_addons|length }})</strong>
+      <a title="Private Add-ons" href="{% url person_disabled_addons %}">Private Add-ons</a> 
+      <strong id="disabled_addons_no">({{ disabled_addons|length }})</strong>
     </li>
     <li>
-      <a title="Private Libraries" href="{% url person_disabled_libraries %}">Disabled Libraries</a> 
-      <strong>({{ disabled_libraries|length }})</strong>
+      <a title="Private Libraries" href="{% url person_disabled_libraries %}">Private Libraries</a> 
+      <strong id="disabled_libs_no">({{ disabled_libraries|length }})</strong>
     </li>
   </ul>
 {% endblock %}
