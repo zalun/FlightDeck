@@ -3,7 +3,7 @@ import commonware
 import json
 import StringIO
 import simplejson
-
+import hashlib
 from datetime import datetime
 
 from test_utils import TestCase
@@ -259,8 +259,10 @@ class TestAttachments(TestCase):
         self.client.post(self.get_change_url(1), data)
         atts = Attachment.objects.filter(revisions__package=self.package)
 
-        assert atts[0].get_file_path().endswith('%s-some.txt' % atts[0].pk)
-        assert atts[1].get_file_path().endswith('%s-some.txt' % atts[1].pk)
+        hash = hashlib.md5('sometxt').hexdigest()
+
+        assert atts[0].get_file_path().endswith('%s-%s' % (atts[0].pk, hash))
+        assert atts[1].get_file_path().endswith('%s-%s' % (atts[1].pk, hash))
 
     def test_attachment_remove(self):
         revision = self.add_one()

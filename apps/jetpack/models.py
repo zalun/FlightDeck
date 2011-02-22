@@ -9,6 +9,7 @@ import time
 import commonware
 import tarfile
 import markdown
+import hashlib
 
 from copy import deepcopy
 
@@ -1323,9 +1324,9 @@ class Attachment(BaseModel):
         self.create_path()
 
     def create_path(self):
-        args = (self.pk, self.filename, self.ext)
-        # @TODO: Verify this is good enough entropy
-        self.path = os.path.join(time.strftime('%Y/%m/%d'), '%s-%s.%s' % args)
+        filename = hashlib.md5(self.filename + self.ext).hexdigest()
+        args = (self.pk, filename, )
+        self.path = os.path.join(time.strftime('%Y/%m/%d'), '%s-%s' % args)
 
     def get_file_path(self):
         if self.path:
