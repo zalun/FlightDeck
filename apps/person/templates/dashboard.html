@@ -20,7 +20,7 @@
 
   <ul class="UI_Action_List">
       <li>
-        <a title="Upload Package" id="upload-package" href="#">Upload Package</a>
+        <a title="Upload Package" id="upload-package" href="#">Upload XPI</a>
       </li>
   </ul>
 
@@ -37,11 +37,11 @@
 
   <ul class="UI_Action_List">
     <li>
-      <a title="Disabled Add-ons" href="{% url person_disabled_addons %}">Disabled Add-ons</a> 
+      <a title="Private Add-ons" href="{% url person_disabled_addons %}">Disabled Add-ons</a> 
       <strong>({{ disabled_addons|length }})</strong>
     </li>
     <li>
-      <a title="Disabled Libraries" href="{% url person_disabled_libraries %}">Disabled Libraries</a> 
+      <a title="Private Libraries" href="{% url person_disabled_libraries %}">Disabled Libraries</a> 
       <strong>({{ disabled_libraries|length }})</strong>
     </li>
   </ul>

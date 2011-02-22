@@ -7,6 +7,7 @@ import os
 import shutil
 #import re
 
+from django.template.defaultfilters import slugify
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.views.static import serve
@@ -83,7 +84,29 @@ def package_view_or_edit(r, id_number, type_id, revision_number=None,
     """
     revision = get_package_revision(id_number, type_id,
                                     revision_number, version_name, latest)
-    if r.user.is_authenticated() and r.user.pk == revision.author.pk:
+    edit_available = True
+    if revision.package.deleted:
+        edit_available = False
+        if not r.user.is_authenticated():
+            raise Http404
+        try:
+            Package.objects.active_with_deleted(viewer=r.user).get(
+                    pk=revision.package.pk)
+        except ObjectDoesNotExist:
+            raise Http404
+
+    if not revision.package.active:
+        edit_available = False
+        if not r.user.is_authenticated():
+            raise Http404
+        try:
+            Package.objects.active_with_disabled(viewer=r.user).get(
+                    pk=revision.package.pk)
+        except ObjectDoesNotExist:
+            raise Http404
+
+    if edit_available and \
+            r.user.is_authenticated() and r.user.pk == revision.author.pk:
         return package_edit(r, revision)
     else:
         return package_view(r, revision)
@@ -243,6 +266,26 @@ def package_activate(r, id_number):
 
     return render_to_response("json/package_activated.json",
                 {'package': package},
+                context_instance=RequestContext(r),
+                mimetype='application/json')
+
+@login_required
+def package_delete(r, id_number):
+    """
+    Delete Package and return confirmation
+    """
+    package = get_object_or_404(Package, id_number=id_number)
+    if r.user.pk != package.author.pk:
+        log_msg = ("[security] Attempt to delete package (%s) by "
+                   "non-owner (%s)" % (id_number, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden(
+            'You are not the author of this %s' % escape(
+                package.get_type_name()))
+
+    package.delete()
+
+    return render_to_response("json/package_deleted.json", {},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
@@ -679,7 +722,7 @@ def package_save(r, id_number, type_id, revision_number=None,
             save_package = True
             response_data['full_name'] = package_full_name
             revision.package.full_name = package_full_name
-            revision.package.name = None
+            revision.package.name = slugify(package_full_name)
 
     package_description = r.POST.get('package_description', False)
     if package_description:
