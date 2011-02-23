@@ -10,6 +10,7 @@ import commonware
 import tarfile
 import markdown
 import hashlib
+import codecs
 
 from copy import deepcopy
 
@@ -818,14 +819,14 @@ class PackageRevision(BaseModel):
             os.mkdir(keydir)
 
         keyfile = os.path.join(keydir, self.package.jid)
-        with open(keyfile, 'w') as f:
+        with codecs.open(keyfile, mode='w', encoding='utf-8') as f:
             f.write('private-key:%s\n' % self.package.private_key)
             f.write('public-key:%s' % self.package.public_key)
 
     def export_manifest(self, package_dir, sdk=None):
         """Creates a file with an Add-on's manifest."""
         manifest_file = "%s/package.json" % package_dir
-        with open(manifest_file, 'w') as f:
+        with codecs.open(manifest_file, mode='w', encoding='utf-8') as f:
             f.write(self.get_manifest_json(sdk=sdk))
 
     def export_modules(self, lib_dir):
@@ -1274,7 +1275,7 @@ class Module(BaseModel):
 
         path = os.path.join(lib_dir, self.get_filename())
         make_path(os.path.dirname(os.path.abspath(path)))
-        with open(path, 'w') as f:
+        with codecs.open(path, mode='w', encoding='utf-8') as f:
             f.write(self.code)
 
     def get_json(self):
@@ -1365,7 +1366,7 @@ class Attachment(BaseModel):
     def read(self):
         """Reads the file, if it doesn't exist return empty."""
         if self.path and os.path.exists(self.get_file_path()):
-            f = open(self.get_file_path(), 'rb')
+            f = codecs.open(self.get_file_path(), mode='rb', encoding='utf-8')
             content = f.read()
             f.close()
             return content
@@ -1386,7 +1387,7 @@ class Attachment(BaseModel):
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        with open(self.get_file_path(), 'wb') as f:
+        with codecs.open(self.get_file_path(), mode='wb', encoding='utf-8') as f:
             f.write(data)
 
     def export_code(self, static_dir):
@@ -1395,7 +1396,7 @@ class Attachment(BaseModel):
             return self.export_file(static_dir)
         path = os.path.join(static_dir, '%s.%s' % (self.filename, self.ext))
         make_path(os.path.dirname(os.path.abspath(path)))
-        with open(path, 'w') as f:
+        with codecs.open(path, mode='w', encoding='utf-8') as f:
             f.write(self.code)
 
     def export_file(self, static_dir):

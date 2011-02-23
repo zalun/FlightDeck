@@ -1,5 +1,6 @@
 import os
 import commonware.log
+import codecs
 
 from django.views.static import serve
 from django.http import HttpResponse, HttpResponseForbidden
@@ -53,7 +54,7 @@ def get_test(r, hashtag):
     path = os.path.join(settings.XPI_TARGETDIR, '%s.xpi' % hashtag)
     mimetype = 'text/plain; charset=x-user-defined'
     try:
-        xpi = open(path, 'rb').read()
+        xpi = codecs.open(path, mode='rb', encoding='utf-8').read()
     except Exception, err:
         log.debug('Add-on not yet created: %s' % str(err))
         return HttpResponse('')

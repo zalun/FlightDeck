@@ -106,7 +106,7 @@ class TestViews(TestCase):
         response = self.client.get(lib.get_absolute_url())
         eq_(response.status_code, 404)
 
-    def test_display_disabled_package_with_dependency(self):
+    def test_display_disabled_package(self):
         author = User.objects.get(username='john')
         author.set_password('secure')
         author.save()

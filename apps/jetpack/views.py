@@ -5,6 +5,7 @@ import commonware.log
 import time
 import os
 import shutil
+import codecs
 #import re
 
 #from django.template.defaultfilters import slugify
@@ -819,7 +820,7 @@ def upload_xpi(request):
     temp_dir = os.path.join(settings.UPLOAD_DIR, str(time.time()))
     os.mkdir(temp_dir)
     path = os.path.join(temp_dir, xpi.name)
-    xpi_file = open(path, 'wb+')
+    xpi_file = codecs.open(path, mode='wb+', encoding='utf-8')
     for chunk in xpi.chunks():
         xpi_file.write(chunk)
     xpi_file.close()

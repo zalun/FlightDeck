@@ -1,3 +1,4 @@
+# coding=utf-8
 import os
 import shutil
 import simplejson
@@ -243,3 +244,22 @@ class XPIBuildTest(TestCase):
         eq_(len(find_files()), 1)
         clean_tmp(length=0)
         assert not find_files()
+
+    def test_module_with_utf(self):
+
+        mod = Module.objects.create(
+            filename='test_utf',
+            code='// ą',
+            author=self.author
+        )
+        self.library.latest.module_add(mod)
+        self.makeSDKDir()
+        package_dir = self.library.make_dir('%s/packages' % self.SDKDIR)
+        self.librev.export_modules(
+            '%s/%s' % (package_dir, self.library.get_lib_dir()))
+
+        self.failUnless(os.path.isfile('%s/packages/%s/%s/%s.js' % (
+                            self.SDKDIR,
+                            self.library.name,
+                            self.library.get_lib_dir(),
+                            'test_module')))
