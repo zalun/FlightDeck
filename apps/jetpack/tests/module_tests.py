@@ -6,6 +6,7 @@ import commonware
 
 from test_utils import TestCase
 from nose.tools import eq_
+from nose import SkipTest
 
 from django.contrib.auth.models import User
 
