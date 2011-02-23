@@ -743,7 +743,6 @@ def package_save(r, id_number, type_id, revision_number=None,
         attachment = latest_by_uid(revision, key)
         if attachment:
             attachment.data = r.POST[key]
-            log.debug(attachment.data)
             if attachment.changed():
                 changes.append(attachment)
 

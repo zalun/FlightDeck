@@ -34,7 +34,5 @@ class ModuleTest(TestCase):
         mod = Module.objects.create(
                 filename='test_filename',
                 author=author,
-                code="ą")
-        raise SkipTest
-        # this would work if db would be in utf-8 mode
-        #eq_(Module.objects.get(author=author).code, "ą")
+                code=u'ą')
+        eq_(Module.objects.get(author=author).code, u'ą')
