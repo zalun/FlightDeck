@@ -530,7 +530,8 @@ def package_rename_attachment(r, id_number, type_id, revision_number):
     uid = r.POST.get('uid', '').strip()
     new_name = r.POST.get('new_filename')
 
-    attachment = latest_by_uid(revision, uid)
+    #attachment = latest_by_uid(revision, uid)
+    attachment = Attachment.objects.get(pk=uid, revision=revision)
 
     new_ext = r.POST.get('new_ext') or attachment.ext
 
@@ -572,7 +573,7 @@ def package_remove_attachment(r, id_number, type_id, revision_number):
         return HttpResponseForbidden('You are not the author of this Package')
 
     uid = r.POST.get('uid', '').strip()
-    attachment = latest_by_uid(revision, uid)
+    attachment = Attachment.objects.get(pk=uid, revisions=revision)
 
     if not attachment:
         log_msg = ('Attempt to remove a non existing attachment. attachment: '
@@ -599,27 +600,6 @@ def download_attachment(request, uid):
                      settings.UPLOAD_DIR, show_indexes=False)
     response['Content-Disposition'] = 'filename=%s' % attachment.filename
     return response
-
-
-def latest_by_uid(revision, uid):
-    """It could be that the client is sending an old uid,
-    not a nice shiny new one. Given we know the keys coming
-    in and the keys in the db, resolve our old uid into
-    a newer one."""
-    package = revision.package
-    try:
-        attachment = (Attachment.objects.distinct()
-                               .get(pk=uid, revisions__package=package))
-    except (ValueError, ObjectDoesNotExist):
-        return None
-    try:
-        return (Attachment.objects.filter(ext=attachment.ext,
-                                          filename=attachment.filename,
-                                          revisions__package=package)
-                                  .order_by("-pk"))[0]
-    except IndexError:
-        return attachment
-
 
 @require_POST
 @login_required
@@ -685,12 +665,19 @@ def package_save(r, id_number, type_id, revision_number=None,
                 mod.code = code
                 changes.append(mod)
 
-    for key in r.POST.keys():
-        attachment = latest_by_uid(revision, key)
-        if attachment:
-            attachment.data = r.POST[key]
-            if attachment.changed():
-                changes.append(attachment)
+    for att in revision.attachments.all():
+        uid = str(att.pk)
+        if r.POST.get(uid):
+            att.data = r.POST[uid]
+            if att.changed():
+                changes.append(att)
+
+    #for key in r.POST.keys():
+    #    attachment = latest_by_uid(revision, key)
+    #    if attachment:
+    #        attachment.data = r.POST[key]
+    #        if attachment.changed():
+    #            changes.append(attachment)
 
     if changes:
         revision.updates(changes)
