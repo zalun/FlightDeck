@@ -1,6 +1,8 @@
+# coding=utf-8
 import os
 import tempfile
 from test_utils import TestCase
+from nose.tools import eq_
 
 from django.contrib.auth.models import User
 from django.conf  import settings
@@ -39,4 +41,16 @@ class AttachmentTest(TestCase):
         filename = '%s.%s' % (self.attachment.filename, self.attachment.ext)
         filename = os.path.join(destination, filename)
         self.attachment.export_file(destination)
-        self.failUnless(os.path.isfile(filename))
+        assert os.path.isfile(filename)
+
+    def test_create_attachment_with_utf_content(self):
+        self.attachment.data = "ą"
+        self.attachment.write()
+        destination = tempfile.mkdtemp()
+        filename = '%s.%s' % (self.attachment.filename, self.attachment.ext)
+        filename = os.path.join(destination, filename)
+        self.attachment.export_file(destination)
+        assert os.path.isfile(filename)
+        f = open(filename, 'r')
+        eq_(f.read(), "ą")
+        f.close()
