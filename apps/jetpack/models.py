@@ -9,6 +9,8 @@ import time
 import commonware
 import tarfile
 import markdown
+import hashlib
+import codecs
 
 from copy import deepcopy
 
@@ -19,6 +21,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.signals import pre_save, post_save, m2m_changed
 from django.db import models, IntegrityError
 from django.utils import simplejson
+from django.utils.html import escape
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
@@ -26,14 +29,15 @@ from django.conf import settings
 
 from api.helpers import export_docs
 from utils.exceptions import SimpleException
-from jetpack.managers import PackageManager
 from jetpack.errors import SelfDependencyException, FilenameExistException, \
         UpdateDeniedException, SingletonCopyException, DependencyException
 #        ManifestNotValid
 
+from base.models import BaseModel
 from jetpack import tasks
 from xpi import xpi_utils
 from utils.os_utils import make_path
+from utils.helpers import pathify, alphanum, alphanum_plus
 
 log = commonware.log.getLogger('f.jetpack')
 
@@ -49,313 +53,11 @@ TYPE_CHOICES = (
     ('a', 'Add-on')
 )
 
-
-class Package(models.Model):
-    """
-    Holds the meta data shared across all PackageRevisions
-    """
-    # identification
-    # it can be the same as database id, but if we want to copy the database
-    # some day or change to a document-oriented database it would be bad
-    # to have this relied on any database model
-    id_number = models.CharField(max_length=255, unique=True, blank=True)
-
-    # name of the Package
-    full_name = models.CharField(max_length=255)
-    # made from the full_name
-    # it is used to create Package directory for export
-    name = models.CharField(max_length=255, blank=True)
-    description = models.TextField(blank=True)
-
-    # type - determining ability to specific options
-    type = models.CharField(max_length=30, choices=TYPE_CHOICES)
-
-    # author is the first person who created the Package
-    author = models.ForeignKey(User, related_name='packages_originated')
-
-    # is the Package visible for public?
-    public_permission = models.IntegerField(
-                                    choices=PERMISSION_CHOICES,
-                                    default=1, blank=True)
-
-    # url for the Manifest
-    url = models.URLField(verify_exists=False, blank=True, default='')
-
-    # license on which this package is released to the public
-    license = models.CharField(max_length=255, blank=True, default='')
-
-    # where to export modules
-    lib_dir = models.CharField(max_length=100, blank=True, null=True)
-
-    # this is set in the PackageRevision.set_version
-    version_name = models.CharField(max_length=250, blank=True, null=True,
-                                    default=settings.INITIAL_VERSION_NAME)
-
-    # Revision which is setting the version name
-    version = models.ForeignKey('PackageRevision', blank=True, null=True,
-                                related_name='package_deprecated')
-
-    # latest saved PackageRevision
-    latest = models.ForeignKey('PackageRevision', blank=True, null=True,
-                               related_name='package_deprecated2')
-
-    # signing an add-on
-    private_key = models.TextField(blank=True, null=True)
-    public_key = models.TextField(blank=True, null=True)
-    jid = models.CharField(max_length=255, blank=True, null=True)
-    program_id = models.CharField(max_length=255, blank=True, null=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    last_update = models.DateTimeField(auto_now=True)
-
-    # active do not show the package to others
-    active = models.BooleanField(default=True, blank=True)
-
-    class Meta:
-        " Set the ordering of objects "
-        ordering = ('-last_update', '-created_at')
-        unique_together = ('author', 'name')
-
-    objects = PackageManager()
-
-    ##################
-    # Methods
-
-    def __unicode__(self):
-        return '%s v. %s by %s' % (self.full_name, self.version_name,
-                                   self.author)
-
-    def get_absolute_url(self):
-        " returns the URL View Source "
-        return reverse('jp_%s_details' % self.get_type_name(),
-                        args=[self.id_number])
-
-    def get_latest_url(self):
-        " returns the URL to view the latest saved Revision "
-        return reverse('jp_%s_latest' % self.get_type_name(),
-                        args=[self.id_number])
-
-    def get_latest_revision_number_url(self):
-        " returns url to get the latest revision number "
-        return reverse('jp_get_latest_revision_number', args=[self.id_number])
-
-    def get_disable_url(self):
-        " returns URL to the disable package functionality "
-        return reverse('jp_package_disable',
-                        args=[self.id_number])
-
-    def get_activate_url(self):
-        " returns URL to activate disabled package "
-        return reverse('jp_package_activate',
-                        args=[self.id_number])
-
-    def is_addon(self):
-        " returns Boolean: True if this package an Add-on "
-        return self.type == 'a'
-
-    def is_library(self):
-        " returns Boolean: True if this package a Library "
-        return self.type == 'l'
-
-    def is_core(self):
-        """
-        returns Boolean: True if this is a SDK Core Library
-        Used to block copying the package
-        """
-        return str(self.id_number) == str(settings.MINIMUM_PACKAGE_ID)
-
-    def is_singleton(self):
-        """
-        Blocks copying the package
-        """
-        # Core lib is a singleton
-        return self.is_core()
-
-    def get_type_name(self):
-        " return name of the type (add-on / library) "
-        return settings.PACKAGE_SINGULAR_NAMES[self.type]
-
-    def get_lib_dir(self):
-        " returns the name of the lib directory in SDK default - packages "
-        return self.lib_dir or settings.JETPACK_LIB_DIR
-
-    def get_data_dir(self):
-        " returns the name of the data directory in SDK default - data "
-        # it stays as method as it could be saved in instance in the future
-        # TODO: YAGNI!
-        return settings.JETPACK_DATA_DIR
-
-    def set_full_name(self):
-        """
-        setting automated full name of the Package item
-        add incrementing number in brackets if author already has
-        a package with default name
-        called from signals
-        """
-        if self.full_name:
-            return
-
-        def _get_full_name(full_name, username, type_id, i=0):
-            """
-            increment until there is no package with the full_name
-            """
-            new_full_name = full_name
-            if i > 0:
-                new_full_name = "%s (%d)" % (full_name, i)
-            packages = Package.objects.filter(author__username=username,
-                                              full_name=new_full_name,
-                                              type=type_id)
-            if packages.count() == 0:
-                return new_full_name
-
-            i = i + 1
-            return _get_full_name(full_name, username, type_id, i)
-
-        username = self.author.username
-        if self.author.get_profile():
-            username = self.author.get_profile().nickname or username
-
-        name = settings.DEFAULT_PACKAGE_FULLNAME.get(self.type, username)
-        self.full_name = _get_full_name(name, self.author.username, self.type)
-
-    def set_name(self):
-        " set's the name from full_name "
-        self.name = self.make_name()
-
-    def make_name(self):
-        " wrap for slugify - this function was changed before "
-        return slugify(self.full_name)
-
-    def generate_key(self):
-        """
-        create keypair, program_id and jid
-        """
-
-        signingkey = SigningKey.generate(curve=NIST256p)
-        sk_text = "private-jid0-%s" % my_b32encode(signingkey.to_string())
-        verifyingkey = signingkey.get_verifying_key()
-        vk_text = "public-jid0-%s" % my_b32encode(verifyingkey.to_string())
-        self.jid = vk_to_jid(verifyingkey)
-        self.program_id = jid_to_programid(self.jid)
-        self.private_key = sk_text
-        self.public_key = vk_text
-
-    def make_dir(self, packages_dir):
-        """
-        create package directories inside packages
-        return package directory name
-        """
-        package_dir = '%s/%s' % (packages_dir, self.name)
-        log.debug("Building add-on package directory (%s)" % package_dir)
-        os.mkdir(package_dir)
-        os.mkdir('%s/%s' % (package_dir, self.get_lib_dir()))
-        if not os.path.isdir('%s/%s' % (package_dir, self.get_data_dir())):
-            os.mkdir('%s/%s' % (package_dir, self.get_data_dir()))
-        return package_dir
-
-    def get_copied_full_name(self):
-        """
-        Add "Copy of" before the full name if package is copied
-        """
-        full_name = self.full_name
-        if not full_name.startswith('Copy of'):
-            full_name = "Copy of %s" % full_name
-        return full_name
-
-    def copy(self, author):
-        """
-        create copy of the package
-        """
-        if self.is_singleton():
-            raise SingletonCopyException("This is a singleton")
-        new_p = Package(
-            full_name=self.get_copied_full_name(),
-            description=self.description,
-            type=self.type,
-            author=author,
-            public_permission=self.public_permission,
-            url=self.url,
-            license=self.license,
-            lib_dir=self.lib_dir
-        )
-        new_p.save()
-        return new_p
-
-    def create_revision_from_xpi(self, packed, manifest, author, jid,
-            new_revision=False):
-        """
-        Create new package revision by reading XPI
-
-        Args:
-            packed (ZipFile): XPI
-            manifest (dict): parsed package.json
-            jid (String): jid name from XPI
-            author (auth.User): owner of PackageRevision
-            new_revision (Boolean): should new revision be created?
-
-        Returns:
-            PackageRevision object
-        """
-
-        revision = self.latest
-        if 'contributors' in manifest:
-            revision.contributors = manifest['contributors']
-
-        main = manifest['main'] if 'main' in manifest else 'main'
-        lib_dir = 'resources/%s-%s-%s' % (jid.lower(), manifest['name'],
-                manifest['lib'] if 'lib' in manifest else 'lib')
-        att_dir = 'resources/%s-%s-%s' % (
-                jid.lower(), manifest['name'], 'data')
-
-        revision.add_mods_and_atts_from_archive(packed, main, lib_dir, att_dir)
-
-        if new_revision:
-            revision.save()
-        else:
-            super(PackageRevision, revision).save()
-
-        revision.set_version(manifest['version'])
-        return revision
-
-    def create_revision_from_archive(self, packed, manifest, author,
-            new_revision=False):
-        """
-        Create new package revision vy reading the archive.
-
-        Args:
-            packed (ZipFile): archive containing Revision data
-            manifest (dict): parsed package.json
-            author (auth.User): owner of PackageRevision
-            new_revision (Boolean): should new revision be created?
-
-        Returns:
-            PackageRevision object
-        """
-
-        revision = self.latest
-        if 'contributors' in manifest:
-            revision.contributors = manifest['contributors']
-
-        main = manifest['main'] if 'main' in manifest else 'main'
-        lib_dir = manifest['lib'] if 'lib' in manifest else 'lib'
-        att_dir = 'data'
-
-        revision.add_mods_and_atts_from_archive(packed, main, lib_dir, att_dir)
-
-        if new_revision:
-            revision.save()
-        else:
-            super(PackageRevision, revision).save()
-
-        revision.set_version(manifest['version'])
-        return revision
-
-
-class PackageRevision(models.Model):
+class PackageRevision(BaseModel):
     """
     contains data which may be changed and rolled back
     """
-    package = models.ForeignKey(Package, related_name='revisions')
+    package = models.ForeignKey('Package', related_name='revisions')
     # public version name
     # this is a tag used to mark important revisions
     version_name = models.CharField(max_length=250, blank=True, null=True,
@@ -715,6 +417,7 @@ class PackageRevision(models.Model):
     def module_add(self, mod, save=True):
         " copy to new revision, add module "
         # validate if given filename is valid
+        mod.clean()
         if not self.validate_module_filename(mod.filename):
             raise FilenameExistException(
                 ('Sorry, there is already a module in your add-on '
@@ -765,6 +468,7 @@ class PackageRevision(models.Model):
         errorMsg = ('Sorry, there is already a folder in your add-on '
                  'with the name "%s". Each folder in your add-on '
                  'needs to have a unique name.') % dir.name
+        dir.clean()
 
         if not self.validate_folder_name(dir.name, dir.root_dir):
             raise FilenameExistException(errorMsg)
@@ -849,12 +553,17 @@ class PackageRevision(models.Model):
     def attachment_create_by_filename(self, author, filename, content=None):
         """ find out the filename and ext and call attachment_create """
         filename, ext = os.path.splitext(filename)
-        ext = ext.split('.')[1].lower() if ext else ''
+        ext = ext.split('.')[1].lower() if ext else None
 
-        attachment = self.attachment_create(
-                author=author,
-                filename=filename,
-                ext=ext)
+        kwargs = {
+            'author': author,
+            'filename': filename
+        }
+
+        if ext:
+            kwargs['ext'] = ext
+
+        attachment = self.attachment_create(**kwargs)
 
         if content or content == '':
             attachment.data = content
@@ -863,15 +572,17 @@ class PackageRevision(models.Model):
 
     def attachment_create(self, save=True, **kwargs):
         """ create attachment and add to attachments """
-        filename, ext = kwargs['filename'], kwargs.get('ext', '')
+        att = Attachment(**kwargs)
+        att.clean()
 
-        if not self.validate_attachment_filename(filename, ext):
+        if not self.validate_attachment_filename(att.filename, att.ext):
             raise FilenameExistException(
                 ('Sorry, there is already an attachment in your add-on with '
                  'the name "%s.%s". Each attachment in your add-on needs to '
-                 'have a unique name.') % (filename, ext)
+                 'have a unique name.') % (att.filename, att.ext)
             )
-        att = Attachment.objects.create(**kwargs)
+
+        att.save()
         self.attachment_add(att, save=save)
         return att
 
@@ -946,7 +657,7 @@ class PackageRevision(models.Model):
     def get_dependencies_list_json(self):
         " returns dependencies list as JSON object "
         d_list = [{
-                'full_name': d.package.full_name,
+                'full_name': escape(d.package.full_name),
                 'view_url': d.get_absolute_url()
                 } for d in self.dependencies.all()
             ] if self.dependencies.count() > 0 else []
@@ -955,8 +666,8 @@ class PackageRevision(models.Model):
     def get_modules_list_json(self):
         " returns modules list as JSON object "
         m_list = [{
-                'filename': m.filename,
-                'author': m.author.username,
+                'filename': escape(m.filename),
+                'author': escape(m.author.username),
                 'executable': self.module_main == m.filename,
                 'get_url': reverse('jp_module', args=[m.pk])
                 } for m in self.modules.all()
@@ -967,9 +678,9 @@ class PackageRevision(models.Model):
         " returns attachments list as JSON object "
         a_list = [{
                 'uid': a.get_uid,
-                'filename': a.filename,
-                'author': a.author.username,
-                'type': a.ext,
+                'filename': escape(a.filename),
+                'author': escape(a.author.username),
+                'type': escape(a.ext),
                 'get_url': reverse('jp_attachment', args=[a.get_uid])
                 } for a in self.attachments.all()
             ] if self.attachments.count() > 0 else []
@@ -978,9 +689,9 @@ class PackageRevision(models.Model):
     def get_folders_list_json(self):
         " returns empty folders list as JSON object "
         f_list = [{
-                'name': f.name,
-                'author': f.author.username,
-                'root_dir': f.root_dir,
+                'name': escape(f.name),
+                'author': escape(f.author.username),
+                'root_dir': escape(f.root_dir),
                 } for f in self.folders.all()
             ] if self.folders.count() > 0 else []
         return simplejson.dumps(f_list)
@@ -1108,17 +819,14 @@ class PackageRevision(models.Model):
             os.mkdir(keydir)
 
         keyfile = os.path.join(keydir, self.package.jid)
-        log.debug("Writing key file (%s) for add-on (%s)" % (keyfile,
-                  self.get_version_name()))
-        with open(keyfile, 'w') as f:
+        with codecs.open(keyfile, mode='w', encoding='utf-8') as f:
             f.write('private-key:%s\n' % self.package.private_key)
             f.write('public-key:%s' % self.package.public_key)
 
     def export_manifest(self, package_dir, sdk=None):
         """Creates a file with an Add-on's manifest."""
         manifest_file = "%s/package.json" % package_dir
-        log.debug("Building add-on manifest (%s)" % manifest_file)
-        with open(manifest_file, 'w') as f:
+        with codecs.open(manifest_file, mode='w', encoding='utf-8') as f:
             f.write(self.get_manifest_json(sdk=sdk))
 
     def export_modules(self, lib_dir):
@@ -1154,8 +862,358 @@ class PackageRevision(models.Model):
     def is_latest(self):
         return self.pk == self.package.latest.pk
 
+from jetpack.managers import PackageManager
 
-class Module(models.Model):
+class Package(BaseModel):
+    """
+    Holds the meta data shared across all PackageRevisions
+    """
+    #: identification,
+    #: it can be the same as database id, but if we want to copy the database
+    #: some day or change to a document-oriented database it would be bad
+    #: to have this relied on any database model
+    id_number = models.CharField(max_length=255, unique=True, blank=True)
+
+    #: name of the Package
+    full_name = models.CharField(max_length=255, blank=True)
+    #: made from the full_name, used to create Package directory for export
+    name = models.CharField(max_length=255, blank=True)
+    description = models.TextField(blank=True)
+
+    #: type - determining ability to specific options
+    type = models.CharField(max_length=30, choices=TYPE_CHOICES)
+
+    #: author is the first person who created the Package
+    author = models.ForeignKey(User, related_name='packages_originated')
+
+    #: is the Package visible for public?
+    public_permission = models.IntegerField(
+                                    choices=PERMISSION_CHOICES,
+                                    default=1, blank=True)
+
+    #: url for the Manifest
+    url = models.URLField(verify_exists=False, blank=True, default='')
+
+    #: license on which this package is released to the public
+    license = models.CharField(max_length=255, blank=True, default='')
+
+    #: where to export modules
+    lib_dir = models.CharField(max_length=100, blank=True, null=True)
+
+    #: this is set in the PackageRevision.set_version
+    version_name = models.CharField(max_length=250, blank=True, null=True,
+                                    default=settings.INITIAL_VERSION_NAME)
+
+    #: Revision which is setting the version name
+    version = models.ForeignKey('PackageRevision', blank=True, null=True,
+                                related_name='+')
+
+    #: latest saved PackageRevision
+    latest = models.ForeignKey('PackageRevision', blank=True, null=True,
+                               related_name='+')
+
+    # signing an add-on
+    private_key = models.TextField(blank=True, null=True)
+    public_key = models.TextField(blank=True, null=True)
+    jid = models.CharField(max_length=255, blank=True, null=True)
+    program_id = models.CharField(max_length=255, blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_update = models.DateTimeField(auto_now=True)
+
+    # active do not show the package to others
+    active = models.BooleanField(default=True, blank=True)
+    # deleted is the limbo state
+    deleted = models.BooleanField(default=False, blank=True)
+
+    class Meta:
+        " Set the ordering of objects "
+        ordering = ('-last_update', '-created_at')
+        unique_together = ('author', 'name')
+
+    objects = PackageManager()
+
+    ##################
+    # Methods
+
+    def __unicode__(self):
+        return '%s v. %s by %s' % (self.full_name, self.version_name,
+                                   self.author)
+
+    def get_absolute_url(self):
+        " returns the URL View Source "
+        return reverse('jp_%s_details' % self.get_type_name(),
+                        args=[self.id_number])
+
+    def get_latest_url(self):
+        " returns the URL to view the latest saved Revision "
+        return reverse('jp_%s_latest' % self.get_type_name(),
+                        args=[self.id_number])
+
+    def get_latest_revision_number_url(self):
+        " returns url to get the latest revision number "
+        return reverse('jp_get_latest_revision_number', args=[self.id_number])
+
+    def get_disable_url(self):
+        " returns URL to the disable package functionality "
+        return reverse('jp_package_disable',
+                        args=[self.id_number])
+
+    def get_activate_url(self):
+        " returns URL to activate disabled package "
+        return reverse('jp_package_activate',
+                        args=[self.id_number])
+
+    def get_delete_url(self):
+        " returns URL to delete package "
+        return reverse('jp_package_delete',
+                        args=[self.id_number])
+
+    def is_addon(self):
+        " returns Boolean: True if this package an Add-on "
+        return self.type == 'a'
+
+    def is_library(self):
+        " returns Boolean: True if this package a Library "
+        return self.type == 'l'
+
+    def is_core(self):
+        """
+        returns Boolean: True if this is a SDK Core Library
+        Used to block copying the package
+        """
+        return str(self.id_number) == str(settings.MINIMUM_PACKAGE_ID)
+
+    def is_singleton(self):
+        """
+        Blocks copying the package
+        """
+        # Core lib is a singleton
+        return self.is_core()
+
+    def get_type_name(self):
+        " return name of the type (add-on / library) "
+        return settings.PACKAGE_SINGULAR_NAMES[self.type]
+
+    def get_lib_dir(self):
+        " returns the name of the lib directory in SDK default - packages "
+        return self.lib_dir or settings.JETPACK_LIB_DIR
+
+    def get_data_dir(self):
+        " returns the name of the data directory in SDK default - data "
+        # it stays as method as it could be saved in instance in the future
+        # TODO: YAGNI!
+        return settings.JETPACK_DATA_DIR
+
+    def default_full_name(self):
+        self.set_full_name()
+
+    def set_full_name(self):
+        """
+        setting automated full name of the Package item
+        add incrementing number in brackets if author already has
+        a package with default name
+        called from signals
+        """
+        if self.full_name:
+            return
+
+        def _get_full_name(full_name, username, type_id, i=0):
+            """
+            increment until there is no package with the full_name
+            """
+            new_full_name = full_name
+            if i > 0:
+                new_full_name = "%s (%d)" % (full_name, i)
+            packages = Package.objects.filter(author__username=username,
+                                              full_name=new_full_name,
+                                              type=type_id)
+            if packages.count() == 0:
+                return new_full_name
+
+            i = i + 1
+            return _get_full_name(full_name, username, type_id, i)
+
+        username = self.author.username
+        if self.author.get_profile():
+            username = self.author.get_profile().nickname or username
+
+        name = settings.DEFAULT_PACKAGE_FULLNAME.get(self.type, username)
+        self.full_name = _get_full_name(name, self.author.username, self.type)
+
+    def update_name(self):
+        self.set_name();
+
+    def set_name(self):
+        " set's the name from full_name "
+        self.name = self.make_name()
+
+    def make_name(self):
+        " wrap for slugify - this function was changed before "
+        return slugify(self.full_name)
+
+    def generate_key(self):
+        """
+        create keypair, program_id and jid
+        """
+
+        signingkey = SigningKey.generate(curve=NIST256p)
+        sk_text = "private-jid0-%s" % my_b32encode(signingkey.to_string())
+        verifyingkey = signingkey.get_verifying_key()
+        vk_text = "public-jid0-%s" % my_b32encode(verifyingkey.to_string())
+        self.jid = vk_to_jid(verifyingkey)
+        self.program_id = jid_to_programid(self.jid)
+        self.private_key = sk_text
+        self.public_key = vk_text
+
+    def make_dir(self, packages_dir):
+        """
+        create package directories inside packages
+        return package directory name
+        """
+        package_dir = '%s/%s' % (packages_dir, self.name)
+        os.mkdir(package_dir)
+        os.mkdir('%s/%s' % (package_dir, self.get_lib_dir()))
+        if not os.path.isdir('%s/%s' % (package_dir, self.get_data_dir())):
+            os.mkdir('%s/%s' % (package_dir, self.get_data_dir()))
+        return package_dir
+
+    def get_copied_full_name(self):
+        """
+        Add "Copy of" before the full name if package is copied
+        """
+        full_name = self.full_name
+        if not full_name.startswith('Copy of'):
+            full_name = "Copy of %s" % full_name
+        return full_name
+
+    def copy(self, author):
+        """
+        create copy of the package
+        """
+        if self.is_singleton():
+            raise SingletonCopyException("This is a singleton")
+        new_p = Package(
+            full_name=self.get_copied_full_name(),
+            description=self.description,
+            type=self.type,
+            author=author,
+            public_permission=self.public_permission,
+            url=self.url,
+            license=self.license,
+            lib_dir=self.lib_dir
+        )
+        new_p.save()
+        # Saving the track of forks
+        new_p.latest.origin = self.latest
+        super(PackageRevision, new_p.latest).save()
+        return new_p
+
+    def disable(self):
+        """Set active tp False
+        """
+        self.active = False
+        self.save()
+
+    def delete(self):
+        """Remove from the system if possible, otherwise mark as deleted
+        Unhook from copies if needed and perform database delete
+        """
+        for rev_mutation in PackageRevision.objects.filter(
+                origin__package=self):
+            rev_mutation.origin=None
+            # save without creating a new revision
+            super(PackageRevision, rev_mutation).save()
+
+        if not self.is_addon() and \
+                PackageRevision.dependencies.through.objects.filter(
+                        to_packagerevision__package=self):
+            self.deleted = True
+            log.info("Package (%s) marked as deleted" % self)
+            return self.save()
+        log.info("Package (%s) deleted" % self)
+        return super(Package, self).delete()
+
+
+    def create_revision_from_xpi(self, packed, manifest, author, jid,
+            new_revision=False):
+        """
+        Create new package revision by reading XPI
+
+        Args:
+            packed (ZipFile): XPI
+            manifest (dict): parsed package.json
+            jid (String): jid name from XPI
+            author (auth.User): owner of PackageRevision
+            new_revision (Boolean): should new revision be created?
+
+        Returns:
+            PackageRevision object
+        """
+
+        revision = self.latest
+        if 'contributors' in manifest:
+            revision.contributors = manifest['contributors']
+
+        main = manifest['main'] if 'main' in manifest else 'main'
+        lib_dir = 'resources/%s-%s-%s' % (jid.lower(), manifest['name'],
+                manifest['lib'] if 'lib' in manifest else 'lib')
+        att_dir = 'resources/%s-%s-%s' % (
+                jid.lower(), manifest['name'], 'data')
+
+        revision.add_mods_and_atts_from_archive(packed, main, lib_dir, att_dir)
+
+        if new_revision:
+            revision.save()
+        else:
+            super(PackageRevision, revision).save()
+
+        revision.set_version(manifest['version'])
+        return revision
+
+    def create_revision_from_archive(self, packed, manifest, author,
+            new_revision=False):
+        """
+        Create new package revision vy reading the archive.
+
+        Args:
+            packed (ZipFile): archive containing Revision data
+            manifest (dict): parsed package.json
+            author (auth.User): owner of PackageRevision
+            new_revision (Boolean): should new revision be created?
+
+        Returns:
+            PackageRevision object
+        """
+
+        revision = self.latest
+        if 'contributors' in manifest:
+            revision.contributors = manifest['contributors']
+
+        main = manifest['main'] if 'main' in manifest else 'main'
+        lib_dir = manifest['lib'] if 'lib' in manifest else 'lib'
+        att_dir = 'data'
+
+        revision.add_mods_and_atts_from_archive(packed, main, lib_dir, att_dir)
+
+        if new_revision:
+            revision.save()
+        else:
+            super(PackageRevision, revision).save()
+
+        revision.set_version(manifest['version'])
+        return revision
+
+    def clean(self):
+        self.full_name = alphanum_plus(self.full_name)
+        if self.description:
+            self.description = alphanum_plus(self.description)
+        if self.version_name:
+            self.version_name = alphanum_plus(self.version_name)
+
+
+
+class Module(BaseModel):
     """
     Code used by Package.
     It's assigned to PackageRevision.
@@ -1217,10 +1275,7 @@ class Module(models.Model):
 
         path = os.path.join(lib_dir, self.get_filename())
         make_path(os.path.dirname(os.path.abspath(path)))
-
-        log.debug("Writing code for (%s) to file (%s)" % (self, path))
-
-        with open(path, 'w') as f:
+        with codecs.open(path, mode='w', encoding='utf-8') as f:
             f.write(self.code)
 
     def get_json(self):
@@ -1235,8 +1290,13 @@ class Module(models.Model):
         self.save()
         revision.modules.add(self)
 
+    def clean(self):
+        first_period = self.filename.find('.')
+        if first_period > -1:
+            self.filename = self.filename[:first_period]
 
-class Attachment(models.Model):
+
+class Attachment(BaseModel):
     """
     File (image, css, etc.) updated by the author of the PackageRevision
     When exported should be placed in a special directory - usually "data"
@@ -1248,7 +1308,7 @@ class Attachment(models.Model):
     filename = models.CharField(max_length=255)
 
     # extension name
-    ext = models.CharField(max_length=10)
+    ext = models.CharField(max_length=10, blank=True, default='js')
 
     # access to the file within upload/ directory
     path = models.CharField(max_length=255)
@@ -1290,10 +1350,13 @@ class Attachment(models.Model):
         """Returns URL to display the attachment."""
         return reverse('jp_attachment', args=[self.get_uid])
 
+    def default_path(self):
+        self.create_path()
+
     def create_path(self):
-        args = (self.pk, self.filename, self.ext)
-        # @TODO: Verify this is good enough entropy
-        self.path = os.path.join(time.strftime('%Y/%m/%d'), '%s-%s.%s' % args)
+        filename = hashlib.md5(self.filename + self.ext).hexdigest()
+        args = (self.pk, filename, )
+        self.path = os.path.join(time.strftime('%Y/%m/%d'), '%s-%s' % args)
 
     def get_file_path(self):
         if self.path:
@@ -1303,7 +1366,7 @@ class Attachment(models.Model):
     def read(self):
         """Reads the file, if it doesn't exist return empty."""
         if self.path and os.path.exists(self.get_file_path()):
-            f = open(self.get_file_path(), 'rb')
+            f = codecs.open(self.get_file_path(), mode='rb', encoding='utf-8')
             content = f.read()
             f.close()
             return content
@@ -1315,10 +1378,7 @@ class Attachment(models.Model):
     def write(self):
         """Writes the file."""
 
-        data = self.data if hasattr(self, 'data') else ''
-        if self.path and not data:
-            data = self.read()
-
+        data = self.data if hasattr(self, 'data') else self.read()
         self.create_path()
         self.save()
 
@@ -1327,8 +1387,7 @@ class Attachment(models.Model):
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        log.debug("Writing (%s)" % self.get_file_path())
-        with open(self.get_file_path(), 'wb') as f:
+        with codecs.open(self.get_file_path(), mode='wb', encoding='utf-8') as f:
             f.write(data)
 
     def export_code(self, static_dir):
@@ -1337,8 +1396,7 @@ class Attachment(models.Model):
             return self.export_file(static_dir)
         path = os.path.join(static_dir, '%s.%s' % (self.filename, self.ext))
         make_path(os.path.dirname(os.path.abspath(path)))
-        log.debug("Writing (%s)" % path)
-        with open(path, 'w') as f:
+        with codecs.open(path, mode='w', encoding='utf-8') as f:
             f.write(self.code)
 
     def export_file(self, static_dir):
@@ -1352,23 +1410,23 @@ class Attachment(models.Model):
         # revision is already incremented
         # attachment's filename is unique in revision
         query = revision.attachments.filter(filename=self.filename)
-        if query.count():
-            try:
-                old = query.get()
-            except:
-                log.warning(
-                    "Fixing revision by removing all duplicate attachments")
-                for old in query:
-                    revision.attachments.remove(old)
-            else:
-                revision.attachments.remove(old)
+        if query.count() > 1:
+            log.warning(
+                "Fixing revision by removing all duplicate attachments")
+        for old in query:
+            revision.attachments.remove(old)
         self.pk = None
         self.save()
         self.write()
         revision.attachments.add(self)
 
+    def clean(self):
+        self.filename = pathify(self.filename)
+        if self.ext:
+            self.ext = alphanum(self.ext)
 
-class EmptyDir(models.Model):
+
+class EmptyDir(BaseModel):
     revisions = models.ManyToManyField(PackageRevision,
                                        related_name='folders', blank=True)
     name = models.CharField(max_length=255)
@@ -1383,16 +1441,13 @@ class EmptyDir(models.Model):
     def __unicode__(self):
         return 'Dir: %s (by %s)' % (self.name, self.author.username)
 
-    #def get_root_dir_display(self):
-    #    " overriding to get get package lib and data dirs "
-    #    return
+    def clean(self):
+        self.name = pathify(self.name).replace('.', '')
 
-    def export(self, root_dir):
-        pass
+class SDK(BaseModel):
+    """
+    Jetpack SDK representation in database
 
-
-class SDK(models.Model):
-    """ Jetpack SDK representation in database
     Add-ons have to depend on an SDK, by default on the latest one.
     """
     version = models.CharField(max_length=10, unique=True)
@@ -1518,23 +1573,6 @@ def set_package_id_number(instance, **kwargs):
         return
     instance.id_number = _get_next_id_number()
 pre_save.connect(set_package_id_number, sender=Package)
-
-
-def make_full_name(instance, **kwargs):
-    " creates an automated full_name when not given "
-    if kwargs.get("raw", False) or instance.full_name:
-        return
-    instance.set_full_name()
-pre_save.connect(make_full_name, sender=Package)
-
-
-def make_name(instance, **kwargs):
-    " make the name (AMO friendly) "
-    if kwargs.get('raw', False) or instance.name:
-        return
-    instance.set_name()
-pre_save.connect(make_name, sender=Package)
-
 
 def make_keypair_on_create(instance, **kwargs):
     " creates public and private keys for JID "

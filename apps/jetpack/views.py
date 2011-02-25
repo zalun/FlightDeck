@@ -5,8 +5,10 @@ import commonware.log
 import time
 import os
 import shutil
+import codecs
 #import re
 
+#from django.template.defaultfilters import slugify
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.views.static import serve
@@ -18,7 +20,9 @@ from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
+from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
 from django.db.models import Q, ObjectDoesNotExist
+from django.db import IntegrityError
 from django.views.decorators.http import require_POST
 from django.template.defaultfilters import escape
 from django.conf import settings
@@ -82,7 +86,29 @@ def package_view_or_edit(r, id_number, type_id, revision_number=None,
     """
     revision = get_package_revision(id_number, type_id,
                                     revision_number, version_name, latest)
-    if r.user.is_authenticated() and r.user.pk == revision.author.pk:
+    edit_available = True
+    if revision.package.deleted:
+        edit_available = False
+        if not r.user.is_authenticated():
+            raise Http404
+        try:
+            Package.objects.active_with_deleted(viewer=r.user).get(
+                    pk=revision.package.pk)
+        except ObjectDoesNotExist:
+            raise Http404
+
+    if not revision.package.active:
+        edit_available = False
+        if not r.user.is_authenticated():
+            raise Http404
+        try:
+            Package.objects.active_with_disabled(viewer=r.user).get(
+                    pk=revision.package.pk)
+        except ObjectDoesNotExist:
+            raise Http404
+
+    if edit_available and \
+            r.user.is_authenticated() and r.user.pk == revision.author.pk:
         return package_edit(r, revision)
     else:
         return package_view(r, revision)
@@ -245,6 +271,26 @@ def package_activate(r, id_number):
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
+@login_required
+def package_delete(r, id_number):
+    """
+    Delete Package and return confirmation
+    """
+    package = get_object_or_404(Package, id_number=id_number)
+    if r.user.pk != package.author.pk:
+        log_msg = ("[security] Attempt to delete package (%s) by "
+                   "non-owner (%s)" % (id_number, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden(
+            'You are not the author of this %s' % escape(
+                package.get_type_name()))
+
+    package.delete()
+
+    return render_to_response("json/package_deleted.json", {},
+                context_instance=RequestContext(r),
+                mimetype='application/json')
+
 
 @require_POST
 @login_required
@@ -298,7 +344,10 @@ def package_rename_module(r, id_number, type_id, revision_number):
         return HttpResponseForbidden('You are not the author of this Package')
 
     old_name = r.POST.get('old_filename')
-    new_name = r.POST.get('new_filename')
+    new_name = pathify(r.POST.get('new_filename'))
+
+    # modules should never have an extension, for now
+    new_name = re.sub('/\..*$', '', new_name)
 
     if old_name == 'main':
         return HttpResponseForbidden(
@@ -381,7 +430,7 @@ def package_add_folder(r, id_number, type_id, revision_number):
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
-    foldername, root = pathify(r.POST.get('name', '')), r.POST.get('root_dir')
+    foldername, root = r.POST.get('name', ''), r.POST.get('root_dir')
 
     dir = EmptyDir(name=foldername, author=r.user, root_dir=root)
     try:
@@ -473,8 +522,11 @@ def package_upload_attachment(r, id_number, type_id,
         log.error(log_msg)
         return HttpResponseServerError('Path not found.')
 
-    attachment = revision.attachment_create_by_filename(
+    try:
+        attachment = revision.attachment_create_by_filename(
             r.user, filename, content)
+    except ValidationError, e:
+        return HttpResponseForbidden('Validation errors.')
 
     return render_to_response("json/attachment_added.json",
                 {'revision': revision, 'attachment': attachment},
@@ -506,7 +558,10 @@ def package_add_empty_attachment(r, id_number, type_id,
         log.error(log_msg)
         return HttpResponseServerError('Path not found.')
 
-    attachment = revision.attachment_create_by_filename(r.user, filename, '')
+    try:
+        attachment = revision.attachment_create_by_filename(r.user, filename,'')
+    except ValidationError, e:
+        return HttpResponseForbidden('Validation error.')
 
     return render_to_response("json/attachment_added.json",
                 {'revision': revision, 'attachment': attachment},
@@ -649,7 +704,6 @@ def package_save(r, id_number, type_id, revision_number=None,
             save_package = True
             response_data['full_name'] = package_full_name
             revision.package.full_name = package_full_name
-            revision.package.name = None
 
     package_description = r.POST.get('package_description', False)
     if package_description:
@@ -703,6 +757,7 @@ def package_save(r, id_number, type_id, revision_number=None,
 
     if save_package:
         revision.package.save()
+        response_data['name'] = revision.package.name
 
     response_data['version_name'] = revision.version_name \
             if revision.version_name else ""
@@ -719,27 +774,24 @@ def package_create(r, type_id):
     Usually no full_name used
     """
 
-    full_name = r.POST.get("full_name", False)
+    full_name = r.POST.get("full_name", None)
     description = r.POST.get("description", "")
-
-    if full_name:
-        packages = Package.objects.filter(
-            author__username=r.user.username, full_name=full_name,
-            type=type_id)
-        if len(packages.all()) > 0:
-            return HttpResponseForbidden(
-                "You already have a %s with that name" % escape(
-                    settings.PACKAGE_SINGULAR_NAMES[type_id]))
-    else:
-        description = ""
 
     item = Package(
         author=r.user,
         full_name=full_name,
         description=description,
-        type=type_id
-        )
-    item.save()
+        type=type_id)
+
+    try:
+        item.save()
+    except ValidationError, err:
+        if NON_FIELD_ERRORS in err.message_dict:
+            return HttpResponseForbidden(
+                "You already have a %s with that name (%s)" % (
+                    escape(settings.PACKAGE_SINGULAR_NAMES[type_id]),
+                    item.full_name))
+        return HttpResponseForbidden(str(err))
 
     return HttpResponseRedirect(reverse(
         'jp_%s_latest' % item.get_type_name(), args=[item.id_number]))
@@ -755,7 +807,7 @@ def upload_xpi(request):
     temp_dir = os.path.join(settings.UPLOAD_DIR, str(time.time()))
     os.mkdir(temp_dir)
     path = os.path.join(temp_dir, xpi.name)
-    xpi_file = open(path, 'wb+')
+    xpi_file = codecs.open(path, mode='wb+', encoding='utf-8')
     for chunk in xpi.chunks():
         xpi_file.write(chunk)
     xpi_file.close()

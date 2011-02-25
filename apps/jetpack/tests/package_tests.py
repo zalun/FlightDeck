@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 from django.conf import settings
 from django.db import IntegrityError
 
-from jetpack.models import Package
+from jetpack.models import Package, PackageRevision
 from jetpack.package_helpers import create_from_archive, \
         create_package_from_xpi
 
@@ -44,12 +44,12 @@ class PackageTest(TestCase):
         assert Package.objects.get(
                 author=self.author,
                 type='a',
-                name=package.name)
+                full_name=package.name)
         self.assertRaises(Exception,
                 Package.objects.create,
                 author=self.author,
                 type='a',
-                name=package.name)
+                full_name=package.name)
 
     def test_addon_creation_with_nickname(self):
         """In production if you log in with an AMO user, the username
@@ -66,6 +66,24 @@ class PackageTest(TestCase):
         package.save()
 
         eq_(package.full_name, 'Gordon')
+
+    def test_package_sanitization(self):
+        bad_text = 'Te$t"><script src="google.com"></script>!#'
+        good_text = 'Te$tscript srcgoogle.comscript!#'
+
+        package = Package(
+            author=self.author,
+            type='a',
+            full_name=bad_text,
+            description=bad_text,
+            version_name=bad_text
+        )
+        package.save()
+
+        eq_(package.full_name, good_text)
+        eq_(package.description, good_text)
+        eq_(package.version_name, good_text)
+
 
     def test_automatic_numbering(self):
         Package(
@@ -105,9 +123,6 @@ class PackageTest(TestCase):
     def test_related_name(self):
         Package(author=self.author, type='a').save()
         self.assertEqual(self.author.packages_originated.count(), 1)
-
-    def test_disable_activate(self):
-        raise SkipTest()
 
     def test_create_adddon_from_archive(self):
         path_addon = os.path.join(
@@ -170,3 +185,41 @@ class PackageTest(TestCase):
         eq_(('attachment', 'txt'), (att.filename, att.ext))
         self.failUnless(os.path.isfile(
             os.path.join(settings.UPLOAD_DIR, att.path)))
+
+    def test_disable(self):
+        addon = Package.objects.create(author=self.author, type='a')
+        # disabling addon
+        addon.active = False
+        addon.save()
+        eq_(Package.objects.active().filter(type='a').count(), 0)
+        eq_(Package.objects.active(viewer=self.author).filter(type='a').count(), 1)
+
+    def test_delete(self):
+        addon = Package.objects.create(author=self.author, type='a')
+        # deleting addon
+        addon.delete()
+        eq_(Package.objects.active().filter(type='a').count(), 0)
+        eq_(Package.objects.active(viewer=self.author).filter(type='a').count(), 0)
+        eq_(PackageRevision.objects.filter(package=addon).count(), 0)
+
+    def test_delete_with_a_copy(self):
+        addon = Package.objects.create(author=self.author, type='a')
+        addon_copy = addon.copy(self.author)
+        # check copy
+        eq_(Package.objects.addons().exclude(pk=addon.pk).count(), 1)
+        # deleting addon
+        addon.delete()
+        eq_(Package.objects.active().filter(type='a').count(), 1)
+        eq_(Package.objects.active(viewer=self.author).filter(type='a').count(), 1)
+        eq_(PackageRevision.objects.filter(package=addon).count(), 0)
+        eq_(PackageRevision.objects.filter(package=addon_copy).count(), 1)
+
+    def test_delete_with_dependency(self):
+        addon = Package.objects.create(author=self.author, type='a')
+        lib = Package.objects.create(author=self.author, type='l')
+        addon.latest.dependency_add(lib.latest)
+        # deleting lib
+        lib.delete()
+        eq_(Package.objects.addons().count(), 1)
+        eq_(Package.objects.libraries().filter(author=self.author).count(), 0)
+

@@ -120,7 +120,8 @@ var Package = new Class({
 		}
 		
 		if (fd.edited) {
-		    fd.error.alert("There are unsaved changes", "To makea copy, please save your changes.");
+		    fd.error.alert("There are unsaved changes", 
+                    "To make a copy, please save your changes.");
 		    return;
 		}
 		new Request.JSON({
@@ -145,7 +146,6 @@ var Package = new Class({
 			hashtag: this.options.hashtag, 
 			filename: this.options.name
 		};
-		$log(data);
 		new Request.JSON({
 		  url: this.download_url,
 		  data: data,
@@ -210,16 +210,14 @@ var Package = new Class({
 			}
 			this.modules[module.filename] = new Module(this,module);
 		}, this);
-		
-		//if no main, then activate the first module
+		// there is always a module
+		// if no main, then activate the first module
 		if (!main_module){
 			if (this.options.modules[0]) {
 				var mod = this.modules[this.options.modules[0].filename];
 				fd.sidebar.setSelectedFile(mod)
 				this.editor.switchTo(mod);
-			} else {
-				// XXX: <--- add module first
-			}
+			} 
 		}
 	},
 
@@ -1060,17 +1058,16 @@ Package.Edit = new Class({
 	collectData: function() {
 		this.editor.dumpCurrent();
 		Object.each(this.modules, function(module, filename) {
-            var content = this.editor.items[module.uid].content;
-            if (content) {
-    			this.data[filename] = content;
+            var mod = this.editor.items[module.uid];
+            if (mod.content && mod.changed) {
+    			this.data[filename] = mod.content;
             }
 		}, this);
 		Object.each(this.attachments, function(attachment) {
-            var content = this.editor.items[
-                attachment.options.uid + attachment.options.code_editor_suffix]
-                .content;
-            if (content) {
-    			this.data[attachment.options.uid] = content;
+            var att = this.editor.items[attachment.options.uid 
+                                + attachment.options.code_editor_suffix];
+            if (att.content && att.changed) {
+    			this.data[attachment.options.uid] = att.content;
             }
 		}, this);
 	},
