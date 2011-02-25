@@ -634,7 +634,6 @@ class PackageRevision(BaseModel):
                 self.folders.remove(folder)
             empty_dirs = self.folders.filter(dir_query)
             i += 1
-            print empty_dirs, i
         return self, removed_attachments, removed_empty_dirs
 
 
