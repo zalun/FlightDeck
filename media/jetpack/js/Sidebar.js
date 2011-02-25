@@ -113,7 +113,7 @@ var Sidebar = new Class({
 			trees.plugins.collapse = new FileTree.Collapse('PluginsTree', collapseOptions);
 			var pluginsBranch = trees.plugins.addBranch({
 				'rel': 'directory',
-				'title': 'Plugins',
+				'title': 'Libraries',
 				'id': 'plugins_branch',
 				'class': 'top_branch nodrag'
 			}, null, topBranchOptions);
@@ -567,7 +567,7 @@ var Sidebar = new Class({
 	
 	promptPlugin: function() {
 		var prompt = fd.showQuestion({
-			title: 'Add a User Library',
+			title: 'Add a Library',
 			message: '<input type="text" name="new_library" id="new_library" placeholder="Search for libraries to include" />' +
 					 '<input type="hidden" name="library_id_number" id="library_id_number" />',
 			ok: 'Add Library',
@@ -575,7 +575,7 @@ var Sidebar = new Class({
 			callback: function() {
 				var lib_id = $('library_id_number').value;
 				if(!lib_id) {
-					fd.error.alert('No User Library selected', 'Please enter the name of an existing User Library');
+					fd.error.alert('No Library found!', 'Please enter the name of an existing Library');
 					return;
 				}
 				
