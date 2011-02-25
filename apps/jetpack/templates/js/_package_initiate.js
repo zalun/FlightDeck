@@ -23,6 +23,7 @@ revision_author: '{{ revision.author }}',
 modules: {{ revision.get_modules_list_json|safe }},
 attachments: {{ revision.get_attachments_list_json|safe }},
 folders: {{ revision.get_folders_list_json|safe }},
+attachments_rmdir_url: '{{ revision.get_data_rmdir_url }}',
 // Actions
 copy_url: '{{ revision.get_copy_url }}',
 hashtag: '{% hashtag %}',

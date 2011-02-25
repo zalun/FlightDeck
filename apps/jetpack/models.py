@@ -494,14 +494,18 @@ class PackageRevision(BaseModel):
         " to update a module, new package revision has to be created "
         if save:
             self.save()
-
-        change.increment(self)
+        return change.increment(self)
 
     def updates(self, changes):
         """Changes from the server."""
         self.save()
+        attachments_changed = {}
         for change in changes:
-            self.update(change, False)
+            old_uid = change.pk
+            ch = self.update(change, False)
+            if isinstance(change, Attachment):
+                attachments_changed[old_uid] = {'uid': ch.get_uid}
+        return attachments_changed
 
     def add_mods_and_atts_from_archive(self, packed, main, lib_dir, att_dir):
         """
@@ -606,6 +610,33 @@ class PackageRevision(BaseModel):
         # save as new version
         self.save()
         return self.attachments.remove(dep)
+
+    def attachment_rmdir(self, path):
+        """Remove whole directory of attachments
+        """
+        main_dir = path
+        path = "%s/" % path
+        attachments = self.attachments.filter(filename__startswith=path)
+        dir_query = models.Q(name__startswith=path) | models.Q(name=main_dir)
+        empty_dirs = self.folders.filter(dir_query)
+        if not attachments or empty_dirs:
+            return None
+        self.save()
+        removed_attachments = [att.pk for att in attachments]
+        for att in attachments:
+            self.attachments.remove(att)
+        empty_dirs = self.folders.filter(dir_query)
+        removed_empty_dirs = []
+        i = 0
+        while empty_dirs:
+            for folder in empty_dirs:
+                removed_empty_dirs.append(folder.name)
+                self.folders.remove(folder)
+            empty_dirs = self.folders.filter(dir_query)
+            i += 1
+            print empty_dirs, i
+        return self, removed_attachments, removed_empty_dirs
+
 
     def dependency_add(self, dep, save=True):
         """
@@ -1289,6 +1320,7 @@ class Module(BaseModel):
         self.pk = None
         self.save()
         revision.modules.add(self)
+        return self
 
     def clean(self):
         first_period = self.filename.find('.')
@@ -1419,6 +1451,7 @@ class Attachment(BaseModel):
         self.save()
         self.write()
         revision.attachments.add(self)
+        return self
 
     def clean(self):
         self.filename = pathify(self.filename)

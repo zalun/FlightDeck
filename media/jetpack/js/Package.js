@@ -896,6 +896,28 @@ Package.Edit = new Class({
 		}).send();
 	},
 	
+	removeAttachments: function(path) {
+		new Request.JSON({
+			url: this.options.remove_folder_url,
+			data: {
+				name: path,
+				root_dir: 'data'
+			},
+			onSuccess: function(response) {
+				fd.setURIRedirect(response.view_url);
+				this.registerRevision(response);
+				fd.message.alert(response.message_title, response.message);
+				response.removed_attachments.forEach(function(uid) {
+				    this.attachments[uid].destroy();
+				}, this);
+				response.removed_dirs.forEach(function(name) {
+				    fd.sidebar.removeFile(name, 'd')
+				}, this);
+                fd.sidebar.removeFile(response.foldername, 'd')
+			}.bind(this)
+		}).send();
+	},
+
 	removeModules: function(path) {
 	    new Request.JSON({
 			url: this.options.remove_module_url,
@@ -907,10 +929,7 @@ Package.Edit = new Class({
 				response.removed_modules.forEach(function(filename) {
 				    this.modules[filename].destroy();
 				}, this);
-				
 				response.removed_dirs.forEach(function(name) {
-				    $log(name)
-				    
 				    fd.sidebar.removeFile(name, 'l')
 				}, this);
 				
@@ -979,7 +998,7 @@ Package.Edit = new Class({
 			fd.error.alert('No such Library', 'Please choose a library from the list');
 		}
 	},
-
+    
 	removeLibrary: function(lib) {
 		new Request.JSON({
 			url: this.options.remove_library_url,
@@ -1095,6 +1114,15 @@ Package.Edit = new Class({
 					$('package-info-name').set('text', response.full_name);
 					this.options.full_name = response.full_name;
 				}
+                if (response.attachments_changed) {
+                    Object.forEach(response.attachments_changed, 
+                        function(uid, options) {
+                            if (this.attachments[uid]) {
+                                this.attachments[uid].setOptions(options);
+                            }
+                        }, this
+                    );
+                }
 				fd.setURIRedirect(response.view_url);
 				// set data changed by save
 				this.registerRevision(response);
