@@ -12,5 +12,6 @@
 	"remove_library_url": "{{ revision.get_remove_library_url }}",
 	"add_folder_url": "{{ revision.get_add_folder_url }}",
     "remove_folder_url": "{{ revision.get_remove_folder_url }}",
+    "attachments_rmdir_url": "{{ revision.get_data_rmdir_url }}",
 	{% if revision.package.is_addon %}"test_url": "{{ revision.get_test_xpi_url }}",{% endif %}
 

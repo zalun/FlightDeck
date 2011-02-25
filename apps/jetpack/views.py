@@ -461,12 +461,22 @@ def package_remove_folder(r, id_number, type_id, revision_number):
     try:
         folder = revision.folders.get(name=foldername, root_dir=root)
     except EmptyDir.DoesNotExist:
-        log_msg = 'Attempt to delete a non existing module %s from %s.' % (
-            foldername, id_number)
-        log.warning(log_msg)
-        return HttpResponseForbidden(
-            'There is no such module in %s' % escape(
-                revision.package.full_name))
+        if root == 'data':
+            response = revision.attachment_rmdir(foldername)
+        if not response:
+            log_msg = 'Attempt to delete a non existing module %s from %s.' % (
+                foldername, id_number)
+            log.warning(log_msg)
+            return HttpResponseForbidden(
+                'There is no such module in %s' % escape(
+                    revision.package.full_name))
+        revision, removed_attachments, removed_emptydirs = response
+        return render_to_response('json/%s_rmdir.json' % root, {
+            'revision': revision, 'path': foldername,
+            'removed_attachments': simplejson.dumps(removed_attachments),
+            'removed_dirs': simplejson.dumps(removed_emptydirs),
+            'foldername': foldername},
+            context_instance=RequestContext(r), mimetype='application/json')
     else:
         revision.folder_remove(folder)
 
@@ -583,19 +593,18 @@ def package_rename_attachment(r, id_number, type_id, revision_number):
         return HttpResponseForbidden('You are not the author of this Package')
 
     uid = r.POST.get('uid', '').strip()
-    new_name = r.POST.get('new_filename')
-
-    attachment = latest_by_uid(revision, uid)
-
-    new_ext = r.POST.get('new_ext') or attachment.ext
-
-    if not attachment:
+    try:
+        attachment = revision.attachments.get(pk=uid)
+    except:
         log_msg = ('Attempt to rename a non existing attachment. attachment: '
                    '%s, package: %s.' % (uid, id_number))
         log.warning(log_msg)
         return HttpResponseForbidden(
             'There is no such attachment in %s' % escape(
                 revision.package.full_name))
+
+    new_name = r.POST.get('new_filename')
+    new_ext = r.POST.get('new_ext') or attachment.ext
 
     if not revision.validate_attachment_filename(new_name, new_ext):
         return HttpResponseForbidden(
@@ -605,13 +614,30 @@ def package_rename_attachment(r, id_number, type_id, revision_number):
         )
     attachment.filename = new_name
     attachment.ext = new_ext
-    revision.update(attachment)
+    attachment = revision.update(attachment)
 
     return render_to_response("json/attachment_renamed.json",
                 {'revision': revision, 'attachment': attachment},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
+@require_POST
+@login_required
+def package_rmdir(r, pk, target, path):
+    """
+    Remove attachment from PackageRevision
+    """
+    revision = get_object_or_404(PackageRevision, pk=pk)
+    if target not in ['data', 'lib']:
+        return HttpResponseForbidden
+    if target == 'lib':
+        return HttpResponseForbidden('not supported yet')
+
+    revision.attachment_rmdir(path) if target == 'data' else \
+            revision.modules_rmdir(path)
+    return render_to_response('%s_rmdir.json' % target, {
+        'revision': revision, 'path': path},
+        context_instance=RequestContext(r), mimetype='application/json')
 
 @require_POST
 @login_required
@@ -627,7 +653,7 @@ def package_remove_attachment(r, id_number, type_id, revision_number):
         return HttpResponseForbidden('You are not the author of this Package')
 
     uid = r.POST.get('uid', '').strip()
-    attachment = latest_by_uid(revision, uid)
+    attachment = Attachment.objects.get(pk=uid, revisions=revision)
 
     if not attachment:
         log_msg = ('Attempt to remove a non existing attachment. attachment: '
@@ -654,27 +680,6 @@ def download_attachment(request, uid):
                      settings.UPLOAD_DIR, show_indexes=False)
     response['Content-Disposition'] = 'filename=%s' % attachment.filename
     return response
-
-
-def latest_by_uid(revision, uid):
-    """It could be that the client is sending an old uid,
-    not a nice shiny new one. Given we know the keys coming
-    in and the keys in the db, resolve our old uid into
-    a newer one."""
-    package = revision.package
-    try:
-        attachment = (Attachment.objects.distinct()
-                               .get(pk=uid, revisions__package=package))
-    except (ValueError, ObjectDoesNotExist):
-        return None
-    try:
-        return (Attachment.objects.filter(ext=attachment.ext,
-                                          filename=attachment.filename,
-                                          revisions__package=package)
-                                  .order_by("-pk"))[0]
-    except IndexError:
-        return attachment
-
 
 @require_POST
 @login_required
@@ -739,15 +744,22 @@ def package_save(r, id_number, type_id, revision_number=None,
                 mod.code = code
                 changes.append(mod)
 
-    for key in r.POST.keys():
-        attachment = latest_by_uid(revision, key)
-        if attachment:
-            attachment.data = r.POST[key]
-            if attachment.changed():
-                changes.append(attachment)
+    for att in revision.attachments.all():
+        uid = str(att.pk)
+        if r.POST.get(uid):
+            att.data = r.POST[uid]
+            if att.changed():
+                changes.append(att)
+
+    #for key in r.POST.keys():
+    #    attachment = latest_by_uid(revision, key)
+    #    if attachment:
+    #        attachment.data = r.POST[key]
+    #        if attachment.changed():
+    #            changes.append(attachment)
 
     if changes:
-        revision.updates(changes)
+        attachments_changed = simplejson.dumps(revision.updates(changes))
         save_revision = False
 
     if save_revision:

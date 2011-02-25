@@ -179,7 +179,7 @@ var Sidebar = new Class({
 				}
 			} else {
 				that.promptRemoval(li.get('path'), isModules ? Module : Attachment)
-				$log('a non-empty folder?');
+				$log('a non-empty folder');
 			}
 			
 		});
@@ -360,8 +360,8 @@ var Sidebar = new Class({
 		
 		if (fileType == Attachment) {
 		    $log('FD: TODO: remove entire attachment folders');
-		    fd.alertNotImplemented('Deleting a Data folder with subcontent is under construction. A work around, is to manually delete every single attachment inside the folder before removing the folder. Ya, we know.');
-		    return;
+		    //fd.alertNotImplemented('Deleting a Data folder with subcontent is under construction. A work around, is to manually delete every single attachment inside the folder before removing the folder. Ya, we know.');
+		    //return;
 		}
 		
 		var question = fd.showQuestion({
@@ -377,12 +377,12 @@ var Sidebar = new Class({
 				} else if (file instanceof Library) {
 					fd.getItem().removeLibrary(file);
 				} else if (file instanceof Folder) {
-					fd.getItem().removeFolder(file);
+                    fd.getItem().removeFolder(file);
 				} else if (fileType == Module) {
 				    fd.getItem().removeModules(file);
 				} else if (fileType == Attachment) {
-				    
-				    //fd.getItem().removeAttachments(file);
+                    $log('removing folder')
+				    fd.getItem().removeAttachments(file);
 				}
 				
 				

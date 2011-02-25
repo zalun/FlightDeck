@@ -1,0 +1,8 @@
+{
+	{% include "json/_edit_urls.json" %}
+	"message_title": "Success",
+	"message": "Folder {{ path }} removed",
+	"foldername": "{{ foldername }}",
+	"removed_dirs": {{ removed_dirs|safe }},
+	"removed_attachments": {{ removed_attachments|safe }}
+}
