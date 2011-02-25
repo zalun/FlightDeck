@@ -33,13 +33,10 @@
 	<p>Now, type the following code into the editing area:</p>
 
 	<pre>
-  var widgets = require("widget");
-
-  widgets.add(widgets.Widget({
-    label: "Mozilla",
-    image: "http://www.mozilla.org/favicon.ico"
-  }));
-
+require("widget").Widget({
+    label: "My Mozilla Widget",
+    contentURL: "http://www.mozilla.org/favicon.ico"
+});
 	</pre>
 
 	<p>Then click <i>Test</i>. You may now be asked to install the <i>Add-ons
@@ -79,16 +76,15 @@
 	user clicks on it:</p>
 
 	<pre class="faded">
-  var widgets = require("widget");
-
-  widgets.add(widgets.Widget({
-    label: <span class="highlighted">"Visit The Mozilla Website"</span>,
-    image: "http://www.mozilla.org/favicon.ico",
+require("widget").Widget({
+    label: <span class="highlighted">"My Mozilla Widget"</span>,
+    contentURL: "http://www.mozilla.org/favicon.ico",
     <span class="highlighted">onClick: function(event) {
-      require("tabs").open("http://www.mozilla.org");
-    }</span>}));
+        require("tabs").open("http://www.mozilla.org");
+    }</span>
+});
 	</pre>
-
+	
 	<p>The <tt>onClick</tt> property is an example of an <i>event
 	handler</i>, which you may be familiar with if you've done any coding
 	on the Web. Many modules in the add-ons platform reuse this convention
