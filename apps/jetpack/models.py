@@ -213,6 +213,11 @@ class PackageRevision(BaseModel):
             'jp_%s_revision_remove_folder' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
+    def get_latest_dependencies_url(self):
+        return reverse(
+            'jp_%s_check_latest_dependencies' % self.package.get_type_name(),
+            args=[self.package.id_number, self.revision_number])
+
     ######################
     # Manifest
 
@@ -689,6 +694,7 @@ class PackageRevision(BaseModel):
         " returns dependencies list as JSON object "
         d_list = [{
                 'full_name': escape(d.package.full_name),
+                'id_number': d.package.id_number,
                 'view_url': d.get_absolute_url()
                 } for d in self.dependencies.all()
             ] if self.dependencies.count() > 0 else []
