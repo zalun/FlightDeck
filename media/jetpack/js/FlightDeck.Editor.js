@@ -23,14 +23,14 @@ FlightDeck = Class.refactor(FlightDeck,{
 	},
 
 	onChanged: function() {
-                $log('FD: INFO: document changed - onbeforeunload warning is on and save button is lit.');
-                $$('li.Icon_save').addClass('Icon_save_changes');
+        $log('FD: INFO: document changed - onbeforeunload warning is on and save button is lit.');
+        $$('li.Icon_save').addClass('Icon_save_changes');
 		this.edited = true;
 	},
 
 	onSaved: function() {
-                $log('FD: INFO: document saved - onbeforeunload warning is off and save button is not lit.');
-                $$('li.Icon_save').removeClass('Icon_save_changes');
+        $log('FD: INFO: document saved - onbeforeunload warning is off and save button is not lit.');
+        $$('li.Icon_save').removeClass('Icon_save_changes');
 		this.edited = false;
 	},
 

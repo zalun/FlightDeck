@@ -1001,7 +1001,7 @@ Package.Edit = new Class({
     
 	removeLibrary: function(lib) {
 		new Request.JSON({
-			url: this.options.remove_library_url,
+			Gurl: this.options.remove_library_url,
 			data: {'id_number': lib.options.id_number},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
@@ -1082,9 +1082,9 @@ Package.Edit = new Class({
     			this.data[filename] = mod.content;
             }
 		}, this);
-		Object.each(this.attachments, function(attachment) {
-            var att = this.editor.items[attachment.options.uid 
-                                + attachment.options.code_editor_suffix];
+		Object.each(this.attachments, function(attachment, uid) {
+            var att = this.editor.items[uid 
+                        + attachment.options.code_editor_suffix];
             if (att.content && att.changed) {
     			this.data[attachment.options.uid] = att.content;
             }
@@ -1117,9 +1117,23 @@ Package.Edit = new Class({
 				}
                 if (response.attachments_changed) {
                     Object.forEach(response.attachments_changed, 
-                        function(uid, options) {
+                        function(options, uid) {
+                            $log(this.attachments);
+                            $log(this.attachments[uid]);
                             if (this.attachments[uid]) {
-                                this.attachments[uid].setOptions(options);
+                                // updating attachment's uid
+                                var att = this.attachments[uid];
+                                att.setOptions(options);
+                                // reindexing this.attachments
+                                this.attachments[options.uid] = att
+                                delete this.attachments[uid];
+                                // reindexing this.editor.items
+                                var new_uid = options.uid 
+                                    + att.options.code_editor_suffix;
+                                var old_uid = uid 
+                                    + att.options.code_editor_suffix;
+                                this.editor.items[new_uid] = this.editor.items[old_uid];
+                                delete this.editor.items[old_uid];
                             }
                         }, this
                     );
