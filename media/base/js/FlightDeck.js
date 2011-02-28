@@ -301,14 +301,6 @@ Request = Class.refactor(Request, {
 			}
         }
     },
-    initialize: function(options) {
-      this.previous(options);
-      // It happened to be unnecessary
-      //if (csrfmiddlewaretoken && (this.options.method == 'post' || this.options.method == 'POST')) {
-      //  this.options.data['csrfmiddlewaretoken'] = csrfmiddlewaretoken;
-      //}
-
-    },
   // overloading processScripts to *not* execute JS responses
     processScripts: function(text){
         if (this.options.evalResponse) return Browser.exec(text);
