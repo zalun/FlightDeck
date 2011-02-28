@@ -1001,7 +1001,7 @@ Package.Edit = new Class({
     
 	removeLibrary: function(lib) {
 		new Request.JSON({
-			Gurl: this.options.remove_library_url,
+			url: this.options.remove_library_url,
 			data: {'id_number': lib.options.id_number},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
