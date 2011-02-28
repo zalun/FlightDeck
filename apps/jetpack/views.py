@@ -928,6 +928,18 @@ def package_remove_library(r, id_number, type_id, revision_number):
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
+def package_latest_dependencies(r, id_number, type_id, revision_number):
+    revision = get_package_revision(id_number, type_id, revision_number)
+    out_of_date = []
+    for current_revision in revision.dependencies.select_related('package'):
+        latest_revision = current_revision.package.revisions.order_by('-pk')[0]
+        if current_revision != latest_revision:
+            out_of_date.append(latest_revision)
+
+    return render_to_response('json/latest_dependencies.json',
+            {'revisions': out_of_date},
+            context_instance=RequestContext(r),
+            mimetype='application/json')
 
 def get_revisions_list(id_number):
     " provide a list of the Package's revsisions "

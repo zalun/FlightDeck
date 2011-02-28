@@ -297,10 +297,13 @@ var Sidebar = new Class({
 			title = file.options.full_name;
 		} else if (file instanceof Folder) {
 			title = file.options.name;
-		} else {
+		} else if (file instanceof Module 
+                || file instanceof Attachment) {
 			title = file.options.filename + '.' + file.options.type;
 			
-		}
+		} else {
+            return null; //throw Error? this is a bad case!
+        }
 		
 		$(this).getElements('.tree li[path="{title}"]'.substitute({title:title})).some(function(el) {
 			if(el.retrieve('file') == file) {
@@ -590,7 +593,15 @@ var Sidebar = new Class({
 			'url': settings.library_autocomplete_url
 		});
 	},
-	
+
+    setPluginUpdate: function(library, latest_revision) {
+        $log('set New Version notice', library);
+        var el = this.getBranchFromFile(library);
+        if (!el) return;
+
+        $log(el);
+    },
+
 	toElement: function() {
 		return this.element;
 	}

@@ -47,7 +47,7 @@ var Package = new Class({
 
 	attachments: {},
 
-	plugins: {},
+	libraries: {},
 	
 	folders: {},
 
@@ -235,7 +235,8 @@ var Package = new Class({
 		this.options.dependencies.each(function(plugin) {
 			plugin.readonly = this.options.readonly;
 			plugin.append = true;
-			this.plugins[plugin.full_name] = new Library(this,plugin);
+            $log(plugin);
+			this.libraries[plugin.id_number] = new Library(this,plugin);
 		}, this);
 	},
 	
@@ -316,14 +317,8 @@ var Library = new Class({
 		options.path = options.full_name;
 		this.parent(pack, options);
 		
-		if(!this.options.id_number) {
-			// hacky... maybe we should just always pass this with
-			// the new Package.Edit() data on page load?
-			this.options.id_number = this.options.view_url.split('/')[2];
-		}
-		
 		this.addEvent('destroy', function(){
-			delete pack.plugins[this.options.full_name];
+			delete pack.libraries[this.options.id_number];
 		})
 		
 		if(this.options.append) {
@@ -341,7 +336,7 @@ var Library = new Class({
 	},
 	
 	getID: function() {
-		return 'Library-' + this.options.name;
+		return 'Library-' + this.options.id_number;
 	}
 	
 });
@@ -984,7 +979,7 @@ Package.Edit = new Class({
 					// set data changed by save
 					this.registerRevision(response);
 					fd.message.alert(response.message_title, response.message);
-					this.plugins[response.full_name] = new Library(this, {
+					this.libraries[response.id_number] = new Library(this, {
 						full_name: response.full_name,
 						id_number: response.id_number,
 						library_name: response.library_name,
@@ -1174,5 +1169,24 @@ Package.Edit = new Class({
 
 	registerRevision: function(urls) {
         this.setOptions(urls);
-	}
+	},
+
+    checkDependencies: function() {
+        var that = this;
+        new Request.JSON({
+            
+            url: that.options.latest_dependencies_url,
+
+            onSuccess: function(res) {
+                //check response for new versions
+                $log(res);
+                res.forEach(function(latest_revision) {
+                    fd.sidebar.setPluginUpdate(that.libraries[latest_revision.id_number], latest_revision);
+                });
+                //and then do it again.
+                //that.checkDependencies.delay(60000, this);
+            }
+
+        }).send();
+    }
 });

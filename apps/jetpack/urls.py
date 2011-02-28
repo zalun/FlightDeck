@@ -211,4 +211,15 @@ urlpatterns = patterns('jetpack.views',
             '(?P<revision_number>\d+)/$',
         'package_remove_library',
         {'type_id': 'l'},  name='jp_library_revision_remove_library'),
+
+    # check libraries for latest versions
+    url(r'addon/check_latest_dependencies/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
+        'package_latest_dependencies',
+        {'type_id': 'a'}, name='jp_addon_check_latest_dependencies'),
+
+    url(r'library/check_latest_dependencies/(?P<id_number>[-\w]+)/revision'
+            '(?P<revision_number>\d)/$',
+        'package_latest_dependencies',
+        {'type_id': 'l'}, name='jp_library_check_latest_dependencies'),
 )

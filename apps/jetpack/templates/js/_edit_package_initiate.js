@@ -12,4 +12,5 @@
   assign_library_url: '{{ revision.get_assign_library_url }}',
   remove_library_url: '{{ revision.get_remove_library_url }}',
   add_folder_url: '{{ revision.get_add_folder_url }}',
-  remove_folder_url: '{{ revision.get_remove_folder_url }}'
+  remove_folder_url: '{{ revision.get_remove_folder_url }}',
+  latest_dependencies_url: '{{ revision.get_latest_dependencies_url }}'
