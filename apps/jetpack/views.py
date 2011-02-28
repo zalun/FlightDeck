@@ -759,12 +759,12 @@ def package_save(r, id_number, type_id, revision_number=None,
     #            changes.append(attachment)
 
     attachments_changed = {}
-    if changes:
-        attachments_changed = simplejson.dumps(revision.updates(changes))
-        save_revision = False
-
-    if save_revision:
+    if save_revision or changes:
         revision.save()
+
+    if changes:
+        attachments_changed = simplejson.dumps(
+                revision.updates(changes, save=False))
 
     revision_message = r.POST.get('revision_message', False)
     if revision_message and revision_message != start_revision_message:

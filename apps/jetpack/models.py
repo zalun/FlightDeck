@@ -496,13 +496,14 @@ class PackageRevision(BaseModel):
             self.save()
         return change.increment(self)
 
-    def updates(self, changes):
+    def updates(self, changes, save=True):
         """Changes from the server."""
-        self.save()
+        if save:
+            self.save()
         attachments_changed = {}
         for change in changes:
             old_uid = change.pk
-            ch = self.update(change, False)
+            ch = self.update(change, save=False)
             if isinstance(change, Attachment):
                 attachments_changed[old_uid] = {'uid': ch.get_uid}
         return attachments_changed
