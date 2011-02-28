@@ -758,6 +758,7 @@ def package_save(r, id_number, type_id, revision_number=None,
     #        if attachment.changed():
     #            changes.append(attachment)
 
+    attachments_changed = {}
     if changes:
         attachments_changed = simplejson.dumps(revision.updates(changes))
         save_revision = False

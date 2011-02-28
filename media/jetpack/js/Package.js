@@ -1110,6 +1110,7 @@ Package.Edit = new Class({
 			data: this.data,
 			onSuccess: function(response) {
 				// set the redirect data to view_url of the new revision
+                $log('response success')
 				if (response.full_name) {
 					$('package-info-name').set('text', response.full_name);
 					this.options.full_name = response.full_name;
