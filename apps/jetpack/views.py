@@ -6,7 +6,7 @@ import time
 import os
 import shutil
 import codecs
-#import re
+import re
 
 #from django.template.defaultfilters import slugify
 from django.contrib import messages
