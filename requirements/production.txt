@@ -1,6 +1,6 @@
 # requirements for production environment
 
-Django==1.2.3
+Django==1.2.5
 
 # search functionality
 -e git+git://github.com/toastdriven/django-haystack#egg=django_haystack
