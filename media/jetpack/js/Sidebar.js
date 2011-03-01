@@ -163,8 +163,14 @@ var Sidebar = new Class({
 		
 		//adding User Libraries to Plugins
 		if(this.trees.plugins) {
-			$(this.trees.plugins).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
-				that.promptPlugin();
+			$(this.trees.plugins).addEvents({
+				'click:relay(li.top_branch > .holder .add)': function(e) {
+					that.promptPlugin();
+				},
+				'click:relay(li.update > .holder .icon)': function(e) {
+					e.stop();
+					that.promptPluginUpdate(e.target.getParent('li.update'));
+				}
 			});
 		}
 		
@@ -595,12 +601,28 @@ var Sidebar = new Class({
 	},
 
     setPluginUpdate: function(library, latest_revision) {
-        $log('set New Version notice', library);
-        var el = this.getBranchFromFile(library);
-        if (!el) return;
-
-        $log(el);
+        var branch = this.getBranchFromFile(library);
+        if (!branch || branch.hasClass('update')) return;
+		
+		branch.addClass('update');
+        branch.getElement('.icon').set('title', 'Update to new version');
     },
+	
+	removePluginUpdate: function(library) {
+		var branch = this.getBranchFromFile(library);
+        if (!branch || !branch.hasClass('update')) return;
+		
+		branch.removeClass('update');
+        branch.getElement('.icon').erase('title');
+	},
+	
+	promptPluginUpdate: function(li) {
+		var that = this,
+			file = li.retrieve('file');
+		fd.item.updateLibrary(file, function() {
+			that.removePluginUpdate(file);
+		});
+	},
 
 	toElement: function() {
 		return this.element;

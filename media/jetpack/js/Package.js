@@ -62,6 +62,7 @@ var Package = new Class({
 		this.instantiate_attachments();
 		this.instantiate_folders();
 		this.instantiate_dependencies();
+		this.checkDependencies();
 		// hook event to menu items
 		$('revisions_list').addEvent('click', this.show_revision_list);
 		if (this.isAddon()) {
@@ -235,7 +236,6 @@ var Package = new Class({
 		this.options.dependencies.each(function(plugin) {
 			plugin.readonly = this.options.readonly;
 			plugin.append = true;
-            $log(plugin);
 			this.libraries[plugin.id_number] = new Library(this,plugin);
 		}, this);
 	},
@@ -337,6 +337,14 @@ var Library = new Class({
 	
 	getID: function() {
 		return 'Library-' + this.options.id_number;
+	},
+	
+	storeNewVersion: function(version_data) {
+		this._latest_version = version_data;
+	},
+	
+	retrieveNewVersion: function() {
+		return this._latest_version;
 	}
 	
 });
@@ -993,6 +1001,25 @@ Package.Edit = new Class({
 			fd.error.alert('No such Library', 'Please choose a library from the list');
 		}
 	},
+	
+	updateLibrary: function(lib, callback) {
+		new Request.JSON({
+			url: this.options.update_library_url,
+			data: {
+				'id_number': lib.options.id_number,
+				'revision': lib.retrieveNewVersion().revision
+			},
+			useSpinner: true,
+			spinerTarget: $$('#PluginsTree ul')[0],
+			onSuccess: function(response) {
+				fd.setURIRedirect(response.view_url);
+				this.registerRevision(response);
+				fd.message.alert(response.message_title, response.message);
+				lib.setOptions(response);
+				Function.from(callback)(response);
+			}.bind(this)
+		}).send();
+	},
     
 	removeLibrary: function(lib) {
 		new Request.JSON({
@@ -1174,19 +1201,18 @@ Package.Edit = new Class({
     checkDependencies: function() {
         var that = this;
         new Request.JSON({
-            
             url: that.options.latest_dependencies_url,
-
             onSuccess: function(res) {
                 //check response for new versions
-                $log(res);
                 res.forEach(function(latest_revision) {
-                    fd.sidebar.setPluginUpdate(that.libraries[latest_revision.id_number], latest_revision);
+                    var lib = that.libraries[latest_revision.id_number];
+					lib.storeNewVersion(latest_revision);
+					fd.sidebar.setPluginUpdate(lib);
                 });
                 //and then do it again.
                 //that.checkDependencies.delay(60000, this);
             }
-
         }).send();
     }
+	
 });

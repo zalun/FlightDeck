@@ -168,6 +168,12 @@ class PackageRevision(BaseModel):
         return reverse(
             'jp_%s_revision_assign_library' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
+    
+    def get_update_library_url(self):
+        " returns url to update library to a specific version "
+        return reverse(
+            'jp_%s_revision_update_library' % self.package.get_type_name(),
+            args=[self.package.id_number, self.revision_number])
 
     def get_remove_library_url(self):
         " returns url to remove library from the package revision "
@@ -669,6 +675,24 @@ class PackageRevision(BaseModel):
             # save as new version
             self.save()
         return self.dependencies.add(dep)
+    
+    def dependency_update(self, dep, save=True):
+        " create new version with dependency version updated "
+        try:
+            old_version = self.dependencies.get(package=dep.package_id)
+        except PackageRevision.DoesNotExist:
+            raise DependencyException('This %s does not depend on "%s".'
+                        % (self.package.get_type_name(), dep.package.full_name))
+        
+        if old_version == dep:
+            raise DependencyException('"%s" is already up-to-date.'
+                                      % dep.package.full_name)
+        
+        else:
+            if save:
+                self.save()
+            self.dependencies.remove(old_version)
+            return self.dependencies.add(dep)
 
     def dependency_remove(self, dep):
         " copy to new revision, remove dependency "
@@ -689,6 +713,15 @@ class PackageRevision(BaseModel):
         raise DependencyException(
             'There is no such library in this %s' \
             % self.package.get_type_name())
+
+    def get_outdated_dependency_versions(self):
+        " check all dependencies for a newer version "
+        out_of_date = []
+        for current_revision in self.dependencies.select_related('package'):
+            latest_revision = current_revision.package.revisions.order_by('-pk')[0]
+            if current_revision != latest_revision:
+                out_of_date.append(latest_revision)
+        return out_of_date
 
     def get_dependencies_list_json(self):
         " returns dependencies list as JSON object "

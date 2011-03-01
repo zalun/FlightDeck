@@ -202,6 +202,17 @@ urlpatterns = patterns('jetpack.views',
             '(?P<revision_number>\d+)/$',
         'package_assign_library',
         {'type_id': 'l'}, name='jp_library_revision_assign_library'),
+    
+    # update library
+    url(r'^addon/update_library/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
+        'package_update_library',
+        {'type_id': 'a'}, name='jp_addon_revision_update_library'),
+    url(r'^library/update_library/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
+        'package_update_library',
+        {'type_id': 'l'}, name='jp_library_revision_update_library'),
+    
     # remove library
     url(r'^addon/remove_dependency/(?P<id_number>[-\w]+)/revision/'
             '(?P<revision_number>\d+)/$',

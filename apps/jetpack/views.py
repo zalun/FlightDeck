@@ -35,7 +35,7 @@ from jetpack.package_helpers import get_package_revision, \
         create_package_from_xpi
 from jetpack.models import Package, PackageRevision, Module, Attachment, SDK, \
                            EmptyDir
-from jetpack.errors import FilenameExistException
+from jetpack.errors import FilenameExistException, DependencyException
 
 log = commonware.log.getLogger('f.jetpack')
 
@@ -914,20 +914,46 @@ def package_remove_library(r, id_number, type_id, revision_number):
     try:
         revision.dependency_remove_by_id_number(lib_id_number)
     except Exception, err:
-        return HttpResponseForbidden(escape(err.__unicode__()))
+        return HttpResponseForbidden(escape(err.__str__()))
 
     return render_to_response('json/dependency_removed.json',
                 {'revision': revision, 'library': library},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
+@require_POST
+@login_required
+def package_update_library(r, id_number, type_id, revision_number):
+    " update a dependency to a certain version "
+    revision = get_package_revision(id_number, type_id, revision_number)
+    if r.user.pk != revision.author.pk:
+        log_msg = ("[security] Attempt to update library in package (%s) by "
+                   "non-owner (%s)" % (id_number, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden(
+            'You are not the author of this %s' % escape(
+                revision.package.get_type_name()))
+    
+    lib_id_number = r.POST.get('id_number')
+    lib_revision = r.POST.get('revision')
+    
+    library = get_object_or_404(PackageRevision, pk=lib_revision, package__id_number=lib_id_number)
+    
+    try:
+        revision.dependency_update(library)
+    except DependencyException, err:
+        return HttpResponseForbidden(escape(err.__str__()))
+    
+    return render_to_response('json/library_updated.json',
+                {'revision': revision, 'library': library.package,
+                 'lib_revision': library},
+                context_instance=RequestContext(r),
+                mimetype='application/json')
+
+@login_required
 def package_latest_dependencies(r, id_number, type_id, revision_number):
     revision = get_package_revision(id_number, type_id, revision_number)
-    out_of_date = []
-    for current_revision in revision.dependencies.select_related('package'):
-        latest_revision = current_revision.package.revisions.order_by('-pk')[0]
-        if current_revision != latest_revision:
-            out_of_date.append(latest_revision)
+    out_of_date = revision.get_outdated_dependency_versions()
 
     return render_to_response('json/latest_dependencies.json',
             {'revisions': out_of_date},
