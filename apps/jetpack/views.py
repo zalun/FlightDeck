@@ -747,13 +747,6 @@ def package_save(r, id_number, type_id, revision_number=None,
             if att.changed():
                 changes.append(att)
 
-    #for key in r.POST.keys():
-    #    attachment = latest_by_uid(revision, key)
-    #    if attachment:
-    #        attachment.data = r.POST[key]
-    #        if attachment.changed():
-    #            changes.append(attachment)
-
     attachments_changed = {}
     if save_revision or changes:
         revision.save()
