@@ -62,7 +62,7 @@ var Package = new Class({
 		this.instantiate_attachments();
 		this.instantiate_folders();
 		this.instantiate_dependencies();
-		this.checkDependencies();
+		this.prepareDependenciesInterval();
 		// hook event to menu items
 		$('revisions_list').addEvent('click', this.show_revision_list);
 		if (this.isAddon()) {
@@ -1020,6 +1020,40 @@ Package.Edit = new Class({
 			}.bind(this)
 		}).send();
 	},
+
+    checkDependencies: function() {
+        var that = this;
+        new Request.JSON({
+            url: that.options.latest_dependencies_url,
+			timeout: 5000,
+            onSuccess: function(res) {
+                res.forEach(function(latest_revision) {
+                    var lib = that.libraries[latest_revision.id_number];
+					if (!lib) return;
+					lib.storeNewVersion(latest_revision);
+					fd.sidebar.setPluginUpdate(lib);
+                });
+            }
+        }).send();
+    },
+	
+	prepareDependenciesInterval: function() {
+		var that = this;
+		function setCheckInterval() {
+			unsetCheckInterval();
+			that.checkDependencies();
+			that.checkDependenciesInterval = that.checkDependencies.periodical(60000, that);
+		}
+		
+		function unsetCheckInterval() {
+			clearInterval(that.checkDependenciesInterval);
+		}
+		
+		window.addEvent('focus', setCheckInterval);
+		window.addEvent('blur', unsetCheckInterval);
+		setCheckInterval();
+		
+	},
     
 	removeLibrary: function(lib) {
 		new Request.JSON({
@@ -1196,23 +1230,6 @@ Package.Edit = new Class({
 
 	registerRevision: function(urls) {
         this.setOptions(urls);
-	},
-
-    checkDependencies: function() {
-        var that = this;
-        new Request.JSON({
-            url: that.options.latest_dependencies_url,
-            onSuccess: function(res) {
-                //check response for new versions
-                res.forEach(function(latest_revision) {
-                    var lib = that.libraries[latest_revision.id_number];
-					lib.storeNewVersion(latest_revision);
-					fd.sidebar.setPluginUpdate(lib);
-                });
-                //and then do it again.
-                //that.checkDependencies.delay(60000, this);
-            }
-        }).send();
-    }
+	}
 	
 });
