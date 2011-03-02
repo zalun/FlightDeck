@@ -1398,7 +1398,11 @@ class Attachment(BaseModel):
     def read(self):
         """Reads the file, if it doesn't exist return empty."""
         if self.path and os.path.exists(self.get_file_path()):
-            f = codecs.open(self.get_file_path(), mode='rb', encoding='utf-8')
+            kwargs = { 'mode': 'rb' }
+            if self.is_editable:
+                kwargs['encoding'] = 'utf-8'
+            
+            f = codecs.open(self.get_file_path(), **kwargs)
             content = f.read()
             f.close()
             return content
@@ -1418,8 +1422,12 @@ class Attachment(BaseModel):
 
         if not os.path.exists(directory):
             os.makedirs(directory)
-
-        with codecs.open(self.get_file_path(), mode='wb', encoding='utf-8') as f:
+        
+        kwargs = { 'mode': 'wb' }
+        if self.is_editable:
+            kwargs['encoding'] = 'utf-8'
+            
+        with codecs.open(self.get_file_path(), **kwargs) as f:
             f.write(data)
 
     def export_code(self, static_dir):
