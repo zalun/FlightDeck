@@ -345,10 +345,7 @@ def package_rename_module(r, id_number, type_id, revision_number):
         return HttpResponseForbidden('You are not the author of this Package')
 
     old_name = r.POST.get('old_filename')
-    new_name = pathify(r.POST.get('new_filename'))
-
-    # modules should never have an extension, for now
-    new_name = re.sub('/\..*$', '', new_name)
+    new_name = r.POST.get('new_filename')
 
     if old_name == 'main':
         return HttpResponseForbidden(
