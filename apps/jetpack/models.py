@@ -1401,6 +1401,7 @@ class Attachment(BaseModel):
             kwargs = { 'mode': 'rb' }
             if self.is_editable:
                 kwargs['encoding'] = 'utf-8'
+                kwargs['mode'] = 'r'
             
             f = codecs.open(self.get_file_path(), **kwargs)
             content = f.read()
@@ -1426,6 +1427,7 @@ class Attachment(BaseModel):
         kwargs = { 'mode': 'wb' }
         if self.is_editable:
             kwargs['encoding'] = 'utf-8'
+            kwargs['mode'] = 'w'
             
         with codecs.open(self.get_file_path(), **kwargs) as f:
             f.write(data)
