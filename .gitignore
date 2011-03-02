@@ -5,6 +5,7 @@
 # *.[oa]
 # *~
 adminmedia
+build
 flightdeckenv
 flightdeck/media/jetpack
 flightdeck/media/tutorial
@@ -16,6 +17,7 @@ lib/temp-*
 upload
 sdk_versions
 settings_local.py
+src
 .coverage
 .figleaf
 vendor
