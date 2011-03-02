@@ -35,7 +35,8 @@ class AttachmentTest(TestCase):
 
         # Simulating upload.
         self.attachment = Attachment.objects.create(
-            filename='test_filename.txt',
+            filename='test_filename',
+            ext='txt',
             author=self.author
         )
         self.attachment.create_path()
@@ -81,6 +82,18 @@ class AttachmentTest(TestCase):
         addon = Package.objects.get(author=self.author)
         eq_(addon.latest.revision_number, 2)
         eq_(addon.latest.attachments.get().read(), u'ą')
+    
+    def test_create_image_attachment(self):
+        " test simply shouldn't raise any errors "
+        image_path = os.path.join(settings.ROOT,
+                                  'apps/jetpack/tests/sample_image.png')
+        f = open(image_path, 'r')
+        self.attachment.data = f.read()
+        f.close()
+        self.attachment.ext = 'png'
+        self.attachment.write()
+        
+        self.attachment.read()
 
 
 class TestViews(TestCase):
