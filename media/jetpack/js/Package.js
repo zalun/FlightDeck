@@ -696,7 +696,7 @@ Package.Edit = new Class({
 
 			onpartialload: function(rpe, xhr) {
 				$log('FD: attachment uploaded');
-				response = JSON.parse(xhr.responseText);
+				var response = JSON.parse(xhr.responseText);
 				fd.message.alert(response.message_title, response.message);
 				var attachment = new Attachment(self,{
 					append: true,
