@@ -126,54 +126,6 @@ class TestPackage(TestCase):
         response = self.client.get(lib.get_absolute_url())
         eq_(response.status_code, 200)
 
-
-class TestModules(TestCase):
-
-    fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']
-
-    def setUp(self):
-        if not os.path.exists(settings.UPLOAD_DIR):
-            os.makedirs(settings.UPLOAD_DIR)
-
-        self.author = User.objects.get(username='john')
-        self.author.set_password('password')
-        self.author.save()
-
-        self.package = self.author.packages_originated.addons()[0:1].get()
-        self.revision = self.package.revisions.all()[0]
-
-        self.client.login(username=self.author.username, password='password')
-
-    def add_one(self, filename='tester'):
-        self.client.post(self.get_add_url(self.revision.revision_number), { 'filename': filename })
-        self.revision = next(self.revision)
-        return self.revision
-
-    def get_add_url(self, revision):
-        args = [self.package.id_number, revision]
-        return reverse('jp_addon_revision_add_module', args=args)
-
-    def get_delete_url(self, revision):
-        args = [self.package.id_number, revision]
-        return reverse('jp_addon_revision_remove_module', args=args)
-
-    def test_module_add(self):
-        revision = self.add_one('a-module')
-        # 1 for main, 1 for added, so 2
-        eq_(revision.modules.all().count(), 2)
-        eq_(revision.modules.all().order_by('-id')[0].filename, 'a-module')
-
-    def test_module_add_with_extension(self):
-        revision = self.add_one('test.js')
-        eq_(revision.modules.all().order_by('-id')[0].filename, 'test')
-
-    def test_module_name_sanitization(self):
-        revision = self.add_one(filename='A"> <a href="google.com">malicious module')
-        eq_(revision.modules.all().order_by('-id')[0].filename, 'A-a-href-google')
-
-        revision = self.add_one(filename='void:myXSSFunction(fd.item)')
-        eq_(revision.modules.all().order_by('-id')[0].filename, 'void-myXSSFunction-fd')
-
 class TestEmptyDirs(TestCase):
     fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']
 
