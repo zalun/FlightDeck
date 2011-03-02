@@ -213,7 +213,9 @@ var Sidebar = new Class({
 			el;
 			
 		el = this.getBranchFromFile(file);
-		tree.removeBranch(el);
+		if (el) {
+			tree.removeBranch(el);
+		}
 	},
 	
 	addFileToTree: function(treeName, file) {
