@@ -7,6 +7,7 @@ import os
 import shutil
 import codecs
 import re
+import tempfile
 
 #from django.template.defaultfilters import slugify
 from django.contrib import messages
@@ -830,10 +831,9 @@ def upload_xpi(request):
     upload XPI and create Addon and eventual Libraries
     """
     xpi = request.FILES['xpi']
-    temp_dir = os.path.join(settings.UPLOAD_DIR, str(time.time()))
-    os.mkdir(temp_dir)
+    temp_dir = tempfile.mkdtemp()
     path = os.path.join(temp_dir, xpi.name)
-    xpi_file = codecs.open(path, mode='wb+', encoding='utf-8')
+    xpi_file = codecs.open(path, mode='wb+')
     for chunk in xpi.chunks():
         xpi_file.write(chunk)
     xpi_file.close()
@@ -842,6 +842,7 @@ def upload_xpi(request):
     except Exception, err:
         log.warning("Bad file %s" % str(err))
         return HttpResponseForbidden('Wrong file')
+    os.remove(path)
     shutil.rmtree(temp_dir)
     return HttpResponseRedirect(addon.get_absolute_url())
     # after front-end will support interactive upload
