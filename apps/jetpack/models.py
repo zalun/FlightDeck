@@ -1450,8 +1450,9 @@ class Attachment(BaseModel):
 
     def increment(self, revision):
         # revision is already incremented
-        # attachment's filename is unique in revision
-        query = revision.attachments.filter(filename=self.filename)
+        # attachment's filename might have changed, but we haven't changed
+        # uid yet, so use that
+        query = revision.attachments.filter(pk=self.pk)
         if query.count() > 1:
             log.warning(
                 "Fixing revision by removing all duplicate attachments")

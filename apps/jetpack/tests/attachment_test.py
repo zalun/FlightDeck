@@ -284,6 +284,9 @@ class TestViews(TestCase):
         response = simplejson.loads(response.content)
         assert response.has_key('uid')
         assert response['uid'] != old_uid
+        
+        revision = next(revision)
+        eq_(revision.attachments.count(), 1)
 
     def test_attachment_save(self):
         # back-end responds with

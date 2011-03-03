@@ -767,11 +767,11 @@ Package.Edit = new Class({
 		var that = this;
 		
 		// break off an extension from the filename
-		var ext = newName.getFileExtension();
-		newName = newName.getFileName();
-		
-		
-		
+		var ext = newName.getFileExtension() || '';
+		if (ext) {
+			newName = newName.getFileName();
+		}
+
 		new Request.JSON({
 			url: that.options.rename_attachment_url,
 			data: {

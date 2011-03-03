@@ -462,17 +462,12 @@ var Sidebar = new Class({
 	
 	promptAttachment: function(folder) {
         var path = folder.get('path') || '';
-        var subtitle = '';
-        var submsg = '';
-        if (!path) {
-            subtitle = "or Upload ";
-            submsg = '<input type="file" name="upload_attachment" id="upload_attachment"/></p><p style="text-align:center">&mdash; OR &mdash;</p><p>';
-        }
         if (path) path += '/';
         var that = this;
 		var prompt = fd.showQuestion({
-			title: 'Create '+ subtitle +'an Attachment',
-			message: submsg  
+			title: 'Create or Upload an Attachment',
+			message: '<input type="file" name="upload_attachment" id="upload_attachment"/></p>'
+				+ '<p style="text-align:center">&mdash; OR &mdash;</p><p>'
 				+ '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>'
 				+ '<a href="#" id="new_type_folder" class="radio_btn"><span>Folder</span></a>'
 				+ '<input type="text" name="new_attachment" id="new_attachment" placeholder="New Attachment name..." />',
@@ -485,10 +480,7 @@ var Sidebar = new Class({
 					filename = createInput.value,
 					pack = fd.getItem(),
 					renameAfterLoad,
-                    files = [];
-                if (uploadInput) {
-                    var files = uploadInput.files;
-                }
+                    files = uploadInput.files;
 				
 				//validation
 				if(!(files && files.length) && !filename) {
@@ -519,8 +511,6 @@ var Sidebar = new Class({
 				        if (el) {
 				            el.destroy();
 				        }
-				        att.options.filename = att.options.path = new_name;
-				        that.addData(att);
 				        
 				    };
 				}
