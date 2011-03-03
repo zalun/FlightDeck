@@ -696,7 +696,7 @@ Package.Edit = new Class({
 
 			onpartialload: function(rpe, xhr) {
 				$log('FD: attachment uploaded');
-				response = JSON.parse(xhr.responseText);
+				var response = JSON.parse(xhr.responseText);
 				fd.message.alert(response.message_title, response.message);
 				var attachment = new Attachment(self,{
 					append: true,
@@ -724,12 +724,16 @@ Package.Edit = new Class({
 			},
 
 			// if something is wrong ... (from native instance or because of size)
-			onerror:function(){
+			onerror:function(rpe, xhr){
 				if (self.spinner) self.spinner.destroy();
-				fd.error.alert(
-					'Error {status}'.substitute(xhr),
-					'{statusText}<br/>{responseText}'.substitute(xhr)
-                );
+				if (xhr) {
+					fd.error.alert(
+						'Error {status}'.substitute(xhr),
+						'{statusText}<br/>{responseText}'.substitute(xhr)
+					);
+				} else {
+					fd.error.alert('Error', 'File size was too big');
+				}
 			}
 		});
 	},
