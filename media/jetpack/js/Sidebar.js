@@ -462,12 +462,17 @@ var Sidebar = new Class({
 	
 	promptAttachment: function(folder) {
         var path = folder.get('path') || '';
+        var subtitle = '';
+        var submsg = '';
+        if (!path) {
+            subtitle = "or Upload ";
+            submsg = '<input type="file" name="upload_attachment" id="upload_attachment"/></p><p style="text-align:center">&mdash; OR &mdash;</p><p>';
+        }
         if (path) path += '/';
         var that = this;
 		var prompt = fd.showQuestion({
-			title: 'Create or Upload an Attachment',
-			message: '<input type="file" name="upload_attachment" id="upload_attachment"/>'
-				+ '</p><p style="text-align:center">&mdash; OR &mdash;</p><p>'
+			title: 'Create '+ subtitle +'an Attachment',
+			message: submsg  
 				+ '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>'
 				+ '<a href="#" id="new_type_folder" class="radio_btn"><span>Folder</span></a>'
 				+ '<input type="text" name="new_attachment" id="new_attachment" placeholder="New Attachment name..." />',
@@ -477,14 +482,18 @@ var Sidebar = new Class({
 			callback: function() {
 				var uploadInput = $('upload_attachment'),
 					createInput = $('new_attachment'),
-					files = uploadInput.files,
 					filename = createInput.value,
 					pack = fd.getItem(),
-					renameAfterLoad;
+					renameAfterLoad,
+                    files = [];
+                if (uploadInput) {
+                    var files = uploadInput.files;
+                }
 				
 				//validation
 				if(!(files && files.length) && !filename) {
-					fd.error.alert('No file was selected.', 'Please select a file to upload.');
+					fd.error.alert('No file was selected.', 
+                            'Please select a file to upload.');
 					return;
 				}
 				
