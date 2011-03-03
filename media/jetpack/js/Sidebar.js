@@ -511,8 +511,6 @@ var Sidebar = new Class({
 				        if (el) {
 				            el.destroy();
 				        }
-				        att.options.filename = att.options.path = new_name;
-				        that.addData(att);
 				        
 				    };
 				}
