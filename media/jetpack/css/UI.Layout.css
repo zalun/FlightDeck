@@ -331,8 +331,12 @@ a:hover {
 
 /*
 =========================================================================== */
+.UI_Browser .UI_Item {
+    overflow: hidden;
+}
 .UI_Actions {
-	margin: 14px 0 10px;
+	margin: 14px 10px 14px 0;
+    float: left;
 }
 
 	.UI_Actions li {

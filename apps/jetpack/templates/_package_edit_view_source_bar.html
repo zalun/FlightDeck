@@ -4,25 +4,21 @@
 </li>
 
 {% if user == item.author %}
-	{% if not item.active %}
-		{# Just in case there will be an option to display deleted packages #}
-		<li class="UI_Activate">
-			<a title="Let the world use it" href="{{ item.get_activate_url }}">
-				Make Public
-			</a>
-		</li>
-	{% else %}
-		<li class="UI_Disable">
-			<a title="My preciousss!" href="{{ item.get_disable_url }}">
-				Make Private
-			</a>
-		</li>
-	{% endif %}
-    {% if user == item.author %}
         <li class="UI_Delete">
             <a title="Once and for all" href="{{ item.get_delete_url }}">
                 Delete
             </a>
         </li>
-    {% endif %}
+    </ul>
+    <ul class="UI_Actions">
+        <li class="UI_Activate{% if item.active %} pressed{% endif %}">
+        <a{% if not item.active %} title="Let the world use it" href="{{ item.get_activate_url }}"{% endif %}>
+                Public
+            </a>
+        </li>
+        <li class="UI_Disable{% if not item.active %} pressed{% endif %}">
+        <a{% if item.active %} title="My preciousss!" href="{{ item.get_disable_url }}"{% endif %}>
+                Private
+            </a>
+        </li>
 {% endif %}
