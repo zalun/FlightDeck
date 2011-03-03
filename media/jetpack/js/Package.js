@@ -985,12 +985,11 @@ Package.Edit = new Class({
 					this.registerRevision(response);
 					fd.message.alert(response.message_title, response.message);
 					this.plugins[response.full_name] = new Library(this, {
-						full_name: response.full_name,
-						id_number: response.id_number,
+						full_name: response.library_full_name,
+						id_number: response.library_id_number,
 						library_name: response.library_name,
 						view_url: response.library_url,
-						revision_number: response.library_revision_number,
-						path: response.path
+						revision_number: response.library_revision_number
 					});
 				}.bind(this)
 			}).send();

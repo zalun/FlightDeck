@@ -7,6 +7,7 @@ import os
 import shutil
 import codecs
 import re
+import tempfile
 
 #from django.template.defaultfilters import slugify
 from django.contrib import messages
@@ -344,10 +345,7 @@ def package_rename_module(r, id_number, type_id, revision_number):
         return HttpResponseForbidden('You are not the author of this Package')
 
     old_name = r.POST.get('old_filename')
-    new_name = pathify(r.POST.get('new_filename'))
-
-    # modules should never have an extension, for now
-    new_name = re.sub('/\..*$', '', new_name)
+    new_name = r.POST.get('new_filename')
 
     if old_name == 'main':
         return HttpResponseForbidden(
@@ -830,10 +828,9 @@ def upload_xpi(request):
     upload XPI and create Addon and eventual Libraries
     """
     xpi = request.FILES['xpi']
-    temp_dir = os.path.join(settings.UPLOAD_DIR, str(time.time()))
-    os.mkdir(temp_dir)
+    temp_dir = tempfile.mkdtemp()
     path = os.path.join(temp_dir, xpi.name)
-    xpi_file = codecs.open(path, mode='wb+', encoding='utf-8')
+    xpi_file = codecs.open(path, mode='wb+')
     for chunk in xpi.chunks():
         xpi_file.write(chunk)
     xpi_file.close()
@@ -842,6 +839,7 @@ def upload_xpi(request):
     except Exception, err:
         log.warning("Bad file %s" % str(err))
         return HttpResponseForbidden('Wrong file')
+    os.remove(path)
     shutil.rmtree(temp_dir)
     return HttpResponseRedirect(addon.get_absolute_url())
     # after front-end will support interactive upload
