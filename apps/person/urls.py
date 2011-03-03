@@ -12,13 +12,13 @@ urlpatterns = patterns('person.views',
     url(r'dashboard/$', 'dashboard', name='person_dashboard'),
 
     # disabled
-    url(r'^disabled_addons/$', 'dashboard_browser',
+    url(r'^private_addons/$', 'dashboard_browser',
         {'type': 'a', 'disabled': True}, name='person_disabled_addons'),
-    url(r'^disabled_libraries/$', 'dashboard_browser',
+    url(r'^private_libraries/$', 'dashboard_browser',
         {'type': 'l', 'disabled': True}, name='person_disabled_libraries'),
-    url(r'^disabled_addons/(?P<page_number>\d+)/$', 'dashboard_browser',
+    url(r'^private_addons/(?P<page_number>\d+)/$', 'dashboard_browser',
         {'type': 'a', 'disabled': True}, name='person_disabled_addons_page'),
-    url(r'^disabled_libraries/(?P<page_number>\d+)/$', 'dashboard_browser',
+    url(r'^private_libraries/(?P<page_number>\d+)/$', 'dashboard_browser',
         {'type': 'l', 'disabled': True},
         name='person_disabled_libraries_page'),
 

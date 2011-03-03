@@ -332,7 +332,8 @@ a:hover {
 /*
 =========================================================================== */
 .UI_Actions {
-	margin: 14px 0 10px;
+	margin: 14px 10px 10px 0;
+    float: left;
 }
 
 	.UI_Actions li {

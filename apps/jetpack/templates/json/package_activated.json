@@ -1,6 +1,7 @@
 {
 	{# include "json/_edit_urls.json" #}
 	"message_title": "Success",
-	"message": "Package {{ package.full_name }} activated"
+	"message": "Package {{ package.full_name }} activated",
+    "package_type": "{{ package.type }}"
 }
 
