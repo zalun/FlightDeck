@@ -40,19 +40,24 @@
             }
         });
     };
+
     var browser_disable_item = function(el) {
-        el.addEvent('click', function(e){
-            e.stop();
+        if (el.get('href')) el.addEvent('click', function(e){
+            if (e) e.stop();
+            this.store('spinner', 
+                new Spinner(this.getParent('li.UI_Item')).show());
             new Request.JSON({
                 url: el.get('href'),
                 onSuccess: function(response) {
+                    el.retrieve('spinner').destroy();
                     el.getParent('li.UI_Item').destroy();
                     fd.message.alert(response.message_title, response.message);
+                    fd.fireEvent('deactivate_' + response.package_type);
                     if ($('activate')) {
                         $('activate').addEvent('click', function(e2){
                             e2.stop();
                             new Request.JSON({
-                                url: el.get('href'),
+                                url: this.get('href'),
                                 onSuccess: function(response) {
                                     window.location.reload();
                                 }
@@ -63,18 +68,24 @@
             }).send();
         });
     };
+
     var browser_activate_item = function(el) {
-        el.addEvent('click', function(e){
-            e.stop();
+        if (el.get('href')) el.addEvent('click', function(e){
+            if (e) e.stop();
+            this.store('spinner', 
+                new Spinner(this.getParent('li.UI_Item')).show());
             new Request.JSON({
                 url: this.get('href'),
                 onSuccess: function(response) {
+                    el.retrieve('spinner').destroy();
                     this.getParent('li.UI_Item').destroy();
                     fd.message.alert(response.message_title, response.message);
+                    fd.fireEvent('activate_' + response.package_type);
                 }.bind(this)
             }).send();
         });
     };
+
     var browser_delete_item = function(el) {
         el.addEvent('click', function(e){
             if (e) e.stop();
@@ -98,6 +109,30 @@
             });
         });
     };
+
+    var change_no = function(a, b, inc) {
+        if ($(a) && $(b)) {
+            $(a).set('text', parseInt($(a).get('text')) + inc);
+            $(b).set('text', parseInt($(b).get('text')) - inc);
+        }
+    }; 
+
+    var on_activate_library = function() {
+        change_no('public_libs_no', 'private_libs_no', 1);
+    }; 
+
+    var on_deactivate_library = function() {
+        change_no('public_libs_no', 'private_libs_no', -1);
+    }; 
+
+    var on_activate_addon = function() {
+        change_no('public_addons_no', 'private_addons_no', 1);
+    }; 
+
+    var on_deactivate_addon = function() {
+        change_no('public_addons_no', 'private_addons_no', -1);
+    }; 
+
     FlightDeck = Class.refactor(FlightDeck,{
         options: {
             try_in_browser_class: 'XPI_test',
@@ -116,6 +151,10 @@
                     browser_activate_item);
             $$('.{delete_class} a'.substitute(this.options)).each(
                     browser_delete_item);
+            this.addEvent('activate_l', on_activate_library);
+            this.addEvent('deactivate_l', on_deactivate_library);
+            this.addEvent('activate_a', on_activate_addon);
+            this.addEvent('deactivate_a', on_deactivate_addon);
         }
     });
 })();
