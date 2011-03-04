@@ -20,7 +20,7 @@ def create_library(name):
 
 def create_package(name, type):
     u = User.objects.get(username='john')
-    return Package.objects.create(name=name, author=u, type=type)
+    return Package.objects.create(full_name=name, author=u, type=type)
 
 
 # TODO: liberate - this can go in either test_utils or a separate library.
@@ -30,10 +30,10 @@ class ESTestCase(test_utils.TestCase):
     """
     @classmethod
     def setUpClass(cls):
-        cls.old_ES_DISABLED = settings.ES_DISABLED
-        settings.ES_DISABLED = False
         if not hasattr(settings, 'ES_BIN'):
             raise SkipTest
+        cls.old_ES_DISABLED = settings.ES_DISABLED
+        settings.__dict__['ES_DISABLED'] = False
 
         cls.es = get_es()
         cls.es.delete_index_if_exists(settings.ES_INDEX)
@@ -43,7 +43,7 @@ class ESTestCase(test_utils.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        settings.ES_DISABLED = cls.old_ES_DISABLED
+        settings.__dict__['ES_DISABLED'] = cls.old_ES_DISABLED
 
 
 class TestSearch(ESTestCase):

@@ -343,23 +343,7 @@ class PackageRevision(BaseModel):
             self.set_version('copy')
         return save_return
 
-    @es_required
-    def refresh_index(self, es, bulk=False):
-        data = djangoutils.get_values(self)
-        try:
-            if self.latest:
-                deps = self.latest.dependencies.all()
-                data['dependencies'] = [dep.package.id for dep in deps]
-        except PackageRevision.DoesNotExist:
-            pass
-        es.index(data, settings.ES_INDEX, self.get_type_name(), self.id,
-                 bulk=bulk)
-        log.debug('Package %d added to search index.' % self.id)
 
-    @es_required
-    def remove_from_index(self, es):
-        es.delete(settings.ES_INDEX, self.get_type_name(), self.id)
-        log.debug('Package %d removed from search index.' % self.id)
 
     def get_next_revision_number(self):
         """
@@ -1255,6 +1239,24 @@ class Package(BaseModel):
             self.description = alphanum_plus(self.description)
         if self.version_name:
             self.version_name = alphanum_plus(self.version_name)
+
+    @es_required
+    def refresh_index(self, es, bulk=False):
+        data = djangoutils.get_values(self)
+        try:
+            if self.latest:
+                deps = self.latest.dependencies.all()
+                data['dependencies'] = [dep.package.id for dep in deps]
+        except PackageRevision.DoesNotExist:
+            pass
+        es.index(data, settings.ES_INDEX, self.get_type_name(), self.id,
+                 bulk=bulk)
+        log.debug('Package %d added to search index.' % self.id)
+
+    @es_required
+    def remove_from_index(self, es):
+        es.delete(settings.ES_INDEX, self.get_type_name(), self.id)
+        log.debug('Package %d removed from search index.' % self.id)
 
 
 class Module(BaseModel):
