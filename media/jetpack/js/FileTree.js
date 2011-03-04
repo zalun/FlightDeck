@@ -290,7 +290,7 @@ FileTree = new Class({
 
 FileTree.Collapse = new Class({
 	
-	Extends: Collapse.Cookie,
+	Extends: Collapse.LocalStorage,
 	
 	updateElement: function(element){
 		this.parent(element);

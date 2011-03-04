@@ -430,23 +430,24 @@ this.Collapse = new Class({
 /*
 ---
 
-name: Collapse.Cookie
+name: Collapse.Persistent
 
-description: Automatically saves the collapsed/expanded state in a Cookie.
+description: Interface to automatically save the collapsed/expanded state to a persistent storage.
 
-authors: Christoph Pojer (@cpojer)
+authors: [Christoph Pojer (@cpojer), Sean McArthur (@seanmonstar)]
 
 license: MIT-style license.
 
+requires: [Collapse]
 
-provides: Collapse.Cookie
+provides: Collapse.Persistent
 
 ...
 */
 
 (function(){
 
-this.Collapse.Cookie = new Class({
+this.Collapse.Persistent = new Class({
 
 	Extends: this.Collapse,
 
@@ -463,12 +464,13 @@ this.Collapse.Cookie = new Class({
 	},
 
 	setup: function(){
-		this.cookie = this.options.getIdentifier.call(this, this.element);
+		this.key = this.options.getIdentifier.call(this, this.element);
+		this.state = this.getState();
 		this.parent();
 	},
 
 	prepare: function(){
-		var obj = this.getCookieData();
+		var obj = this.state;
 		this.element.getElements(this.options.listSelector).each(function(element){
 			if (!element.getElement(this.options.childSelector)) return;
 			
@@ -480,32 +482,68 @@ this.Collapse.Cookie = new Class({
 		return this.parent();
 	},
 
-	getCookieData: function(){
-		var self = this;
-		return Function.attempt(function(){
-			return JSON.decode(Cookie.read(self.cookie));
-		}) || {};
+	getState: function(){
+		return {};
 	},
 
-	update: function(element, state){
-		var obj = this.getCookieData();
-		obj[this.options.getAttribute.call(this, element)] = state;
-		Cookie.write(this.cookie, JSON.encode(obj), {duration: 30});
+	setState: function(element, state){
+		this.state[this.options.getAttribute.call(this, element)] = state;
 		return this;
 	},
 
 	expand: function(element){
 		this.parent(element);
-		this.update(element, 1);
+		this.setState(element, 1);
 		return this;
 	},
 
 	collapse: function(element){
 		this.parent(element);
-		this.update(element, 0);
+		this.setState(element, 0);
 		return this;
 	}
 
 });
 
-})();
+}).call(this);
+
+/*
+---
+
+name: Collapse.LocalStorage
+
+description: Automatically saves the collapsed/expanded state to localStorage.
+
+authors: Sean McArthur (@seanmonstar)
+
+license: MIT-style license.
+
+requires: [Core/JSON, Collapse.Persistent]
+
+provides: Collapse.LocalStorage
+
+...
+*/
+
+(function(){
+
+this.Collapse.LocalStorage = new Class({
+
+	Extends: this.Collapse.Persistent,
+
+	getState: function(){
+		var self = this;
+		return Function.attempt(function(){
+			return JSON.decode(localStorage.getItem(self.key));
+		}) || {};
+	},
+
+	setState: function(element, state){
+		this.parent(element, state)
+		localStorage.setItem(this.key, JSON.encode(this.state));
+		return this;
+	}
+
+});
+
+}).call(this);
