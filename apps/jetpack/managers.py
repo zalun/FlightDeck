@@ -4,7 +4,6 @@ Managers for the Jetpack models
 import commonware
 
 from django.db import models
-from jetpack.models import PackageRevision
 
 log = commonware.log.getLogger('f.jetpack.managers')
 #TODO: Add Library and Addon managers and use them inside Package and views
@@ -18,13 +17,14 @@ class PackageManager(models.Manager):
         active_q = models.Q(active=True)
         notdeleted_q = models.Q(deleted=False)
         if viewer:
-            active_q= active_q | models.Q(author=viewer)
+            active_q = active_q | models.Q(author=viewer)
         return self.filter(notdeleted_q).filter(active_q)
 
     def active_with_deleted(self, viewer=None):
         """Filter out inactive packages, consider owners of packages
         depending on deleted packages
         """
+        from jetpack.models import PackageRevision
         active_q = models.Q(active=True)
         notdeleted_q = models.Q(deleted=False)
         if viewer:
@@ -42,6 +42,7 @@ class PackageManager(models.Manager):
         """Filter out inactive packages, consider owners of packages
         depending on disabled packages
         """
+        from jetpack.models import PackageRevision
         active_q = models.Q(active=True)
         notdeleted_q = models.Q(deleted=False)
         if viewer:
@@ -65,5 +66,3 @@ class PackageManager(models.Manager):
     def libraries(self):
         " return libraries only "
         return self.active().filter(type="l")
-
-
