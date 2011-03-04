@@ -1,7 +1,3 @@
-"""Models definition for jetpack application."""
-
-# TODO: split module and create the models package
-
 import os
 import csv
 import shutil
@@ -14,11 +10,9 @@ import codecs
 
 from copy import deepcopy
 
-from ecdsa import SigningKey, NIST256p
-from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
-
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models.signals import pre_save, post_save, m2m_changed
+from django.db.models.signals import (pre_save, post_delete, post_save,
+                                      m2m_changed)
 from django.db import models, IntegrityError
 from django.utils import simplejson
 from django.utils.html import escape
@@ -27,17 +21,22 @@ from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
 from django.conf import settings
 
-from api.helpers import export_docs
-from utils.exceptions import SimpleException
-from jetpack.errors import SelfDependencyException, FilenameExistException, \
-        UpdateDeniedException, SingletonCopyException, DependencyException
-#        ManifestNotValid
+from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
+from ecdsa import SigningKey, NIST256p
+from pyes import djangoutils
 
+from api.helpers import export_docs
 from base.models import BaseModel
 from jetpack import tasks
-from xpi import xpi_utils
-from utils.os_utils import make_path
+from jetpack.errors import (SelfDependencyException, FilenameExistException,
+                            UpdateDeniedException, SingletonCopyException,
+                            DependencyException)
+from jetpack.managers import PackageManager
+from search.decorators import es_required
+from utils.exceptions import SimpleException
 from utils.helpers import pathify, alphanum, alphanum_plus
+from utils.os_utils import make_path
+from xpi import xpi_utils
 
 log = commonware.log.getLogger('f.jetpack')
 
@@ -52,6 +51,7 @@ TYPE_CHOICES = (
     ('l', 'Library'),
     ('a', 'Add-on')
 )
+
 
 class PackageRevision(BaseModel):
     """
@@ -342,6 +342,24 @@ class PackageRevision(BaseModel):
         if package:
             self.set_version('copy')
         return save_return
+
+    @es_required
+    def refresh_index(self, es, bulk=False):
+        data = djangoutils.get_values(self)
+        try:
+            if self.latest:
+                deps = self.latest.dependencies.all()
+                data['dependencies'] = [dep.package.id for dep in deps]
+        except PackageRevision.DoesNotExist:
+            pass
+        es.index(data, settings.ES_INDEX, self.get_type_name(), self.id,
+                 bulk=bulk)
+        log.debug('Package %d added to search index.' % self.id)
+
+    @es_required
+    def remove_from_index(self, es):
+        es.delete(settings.ES_INDEX, self.get_type_name(), self.id)
+        log.debug('Package %d removed from search index.' % self.id)
 
     def get_next_revision_number(self):
         """
@@ -637,7 +655,6 @@ class PackageRevision(BaseModel):
             i += 1
         return self, removed_attachments, removed_empty_dirs
 
-
     def dependency_add(self, dep, save=True):
         """
         copy to new revision,
@@ -834,7 +851,6 @@ class PackageRevision(BaseModel):
         #self.export_attachments(
         #    '%s/%s' % (package_dir, self.package.get_data_dir()))
         self.export_dependencies(packages_dir, sdk=self.sdk)
-
         args = [sdk_dir, os.path.join(sdk_dir, 'packages', self.package.name),
                 self.package.name, hashtag]
         if rapid:
@@ -893,7 +909,6 @@ class PackageRevision(BaseModel):
     def is_latest(self):
         return self.pk == self.package.latest.pk
 
-from jetpack.managers import PackageManager
 
 class Package(BaseModel):
     """
@@ -1073,7 +1088,7 @@ class Package(BaseModel):
         self.full_name = _get_full_name(name, self.author.username, self.type)
 
     def update_name(self):
-        self.set_name();
+        self.set_name()
 
     def set_name(self):
         " set's the name from full_name "
@@ -1152,7 +1167,7 @@ class Package(BaseModel):
         """
         for rev_mutation in PackageRevision.objects.filter(
                 origin__package=self):
-            rev_mutation.origin=None
+            rev_mutation.origin = None
             # save without creating a new revision
             super(PackageRevision, rev_mutation).save()
 
@@ -1164,7 +1179,6 @@ class Package(BaseModel):
             return self.save()
         log.info("Package (%s) deleted" % self)
         return super(Package, self).delete()
-
 
     def create_revision_from_xpi(self, packed, manifest, author, jid,
             new_revision=False):
@@ -1243,7 +1257,6 @@ class Package(BaseModel):
             self.version_name = alphanum_plus(self.version_name)
 
 
-
 class Module(BaseModel):
     """
     Code used by Package.
@@ -1284,8 +1297,9 @@ class Module(BaseModel):
         return package.full_name if package else ''
 
     def get_path(self):
-        """returns the path of directories that would be created from
-        the filename
+        """
+        Returns the path of directories that would be created from the
+        filename.
         """
         parts = self.filename.split('/')[0:-1]
         return ('/'.join(parts)) if parts else None
@@ -1372,8 +1386,9 @@ class Attachment(BaseModel):
         return name
 
     def get_path(self):
-        """ returns the path of directories that would be created from
-        the filename
+        """
+        Returns the path of directories that would be created from the
+        filename.
         """
         parts = self.filename.split('/')[0:-1]
         return ('/'.join(parts)) if parts else None
@@ -1398,11 +1413,11 @@ class Attachment(BaseModel):
     def read(self):
         """Reads the file, if it doesn't exist return empty."""
         if self.path and os.path.exists(self.get_file_path()):
-            kwargs = { 'mode': 'rb' }
+            kwargs = {'mode': 'rb'}
             if self.is_editable:
                 kwargs['encoding'] = 'utf-8'
                 kwargs['mode'] = 'r'
-            
+
             f = codecs.open(self.get_file_path(), **kwargs)
             content = f.read()
             f.close()
@@ -1423,12 +1438,12 @@ class Attachment(BaseModel):
 
         if not os.path.exists(directory):
             os.makedirs(directory)
-        
-        kwargs = { 'mode': 'wb' }
+
+        kwargs = {'mode': 'wb'}
         if self.is_editable:
             kwargs['encoding'] = 'utf-8'
             kwargs['mode'] = 'w'
-            
+
         with codecs.open(self.get_file_path(), **kwargs) as f:
             f.write(data)
 
@@ -1487,6 +1502,7 @@ class EmptyDir(BaseModel):
 
     def clean(self):
         self.name = pathify(self.name).replace('.', '')
+
 
 class SDK(BaseModel):
     """
@@ -1555,8 +1571,8 @@ class SDK(BaseModel):
                             'addon-sdk-docs/packages/')[1]
                     member_file = tar_file.extractfile(member)
                     try:
-                        docpage = DocPage.objects.get(
-                                sdk=self, path=member_path)
+                        docpage = DocPage.objects.get(sdk=self,
+                                                      path=member_path)
                     except ObjectDoesNotExist:
                         docpage = DocPage(sdk=self, path=member_path)
                     docpage.html = '<h1>%s</h1>%s' % (
@@ -1566,9 +1582,8 @@ class SDK(BaseModel):
                     docpage.save()
                     member_file.close()
                 # filter module description
-                if '/docs/' in member.name \
-                        and '.md' in member.name \
-                        and '.md.' not in member.name:
+                if ('/docs/' in member.name and '.md' in member.name
+                    and '.md.' not in member.name):
                     # strip down to the member_path
                     member_path = member.name.split('.md')[0]
                     member_path = ''.join(member_path.split('/docs'))
@@ -1585,8 +1600,8 @@ class SDK(BaseModel):
                     member_json_file = tar_file.extractfile(member_json)
                     # create or load docs
                     try:
-                        docpage = DocPage.objects.get(
-                                sdk=self, path=member_path)
+                        docpage = DocPage.objects.get(sdk=self,
+                                                      path=member_path)
                     except ObjectDoesNotExist:
                         docpage = DocPage(sdk=self, path=member_path)
                     docpage.html = member_html_file.read()
@@ -1618,12 +1633,26 @@ def set_package_id_number(instance, **kwargs):
     instance.id_number = _get_next_id_number()
 pre_save.connect(set_package_id_number, sender=Package)
 
+
 def make_keypair_on_create(instance, **kwargs):
     " creates public and private keys for JID "
     if kwargs.get('raw', False) or instance.id or not instance.is_addon():
         return
     instance.generate_key()
 pre_save.connect(make_keypair_on_create, sender=Package)
+
+index_package = lambda instance, **kwargs: instance.refresh_index()
+post_save.connect(index_package, sender=Package)
+
+unindex_package = lambda instance, **kwargs: instance.remove_from_index()
+post_delete.connect(unindex_package, sender=Package)
+
+
+def index_package_m2m(instance, action, **kwargs):
+    if action in ("post_add", "post_remove"):
+        instance.package.refresh_index()
+m2m_changed.connect(index_package_m2m,
+                    sender=PackageRevision.dependencies.through)
 
 
 def save_first_revision(instance, **kwargs):
@@ -1691,8 +1720,8 @@ def manage_empty_lib_dirs(instance, action, **kwargs):
 
             if not instance.modules.filter(
                     filename__startswith=dirname).count():
-                emptydir = EmptyDir(
-                        name=dirname, author=instance.author, root_dir='l')
+                emptydir = EmptyDir(name=dirname, author=instance.author,
+                                    root_dir='l')
                 emptydir.save()
 
                 instance.folders.add(emptydir)
@@ -1728,10 +1757,10 @@ def manage_empty_data_dirs(instance, action, **kwargs):
 
             if not instance.attachments.filter(
                     filename__startswith=dirname).count():
-                emptydir = EmptyDir(
-                        name=dirname, author=instance.author, root_dir='d')
+                emptydir = EmptyDir(name=dirname, author=instance.author,
+                                    root_dir='d')
                 emptydir.save()
 
                 instance.folders.add(emptydir)
-m2m_changed.connect(
-        manage_empty_data_dirs, sender=Attachment.revisions.through)
+m2m_changed.connect(manage_empty_data_dirs,
+                    sender=Attachment.revisions.through)

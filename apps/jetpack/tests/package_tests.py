@@ -7,7 +7,6 @@ from nose.tools import eq_
 
 from django.contrib.auth.models import User
 from django.conf import settings
-from django.db import IntegrityError
 
 from jetpack.models import Package, PackageRevision
 from jetpack.package_helpers import create_from_archive, \
@@ -45,11 +44,8 @@ class PackageTest(TestCase):
                 author=self.author,
                 type='a',
                 full_name=package.name)
-        self.assertRaises(Exception,
-                Package.objects.create,
-                author=self.author,
-                type='a',
-                full_name=package.name)
+        self.assertRaises(Exception, Package.objects.create,
+                          author=self.author, type='a', full_name=package.name)
 
     def test_addon_creation_with_nickname(self):
         """In production if you log in with an AMO user, the username

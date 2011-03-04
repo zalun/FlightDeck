@@ -242,6 +242,7 @@ INSTALLED_APPS = [
 # FLIGHTDECK APPS
     'base',              # basic flightdeck things (utils, urls)
     'person',            # user related stuff (profile etc.)
+    'search',            # ElasticSearch and related stuff.
     'amo',               # currently addons.mozilla.org authentication
     'jetpack',           # Jetpack functionality
     'xpi',               # XPI management
@@ -277,16 +278,22 @@ import djcelery
 djcelery.setup_loader()
 
 # These settings are for if you have celeryd running
-#BROKER_HOST = 'localhost'
-#BROKER_PORT = 5672
-#BROKER_USER = 'builder'
-#BROKER_PASSWORD = 'builder'
-#BROKER_VHOST = 'builder'
-#BROKER_CONNECTION_TIMEOUT = 0.1
-#CELERY_RESULT_BACKEND = 'amqp'
-#CELERY_IGNORE_RESULT = True
+# BROKER_HOST = 'localhost'
+# BROKER_PORT = 5672
+# BROKER_USER = 'builder'
+# BROKER_PASSWORD = 'builder'
+# BROKER_VHOST = 'builder'
+# BROKER_CONNECTION_TIMEOUT = 0.1
+# CELERY_RESULT_BACKEND = 'amqp'
+# CELERY_IGNORE_RESULT = True
 
 # Setting this to true will bypass celeryd and execute tasks in-process
 CELERY_ALWAYS_EAGER = True
 
 ENGAGE_ROBOTS = False
+
+# For search:
+# Checkout flightdeck-es and run bin/elasticsearch -f
+ES_DISABLED = True
+ES_INDEX = 'flightdeck'
+# ES_HOSTS = ['127.0.0.1:9201']
