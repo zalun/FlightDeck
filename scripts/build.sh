@@ -28,7 +28,12 @@ pip install -q -r requirements/compiled.txt
 # adding eventual SDK
 git submodule update --init
 
-pushd vendor && git pull && git submodule update --init && popd
+if  [ ! -d "$WORKSPACE/vendor" ]; then
+    git clone git://github.com/mozilla/FlightDeck-lib.git vendor
+fi
+
+pushd vendor && git pull && git submodule update --init
+popd
 
 # Create paths we want for addons
 if [ ! -d "/tmp/flightdeck" ]; then
