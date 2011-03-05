@@ -158,6 +158,13 @@ li .actions .delete {
 	
 }
 
+li.update > .holder .icon {
+	background-image:url(/media/jetpack/img/UI_File_Listing/exclamation.png);
+}
+li.update > .holder .icon:hover {
+	background-image: url(/media/jetpack/img/UI_File_Listing/arrow_refresh_small.png)
+}
+
 #core_library_lib .label {
 	float:left;
 }

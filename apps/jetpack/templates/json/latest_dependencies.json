@@ -1,0 +1,10 @@
+[
+{% for revision in revisions %}
+    {
+        "id_number": "{{ revision.package.id_number }}",
+        "version_name": "{{ revision.version_name }}",
+        "revision": "{{ revision.pk }}",
+        "full_name": "{{ revision.package.full_name }}"
+    }
+{% endfor %}
+]

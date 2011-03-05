@@ -47,7 +47,7 @@ var Package = new Class({
 
 	attachments: {},
 
-	plugins: {},
+	libraries: {},
 	
 	folders: {},
 
@@ -62,6 +62,7 @@ var Package = new Class({
 		this.instantiate_attachments();
 		this.instantiate_folders();
 		this.instantiate_dependencies();
+		this.prepareDependenciesInterval();
 		// hook event to menu items
 		$('revisions_list').addEvent('click', this.show_revision_list);
 		if (this.isAddon()) {
@@ -235,7 +236,7 @@ var Package = new Class({
 		this.options.dependencies.each(function(plugin) {
 			plugin.readonly = this.options.readonly;
 			plugin.append = true;
-			this.plugins[plugin.full_name] = new Library(this,plugin);
+			this.libraries[plugin.id_number] = new Library(this,plugin);
 		}, this);
 	},
 	
@@ -316,14 +317,8 @@ var Library = new Class({
 		options.path = options.full_name;
 		this.parent(pack, options);
 		
-		if(!this.options.id_number) {
-			// hacky... maybe we should just always pass this with
-			// the new Package.Edit() data on page load?
-			this.options.id_number = this.options.view_url.split('/')[2];
-		}
-		
 		this.addEvent('destroy', function(){
-			delete pack.plugins[this.options.full_name];
+			delete pack.libraries[this.options.id_number];
 		})
 		
 		if(this.options.append) {
@@ -341,7 +336,15 @@ var Library = new Class({
 	},
 	
 	getID: function() {
-		return 'Library-' + this.options.name;
+		return 'Library-' + this.options.id_number;
+	},
+	
+	storeNewVersion: function(version_data) {
+		this._latest_version = version_data;
+	},
+	
+	retrieveNewVersion: function() {
+		return this._latest_version;
 	}
 	
 });
@@ -988,7 +991,7 @@ Package.Edit = new Class({
 					// set data changed by save
 					this.registerRevision(response);
 					fd.message.alert(response.message_title, response.message);
-					this.plugins[response.full_name] = new Library(this, {
+					this.libraries[response.id_number] = new Library(this, {
 						full_name: response.library_full_name,
 						id_number: response.library_id_number,
 						library_name: response.library_name,
@@ -1000,6 +1003,59 @@ Package.Edit = new Class({
 		} else {
 			fd.error.alert('No such Library', 'Please choose a library from the list');
 		}
+	},
+	
+	updateLibrary: function(lib, callback) {
+		new Request.JSON({
+			url: this.options.update_library_url,
+			data: {
+				'id_number': lib.options.id_number,
+				'revision': lib.retrieveNewVersion().revision
+			},
+			useSpinner: true,
+			spinerTarget: $$('#PluginsTree ul')[0],
+			onSuccess: function(response) {
+				fd.setURIRedirect(response.view_url);
+				this.registerRevision(response);
+				fd.message.alert(response.message_title, response.message);
+				lib.setOptions(response);
+				Function.from(callback)(response);
+			}.bind(this)
+		}).send();
+	},
+
+    checkDependencies: function() {
+        var that = this;
+        new Request.JSON({
+            url: that.options.latest_dependencies_url,
+			timeout: 5000,
+            onSuccess: function(res) {
+                res.forEach(function(latest_revision) {
+                    var lib = that.libraries[latest_revision.id_number];
+					if (!lib) return;
+					lib.storeNewVersion(latest_revision);
+					fd.sidebar.setPluginUpdate(lib);
+                });
+            }
+        }).send();
+    },
+	
+	prepareDependenciesInterval: function() {
+		var that = this;
+		function setCheckInterval() {
+			unsetCheckInterval();
+			that.checkDependencies();
+			that.checkDependenciesInterval = that.checkDependencies.periodical(60000, that);
+		}
+		
+		function unsetCheckInterval() {
+			clearInterval(that.checkDependenciesInterval);
+		}
+		
+		window.addEvent('focus', setCheckInterval);
+		window.addEvent('blur', unsetCheckInterval);
+		setCheckInterval();
+		
 	},
     
 	removeLibrary: function(lib) {
@@ -1178,4 +1234,5 @@ Package.Edit = new Class({
 	registerRevision: function(urls) {
         this.setOptions(urls);
 	}
+	
 });
