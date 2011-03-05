@@ -56,7 +56,7 @@ FlightDeck = Class.refactor(FlightDeck,{
 		};
 		this.message = {
 		    alert: function(title, message) {
-			this.roar.alert(title, message, {className: 'roar message', duration: 8000});
+			this.roar.alert(title, message, {className: 'roar message', duration: 3000});
 		    }.bind(this)
 		};
 		// compatibility with Django messages
