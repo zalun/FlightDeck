@@ -13,3 +13,6 @@
 [submodule "lib/addon-sdk-1.0b3"]
 	path = lib/addon-sdk-1.0b3
 	url = git://github.com/mozilla/addon-sdk.git
+[submodule "vendor"]
+	path = vendor
+	url = git://github.com/mozilla/FlightDeck-lib.git

@@ -20,5 +20,4 @@ settings_local.py
 src
 .coverage
 .figleaf
-vendor
 *.pyc
