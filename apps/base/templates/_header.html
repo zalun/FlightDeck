@@ -27,7 +27,7 @@
 				</li>
 			{% else %}
 				<li {% if page == "signin" %}class="active"{% endif %}>
-					<span><a id="signin" title="Sign In" href="{% url login %}">Sign In</a></span>
+                <span><a id="signin" title="Sign In" href="{{ login_url }}">Sign In</a></span>
 					<div class="UI_tooltip_source" data-tooltip-for="signin" data-tooltip-title="Sign In">Sign in with your addons.mozilla.org account.</div>
 				</li>
 			{% endif %}
