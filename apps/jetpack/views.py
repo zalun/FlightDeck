@@ -535,6 +535,8 @@ def package_upload_attachment(r, id_number, type_id,
             r.user, filename, content)
     except ValidationError, e:
         return HttpResponseForbidden('Validation errors.')
+    except Exception, e:
+        return HttpResponseForbidden(str(e))
 
     return render_to_response("json/attachment_added.json",
                 {'revision': revision, 'attachment': attachment},
@@ -570,6 +572,8 @@ def package_add_empty_attachment(r, id_number, type_id,
         attachment = revision.attachment_create_by_filename(r.user, filename,'')
     except ValidationError, e:
         return HttpResponseForbidden('Validation error.')
+    except Exception, e:
+        return HttpResponseForbidden(str(e))
 
     return render_to_response("json/attachment_added.json",
                 {'revision': revision, 'attachment': attachment},
