@@ -194,9 +194,16 @@ class TestViews(TestCase):
         self.upload(self.upload_url, temp.getvalue(), 'some-big-file.txt')
 
     def test_attachment_same_fails(self):
-        self.test_attachment_add()
-        self.assertRaises(FilenameExistException, self.upload,
-                          self.get_upload_url(1), 'foo bar', 'some.txt')
+        revision = self.add_one()
+        
+        # upload view
+        res1 = self.upload(self.get_upload_url(1), 'foo bar', 'some.txt')
+        eq_(res1.status_code, 403)
+        
+        # add empty view
+        res2 = self.client.post(self.get_add_url(1),{
+                    "filename": "some.txt"})
+        eq_(res2.status_code, 403)
 
     def test_attachment_revision_count(self):
         revisions = PackageRevision.objects.filter(package=self.package)
