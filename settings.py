@@ -196,6 +196,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.auth',
     'django.core.context_processors.request',
     'base.context_processors.settings',
+    'base.context_processors.uri',
     'django.contrib.messages.context_processors.messages',
     'person.context_processors.profile',
 )
