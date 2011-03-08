@@ -37,7 +37,7 @@ from jetpack.package_helpers import get_package_revision, \
         create_package_from_xpi
 from jetpack.models import Package, PackageRevision, Module, Attachment, SDK, \
                            EmptyDir
-from jetpack.errors import FilenameExistException
+from jetpack.errors import FilenameExistException, DependencyException
 
 log = commonware.log.getLogger('f.jetpack')
 
@@ -535,6 +535,8 @@ def package_upload_attachment(r, id_number, type_id,
             r.user, filename, content)
     except ValidationError, e:
         return HttpResponseForbidden('Validation errors.')
+    except Exception, e:
+        return HttpResponseForbidden(str(e))
 
     return render_to_response("json/attachment_added.json",
                 {'revision': revision, 'attachment': attachment},
@@ -570,6 +572,8 @@ def package_add_empty_attachment(r, id_number, type_id,
         attachment = revision.attachment_create_by_filename(r.user, filename,'')
     except ValidationError, e:
         return HttpResponseForbidden('Validation error.')
+    except Exception, e:
+        return HttpResponseForbidden(str(e))
 
     return render_to_response("json/attachment_added.json",
                 {'revision': revision, 'attachment': attachment},
@@ -749,13 +753,6 @@ def package_save(r, id_number, type_id, revision_number=None,
             if att.changed():
                 changes.append(att)
 
-    #for key in r.POST.keys():
-    #    attachment = latest_by_uid(revision, key)
-    #    if attachment:
-    #        attachment.data = r.POST[key]
-    #        if attachment.changed():
-    #            changes.append(attachment)
-
     attachments_changed = {}
     if save_revision or changes:
         revision.save()
@@ -923,13 +920,51 @@ def package_remove_library(r, id_number, type_id, revision_number):
     try:
         revision.dependency_remove_by_id_number(lib_id_number)
     except Exception, err:
-        return HttpResponseForbidden(escape(err.__unicode__()))
+        return HttpResponseForbidden(escape(err.__str__()))
 
     return render_to_response('json/dependency_removed.json',
                 {'revision': revision, 'library': library},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
+@require_POST
+@login_required
+def package_update_library(r, id_number, type_id, revision_number):
+    " update a dependency to a certain version "
+    revision = get_package_revision(id_number, type_id, revision_number)
+    if r.user.pk != revision.author.pk:
+        log_msg = ("[security] Attempt to update library in package (%s) by "
+                   "non-owner (%s)" % (id_number, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden(
+            'You are not the author of this %s' % escape(
+                revision.package.get_type_name()))
+    
+    lib_id_number = r.POST.get('id_number')
+    lib_revision = r.POST.get('revision')
+    
+    library = get_object_or_404(PackageRevision, pk=lib_revision, package__id_number=lib_id_number)
+    
+    try:
+        revision.dependency_update(library)
+    except DependencyException, err:
+        return HttpResponseForbidden(escape(err.__str__()))
+    
+    return render_to_response('json/library_updated.json',
+                {'revision': revision, 'library': library.package,
+                 'lib_revision': library},
+                context_instance=RequestContext(r),
+                mimetype='application/json')
+
+@login_required
+def package_latest_dependencies(r, id_number, type_id, revision_number):
+    revision = get_package_revision(id_number, type_id, revision_number)
+    out_of_date = revision.get_outdated_dependency_versions()
+
+    return render_to_response('json/latest_dependencies.json',
+            {'revisions': out_of_date},
+            context_instance=RequestContext(r),
+            mimetype='application/json')
 
 def get_revisions_list(id_number):
     " provide a list of the Package's revsisions "

@@ -18,7 +18,7 @@ class BaseModel(models.Model):
 
     def run_default_setters(self):
         for attrName in dir(self):
-            if attrName.find('default_') != 0:
+            if not attrName.startswith('default_'):
                 continue
             attr = getattr(self, attrName)
             if callable(attr):
@@ -29,7 +29,7 @@ class BaseModel(models.Model):
 
     def run_update_setters(self):
         for attrName in dir(self):
-            if attrName.find('update_') != 0:
+            if not attrName.startswith('update_'):
                 continue
             attr = getattr(self, attrName)
             if callable(attr):
