@@ -85,18 +85,17 @@ FlightDeck = Class.refactor(FlightDeck,{
             main_callback,
             _buildButtons = function(data){
                 return [{
+                    type: 'reset',
+                    text: data.cancel,
+                    'class': 'close'
+                },{
                     id: data.id,
                     type: 'button',
                     text: data.ok,
                     'class': 'submit',                    
                     callback: data.callback,
                     'default': true
-                },{
-                    type: 'reset',
-                    text: data.cancel,
-                    'class': 'close'
-                }
-                ];
+                }];
             };
 		data = Object.merge({}, this.options.question, data);
         if (!data.buttons) {
