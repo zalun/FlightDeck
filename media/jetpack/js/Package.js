@@ -686,6 +686,10 @@ Package.Edit = new Class({
                 title: 'You\'ve got unsaved changes.',
                 message: 'Choose from the following options',
                 buttons: [{
+                    text: 'Cancel',
+                    type: 'reset',
+                    'class': 'close'
+                },{
                     text: 'Save &amp; Download',
                     id: 'saveanddonload',
                     'class': 'submit',
@@ -703,10 +707,6 @@ Package.Edit = new Class({
                     callback: function(){
                         this.downloadAddon();
                     }.bind(this)
-                },{
-                    text: 'Cancel',
-                    type: 'reset',
-                    'class': 'close'
                 }]
             });
         } else {
