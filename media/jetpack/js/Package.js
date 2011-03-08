@@ -68,7 +68,9 @@ var Package = new Class({
             this.boundTestAddon = this.testAddon.bind(this);
 			this.options.test_url = $(this.options.test_el).get('href');
 			$(this.options.test_el).addEvent('click', this.boundTestAddon);
-            this.boundDownloadAddon = this.downloadAddon.bind(this);
+            if (!this.boundDownloadAddon) {
+                this.boundDownloadAddon = this.downloadAddon.bind(this);
+            }
 			this.download_url = $(this.options.download_el).get('href');
 			$(this.options.download_el).addEvent('click', this.boundDownloadAddon);
 		}
@@ -132,7 +134,7 @@ var Package = new Class({
 		}).send();
 	},
 
-	downloadAddon: function(e){
+    downloadAddon: function(e) {
 		if (e) {
 		  e.stop();
 		  el = e.target;
@@ -151,7 +153,7 @@ var Package = new Class({
 		  data: data,
 		  onSuccess: fd.downloadXPI
 		}).send();
-	},
+    },
 
 	testAddon: function(e){
 		var el;
@@ -618,6 +620,9 @@ Package.Edit = new Class({
 
 	initialize: function(options) {
 		this.setOptions(options);
+        if (this.isAddon()) {
+            this.boundDownloadAddon = this.downloadAddonOrSave.bind(this);
+        }
         this.data = {};
 		this.parent(options);
 		this.assignActions();
@@ -668,6 +673,45 @@ Package.Edit = new Class({
 			}.bind(this));
 		}
 		this.bind_keyboard();
+	},
+
+	downloadAddonOrSave: function(e){
+		if (e) {
+		  e.stop();
+        }
+        var that = this;
+        if (fd.edited) {
+            // display message
+            fd.showQuestion({
+                title: 'You\'ve got unsaved changes.',
+                message: 'Choose from the following options',
+                buttons: [{
+                    text: 'Save &amp; Download',
+                    id: 'saveanddonload',
+                    'class': 'submit',
+                    type: 'button',
+                    callback: function(){
+                        fd.addVolatileEvent('save', this.boundDownloadAddon);
+                        this.save();
+                    }.bind(this),
+                    'default': true
+                },{
+                    text: 'Download without saving',
+                    id: 'downloadwithoutsaving',
+                    'class': 'submit',
+                    type: 'button',
+                    callback: function(){
+                        this.downloadAddon();
+                    }.bind(this)
+                },{
+                    text: 'Cancel',
+                    type: 'reset',
+                    'class': 'close'
+                }]
+            });
+        } else {
+            this.downloadAddon(e);
+        }
 	},
 
 	sendMultipleFiles: function(files, onPartialLoad) {
