@@ -105,7 +105,11 @@ FlightDeck = Class.refactor(FlightDeck,{
         data.buttons.reverse().forEach(function(button){
             li = '<li>'
                 + '<input id="{id}" type="{type}" value="{text}" '
-                    + 'class="{class}Modal"/>'
+                    + 'class="{class}Modal';
+            if (button.default) {
+                li += ' defaultCallback';
+            }
+            li += '"/>';
             +'</li>'
             buttons += li.substitute(button);
         });
