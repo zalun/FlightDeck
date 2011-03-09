@@ -11,15 +11,17 @@ import codecs
 from copy import deepcopy
 
 from django.core.exceptions import ObjectDoesNotExist
+
 from django.db.models.signals import (pre_save, post_delete, post_save,
                                       m2m_changed)
-from django.db import models, IntegrityError
+from django.db import models, transaction, IntegrityError
 from django.utils import simplejson
 from django.utils.html import escape
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
 from django.conf import settings
+
 
 from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
 from ecdsa import SigningKey, NIST256p
@@ -30,7 +32,7 @@ from base.models import BaseModel
 from jetpack import tasks
 from jetpack.errors import (SelfDependencyException, FilenameExistException,
                             UpdateDeniedException, SingletonCopyException,
-                            DependencyException)
+                            DependencyException, AttachmentWriteException)
 from jetpack.managers import PackageManager
 from search.decorators import es_required
 from utils.exceptions import SimpleException
@@ -568,6 +570,7 @@ class PackageRevision(BaseModel):
                         att.write()
                         self.attachments.add(att)
 
+    @transaction.commit_on_success
     def attachment_create_by_filename(self, author, filename, content=None):
         """ find out the filename and ext and call attachment_create """
         filename, ext = os.path.splitext(filename)
@@ -633,7 +636,7 @@ class PackageRevision(BaseModel):
         attachments = self.attachments.filter(filename__startswith=path)
         dir_query = models.Q(name__startswith=path) | models.Q(name=main_dir)
         empty_dirs = self.folders.filter(dir_query)
-        if not attachments or empty_dirs:
+        if not (attachments or empty_dirs):
             return None
         self.save()
         removed_attachments = [att.pk for att in attachments]
@@ -1484,9 +1487,14 @@ class Attachment(BaseModel):
         if self.is_editable:
             kwargs['encoding'] = 'utf-8'
             kwargs['mode'] = 'w'
+            
+        try:
+            with codecs.open(self.get_file_path(), **kwargs) as f:
+                f.write(data)
+        except UnicodeDecodeError:
+            log.error('Attachment write failure: %s' % self.pk)
+            raise AttachmentWriteException('Attachment failed to save properly')
 
-        with codecs.open(self.get_file_path(), **kwargs) as f:
-            f.write(data)
 
     def export_code(self, static_dir):
         " creates a file containing the module "

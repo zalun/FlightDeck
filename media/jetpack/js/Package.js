@@ -742,7 +742,9 @@ Package.Edit = new Class({
 			//},
 
 			onpartialload: function(rpe, xhr) {
+				if (xhr.status > 399) return this.onerror(rpe, xhr);
 				$log('FD: attachment uploaded');
+				
 				var response = JSON.parse(xhr.responseText);
 				fd.message.alert(response.message_title, response.message);
 				var attachment = new Attachment(self,{
@@ -868,8 +870,11 @@ Package.Edit = new Class({
 	
 	removeAttachments: function(pathname) {
 	    new Request.JSON({
-			url: this.options.remove_attachment_url,
-			data: {filename: path+'/'},
+			url: this.options.remove_folder_url,
+			data: {
+				name: path,
+				root_dir: 'data'
+			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
