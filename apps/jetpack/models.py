@@ -622,7 +622,7 @@ class PackageRevision(BaseModel):
         attachments = self.attachments.filter(filename__startswith=path)
         dir_query = models.Q(name__startswith=path) | models.Q(name=main_dir)
         empty_dirs = self.folders.filter(dir_query)
-        if not attachments or empty_dirs:
+        if not (attachments or empty_dirs):
             return None
         self.save()
         removed_attachments = [att.pk for att in attachments]

@@ -821,8 +821,11 @@ Package.Edit = new Class({
 	
 	removeAttachments: function(pathname) {
 	    new Request.JSON({
-			url: this.options.remove_attachment_url,
-			data: {filename: path+'/'},
+			url: this.options.remove_folder_url,
+			data: {
+				name: path,
+				root_dir: 'data'
+			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
