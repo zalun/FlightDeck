@@ -5,7 +5,7 @@ from django.conf import settings
 import commonware
 from search.utils import get_es
 
-log = commonware.log.getLogger('search')
+log = commonware.log.getLogger('f.search')
 
 
 def es_required(f):

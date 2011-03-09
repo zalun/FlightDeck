@@ -1,3 +1,21 @@
+// Add volatile events to Element, Window and Events
+// from http://jsfiddle.net/ZVbWP/
+Events.implement({
+    addVolatileEvent: function(type, fn, counter, internal){
+        if(!counter) {
+            counter = 1;
+        }
+        var volatileFn = function(){
+            fn.apply(this, arguments);
+            counter -= 1;
+            if(counter < 1) {
+                this.removeEvent(type, volatileFn);
+            }
+        }
+        this.addEvent(type, volatileFn, internal);
+    }
+});
+
 /*
  * Class: FlightDeck
  * Initializes all needed functionality
@@ -393,24 +411,6 @@ Form.Validator.addAllThese([
         }
     });
 })();
-
-// Add volatile events to Element, Window and Events
-// from http://jsfiddle.net/ZVbWP/
-Events.implement({
-    addVolatileEvent: function(type, fn, counter, internal){
-        if(!counter) {
-            counter = 1;
-        }
-        var volatileFn = function(){
-            fn.apply(this, arguments);
-            counter -= 1;
-            if(counter < 1) {
-                this.removeEvent(type, volatileFn);
-            }
-        }
-        this.addEvent(type, volatileFn, internal);
-    }
-});
 
 
 

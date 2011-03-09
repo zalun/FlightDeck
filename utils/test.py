@@ -8,6 +8,8 @@ def get_latest_sdk_dir():
     sdks = os.listdir(lib_dir)
     found = None
     sdk_time = -1
+    if hasattr(settings, 'TEST_SDK'):
+        return settings.TEST_SDK
     for sdk in sdks:
         if os.path.isdir(os.path.join(lib_dir, sdk)):
             sdk_inf = os.stat(os.path.join(lib_dir, sdk))
