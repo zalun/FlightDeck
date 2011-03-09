@@ -743,7 +743,6 @@ Package.Edit = new Class({
 
 			onpartialload: function(rpe, xhr) {
 				if (xhr.status > 399) return this.onerror(rpe, xhr);
-				$log('FD: attachment uploaded');
 				
 				var response = JSON.parse(xhr.responseText);
 				fd.message.alert(response.message_title, response.message);
@@ -812,7 +811,7 @@ Package.Edit = new Class({
 		}).send();
 	},
 
-	renameAttachment: function(uid, newName) {
+	renameAttachment: function(uid, newName, quiet) {
 		var that = this;
 		
 		// break off an extension from the filename
@@ -831,7 +830,9 @@ Package.Edit = new Class({
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				that.registerRevision(response);
-				fd.message.alert(response.message_title, response.message);
+                if (!quiet) {
+                    fd.message.alert(response.message_title, response.message);
+                }
 				
 				// destroy old attachment, since renaming creates a 
 				// whole new one anyways. then it has the updated uid,
