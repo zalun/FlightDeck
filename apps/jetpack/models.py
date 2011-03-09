@@ -19,7 +19,7 @@ from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models.signals import pre_save, post_save, m2m_changed
-from django.db import models, IntegrityError
+from django.db import models, transaction, IntegrityError
 from django.utils import simplejson
 from django.utils.html import escape
 from django.contrib.auth.models import User
@@ -30,7 +30,8 @@ from django.conf import settings
 from api.helpers import export_docs
 from utils.exceptions import SimpleException
 from jetpack.errors import SelfDependencyException, FilenameExistException, \
-        UpdateDeniedException, SingletonCopyException, DependencyException
+        UpdateDeniedException, SingletonCopyException, DependencyException, \
+        AttachmentWriteException
 #        ManifestNotValid
 
 from base.models import BaseModel
@@ -555,6 +556,7 @@ class PackageRevision(BaseModel):
                         att.write()
                         self.attachments.add(att)
 
+    @transaction.commit_on_success
     def attachment_create_by_filename(self, author, filename, content=None):
         """ find out the filename and ext and call attachment_create """
         filename, ext = os.path.splitext(filename)
@@ -1429,8 +1431,12 @@ class Attachment(BaseModel):
             kwargs['encoding'] = 'utf-8'
             kwargs['mode'] = 'w'
             
-        with codecs.open(self.get_file_path(), **kwargs) as f:
-            f.write(data)
+        try:
+            with codecs.open(self.get_file_path(), **kwargs) as f:
+                f.write(data)
+        except UnicodeDecoreError:
+            log.error('Attachment write failure: %s' % self.pk)
+            raise AttachmentWriteException('Attachment failed to save properly')
 
     def export_code(self, static_dir):
         " creates a file containing the module "
