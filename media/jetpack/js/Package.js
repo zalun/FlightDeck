@@ -530,7 +530,7 @@ var Folder = new Class({
 		this.options.path = this.options.name;
 		
 		this.addEvent('destroy', function(){
-			delete fd.getItem().folders[this.options.root_dir + '/' +this.options.name];
+			delete pack.folders[this.options.root_dir + '/' +this.options.name];
 		});
 		
 		if (this.options.append) {

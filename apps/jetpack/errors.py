@@ -24,6 +24,8 @@ class UpdateDeniedException(SimpleException):
 class AddingAttachmentDenied(SimpleException):
     " Attachment may not be added "
 
+class AttachmentWriteException(SimpleException):
+    " Attachment failed to properly save to disk "
 
 class AddingModuleDenied(SimpleException):
     " Modulke may not be added "
