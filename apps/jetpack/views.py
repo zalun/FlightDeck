@@ -721,16 +721,17 @@ def package_save(r, id_number, type_id, revision_number=None,
             validator.get_validation_message('alphanum_plus')))
 
     if package_full_name and package_full_name != revision.package.full_name:
+        revision.package.full_name = package_full_name
         try:
-            Package.objects.get(full_name=package_full_name)
+            Package.objects.get(author=revision.package.author,
+                                name=revision.package.make_name())
             return HttpResponseForbidden(
                 'You already have a %s with that name' % escape(
                     revision.package.get_type_name())
                 )
-        except:
+        except Package.DoesNotExist:
             save_package = True
             response_data['full_name'] = package_full_name
-            revision.package.full_name = package_full_name
 
     package_description = r.POST.get('package_description', False)
     if package_description:
