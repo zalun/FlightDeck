@@ -505,8 +505,9 @@ var Sidebar = new Class({
 				} else if (path) {
 				    renameAfterLoad = function(att) {
 				        var new_name = path + att.options.filename;
-				        
-				        pack.renameAttachment(att.options.uid, new_name);
+				        // rename attachment (quietly) to place in the right
+                        // folder 
+				        pack.renameAttachment(att.options.uid, new_name, true);
 				        var el = that.getBranchFromFile(att);
 				        if (el) {
 				            el.destroy();
