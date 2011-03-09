@@ -742,7 +742,9 @@ Package.Edit = new Class({
 			//},
 
 			onpartialload: function(rpe, xhr) {
+				if (xhr.status > 399) return this.onerror(rpe, xhr);
 				$log('FD: attachment uploaded');
+				
 				var response = JSON.parse(xhr.responseText);
 				fd.message.alert(response.message_title, response.message);
 				var attachment = new Attachment(self,{
