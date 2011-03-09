@@ -462,11 +462,11 @@ def package_remove_folder(r, id_number, type_id, revision_number):
         if root == 'data':
             response = revision.attachment_rmdir(foldername)
         if not response:
-            log_msg = 'Attempt to delete a non existing module %s from %s.' % (
+            log_msg = 'Attempt to delete a non existing folder %s from %s.' % (
                 foldername, id_number)
             log.warning(log_msg)
             return HttpResponseForbidden(
-                'There is no such module in %s' % escape(
+                'There is no such folder in %s' % escape(
                     revision.package.full_name))
         revision, removed_attachments, removed_emptydirs = response
         return render_to_response('json/%s_rmdir.json' % root, {
