@@ -1491,7 +1491,7 @@ class Attachment(BaseModel):
         try:
             with codecs.open(self.get_file_path(), **kwargs) as f:
                 f.write(data)
-        except UnicodeDecoreError:
+        except UnicodeDecodeError:
             log.error('Attachment write failure: %s' % self.pk)
             raise AttachmentWriteException('Attachment failed to save properly')
 
