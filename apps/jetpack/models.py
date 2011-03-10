@@ -656,12 +656,12 @@ class PackageRevision(BaseModel):
                 'A Library can not depend on itself!')
 
         # dependency have to be unique in the PackageRevision
+        # currently, the SDK can't compile with libraries with same "name"
         if self.dependencies.filter(
                 package__name=dep.package.name).count() > 0:
             raise DependencyException(
-                'Your add-on already depends on "%s" by %s.' % (
-                    dep.package.full_name,
-                    dep.package.author.get_profile()))
+                'Your %s already depends on a library with that name' % (
+                    self.package.get_type_name(),))
         if save:
             # save as new version
             self.save()
