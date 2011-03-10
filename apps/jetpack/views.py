@@ -722,6 +722,7 @@ def package_save(r, id_number, type_id, revision_number=None,
 
     if package_full_name and package_full_name != revision.package.full_name:
         revision.package.full_name = package_full_name
+        # in FlightDeck, libraries can have the same name, by different authors
         try:
             Package.objects.get(author=revision.package.author,
                                 name=revision.package.make_name())
@@ -888,7 +889,7 @@ def package_assign_library(r, id_number, type_id,
     try:
         revision.dependency_add(lib_revision)
     except Exception, err:
-        return HttpResponseForbidden(escape(err.__str__()))
+        return HttpResponseForbidden(str(err))
 
     lib_revision_url = lib_revision.get_absolute_url() \
         if r.user.pk == lib_revision.pk \
