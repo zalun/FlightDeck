@@ -1167,7 +1167,7 @@ Package.Edit = new Class({
 	},
 
     blur: function() {
-        this.keyboard.deactivate();
+        //this.keyboard.deactivate();
         this.fireEvent('blur');
     },
 
@@ -1201,6 +1201,7 @@ Package.Edit = new Class({
 
 			}
 		});
+		this.keyboard.manage(fd.sidebar.keyboard);
 		this.keyboard.activate();
 	},
 
