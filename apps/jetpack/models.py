@@ -229,6 +229,13 @@ class PackageRevision(BaseModel):
             'jp_%s_check_latest_dependencies' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
+    def get_modules_list_url(self):
+        return reverse('jp_revision_get_modules_list', args=[self.pk])
+
+    def get_conflicting_modules_list_url(self):
+        return reverse('jp_revision_get_conflicting_modules_list',
+                args=[self.pk])
+
     ######################
     # Manifest
 
@@ -313,6 +320,46 @@ class PackageRevision(BaseModel):
                     self.package.revisions.exclude(version_name=None)
                         .filter(revision_number__lt=self.revision_number)[0]
                             .version_name, self.revision_number)
+
+    def get_module_names(self):
+        """Return all used module names
+        """
+        module_names = {
+                self.package.name: [mod.filename for mod in self.modules.all()]}
+        for dep in self.dependencies.all():
+            module_names.update(dep.get_module_names())
+        return module_names
+
+    def get_conflicting_module_names(self):
+
+        def _add_conflict(package_name, module_name):
+            if not conflicts.get(package_name, False):
+                conflicts[package_name] = []
+            if module_name not in conflicts[package_name]:
+                conflicts[package_name].append(module_name)
+
+        conflicts = {}
+        tuples = []
+        # iterate over all packages imported
+        for package_name, module_names in self.get_module_names().items():
+            # iterate over all modules within the package
+            for module_name in module_names:
+                # get existing module names
+                if tuples:
+                    package, modules = zip(*tuples)
+                else:
+                    modules = []
+                # check for conflict
+                if module_name in modules:
+                    _add_conflict(package_name, module_name)
+                    # add other packages
+                    # module name has to appear at least twice in conflicts
+                    for tup in tuples:
+                        if tup[1] == module_name:
+                            _add_conflict(tup[0], tup[1])
+                tuples.append((package_name, module_name))
+        return conflicts
+
 
     ######################
     # revision save methods

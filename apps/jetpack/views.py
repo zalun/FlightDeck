@@ -995,3 +995,18 @@ def get_latest_revision_number(request, package_id):
     package = get_object_or_404(Package, id_number=package_id)
     return HttpResponse(simplejson.dumps({
         'revision_number': package.latest.revision_number}))
+
+
+def get_revision_modules_list(request, pk):
+    """returns JSON object with all modules which will be exported to XPI
+    """
+    revision = get_object_or_404(PackageRevision, pk=pk)
+    return HttpResponse(simplejson.dumps(revision.get_module_names()))
+
+
+def get_revision_conflicting_modules_list(request, pk):
+    """returns JSON object with all modules which will be exported to XPI
+    """
+    revision = get_object_or_404(PackageRevision, pk=pk)
+    return HttpResponse(simplejson.dumps(
+        revision.get_conflicting_module_names()))

@@ -60,6 +60,7 @@ urlpatterns = patterns('jetpack.views',
     url(r'^library/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
         'package_view_or_edit', {'type_id': 'l'},
         name='jp_library_revision_details'),
+
     # get full module info
     url(r'^get_module/(?P<id_number>[-\w]+)/(?P<revision_number>\d+)/'
             '(?P<filename>.*)$', 'get_module', name='jp_get_module'),
@@ -92,6 +93,13 @@ urlpatterns = patterns('jetpack.views',
         'package_activate', name='jp_package_activate'),
     url(r'^package/delete/(?P<id_number>[-\w]+)/$',
         'package_delete', name='jp_package_delete'),
+
+    # get all, conflicting modules
+    url(r'^revision/(?P<pk>\d+)/get_modules_list/$',
+        'get_revision_modules_list', name='jp_revision_get_modules_list'),
+    url(r'^revision/(?P<pk>\d+)/get_conflicting_modules_list/$',
+        'get_revision_conflicting_modules_list',
+        name='jp_revision_get_conflicting_modules_list'),
 
     # add/remove module
     url(r'^addon/add_module/(?P<id_number>[-\w]+)/revision/'
@@ -202,7 +210,7 @@ urlpatterns = patterns('jetpack.views',
             '(?P<revision_number>\d+)/$',
         'package_assign_library',
         {'type_id': 'l'}, name='jp_library_revision_assign_library'),
-    
+
     # update library
     url(r'^addon/update_library/(?P<id_number>[-\w]+)/revision/'
             '(?P<revision_number>\d+)/$',
@@ -212,7 +220,7 @@ urlpatterns = patterns('jetpack.views',
             '(?P<revision_number>\d+)/$',
         'package_update_library',
         {'type_id': 'l'}, name='jp_library_revision_update_library'),
-    
+
     # remove library
     url(r'^addon/remove_dependency/(?P<id_number>[-\w]+)/revision/'
             '(?P<revision_number>\d+)/$',
