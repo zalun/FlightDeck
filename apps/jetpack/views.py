@@ -375,6 +375,7 @@ def package_rename_module(r, id_number, type_id, revision_number):
                 revision.package.full_name))
 
     module.filename = new_name
+    revision.add_commit_message('module renamed')
     revision.update(module)
 
     return render_to_response("json/module_renamed.json",
@@ -398,6 +399,7 @@ def package_remove_module(r, id_number, type_id, revision_number):
 
     filenames = r.POST.get('filename').split(',')
 
+    revision.add_commit_message('module removed')
     try:
         removed_modules, removed_dirs = revision.modules_remove_by_path(
                 filenames)
@@ -785,6 +787,9 @@ def package_save(r, id_number, type_id, revision_number=None,
     response_data['version_name'] = revision.version_name \
             if revision.version_name else ""
 
+    if save_revision or changes:
+        revision.update_commit_message(True)
+
     return render_to_response("json/package_saved.json", locals(),
                 context_instance=RequestContext(r),
                 mimetype='application/json')
@@ -941,17 +946,17 @@ def package_update_library(r, id_number, type_id, revision_number):
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
                 revision.package.get_type_name()))
-    
+
     lib_id_number = r.POST.get('id_number')
     lib_revision = r.POST.get('revision')
-    
+
     library = get_object_or_404(PackageRevision, pk=lib_revision, package__id_number=lib_id_number)
-    
+
     try:
         revision.dependency_update(library)
     except DependencyException, err:
         return HttpResponseForbidden(escape(err.__str__()))
-    
+
     return render_to_response('json/library_updated.json',
                 {'revision': revision, 'library': library.package,
                  'lib_revision': library},

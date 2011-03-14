@@ -21,6 +21,7 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
 from django.conf import settings
+from django.utils.translation import ugettext as _
 
 
 from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
@@ -68,6 +69,8 @@ class PackageRevision(BaseModel):
     revision_number = models.IntegerField(blank=True, default=0)
     # commit message
     message = models.TextField(blank=True)
+    # autmagical message
+    commit_message = models.TextField(blank=True, null=True)
 
     # Libraries on which current package depends
     dependencies = models.ManyToManyField('self', blank=True, null=True,
@@ -170,7 +173,7 @@ class PackageRevision(BaseModel):
         return reverse(
             'jp_%s_revision_assign_library' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
-    
+
     def get_update_library_url(self):
         " returns url to update library to a specific version "
         return reverse(
@@ -314,6 +317,32 @@ class PackageRevision(BaseModel):
     ######################
     # revision save methods
 
+    def add_commit_message(self, msg, force_save=False):
+        """Collect messages for the revision
+        """
+        if not hasattr(self, '_commit_messages'):
+            self._commit_messages = []
+
+        if msg not in self._commit_messages:
+            self._commit_messages.append(msg)
+        if force_save:
+            self.update_commit_message(True)
+
+    def default_commit_message(self):
+        """commit message is added for new revisions only
+        """
+        self.commit_message = self.build_commit_message()
+
+    def build_commit_message(self):
+        if hasattr(self, '_commit_messages') and self._commit_messages:
+            return ', '.join(self._commit_messages)
+        return ''
+
+    def update_commit_message(self, force_save=False):
+        self.commit_message = self.build_commit_message()
+        if force_save:
+            super(PackageRevision, self).save()
+
     def save(self, **kwargs):
         """
         overloading save is needed to prevent from updating the same revision
@@ -333,6 +362,8 @@ class PackageRevision(BaseModel):
         # reset instance - force saving a new one
         self.id = None
         self.version_name = None
+        self.message = ''
+        self.commit_message = ''
         self.origin = origin
         self.revision_number = self.get_next_revision_number()
 
@@ -354,9 +385,8 @@ class PackageRevision(BaseModel):
         self.package.save()
         if package:
             self.set_version('copy')
+            self.add_commit_message('package copied', force_save=True)
         return save_return
-
-
 
     def get_next_revision_number(self):
         """
@@ -385,6 +415,7 @@ class PackageRevision(BaseModel):
                 version_name=version_name).count() > 0:
             # reset version_name
             version_name = ''
+        self.add_commit_message('version changed')
         self.version_name = version_name
         if current and version_name:
             self.package.version_name = version_name
@@ -439,6 +470,7 @@ class PackageRevision(BaseModel):
                  'with the name "%s". Each module in your add-on '
                  'needs to have a unique name.') % mod.filename
             )
+        self.add_commit_message(_('adding module(s)'))
 
         if save:
             self.save()
@@ -446,6 +478,7 @@ class PackageRevision(BaseModel):
 
     def module_remove(self, *mods):
         " copy to new revision, remove module(s) "
+        self.add_commit_message(_('removing module(s)'))
         self.save()
         return self.modules.remove(*mods)
 
@@ -496,18 +529,21 @@ class PackageRevision(BaseModel):
             self.attachments.filter(filename__startswith=dir.name).count()):
             raise FilenameExistException(errorMsg)
 
+        self.add_commit_message('folder (%s) added' % dir.name)
         if save:
             self.save()
         return self.folders.add(dir)
 
     def folder_remove(self, dir):
         " copy to new revision, remove folder "
+        self.add_commit_message('folder (%s) removed' % dir.name)
         self.save()
         return self.folders.remove(dir)
 
     def update(self, change, save=True):
         " to update a module, new package revision has to be created "
         if save:
+            self.add_commit_message('data updated')
             self.save()
         return change.increment(self)
 
@@ -516,11 +552,18 @@ class PackageRevision(BaseModel):
         if save:
             self.save()
         attachments_changed = {}
+        names = []
         for change in changes:
             old_uid = change.pk
             ch = self.update(change, save=False)
             if isinstance(change, Attachment):
                 attachments_changed[old_uid] = {'uid': ch.get_uid}
+                names.append('%s.%s' % (change.filename, change.ext))
+            else:
+                names.append('%s.js' % change.filename)
+        self.add_commit_message('content changed (%s)' % ', '.join(names))
+        if save:
+            self.update_commit_message(True)
         return attachments_changed
 
     def add_mods_and_atts_from_archive(self, packed, main, lib_dir, att_dir):
@@ -618,6 +661,8 @@ class PackageRevision(BaseModel):
                     att.filename, att.ext)
             )
 
+        self.add_commit_message('attachment (%s.%s) added' % (
+            att.filename, att.ext))
         if save:
             self.save()
         return self.attachments.add(att)
@@ -625,6 +670,8 @@ class PackageRevision(BaseModel):
     def attachment_remove(self, dep):
         " copy to new revision, remove attachment "
         # save as new version
+        self.add_commit_message('attachment (%s.%s) removed' % (
+            dep.filename, dep.ext))
         self.save()
         return self.attachments.remove(dep)
 
@@ -638,6 +685,7 @@ class PackageRevision(BaseModel):
         empty_dirs = self.folders.filter(dir_query)
         if not (attachments or empty_dirs):
             return None
+        self.add_commit_message('folder (%s) removed' % path)
         self.save()
         removed_attachments = [att.pk for att in attachments]
         for att in attachments:
@@ -675,11 +723,12 @@ class PackageRevision(BaseModel):
             raise DependencyException(
                 'Your %s already depends on a library with that name' % (
                     self.package.get_type_name(),))
+        self.add_commit_message('dependency (%s) added' % dep.package.name)
         if save:
             # save as new version
             self.save()
         return self.dependencies.add(dep)
-    
+
     def dependency_update(self, dep, save=True):
         " create new version with dependency version updated "
         try:
@@ -687,12 +736,14 @@ class PackageRevision(BaseModel):
         except PackageRevision.DoesNotExist:
             raise DependencyException('This %s does not depend on "%s".'
                         % (self.package.get_type_name(), dep.package.full_name))
-        
+
         if old_version == dep:
             raise DependencyException('"%s" is already up-to-date.'
                                       % dep.package.full_name)
-        
+
         else:
+            self.add_commit_message(
+                    'dependency (%s) updated' % dep.package.name)
             if save:
                 self.save()
             self.dependencies.remove(old_version)
@@ -701,6 +752,8 @@ class PackageRevision(BaseModel):
     def dependency_remove(self, dep):
         " copy to new revision, remove dependency "
         if self.dependencies.filter(pk=dep.pk).count() > 0:
+            self.add_commit_message(
+                    'dependency (%s) removed' % dep.package.name)
             # save as new version
             self.save()
             return self.dependencies.remove(dep)
@@ -1487,7 +1540,7 @@ class Attachment(BaseModel):
         if self.is_editable:
             kwargs['encoding'] = 'utf-8'
             kwargs['mode'] = 'w'
-            
+
         try:
             with codecs.open(self.get_file_path(), **kwargs) as f:
                 f.write(data)
