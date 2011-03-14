@@ -274,6 +274,7 @@ class PackageRevisionTest(TestCase):
         )
         self.assertRaises(FilenameExistException, first.attachment_add, att)
 
+
     """
     Althought not supported on view and front-en, there is no harm in these two
 
