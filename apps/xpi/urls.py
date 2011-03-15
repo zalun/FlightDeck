@@ -12,11 +12,11 @@ urlpatterns = patterns('xpi.views',
         'prepare_download', name='jp_addon_revision_xpi'),
 
     # get and remove created XPI
-    url(r'^test/(?P<hashtag>.*)/$',
+    url(r'^test/(?P<hashtag>[a-zA-Z0-9]+)/$',
         'get_test', name='jp_test_xpi'),
-    url(r'^check_download/(?P<hashtag>.*)/$',
+    url(r'^check_download/(?P<hashtag>[a-zA-Z0-9]+)/$',
         'check_download', name='jp_check_download_xpi'),
-    url(r'^download/(?P<hashtag>.*)/(?P<filename>.*)/$',
+    url(r'^download/(?P<hashtag>[a-zA-Z0-9]+)/(?P<filename>.*)/$',
         'get_download', name='jp_download_xpi'),
     url(r'^remove/(?P<path>.*)/$', 'clean', name='jp_rm_xpi'),
 )

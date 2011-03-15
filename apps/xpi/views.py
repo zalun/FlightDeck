@@ -25,7 +25,11 @@ def prepare_test(r, id_number, revision_number=None):
                         revision_number=revision_number)
     hashtag = r.POST.get('hashtag')
     if not hashtag:
+        log.warning('[security] No hashtag provided')
         return HttpResponseForbidden('{"error": "No hashtag"}')
+    if not validator.is_valid('alphanum', hashtag):
+        log.warning('[security] Wrong hashtag provided')
+        return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
     if r.POST.get('live_data_testing', False):
         modules = []
         for mod in revision.modules.all():
@@ -51,6 +55,9 @@ def get_test(r, hashtag):
     """
     return XPI file for testing
     """
+    if not validator.is_valid('alphanum', hashtag):
+        log.warning('[security] Wrong hashtag provided')
+        return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
     path = os.path.join(settings.XPI_TARGETDIR, '%s.xpi' % hashtag)
     mimetype = 'text/plain; charset=x-user-defined'
     try:
@@ -75,12 +82,18 @@ def prepare_download(r, id_number, revision_number=None):
         return HttpResponseForbidden('Add-on Builder has been updated!'
                 'We have updated this part of the pplication, please '
                 'empty your cache and reload to get changes.')
+    if not validator.is_valid('alphanum', hashtag):
+        log.warning('[security] Wrong hashtag provided')
+        return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
     revision.build_xpi(hashtag=hashtag)
     return HttpResponse('{"delayed": true}')
 
 
 def check_download(r, hashtag):
     """Check if XPI file is prepared."""
+    if not validator.is_valid('alphanum', hashtag):
+        log.warning('[security] Wrong hashtag provided')
+        return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
     path = os.path.join(settings.XPI_TARGETDIR, '%s.xpi' % hashtag)
     # Check file if it exists
     if os.path.isfile(path):
@@ -92,6 +105,9 @@ def get_download(r, hashtag, filename):
     """
     Download XPI (it has to be ready)
     """
+    if not validator.is_valid('alphanum', hashtag):
+        log.warning('[security] Wrong hashtag provided')
+        return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
     path = os.path.join(settings.XPI_TARGETDIR, '%s.xpi' % hashtag)
     log.info('Downloading %s.xpi from %s' % (filename, path))
     response = serve(r, path, '/', show_indexes=False)
@@ -103,7 +119,8 @@ def get_download(r, hashtag, filename):
 def clean(r, path):
     " remove whole temporary SDK on request "
     # Validate sdk_name
-    if not validator.is_valid('alphanum_plus', path):
-        return HttpResponseForbidden("{'error': 'Wrong name'}")
+    if not validator.is_valid('alphanum', path):
+        log.warning('[security] Wrong hashtag provided')
+        return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
     xpi_utils.remove(os.path.join(settings.XPI_TARGETDIR, '%s.xpi' % path))
     return HttpResponse('{"success": true}', mimetype='application/json')
