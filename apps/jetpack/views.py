@@ -1009,4 +1009,4 @@ def get_revision_conflicting_modules_list(request, pk):
     """
     revision = get_object_or_404(PackageRevision, pk=pk)
     return HttpResponse(simplejson.dumps(
-        revision.get_conflicting_module_names(), mimetype="application/json"))
+        revision.get_conflicting_module_names()), mimetype="application/json")
