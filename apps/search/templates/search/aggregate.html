@@ -1,0 +1,27 @@
+{% extends "base_fluid_width.html" %}
+{% load base_helpers %}
+
+{% block title %}Search for {{ query }}{% endblock %}
+
+{% block app_content %}
+<h3>Add-on Matches <span class="count">({{ addon_total }})</span></h3>
+
+<ol>
+  {% for item in addons %}
+    <li>{{ item.name }}</li>
+  {% endfor %}
+</ol>
+
+<p>See all {{ addons_total }} add-on matches for <q>{{ query }}</q></p>
+
+<h3>Library Matches <span class="count">({{ library_total }})</span></h3>
+
+<ol>
+  {% for item in libraries %}
+    <li>{{ item.name }}</li>
+  {% endfor %}
+</ol>
+
+<p>See all {{ libraries }} add-on matches for <q>{{ query }}</q></p>
+{% endblock %}
+

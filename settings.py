@@ -243,7 +243,7 @@ INSTALLED_APPS = [
 # FLIGHTDECK APPS
     'base',              # basic flightdeck things (utils, urls)
     'person',            # user related stuff (profile etc.)
-    'search',            # ElasticSearch and related stuff.
+    'search',            # ElasticSearch and search views.
     'amo',               # currently addons.mozilla.org authentication
     'jetpack',           # Jetpack functionality
     'xpi',               # XPI management
