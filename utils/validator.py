@@ -10,6 +10,10 @@ VALIDATE_TYPES = {
         '^[a-zA-z0-9 ._\-\(\)]+$',
         'Please use only letters (a-z), numbers (0-9) spaces or \"_().-\" '
         'only as a Package name. No other characters are allowed.'
+    ),
+    'alphanum': (
+        '^[a-zA-z0-9]+$',
+        'Please use only letters (a-z) and numbers (0-9)'
     )
 }
 
