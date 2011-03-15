@@ -693,6 +693,14 @@ Package.Edit = new Class({
                     type: 'reset',
                     'class': 'close'
                 },{
+                    text: 'Download without saving',
+                    id: 'downloadwithoutsaving',
+                    'class': 'submit',
+                    type: 'button',
+                    callback: function(){
+                        this.downloadAddon();
+                    }.bind(this)
+                },{
                     text: 'Save &amp; Download',
                     id: 'saveanddonload',
                     'class': 'submit',
@@ -702,14 +710,6 @@ Package.Edit = new Class({
                         this.save();
                     }.bind(this),
                     'default': true
-                },{
-                    text: 'Download without saving',
-                    id: 'downloadwithoutsaving',
-                    'class': 'submit',
-                    type: 'button',
-                    callback: function(){
-                        this.downloadAddon();
-                    }.bind(this)
                 }]
             });
         } else {
