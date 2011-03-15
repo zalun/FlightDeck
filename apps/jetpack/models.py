@@ -321,6 +321,16 @@ class PackageRevision(BaseModel):
                         .filter(revision_number__lt=self.revision_number)[0]
                             .version_name, self.revision_number)
 
+    def get_version_name_only(self):
+        """Returns version name."""
+
+        return self.version_name \
+                if self.version_name \
+                else self.package.revisions.exclude(
+                        version_name=None).filter(
+                                revision_number__lt=self.revision_number
+                        )[0].version_name
+
     def get_module_names(self):
         """Return all used module names
         """

@@ -784,8 +784,7 @@ def package_save(r, id_number, type_id, revision_number=None,
         revision.package.save()
         response_data['name'] = revision.package.name
 
-    response_data['version_name'] = revision.version_name \
-            if revision.version_name else ""
+    response_data['version_name'] = revision.get_version_name_only()
 
     if save_revision or changes:
         revision.update_commit_message(True)

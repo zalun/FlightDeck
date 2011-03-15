@@ -1128,6 +1128,7 @@ Package.Edit = new Class({
 	editInfo: function(e) {
 		e.stop();
 		this.savenow = false;
+        $log(Object.merge({}, this.data, this.options).version_name)
 		fd.editPackageInfoModal = fd.displayModal(
 				settings.edit_package_info_template.substitute(
 					Object.merge({}, this.data, this.options)));
@@ -1158,6 +1159,7 @@ Package.Edit = new Class({
 		// Update modal from data (if not saved yet)
 		Object.each(this.data, function(value, key) {
 			if ($(key)) {
+                $log(key + ': ' + value);
 				$(key).value = value;
 			}
 		})
