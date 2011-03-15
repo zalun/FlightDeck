@@ -16,3 +16,5 @@
   remove_folder_url: '{{ revision.get_remove_folder_url }}',
   latest_dependencies_url: '{{ revision.get_latest_dependencies_url }}',
   version_name: '{{ revision.get_version_name_only }}'
+  all_modules_list_url: '{{ revision.get_modules_list_url }}',
+  conflicting_modules_list_url: '{{ revision.get_conflicting_modules_list_url }}'

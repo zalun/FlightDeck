@@ -1000,7 +1000,8 @@ def get_revision_modules_list(request, pk):
     """returns JSON object with all modules which will be exported to XPI
     """
     revision = get_object_or_404(PackageRevision, pk=pk)
-    return HttpResponse(simplejson.dumps(revision.get_module_names()))
+    return HttpResponse(simplejson.dumps(revision.get_module_names()),
+                        mimetype="application/json")
 
 
 def get_revision_conflicting_modules_list(request, pk):
@@ -1008,4 +1009,4 @@ def get_revision_conflicting_modules_list(request, pk):
     """
     revision = get_object_or_404(PackageRevision, pk=pk)
     return HttpResponse(simplejson.dumps(
-        revision.get_conflicting_module_names()))
+        revision.get_conflicting_module_names(), mimetype="application/json"))

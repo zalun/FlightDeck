@@ -14,5 +14,7 @@
 	"latest_dependencies_url": "{{ revision.get_latest_dependencies_url }}",
 	"add_folder_url": "{{ revision.get_add_folder_url }}",
     "remove_folder_url": "{{ revision.get_remove_folder_url }}",
+	"all_modules_list_url": "{{ revision.get_modules_list_url }}",
+	"conflicting_modules_list_url": "{{ revision.get_conflicting_modules_list_url }}",
 	{% if revision.package.is_addon %}"test_url": "{{ revision.get_test_xpi_url }}",{% endif %}
 

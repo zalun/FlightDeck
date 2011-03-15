@@ -620,6 +620,8 @@ Package.Edit = new Class({
 			'full_name', 'version_name', 'package_description', 'revision_message'
 			]
 	},
+	
+	_modules_list: {},
 
 	initialize: function(options) {
 		this.setOptions(options);
@@ -633,6 +635,8 @@ Package.Edit = new Class({
 		//this.autocomplete = new FlightDeck.Autocomplete({
 		//	'url': settings.library_autocomplete_url
 		//});
+		
+		this.updateFullModulesList();
 	},
 
 	assignActions: function() {
@@ -715,6 +719,15 @@ Package.Edit = new Class({
         } else {
             this.downloadAddon(e);
         }
+	},
+	
+	updateFullModulesList: function() {
+		new Request.JSON({
+			url: this.options.all_modules_list_url,
+			onSuccess: function(response) {
+				this._modules_list = response;
+			}.bind(this)
+		}).send();
 	},
 
 	sendMultipleFiles: function(files, onPartialLoad) {
@@ -912,6 +925,8 @@ Package.Edit = new Class({
 					get_url: response.get_url
 				});
 				this.modules[response.filename] = mod;
+				
+				this.checkModuleConflicts();
 			}.bind(this)
 		}).send();
 	},
@@ -936,6 +951,8 @@ Package.Edit = new Class({
 				});
 				this.modules[response.filename] = mod;
 				delete this.modules[oldName];
+				
+				this.checkModuleConflicts();
 			}.bind(this)
 		}).send();
 	},
@@ -1048,6 +1065,7 @@ Package.Edit = new Class({
 						view_url: response.library_url,
 						revision_number: response.library_revision_number
 					});
+					this.checkModuleConflicts();
 				}.bind(this)
 			}).send();
 		} else {
@@ -1069,6 +1087,7 @@ Package.Edit = new Class({
 				this.registerRevision(response);
 				fd.message.alert(response.message_title, response.message);
 				lib.setOptions(response);
+				this.checkModuleConflicts();
 				Function.from(callback)(response);
 			}.bind(this)
 		}).send();
@@ -1117,8 +1136,29 @@ Package.Edit = new Class({
 				this.registerRevision(response);
 				fd.message.alert(response.message_title, response.message);
 				lib.destroy();
+				this.updateFullModulesList();
 			}.bind(this)
 		}).send();
+	},
+	
+	checkModuleConflicts: function() {
+		new Request.JSON({
+			url: this.options.conflicting_modules_list_url,
+			onSuccess: function(response) {
+				this.alertModuleConflicts(response);
+			}.bind(this)
+		}).send();
+		this.updateFullModulesList();
+	},
+	
+	alertModuleConflicts: function(conflicts) {
+		var parts = [];
+		Object.each(conflicts, function(modules, pack) {
+			parts.push(pack + ': ' + modules.join(', '));
+		});
+		if (parts.length) {
+			fd.error.alert("Module Conflicts found",parts.join('<br />'));
+		}
 	},
 
 	/*
