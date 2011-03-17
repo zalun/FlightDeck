@@ -1168,15 +1168,23 @@ Package.Edit = new Class({
 
     blur: function() {
         this._focused = false;
+		this.editor.blur();
         this.fireEvent('blur');
+		this.editor.addEvent('focus:once', function() {
+			if (!this._focused) {
+				this.focus();
+			}
+		}.bind(this));
     },
 	
 	_focused: true,
 
     focus: function() {
-        this._focused = true;
+        if (this._focused) return;
+		this._focused = true;
 		this.keyboard.activate();
-		$log('TODO: focus the actual editor');
+		this.editor.focus();
+		
         this.fireEvent('focus');
     },
 
@@ -1222,7 +1230,7 @@ Package.Edit = new Class({
 						that.blur();
 						fd.sidebar.focus();
 					} else {
-						fd.sidebar.blur();
+						//fd.sidebar.blur();
 						that.focus();
 					}
                 } 
@@ -1238,6 +1246,9 @@ Package.Edit = new Class({
 		this.keyboard.manage(fd.sidebar.keyboard);
 		this.keyboard.activate();
 		fd.sidebar.keyboard.deactivate();
+		this.addEvent('focus', function() {
+			fd.sidebar.blur();
+		});
 	},
 	
 	showShortcuts: function() {

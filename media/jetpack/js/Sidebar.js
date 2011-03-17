@@ -728,6 +728,7 @@ var Sidebar = new Class({
                 }
             } 
         });
+		
     },
 	
 	toElement: function() {

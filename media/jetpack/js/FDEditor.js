@@ -162,5 +162,15 @@ var FDEditor = new Class({
         });
     },
 
-    setSyntax: function(){}
+    setSyntax: function(){},
+	
+	focus: function() {
+		this.editor.focus();
+		this.fireEvent('focus');
+	},
+	
+	blur: function() {
+		this.editor.blur();
+		this.fireEvent('blur');
+	}
 });
