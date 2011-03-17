@@ -2349,12 +2349,12 @@ var pseudos = {
 		fn.apply(this, args);
 		this.removeEvent(split.original, fn);
 	}
-
 };
 
 Event.definePseudo = function(key, fn, proxy){
 	pseudos[key] = [fn, proxy];
-};
+	Events.definePseudo(key, fn);
+}
 
 var proto = Element.prototype;
 [Element, Window, Document].invoke('implement', Events.Pseudos(pseudos, proto.addEvent, proto.removeEvent));
@@ -2384,36 +2384,47 @@ provides: [Element.Event.Pseudos.Keys]
 (function(){
 
 var keysStoreKey = '$moo:keys-pressed',
-	keysKeyupStoreKey = '$moo:keys-keyup';
-
+	keysKeyupStoreKey = '$moo:keys-keyup',
+	store = function(key, val){
+		this.store ? this.store(key,val) : this[key] = val;
+		return this;
+	},
+	retrieve = function(key, def){
+		return this.retrieve ? this.retrieve(key, def) : (this[key] || def);
+	};
 
 Event.definePseudo('keys', function(split, fn, args){
-
 	var event = args[0],
-		keys = [],
-		pressed = this.retrieve(keysStoreKey, []);
+		keyCombos = split.value.split('|'),
+		pressed = retrieve.call(this, keysStoreKey, []);
 
-	keys.append(split.value.replace('++', function(){
-		keys.push('+'); // shift++ and shift+++a
-		return '';
-	}).split('+'));
+	keyCombos = keyCombos.map(function(key) {
+		var arr = [];
+		arr.append(key.replace('++', function(){
+			arr.push('+'); // shift++ and shift+++a
+			return '';
+		}).split('+'));
+		return arr;
+	});
 
 	pressed.include(event.key);
 
-	if (keys.every(function(key){
-		return pressed.contains(key);
+	if (keyCombos.some(function(combo){
+		return combo.every(function(key){
+			return pressed.contains(key);
+		});
 	})) fn.apply(this, args);
 
-	this.store(keysStoreKey, pressed);
+	store.call(this, keysStoreKey, pressed);
 
-	if (!this.retrieve(keysKeyupStoreKey)){
+	if (!retrieve.call(this, keysKeyupStoreKey)){
 		var keyup = function(event){
 			(function(){
-				pressed = this.retrieve(keysStoreKey, []).erase(event.key);
-				this.store(keysStoreKey, pressed);
+				pressed = retrieve.call(this, keysStoreKey, []).erase(event.key);
+				store.call(this, keysStoreKey, pressed);
 			}).delay(0, this); // Fix for IE
 		};
-		this.store(keysKeyupStoreKey, keyup).addEvent('keyup', keyup);
+		store.call(this, keysKeyupStoreKey, keyup).addEvent('keyup', keyup);
 	}
 
 });
@@ -8366,30 +8377,14 @@ provides: [Keyboard]
 	Keyboard.parse = function(type, eventType, ignore){
 		if (ignore && ignore.contains(type.toLowerCase())) return type;
 
-		type = type.toLowerCase().replace(/^(keyup|keydown):/, function($0, $1){
+		var keys = type.toLowerCase().replace(/^(keyup|keydown):?/, function($0, $1){
 			eventType = $1;
 			return '';
-		});
+		}).replace('ctrl', 'control');
 
-		if (!parsed[type]){
-			var key, mods = {};
-			type.split('+').each(function(part){
-				if (regex.test(part)) mods[part] = true;
-				else key = part;
-			});
+		
 
-			mods.control = mods.control || mods.ctrl; // allow both control and ctrl
-
-			var keys = [];
-			modifiers.each(function(mod){
-				if (mods[mod]) keys.push(mod);
-			});
-
-			if (key) keys.push(key);
-			parsed[type] = keys.join('+');
-		}
-
-		return eventType + ':keys(' + parsed[type] + ')';
+		return eventType + (keys && ':keys(' + keys + ')');
 	};
 
 	Keyboard.each = function(keyboard, fn){
@@ -8418,13 +8413,7 @@ provides: [Keyboard]
 	};
 
 	var handler = function(event){
-		var keys = [];
-		modifiers.each(function(mod){
-			if (event[mod]) keys.push(mod);
-		});
-
-		if (!regex.test(event.key)) keys.push(event.key);
-		Keyboard.manager.handle(event, event.type + ':keys(' + keys.join('+') + ')');
+		Keyboard.manager.handle(event, event.type);
 	};
 
 	document.addEvents({
