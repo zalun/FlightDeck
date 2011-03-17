@@ -137,15 +137,7 @@ var Sidebar = new Class({
 			
 		// highlight branch on click
 		sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .label:not([contenteditable="true"]))'.substitute(this.options), function(e) {
-			var li = $(e.target).getParent('li'),
-				file = li.retrieve('file');
-			if(file) {
-				if(file.is_editable()) {
-					that.setSelectedFile(li);
-				}
-				
-				file.onSelect();
-			}
+			that.selectFile($(e.target).getParent('li'));
 		});
 		
 		//adding modules to Lib
@@ -336,6 +328,17 @@ var Sidebar = new Class({
 		}
 		
 		return this;
+	},
+	
+	selectFile: function(li) {
+		var file = li.retrieve('file');
+		if(file) {
+			if(file.is_editable()) {
+				this.setSelectedFile(li);
+			}
+			
+			file.onSelect();
+		}
 	},
     
     silentlyRemoveFolders: function(element) {
@@ -594,7 +597,6 @@ var Sidebar = new Class({
 	},
 
     focus: function() {
-        $log('focus the sidebar, yo');
         this.keyboard.activate();
         
         $(this).getElements('.focused').removeClass('focused');
@@ -622,19 +624,18 @@ var Sidebar = new Class({
             this.focus();
             return;
         }
-        $log('focus previous: current found')
         //sorta opposite for "next"
         //1. if previous sibling has children
         //2. previous sibling
         //3. parent
-        
-        if (!el) {
-            el = current.getPrevious();
-        }
-
-        if (!el) {
-            el = current.getParent('li');
-        }
+		el = current.getElements('!+li ul:visible !^li, !+li, !li, !section !+ section ul:visible !^li');
+		
+		// Here, here!
+		// Since there are multiple expressions (the commas), Slick sorts the
+		// returned nodelist based on placement in the document. Since we're
+		// going up the dom, and basically want the *lowest* li, we can pick
+		// that off the end, and everything works. Heyyy!
+		el = el[el.length-1];
 
         if (el) {
             this._current_focus = el;
@@ -653,45 +654,77 @@ var Sidebar = new Class({
         //try to find the next branch that isn't hidden
         //1. Is this branch open, and have children?
         //2. Does this branch have siblings?
-        el = current.getElement('ul:visible li');
-        if (!el) {
-            el = current.getNext('li');
-        }
-        if (!el) {
-
-        }
-
-
-
+		el = current.getElement('ul:visible li, ~ li, !li + li, !section + section li.top_branch');
         if (el) {
             this._current_focus = el;
             this.focus();
         }
 
     },
+	
+	expandFocused: function() {
+		var current  = this._current_focus;
+        if (!current) {
+            return;
+        }
+		
+		var treeName = current.getParent('ul.tree').get('id').replace('Tree','').toLowerCase();
+		this.trees[treeName].collapse.expand(current);
+	},
+	
+	collapseFocused: function() {
+		var current  = this._current_focus;
+        if (!current) {
+            return;
+        }
+		var treeName = current.getParent('ul.tree').get('id').replace('Tree','').toLowerCase();
+		this.trees[treeName].collapse.collapse(current);
+	},
 
     bind_keyboard: function() {
         var that = this;
-        this.keyboard = new Keyboard({
-            events: {
-                'left': function(e) {
-               //     $log('left from the sidebar')
-                },
-                'right': function(e) {
-                
-                },
-                'up': function(e) {
+        this.keyboard = new Keyboard();
+		this.keyboard.addShortcuts({
+            'collapse': {
+                keys:'left',
+				description: 'Collapse focused folder.',
+				handler: function(e) {
+					that.collapseFocused();
+                }
+			},
+			'expand': {
+                keys: 'right',
+				description: 'Expand focused folder',
+				handler: function(e) {
+					that.expandFocused();
+                }
+			},
+			'up': {
+                keys: 'up|k',
+				description: 'Move focus up the tree.',
+				handler: function(e) {
                     that.focusPrevious(); 
-                },
-                'down': function(e) {
+                }
+			},
+			'down': {
+                keys: 'down|j',
+				description: 'Move focus down the tree',
+				handler: function(e) {
                     that.focusNext();
-                },
-                'enter': function(e) {
-                
-                },
-                'ctrl+\\': function(e) {
-                    that.blur();
-                    fd.getItem().focus();
+                }
+			},
+			'open': {
+                keys: 'enter',
+				description: 'Open currently focused file.',
+				handler: function(e) {
+					if(that._current_focus) {
+						var rel = that._current_focus.get('rel');
+						if(rel == 'file') {
+							that.selectFile(that._current_focus);
+						} else {
+							
+						}
+					}
                 }
             } 
         });

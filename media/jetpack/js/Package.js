@@ -1167,42 +1167,97 @@ Package.Edit = new Class({
 	},
 
     blur: function() {
-        //this.keyboard.deactivate();
+        this._focused = false;
         this.fireEvent('blur');
     },
+	
+	_focused: true,
 
     focus: function() {
-        this.keyboard.activate();
+        this._focused = true;
+		this.keyboard.activate();
+		$log('TODO: focus the actual editor');
         this.fireEvent('focus');
     },
 
 	bind_keyboard: function() {
 	    var that = this;
-        this.keyboard = new Keyboard({
-			events: {
-				'ctrl+s': this.boundSaveAction,
-                'ctrl+enter': function(e) {
+        this.keyboard = new Keyboard();
+		this.keyboard.addShortcuts({
+			'save': {
+				keys:'ctrl+s',
+				description: 'Save current outstanding changes.',
+				handler: this.boundSaveAction
+			},
+			'test': {
+                keys:'ctrl+enter',
+				description: 'Test',
+				handler: function(e) {
                     e.preventDefault();
                     that.testAddon();
-                },
-                'ctrl+n': function(e) {
+                }
+			},
+			'new attachment': {
+                keys: 'ctrl+n',
+				description: 'Open the New Attachment prompt.',
+				handler: function(e) {
                     e.preventDefault();
                     fd.sidebar.promptAttachment();
-                },
-                'ctrl+shift+n': function(e) {
+                }
+			},
+			'new module': {
+                keys:'ctrl+shift+n',
+				description: 'Open the New Module prompt.',
+				handler: function(e) {
                     e.preventDefault();
                     fd.sidebar.promptNewFile();
-                },
-                'ctrl+\\': function(e) {
+                }
+			},
+			'focus tree / editor': {
+                keys: 'ctrl+e',
+				description: 'Switch focus between the editor and the tree',
+				handler: function(e) {
                     e.preventDefault();
-                    that.blur();
-                    fd.sidebar.focus();
+                    if(that._focused) {
+						that.blur();
+						fd.sidebar.focus();
+					} else {
+						fd.sidebar.blur();
+						that.focus();
+					}
                 } 
-
+			},
+			'shortcuts': {
+				keys: 'ctrl+shift+/',
+				description: 'Show these keyboard shortcuts',
+				handler: function() {
+					that.showShortcuts();
+				}
 			}
-		});
+		})
 		this.keyboard.manage(fd.sidebar.keyboard);
 		this.keyboard.activate();
+		fd.sidebar.keyboard.deactivate();
+	},
+	
+	showShortcuts: function() {
+		function buildLines(shortcut) {
+			var keys = '<kbd>'+ shortcut.keys.split('+').join('</kbd> + <kbd>').split('|').join('</kbd> or <kbd>') + '</kbd>';
+			shortcuts.push(keys + ': ' + shortcut.description);
+		}
+		
+		var shortcuts = [];
+		
+		shortcuts.push('<strong>Editor</strong>');
+		this.keyboard.getShortcuts().forEach(buildLines);
+		shortcuts.push('<strong>Tree</strong>');
+		fd.sidebar.keyboard.getShortcuts().forEach(buildLines);
+		
+		fd.displayModal('<h3>Keyboard Shortcuts</h3>'
+						+'<div class="UI_Modal_Section"><p>'
+						+shortcuts.join('</p><p>')
+						+'</p></div>'
+		);
 	},
 
 	registerRevision: function(urls) {
