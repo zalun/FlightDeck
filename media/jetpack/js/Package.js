@@ -62,7 +62,6 @@ var Package = new Class({
 		this.instantiate_attachments();
 		this.instantiate_folders();
 		this.instantiate_dependencies();
-		this.prepareDependenciesInterval();
 		// hook event to menu items
 		$('revisions_list').addEvent('click', this.show_revision_list);
 		if (this.isAddon()) {
@@ -630,6 +629,7 @@ Package.Edit = new Class({
         }
         this.data = {};
 		this.parent(options);
+		this.prepareDependenciesInterval();
 		this.assignActions();
 		// autocomplete
 		//this.autocomplete = new FlightDeck.Autocomplete({
