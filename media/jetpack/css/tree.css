@@ -69,7 +69,7 @@ ul.tree li .label:hover {
 }
 
 ul.tree li.focused > .holder .label {
-    background:#aaf;
+    background:#E8F2FE;
 }
 
 ul.tree li .label[contenteditable="true"] {
