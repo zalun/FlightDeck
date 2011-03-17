@@ -307,6 +307,9 @@ Spinner = Class.refactor(Spinner, {
 
 Request = Class.refactor(Request, {
     options: {
+        headers: {
+            "X-CSRFToken": Cookie.read('csrftoken')
+        },
         onFailure: function(xhr) {
             if (this.options.addOnFailure) {
               this.options.addOnFailure();
