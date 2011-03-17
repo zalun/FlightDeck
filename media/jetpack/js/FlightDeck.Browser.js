@@ -93,19 +93,28 @@
                 title: "Deleting Package with all revisions", 
                 message: "Are you sure you want to delete this Package ?"
                         + "</p><p>There is no undo.",
-                ok: 'DELETE',
-                id: 'delete_package',
-                callback: function(e2) {
-                    new Request.JSON({
-                        url: this.get('href'),
-                        onSuccess: function(response) {
-                            el.getParent('li.UI_Item').destroy();
-                            fd.message.alert(
-                                response.message_title, response.message
-                            );
-                        }
-                    }).send();
-                }.bind(this)
+                buttons: [{
+                        type: 'reset',
+                        text: 'Cancel',
+                        'class': 'close'
+                    },{
+                        type: 'submit',
+                        text: 'DELETE',
+                        id: 'delete_package',
+                        irreversible: true,
+                        callback: function(e2) {
+                                new Request.JSON({
+                                    url: this.get('href'),
+                                    onSuccess: function(response) {
+                                        el.getParent('li.UI_Item').destroy();
+                                        fd.message.alert(
+                                            response.message_title, response.message
+                                        );
+                                    }
+                                }).send();
+                            }.bind(this),
+                        'default': true
+                    }]
             });
         });
     };

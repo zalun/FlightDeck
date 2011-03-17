@@ -147,6 +147,23 @@ authors:
                 color: #345600;
             }
 
+		.UI_Modal .UI_Modal_Actions input.irreversible {
+			background: -moz-linear-gradient(270deg, #ff0700, #aa0400);
+			border-top: solid 1px transparent;
+			color: #fff;
+            font-weight: bold;
+			text-shadow: 0 1px 0 #000;
+        }
+
+            .UI_Modal .UI_Modal_Actions input.irreversible:hover {
+                background: -moz-linear-gradient(270deg, #f9feef, #ccfe80);
+            }
+
+            .UI_Modal .UI_Modal_Actions input.irreversible:active {
+                background: -moz-linear-gradient(270deg, #ccfe80, #e6febf);
+                color: #345600;
+            }
+
         .UI_Modal .UI_Modal_Actions input:hover {
 			background: -moz-linear-gradient(270deg, #FBFBFB, #E6E8EB);
 			text-decoration: none;
