@@ -798,13 +798,26 @@ Package.Edit = new Class({
 			}
 		});
 	},
+
+    addExternalAttachment: function(url, filename) {
+        // download content and create new attachment
+        this.addNewAttachment(
+            this.options.add_attachment_url,
+            {url: url, filename: filename});
+    },
 	
 	addAttachment: function(filename) {
         // add empty attachment
+        this.addNewAttachment(
+            this.options.add_attachment_url,
+            {filename: filename});
+	},
+
+    addNewAttachment: function(url, data) {
 		var that = this;
 		new Request.JSON({
-			url: this.options.add_attachment_url,
-			data: {filename: filename},
+			url: url,
+			data: data,
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				that.registerRevision(response);
@@ -822,7 +835,7 @@ Package.Edit = new Class({
 				});
 			}
 		}).send();
-	},
+    },
 
 	renameAttachment: function(uid, newName, quiet) {
 		var that = this;

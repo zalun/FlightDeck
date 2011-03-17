@@ -8,6 +8,7 @@ import shutil
 import codecs
 import re
 import tempfile
+import urllib
 
 #from django.template.defaultfilters import slugify
 from django.contrib import messages
@@ -581,6 +582,46 @@ def package_add_empty_attachment(r, id_number, type_id,
                 {'revision': revision, 'attachment': attachment},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
+
+@require_POST
+@login_required
+def revision_add_attachment(r, pk):
+    """Add attachment, download if necessary
+    """
+    revision = get_object_or_404(PackageRevision, pk=pk)
+    if r.user.pk != revision.author.pk:
+        log_msg = ("[security] Attempt to add attachment to package (%s) by "
+                   "non-owner (%s)" % (id_number, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden(
+            'You are not the author of this %s' \
+                % escape(revision.package.get_type_name()))
+    url = r.POST.get('url', None)
+    filename = r.POST.get('filename', None)
+    if not filename:
+        log.error('Trying to create an attachment without name')
+        return HttpResponseServerError('Path not found.')
+    content = None
+    if url:
+        # validate url
+        att = urllib.urlopen(url)
+        # validate filesize
+        # download attachment's content
+        content = att.read()
+        att.close()
+    try:
+        attachment = revision.attachment_create_by_filename(
+            r.user, filename, content)
+    except ValidationError, e:
+        return HttpResponseForbidden('Validation error.')
+    except Exception, e:
+        return HttpResponseForbidden(str(e))
+
+    return render_to_response("json/attachment_added.json",
+                {'revision': revision, 'attachment': attachment},
+                context_instance=RequestContext(r),
+                mimetype='application/json')
+
 
 
 @require_POST

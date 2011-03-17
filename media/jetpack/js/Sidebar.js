@@ -475,28 +475,39 @@ var Sidebar = new Class({
         var that = this;
 		var prompt = fd.showQuestion({
 			title: 'Create or Upload an Attachment',
-			message: '<input type="file" name="upload_attachment" id="upload_attachment"/></p>'
+			message: ''
+                + '<input type="file" name="upload_attachment" id="upload_attachment"/></p>'
 				+ '<p style="text-align:center">&mdash; OR &mdash;</p><p>'
 				+ '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>'
 				+ '<a href="#" id="new_type_folder" class="radio_btn"><span>Folder</span></a>'
-				+ '<input type="text" name="new_attachment" id="new_attachment" placeholder="New Attachment name..." />',
+				+ '<input type="text" name="new_attachment" id="new_attachment" placeholder="New Attachment name..." />'
+				+ '<p style="text-align:center">&mdash; OR &mdash;</p><p>'
+                + '<input type="text" name="external_attachment" id="external_attachment" placeholder="http:// (URI of an Attachment to download)"/></p>',
 			ok: 'Create Attachment',
 			id: 'new_attachment_button',
 			focus: false, //dont auto focus since first option is to Upload
 			callback: function() {
 				var uploadInput = $('upload_attachment'),
 					createInput = $('new_attachment'),
+                    externalInput = $('external_attachment'),
 					filename = createInput.value,
+                    url = externalInput.value,
 					pack = fd.getItem(),
 					renameAfterLoad,
                     files = uploadInput.files;
 				
 				//validation
-				if(!(files && files.length) && !filename) {
+				if(!(files && files.length) && !filename && !url) {
 					fd.error.alert('No file was selected.', 
                             'Please select a file to upload.');
 					return;
 				}
+
+                if (url && !filename) {
+                    // extract filename from URL
+                    url_o = new URI(url);
+                    filename = url_o.get('file')
+                }
 				
 				for (var f = 0; f < files.length; f++){
 					var fname = files[f].fileName.getFileName(),
@@ -548,7 +559,9 @@ var Sidebar = new Class({
 					pack.sendMultipleFiles(uploadInput.files, renameAfterLoad);
 				} else if (isFolder) {
 					pack.addFolder(filename, Folder.ROOT_DIR_DATA);
-				} else {
+				} else if (url) {
+                    pack.addExternalAttachment(url, filename);
+                } else {
 					pack.addAttachment(filename);
 				}
 				
