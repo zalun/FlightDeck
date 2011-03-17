@@ -62,14 +62,15 @@ FlightDeck = Class.refactor(FlightDeck,{
                         gonna be wrapped in <p>
                 focus: Boolean - should first input steals focus?
                 buttons: array of button objects constructed like
-                    class:      String - suffix 'Modal' will be added
-                    text:       String - text to be displayed
-                    type:       String ('button','reset') type of the
-                                input
-                    id:         button DOM id (required if callback)
-                    callback:   function to call back after click
-                    default:    Boolean - which action should be
-                                taken on Enter
+                    class: String - suffix 'Modal' will be added
+                    text: String - text to be displayed
+                    type: String ('button','reset') type of the input
+                    id: button DOM id (required if callback)
+                    callback: function to call back after click
+                    default: Boolean - which action should be
+                             taken on Enter
+                    irreversible: Boolean - adds irreversible className which
+                                  results in different graphic style
                 // backward compatibility (ok and cancel buttons only)
                 ok: text for OK button (default OK)
                 cancel: text for CANCEL button (default Cancel)
@@ -102,11 +103,17 @@ FlightDeck = Class.refactor(FlightDeck,{
             data.buttons = _buildButtons(data);
         }
         data.buttons.reverse().forEach(function(button){
+            if (!button.class) {
+                button.class = button.type;
+            }
             li = '<li>'
                 + '<input id="{id}" type="{type}" value="{text}" '
                     + 'class="{class}Modal';
             if (button.default) {
                 li += ' defaultCallback';
+            }
+            if (button.irreversible) {
+                li += ' irreversible';
             }
             li += '"/>';
             +'</li>'
