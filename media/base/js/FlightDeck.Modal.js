@@ -137,7 +137,7 @@ FlightDeck = Class.refactor(FlightDeck,{
                 button_el.addEvent('click', button.callback);
                 button_el.addEvent('click', display.destroy.bind(display));
             }
-            if (button.default) {
+            if (button['default']) {
                 main_callback = button.callback;
             }
         });
@@ -146,8 +146,10 @@ FlightDeck = Class.refactor(FlightDeck,{
 		//also listen for the enter key if a text input exists
 		function pressEnter(e) {
 			e.stop();
-			main_callback();
-			display.destroy();
+			if(main_callback) {
+				main_callback();
+				display.destroy();
+			}
 		}
 		
 		window.addEvent('keyup:keys(enter)', pressEnter);
