@@ -734,6 +734,15 @@ var Sidebar = new Class({
 		var treeName = current.getParent('ul.tree').get('id').replace('Tree','').toLowerCase();
 		this.trees[treeName].collapse.collapse(current);
 	},
+	
+	toggleFocused: function() {
+		var current  = this._current_focus;
+        if (!current) {
+            return;
+        }
+		var treeName = current.getParent('ul.tree').get('id').replace('Tree','').toLowerCase();
+		this.trees[treeName].collapse.toggle(current);
+	},
 
     bind_keyboard: function() {
         var that = this;
@@ -773,10 +782,10 @@ var Sidebar = new Class({
 				handler: function(e) {
 					if(that._current_focus) {
 						var rel = that._current_focus.get('rel');
-						if(rel == 'file') {
+						if(rel == 'file' || that._current_focus.getParent('#PluginsTree')) {
 							that.selectFile(that._current_focus);
 						} else {
-							
+							that.toggleFocused();
 						}
 					}
                 }
