@@ -62,7 +62,6 @@ var Package = new Class({
 		this.instantiate_attachments();
 		this.instantiate_folders();
 		this.instantiate_dependencies();
-		this.prepareDependenciesInterval();
 		// hook event to menu items
 		$('revisions_list').addEvent('click', this.show_revision_list);
 		if (this.isAddon()) {
@@ -630,6 +629,7 @@ Package.Edit = new Class({
         }
         this.data = {};
 		this.parent(options);
+		this.prepareDependenciesInterval();
 		this.assignActions();
 		// autocomplete
 		//this.autocomplete = new FlightDeck.Autocomplete({
@@ -1327,13 +1327,109 @@ Package.Edit = new Class({
 		}).send();
 	},
 
-	bind_keyboard: function() {
-		this.keyboard = new Keyboard({
-			events: {
-				'ctrl+s': this.boundSaveAction
+    blur: function() {
+        this._focused = false;
+		this.editor.blur();
+        this.fireEvent('blur');
+		this.editor.addEvent('focus:once', function() {
+			if (!this._focused) {
+				this.focus();
 			}
-		});
+		}.bind(this));
+    },
+	
+	_focused: true,
+
+    focus: function() {
+        if (this._focused) return;
+		this._focused = true;
 		this.keyboard.activate();
+		this.editor.focus();
+		
+        this.fireEvent('focus');
+    },
+
+	bind_keyboard: function() {
+	    var that = this;
+        this.keyboard = new Keyboard();
+		this.keyboard.addShortcuts({
+			'save': {
+				keys:'ctrl+s',
+				description: 'Save current outstanding changes.',
+				handler: this.boundSaveAction
+			},
+			'test': {
+                keys:'ctrl+enter',
+				description: 'Test',
+				handler: function(e) {
+                    e.preventDefault();
+                    that.testAddon();
+                }
+			},
+			'new attachment': {
+                keys: 'ctrl+n',
+				description: 'Open the New Attachment prompt.',
+				handler: function(e) {
+                    e.preventDefault();
+                    fd.sidebar.promptAttachment();
+                }
+			},
+			'new module': {
+                keys:'ctrl+shift+n',
+				description: 'Open the New Module prompt.',
+				handler: function(e) {
+                    e.preventDefault();
+                    fd.sidebar.promptNewFile();
+                }
+			},
+			'focus tree / editor': {
+                keys: 'ctrl+e',
+				description: 'Switch focus between the editor and the tree',
+				handler: function(e) {
+                    e.preventDefault();
+                    if(that._focused) {
+						that.blur();
+						fd.sidebar.focus();
+					} else {
+						//fd.sidebar.blur();
+						that.focus();
+					}
+                } 
+			},
+			'shortcuts': {
+				keys: 'ctrl+shift+/',
+				description: 'Show these keyboard shortcuts',
+				handler: function() {
+					that.showShortcuts();
+				}
+			}
+		})
+		this.keyboard.manage(fd.sidebar.keyboard);
+		this.keyboard.activate();
+		fd.sidebar.keyboard.deactivate();
+		this.addEvent('focus', function() {
+			fd.sidebar.blur();
+		});
+	},
+	
+	showShortcuts: function() {
+		function buildLines(shortcut) {
+			var keys = '<kbd>'+ shortcut.keys.split('+').join('</kbd> + <kbd>').split('|').join('</kbd> or <kbd>') + '</kbd>';
+			shortcuts.push(keys + ': ' + shortcut.description);
+		}
+		
+		var shortcuts = [];
+		
+		shortcuts.push('<strong>Editor</strong>');
+		this.keyboard.getShortcuts().forEach(buildLines);
+		shortcuts.push('<strong>Tree</strong>');
+		fd.sidebar.keyboard.getShortcuts().forEach(buildLines);
+		
+		fd.displayModal('<h3>Keyboard Shortcuts</h3>'
+						+'<div class="UI_Modal_Section"><p>'
+						+shortcuts.join('</p><p>')
+						+'</p></div>'
+		);
 	},
 
 	registerRevision: function(urls) {

@@ -475,6 +475,14 @@ a:hover {
 					text-shadow: 0 1px 0 #011E4F;
 				}
 
+kbd {
+	border:1px solid #ababab;
+	border-radius:3px;
+	color:#999;
+	font-family:Lucida Grande, monospace;
+	font-size:10px;
+	padding:2px 3px;
+}
 
 /*
  =========================================================================== */
