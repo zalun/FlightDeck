@@ -379,30 +379,40 @@ var Sidebar = new Class({
 		    //return;
 		}
 		
-		var question = fd.showQuestion({
+		fd.showQuestion({
 			title: title.substitute(titleOpts),
 			message: file instanceof Module ? 'You may always copy it from this revision' : '',
-			ok: 'Remove',
-			id: 'remove_file_button',
-			callback: function() {
-				if (file instanceof Module) {
-					fd.getItem().removeModule(file);
-				} else if (file instanceof Attachment) {
-					fd.getItem().removeAttachment(file);
-				} else if (file instanceof Library) {
-					fd.getItem().removeLibrary(file);
-				} else if (file instanceof Folder) {
-                    fd.getItem().removeFolder(file);
-				} else if (fileType == Module) {
-				    fd.getItem().removeModules(file);
-				} else if (fileType == Attachment) {
-                    $log('removing folder')
-				    fd.getItem().removeAttachments(file);
+			buttons: [
+				{
+					'type': 'reset',
+					'text': 'Cancel',
+					'class': 'close'
+				},
+				{
+					'type': 'submit',
+					'text': 'Remove',
+					'id': 'remove_file_button',
+					'default': true,
+					'irreversible': true,
+					'callback': function() {
+						if (file instanceof Module) {
+							fd.getItem().removeModule(file);
+						} else if (file instanceof Attachment) {
+							fd.getItem().removeAttachment(file);
+						} else if (file instanceof Library) {
+							fd.getItem().removeLibrary(file);
+						} else if (file instanceof Folder) {
+							fd.getItem().removeFolder(file);
+						} else if (fileType == Module) {
+							fd.getItem().removeModules(file);
+						} else if (fileType == Attachment) {
+							$log('removing folder')
+							fd.getItem().removeAttachments(file);
+						}
+						
+					}
 				}
-				
-				
-				question.destroy();
-			}
+			]
 		});
 	},
 	
@@ -410,7 +420,7 @@ var Sidebar = new Class({
 		var path = (folder && folder.get('path')) || '';
 		if (path) path += '/';
 		
-		var prompt = fd.showQuestion({
+		fd.showQuestion({
 			title: 'Create a new file or folder',
 			message: '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>' +
 				'<a href="#" id="new_type_folder" class="radio_btn"><span>Folder</span></a>' +
@@ -449,7 +459,6 @@ var Sidebar = new Class({
 				} else {
 					pack.addModule(filename);
 				}
-				prompt.destroy();
 			}
 		});
 
@@ -477,7 +486,7 @@ var Sidebar = new Class({
         var path = (folder && folder.get('path')) || '';
         if (path) path += '/';
         var that = this;
-		var prompt = fd.showQuestion({
+		fd.showQuestion({
 			title: 'Create or Upload an Attachment',
 			message: ''
                 + '<input type="file" name="upload_attachment" id="upload_attachment"/></p>'
@@ -568,8 +577,6 @@ var Sidebar = new Class({
                 } else if (filename) {
 					pack.addAttachment(filename);
 				} 				
-                // XXX: I think that's not needed
-				prompt.destroy();
 			}
 		});
 		
@@ -727,6 +734,15 @@ var Sidebar = new Class({
 		var treeName = current.getParent('ul.tree').get('id').replace('Tree','').toLowerCase();
 		this.trees[treeName].collapse.collapse(current);
 	},
+	
+	toggleFocused: function() {
+		var current  = this._current_focus;
+        if (!current) {
+            return;
+        }
+		var treeName = current.getParent('ul.tree').get('id').replace('Tree','').toLowerCase();
+		this.trees[treeName].collapse.toggle(current);
+	},
 
     bind_keyboard: function() {
         var that = this;
@@ -766,10 +782,10 @@ var Sidebar = new Class({
 				handler: function(e) {
 					if(that._current_focus) {
 						var rel = that._current_focus.get('rel');
-						if(rel == 'file') {
+						if(rel == 'file' || that._current_focus.getParent('#PluginsTree')) {
 							that.selectFile(that._current_focus);
 						} else {
-							
+							that.toggleFocused();
 						}
 					}
                 }

@@ -113,6 +113,7 @@ authors:
 			padding: 7px;
 			text-shadow: 0 1px 0 #fff;
 			color: #4D5860;
+			cursor:pointer;
 
 			-moz-border-radius: 4px;
 		}
@@ -148,20 +149,21 @@ authors:
             }
 
 		.UI_Modal .UI_Modal_Actions input.irreversible {
-			background: -moz-linear-gradient(270deg, #ff0700, #aa0400);
+			background: -moz-linear-gradient(270deg, #ff0600, #880400);
 			border-top: solid 1px transparent;
 			color: #fff;
             font-weight: bold;
 			text-shadow: 0 1px 0 #000;
+			text-transform:uppercase;
         }
 
             .UI_Modal .UI_Modal_Actions input.irreversible:hover {
-                background: -moz-linear-gradient(270deg, #f9feef, #ccfe80);
+                background: -moz-linear-gradient(270deg, #ff0700, #bb0400);
             }
 
             .UI_Modal .UI_Modal_Actions input.irreversible:active {
-                background: -moz-linear-gradient(270deg, #ccfe80, #e6febf);
-                color: #345600;
+                background: -moz-linear-gradient(270deg, #cc0400, #770400);
+                color:#fff;
             }
 
         .UI_Modal .UI_Modal_Actions input:hover {
