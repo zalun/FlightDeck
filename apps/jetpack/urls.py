@@ -143,14 +143,8 @@ urlpatterns = patterns('jetpack.views',
             '(?P<revision_number>\d+)/$',
         'package_upload_attachment',
         {'type_id': 'l'},  name='jp_library_revision_upload_attachment'),
-    url(r'^addon/add_attachment/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'package_add_empty_attachment',
-        {'type_id': 'a'}, name='jp_addon_revision_add_attachment'),
-    url(r'^library/add_attachment/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'package_add_empty_attachment',
-        {'type_id': 'l'},  name='jp_library_revision_add_attachment'),
+    url(r'^revision/(?P<pk>\d+)/add_attachment/',
+        'revision_add_attachment', name='jp_revision_add_attachment'),
     url(r'^addon/remove_attachment/(?P<id_number>[-\w]+)/revision/'
             '(?P<revision_number>\d+)/$',
         'package_remove_attachment',

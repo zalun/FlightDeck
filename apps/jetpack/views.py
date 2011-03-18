@@ -8,6 +8,7 @@ import shutil
 import codecs
 import re
 import tempfile
+import urllib
 
 #from django.template.defaultfilters import slugify
 from django.contrib import messages
@@ -28,6 +29,8 @@ from django.views.decorators.http import require_POST
 from django.template.defaultfilters import escape
 from django.conf import settings
 from django.utils import simplejson
+from django.forms.fields import URLField
+#from django.core.validators import URLValidator
 
 from base.shortcuts import get_object_with_related_or_404
 from utils import validator
@@ -581,6 +584,73 @@ def package_add_empty_attachment(r, id_number, type_id,
                 {'revision': revision, 'attachment': attachment},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
+
+@require_POST
+@login_required
+def revision_add_attachment(r, pk):
+    """Add attachment, download if necessary
+    """
+    revision = get_object_or_404(PackageRevision, pk=pk)
+    if r.user.pk != revision.author.pk:
+        log_msg = ("[security] Attempt to add attachment to package (%s) by "
+                   "non-owner (%s)" % (id_number, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden(
+            'You are not the author of this %s' \
+                % escape(revision.package.get_type_name()))
+    url = r.POST.get('url', None)
+    filename = r.POST.get('filename', None)
+    log.debug(filename)
+    if not filename or filename == "":
+        log.error('Trying to create an attachment without name')
+        return HttpResponseForbidden('Path not found.')
+    content = None
+    if url:
+        # validate url
+        field = URLField(verify_exists=True)
+        try:
+            url = field.clean(url)
+        except ValidationError, err:
+            # XXX: Ugly log as it appears as [u'Here the message']
+            log.debug('Invalid url provided (%s)\n%s' % (url, err))
+            return HttpResponseForbidden("Loading attachment failed<br/>"
+                "%s" % str(err))
+        except Exception, err:
+            return HttpResponseForbidden(str(e))
+        att = urllib.urlopen(url)
+        # validate filesize
+        att_info = att.info()
+        if not att_info.dict.has_key('content-length'):
+            log.debug('Server did not provide Content-Length header')
+            return HttpResponseForbidden("Loading attachment failed<br/>"
+                    "Server did not respond with the right headers")
+        att_size = int(att_info.dict['content-length'])
+        if att_size > settings.ATTACHMENT_MAX_FILESIZE:
+            log.debug('File (%s) is too big (%db)' % (url, att_size))
+            return HttpResponseForbidden("Loading attachment failed<br/>"
+                    "File is too big")
+        if att_size <= 0:
+            log.debug(
+                    'Content-Length header provided wrong value %d' % att_size)
+            return HttpResponseForbidden("Loading attachment failed<br/>"
+                    "File size is not provided by the server")
+        # download attachment's content
+        log.info('Downloading (%s)' % url)
+        content = att.read()
+        att.close()
+    try:
+        attachment = revision.attachment_create_by_filename(
+            r.user, filename, content)
+    except ValidationError, err:
+        return HttpResponseForbidden('Validation error.<br/>%s' % str(err))
+    except Exception, err:
+        return HttpResponseForbidden(str(err))
+
+    return render_to_response("json/attachment_added.json",
+                {'revision': revision, 'attachment': attachment},
+                context_instance=RequestContext(r),
+                mimetype='application/json')
+
 
 
 @require_POST

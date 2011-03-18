@@ -246,6 +246,6 @@ authors:
 	
 	.UI_Modal input#new_file,
 	.UI_Modal input#new_attachment {
-		width:72%;
+		width:71%;
 		padding:0 5px;
 	}

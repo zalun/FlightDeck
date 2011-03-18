@@ -152,9 +152,7 @@ class PackageRevision(BaseModel):
 
     def get_add_attachment_url(self):
         " returns URL to add attachment to the package revision "
-        return reverse(
-            'jp_%s_revision_add_attachment' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_revision_add_attachment', args=[self.pk])
 
     def get_rename_attachment_url(self):
         " returns URL to rename module in the package revision "
