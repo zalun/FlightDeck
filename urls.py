@@ -40,6 +40,11 @@ urls.extend([
     (r'', include('jetpack.urls')),
 
     # Monitor
-    (r'', include('base.urls'))
+    (r'', include('base.urls')),
+
+    # Worker HACK
+    (r'worker-javascript.js$', static.serve, {
+        'document_root': settings.MEDIA_ROOT,
+        'path': 'lib/ace/worker-javascript.js'})
 ])
 urlpatterns = patterns('', *urls)
