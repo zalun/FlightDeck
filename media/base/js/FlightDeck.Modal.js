@@ -144,13 +144,18 @@ FlightDeck = Class.refactor(FlightDeck,{
 		
 		//auto focus first input if it exists
 		//also listen for the enter key if a text input exists
-		textboxes = $(display).getElements('input[type="text"]').addEvent(
-                'keyup:keys(enter)', function(e) {
-			e.preventDefault();
-            if (main_callback) {
-    			main_callback();
-            }
+		function pressEnter(e) {
+			e.stop();
+			main_callback();
+			display.destroy();
+		}
+		
+		window.addEvent('keyup:keys(enter)', pressEnter);
+		display.addEvent('destroy', function() {
+			window.removeEvent('keyup:keys(enter)', pressEnter);
 		});
+		
+		textboxes = $(display).getElements('input[type="text"]');
 		
 		if (data.focus && textboxes.length) {
 			setTimeout(function() {
