@@ -29,6 +29,8 @@ from django.views.decorators.http import require_POST
 from django.template.defaultfilters import escape
 from django.conf import settings
 from django.utils import simplejson
+from django.forms.fields import URLField
+#from django.core.validators import URLValidator
 
 from base.shortcuts import get_object_with_related_or_404
 from utils import validator
@@ -598,24 +600,51 @@ def revision_add_attachment(r, pk):
                 % escape(revision.package.get_type_name()))
     url = r.POST.get('url', None)
     filename = r.POST.get('filename', None)
-    if not filename:
+    log.debug(filename)
+    if not filename or filename == "":
         log.error('Trying to create an attachment without name')
-        return HttpResponseServerError('Path not found.')
+        return HttpResponseForbidden('Path not found.')
     content = None
     if url:
         # validate url
+        field = URLField(verify_exists=True)
+        try:
+            url = field.clean(url)
+        except ValidationError, err:
+            # XXX: Ugly log as it appears as [u'Here the message']
+            log.debug('Invalid url provided (%s)\n%s' % (url, err))
+            return HttpResponseForbidden("Loading attachment failed<br/>"
+                "%s" % str(err))
+        except Exception, err:
+            return HttpResponseForbidden(str(e))
         att = urllib.urlopen(url)
         # validate filesize
+        att_info = att.info()
+        if not att_info.dict.has_key('content-length'):
+            log.debug('Server did not provide Content-Length header')
+            return HttpResponseForbidden("Loading attachment failed<br/>"
+                    "Server did not respond with the right headers")
+        att_size = int(att_info.dict['content-length'])
+        if att_size > settings.ATTACHMENT_MAX_FILESIZE:
+            log.debug('File (%s) is too big (%db)' % (url, att_size))
+            return HttpResponseForbidden("Loading attachment failed<br/>"
+                    "File is too big")
+        if att_size <= 0:
+            log.debug(
+                    'Content-Length header provided wrong value %d' % att_size)
+            return HttpResponseForbidden("Loading attachment failed<br/>"
+                    "File size is not provided by the server")
         # download attachment's content
+        log.info('Downloading (%s)' % url)
         content = att.read()
         att.close()
     try:
         attachment = revision.attachment_create_by_filename(
             r.user, filename, content)
-    except ValidationError, e:
-        return HttpResponseForbidden('Validation error.')
-    except Exception, e:
-        return HttpResponseForbidden(str(e))
+    except ValidationError, err:
+        return HttpResponseForbidden('Validation error.<br/>%s' % str(err))
+    except Exception, err:
+        return HttpResponseForbidden(str(err))
 
     return render_to_response("json/attachment_added.json",
                 {'revision': revision, 'attachment': attachment},

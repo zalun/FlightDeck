@@ -801,6 +801,7 @@ Package.Edit = new Class({
 
     addExternalAttachment: function(url, filename) {
         // download content and create new attachment
+        $log('FD: DEBUGB downloading ' + filename + ' from ' + url);
         this.addNewAttachment(
             this.options.add_attachment_url,
             {url: url, filename: filename});

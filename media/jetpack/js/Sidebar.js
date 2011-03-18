@@ -499,19 +499,19 @@ var Sidebar = new Class({
 					pack = fd.getItem(),
 					renameAfterLoad,
                     files = uploadInput.files;
-				
-				//validation
-				if(!(files && files.length) && !filename && !url) {
-					fd.error.alert('No file was selected.', 
-                            'Please select a file to upload.');
-					return;
-				}
 
                 if (url && !filename) {
                     // extract filename from URL
                     url_o = new URI(url);
                     filename = url_o.get('file')
                 }
+				
+				//validation
+				if(!(files && files.length) && !filename && !(url && filename)) {
+					fd.error.alert('No file was selected.', 
+                            'Please select a file to upload.');
+					return;
+				}
 				
 				for (var f = 0; f < files.length; f++){
 					var fname = files[f].fileName.getFileName(),
@@ -563,12 +563,12 @@ var Sidebar = new Class({
 					pack.sendMultipleFiles(uploadInput.files, renameAfterLoad);
 				} else if (isFolder) {
 					pack.addFolder(filename, Folder.ROOT_DIR_DATA);
-				} else if (url) {
+				} else if (url && filename) {
                     pack.addExternalAttachment(url, filename);
-                } else {
+                } else if (filename) {
 					pack.addAttachment(filename);
-				}
-				
+				} 				
+                // XXX: I think that's not needed
 				prompt.destroy();
 			}
 		});
