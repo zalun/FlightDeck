@@ -232,7 +232,7 @@ urlpatterns = patterns('jetpack.views',
         {'type_id': 'a'}, name='jp_addon_check_latest_dependencies'),
 
     url(r'library/check_latest_dependencies/(?P<id_number>[-\w]+)/revision'
-            '(?P<revision_number>\d)/$',
+            '(?P<revision_number>\d+)/$',
         'package_latest_dependencies',
         {'type_id': 'l'}, name='jp_library_check_latest_dependencies'),
 )
