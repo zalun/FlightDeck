@@ -118,7 +118,7 @@ class TestViews(TestCase):
 
     def test_attachment_error(self):
         res = self.client.post(self.add_url, {})
-        eq_(res.status_code, 500)
+        eq_(res.status_code, 403)
 
     def add_one(self, data = 'foo', filename='some.txt'):
         self.upload(self.get_upload_url(self.revision.revision_number), data, filename)
