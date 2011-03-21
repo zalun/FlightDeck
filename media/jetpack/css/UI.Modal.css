@@ -113,11 +113,60 @@ authors:
 			padding: 7px;
 			text-shadow: 0 1px 0 #fff;
 			color: #4D5860;
+			cursor:pointer;
 
 			-moz-border-radius: 4px;
 		}
 
-		.UI_Modal .UI_Modal_Actions input:hover {
+		.UI_Modal .UI_Modal_Actions input.closeModal {
+			background: -moz-linear-gradient(270deg, #fee5df, #feccbf);
+			border-top: solid 1px transparent;
+			color: #b16b59;
+        }
+
+            .UI_Modal .UI_Modal_Actions input.closeModal:hover {
+                background: -moz-linear-gradient(270deg, #fef9f7, #fef3f0);
+            }
+
+            .UI_Modal .UI_Modal_Actions input.closeModal:active {
+                background: -moz-linear-gradient(270deg, #fef3f0, #fee5df);
+            }
+
+		.UI_Modal .UI_Modal_Actions input.defaultCallback {
+			background: -moz-linear-gradient(270deg, #e6febf, #ccfe80);
+			border-top: solid 1px transparent;
+			color: #4b7c00;
+            font-weight: bold;
+        }
+
+            .UI_Modal .UI_Modal_Actions input.defaultCallback:hover {
+                background: -moz-linear-gradient(270deg, #f9feef, #ccfe80);
+            }
+
+            .UI_Modal .UI_Modal_Actions input.defaultCallback:active {
+                background: -moz-linear-gradient(270deg, #ccfe80, #e6febf);
+                color: #345600;
+            }
+
+		.UI_Modal .UI_Modal_Actions input.irreversible {
+			background: -moz-linear-gradient(270deg, #ff0600, #880400);
+			border-top: solid 1px transparent;
+			color: #fff;
+            font-weight: bold;
+			text-shadow: 0 1px 0 #000;
+			text-transform:uppercase;
+        }
+
+            .UI_Modal .UI_Modal_Actions input.irreversible:hover {
+                background: -moz-linear-gradient(270deg, #ff0700, #bb0400);
+            }
+
+            .UI_Modal .UI_Modal_Actions input.irreversible:active {
+                background: -moz-linear-gradient(270deg, #cc0400, #770400);
+                color:#fff;
+            }
+
+        .UI_Modal .UI_Modal_Actions input:hover {
 			background: -moz-linear-gradient(270deg, #FBFBFB, #E6E8EB);
 			text-decoration: none;
 		}
@@ -127,7 +176,7 @@ authors:
 			border-top: solid 1px transparent;
 			color: #6D7880;
 		}
-		
+
 		.UI_Modal .UI_Modal_Section input {
 			border:1px solid #bbb;
 			border-radius:5px;
@@ -199,6 +248,6 @@ authors:
 	
 	.UI_Modal input#new_file,
 	.UI_Modal input#new_attachment {
-		width:72%;
+		width:71%;
 		padding:0 5px;
 	}

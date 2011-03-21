@@ -11,7 +11,7 @@
 		</p>
 		<p class="UI_Field">
 			<label for="version_name">Version</label>
-			<input type="text" name="version_name" id="version_name" class="validate-alphanum_plus" value="{% firstof revision.version_name "" %}"/>
+			<input type="text" name="version_name" id="version_name" class="validate-alphanum_plus" value="{version_name}"/>
 		</p>
 		{% comment %}
 		<p class="UI_Field">
@@ -23,7 +23,7 @@
 	<div class="UI_Modal_Actions">
 		<ul>
             {# id="savenow" is used to save data after edit #}
-			<li><input type="submit" id='savenow' value="Save" class="submitModal"/></li>
+			<li><input type="submit" id='savenow' value="Save" class="submitModal defaultCallback"/></li>
 			<li><input type="reset" value="Cancel" class="closeModal"/></li>
 		</ul>
 	</div>

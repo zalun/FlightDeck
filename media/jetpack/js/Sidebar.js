@@ -14,7 +14,8 @@ var Sidebar = new Class({
 	initialize: function(options){
 		this.setOptions(options);
 		this.element = $('app-sidebar');
-		
+		this.bind_keyboard();
+
 		this.resizeTreeContainer();
 		window.addEvent('resize', this.resizeTreeContainer.bind(this));
 	},
@@ -136,15 +137,7 @@ var Sidebar = new Class({
 			
 		// highlight branch on click
 		sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .label:not([contenteditable="true"]))'.substitute(this.options), function(e) {
-			var li = $(e.target).getParent('li'),
-				file = li.retrieve('file');
-			if(file) {
-				if(file.is_editable()) {
-					that.setSelectedFile(li);
-				}
-				
-				file.onSelect();
-			}
+			that.selectFile($(e.target).getParent('li'));
 		});
 		
 		//adding modules to Lib
@@ -163,8 +156,14 @@ var Sidebar = new Class({
 		
 		//adding User Libraries to Plugins
 		if(this.trees.plugins) {
-			$(this.trees.plugins).addEvent('click:relay(li.top_branch > .holder .add)', function(e) {
-				that.promptPlugin();
+			$(this.trees.plugins).addEvents({
+				'click:relay(li.top_branch > .holder .add)': function(e) {
+					that.promptPlugin();
+				},
+				'click:relay(li.update > .holder .icon)': function(e) {
+					e.stop();
+					that.promptPluginUpdate(e.target.getParent('li.update'));
+				}
 			});
 		}
 		
@@ -299,10 +298,13 @@ var Sidebar = new Class({
 			title = file.options.full_name;
 		} else if (file instanceof Folder) {
 			title = file.options.name;
-		} else {
+		} else if (file instanceof Module 
+                || file instanceof Attachment) {
 			title = file.options.filename + '.' + file.options.type;
 			
-		}
+		} else {
+            return null; //throw Error? this is a bad case!
+        }
 		
 		$(this).getElements('.tree li[path="{title}"]'.substitute({title:title})).some(function(el) {
 			if(el.retrieve('file') == file) {
@@ -336,6 +338,17 @@ var Sidebar = new Class({
 		
 		return this;
 	},
+	
+	selectFile: function(li) {
+		var file = li.retrieve('file');
+		if(file) {
+			if(file.is_editable()) {
+				this.setSelectedFile(li);
+			}
+			
+			file.onSelect();
+		}
+	},
     
     silentlyRemoveFolders: function(element) {
         var node = element;
@@ -366,38 +379,48 @@ var Sidebar = new Class({
 		    //return;
 		}
 		
-		var question = fd.showQuestion({
+		fd.showQuestion({
 			title: title.substitute(titleOpts),
 			message: file instanceof Module ? 'You may always copy it from this revision' : '',
-			ok: 'Remove',
-			id: 'remove_file_button',
-			callback: function() {
-				if (file instanceof Module) {
-					fd.getItem().removeModule(file);
-				} else if (file instanceof Attachment) {
-					fd.getItem().removeAttachment(file);
-				} else if (file instanceof Library) {
-					fd.getItem().removeLibrary(file);
-				} else if (file instanceof Folder) {
-                    fd.getItem().removeFolder(file);
-				} else if (fileType == Module) {
-				    fd.getItem().removeModules(file);
-				} else if (fileType == Attachment) {
-                    $log('removing folder')
-				    fd.getItem().removeAttachments(file);
+			buttons: [
+				{
+					'type': 'reset',
+					'text': 'Cancel',
+					'class': 'close'
+				},
+				{
+					'type': 'submit',
+					'text': 'Remove',
+					'id': 'remove_file_button',
+					'default': true,
+					'irreversible': true,
+					'callback': function() {
+						if (file instanceof Module) {
+							fd.getItem().removeModule(file);
+						} else if (file instanceof Attachment) {
+							fd.getItem().removeAttachment(file);
+						} else if (file instanceof Library) {
+							fd.getItem().removeLibrary(file);
+						} else if (file instanceof Folder) {
+							fd.getItem().removeFolder(file);
+						} else if (fileType == Module) {
+							fd.getItem().removeModules(file);
+						} else if (fileType == Attachment) {
+							$log('removing folder')
+							fd.getItem().removeAttachments(file);
+						}
+						
+					}
 				}
-				
-				
-				question.destroy();
-			}
+			]
 		});
 	},
 	
 	promptNewFile: function(folder) {
-		var path = folder.get('path') || '';
+		var path = (folder && folder.get('path')) || '';
 		if (path) path += '/';
 		
-		var prompt = fd.showQuestion({
+		fd.showQuestion({
 			title: 'Create a new file or folder',
 			message: '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>' +
 				'<a href="#" id="new_type_folder" class="radio_btn"><span>Folder</span></a>' +
@@ -436,7 +459,6 @@ var Sidebar = new Class({
 				} else {
 					pack.addModule(filename);
 				}
-				prompt.destroy();
 			}
 		});
 
@@ -461,29 +483,40 @@ var Sidebar = new Class({
 	},
 	
 	promptAttachment: function(folder) {
-        var path = folder.get('path') || '';
+        var path = (folder && folder.get('path')) || '';
         if (path) path += '/';
         var that = this;
-		var prompt = fd.showQuestion({
+		fd.showQuestion({
 			title: 'Create or Upload an Attachment',
-			message: '<input type="file" name="upload_attachment" id="upload_attachment"/></p>'
+			message: ''
+                + '<input type="file" name="upload_attachment" id="upload_attachment"/></p>'
 				+ '<p style="text-align:center">&mdash; OR &mdash;</p><p>'
 				+ '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>'
 				+ '<a href="#" id="new_type_folder" class="radio_btn"><span>Folder</span></a>'
-				+ '<input type="text" name="new_attachment" id="new_attachment" placeholder="New Attachment name..." />',
+				+ '<input type="text" name="new_attachment" id="new_attachment" placeholder="New Attachment name..." />'
+				+ '<p style="text-align:center">&mdash; OR &mdash;</p><p>'
+                + '<input type="text" name="external_attachment" id="external_attachment" placeholder="http:// (URI of an Attachment to download)"/></p>',
 			ok: 'Create Attachment',
 			id: 'new_attachment_button',
 			focus: false, //dont auto focus since first option is to Upload
 			callback: function() {
 				var uploadInput = $('upload_attachment'),
 					createInput = $('new_attachment'),
+                    externalInput = $('external_attachment'),
 					filename = createInput.value,
+                    url = externalInput.value,
 					pack = fd.getItem(),
 					renameAfterLoad,
                     files = uploadInput.files;
+
+                if (url && !filename) {
+                    // extract filename from URL
+                    url_o = new URI(url);
+                    filename = url_o.get('file')
+                }
 				
 				//validation
-				if(!(files && files.length) && !filename) {
+				if(!(files && files.length) && !filename && !(url && filename)) {
 					fd.error.alert('No file was selected.', 
                             'Please select a file to upload.');
 					return;
@@ -539,11 +572,11 @@ var Sidebar = new Class({
 					pack.sendMultipleFiles(uploadInput.files, renameAfterLoad);
 				} else if (isFolder) {
 					pack.addFolder(filename, Folder.ROOT_DIR_DATA);
-				} else {
+				} else if (url && filename) {
+                    pack.addExternalAttachment(url, filename);
+                } else if (filename) {
 					pack.addAttachment(filename);
-				}
-				
-				prompt.destroy();
+				} 				
 			}
 		});
 		
@@ -592,7 +625,175 @@ var Sidebar = new Class({
 			'url': settings.library_autocomplete_url
 		});
 	},
+
+    setPluginUpdate: function(library, latest_revision) {
+        var branch = this.getBranchFromFile(library);
+        if (!branch || branch.hasClass('update')) return;
+		
+		branch.addClass('update');
+        branch.getElement('.icon').set('title', 'Update to new version');
+    },
 	
+	removePluginUpdate: function(library) {
+		var branch = this.getBranchFromFile(library);
+        if (!branch || !branch.hasClass('update')) return;
+		
+		branch.removeClass('update');
+        branch.getElement('.icon').erase('title');
+	},
+	
+	promptPluginUpdate: function(li) {
+		var that = this,
+			file = li.retrieve('file');
+		fd.item.updateLibrary(file, function() {
+			that.removePluginUpdate(file);
+		});
+	},
+	
+    focus: function() {
+        this.keyboard.activate();
+        
+        $(this).getElements('.focused').removeClass('focused');
+
+        //set top most branch as current if never focused before
+        this._current_focus = this._current_focus || $(this).getElement('li');
+
+        if (this._current_focus) {
+            this._current_focus.addClass('focused');
+        }
+    },
+
+    blur: function() {
+        this.keyboard.deactivate();
+        if (this._current_focus) {
+            this._current_focus.removeClass('focused');
+        }
+    },
+
+    focusPrevious: function() {
+        var current = this._current_focus,
+            el;
+
+        if (!current) {
+            this.focus();
+            return;
+        }
+        //sorta opposite for "next"
+        //1. if previous sibling has children
+        //2. previous sibling
+        //3. parent
+		el = current.getElements('!+li ul:visible !^li, !+li, !li, !section !+ section ul:visible !^li');
+		
+		// Here, here!
+		// Since there are multiple expressions (the commas), Slick sorts the
+		// returned nodelist based on placement in the document. Since we're
+		// going up the dom, and basically want the *lowest* li, we can pick
+		// that off the end, and everything works. Heyyy!
+		el = el[el.length-1];
+
+        if (el) {
+            this._current_focus = el;
+            this.focus();
+        }
+    },
+
+    focusNext: function() {
+        var current  = this._current_focus,
+            el;
+        if (!current) {
+            this.focus();
+            return;
+        }
+
+        //try to find the next branch that isn't hidden
+        //1. Is this branch open, and have children?
+        //2. Does this branch have siblings?
+		el = current.getElement('ul:visible li, ~ li, !li + li, !section + section li.top_branch');
+        if (el) {
+            this._current_focus = el;
+            this.focus();
+        }
+
+    },
+	
+	expandFocused: function() {
+		var current  = this._current_focus;
+        if (!current) {
+            return;
+        }
+		
+		var treeName = current.getParent('ul.tree').get('id').replace('Tree','').toLowerCase();
+		this.trees[treeName].collapse.expand(current);
+	},
+	
+	collapseFocused: function() {
+		var current  = this._current_focus;
+        if (!current) {
+            return;
+        }
+		var treeName = current.getParent('ul.tree').get('id').replace('Tree','').toLowerCase();
+		this.trees[treeName].collapse.collapse(current);
+	},
+	
+	toggleFocused: function() {
+		var current  = this._current_focus;
+        if (!current) {
+            return;
+        }
+		var treeName = current.getParent('ul.tree').get('id').replace('Tree','').toLowerCase();
+		this.trees[treeName].collapse.toggle(current);
+	},
+
+    bind_keyboard: function() {
+        var that = this;
+        this.keyboard = new Keyboard();
+		this.keyboard.addShortcuts({
+            'collapse': {
+                keys:'left',
+				description: 'Collapse focused folder.',
+				handler: function(e) {
+					that.collapseFocused();
+                }
+			},
+			'expand': {
+                keys: 'right',
+				description: 'Expand focused folder',
+				handler: function(e) {
+					that.expandFocused();
+                }
+			},
+			'up': {
+                keys: 'up|k',
+				description: 'Move focus up the tree.',
+				handler: function(e) {
+                    that.focusPrevious(); 
+                }
+			},
+			'down': {
+                keys: 'down|j',
+				description: 'Move focus down the tree',
+				handler: function(e) {
+                    that.focusNext();
+                }
+			},
+			'open': {
+                keys: 'enter',
+				description: 'Open currently focused file.',
+				handler: function(e) {
+					if(that._current_focus) {
+						var rel = that._current_focus.get('rel');
+						if(rel == 'file' || that._current_focus.getParent('#PluginsTree')) {
+							that.selectFile(that._current_focus);
+						} else {
+							that.toggleFocused();
+						}
+					}
+                }
+            } 
+        });
+		
+    },
+
 	toElement: function() {
 		return this.element;
 	}

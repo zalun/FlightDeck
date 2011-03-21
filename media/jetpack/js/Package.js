@@ -47,7 +47,7 @@ var Package = new Class({
 
 	attachments: {},
 
-	plugins: {},
+	libraries: {},
 	
 	folders: {},
 
@@ -68,7 +68,9 @@ var Package = new Class({
             this.boundTestAddon = this.testAddon.bind(this);
 			this.options.test_url = $(this.options.test_el).get('href');
 			$(this.options.test_el).addEvent('click', this.boundTestAddon);
-            this.boundDownloadAddon = this.downloadAddon.bind(this);
+            if (!this.boundDownloadAddon) {
+                this.boundDownloadAddon = this.downloadAddon.bind(this);
+            }
 			this.download_url = $(this.options.download_el).get('href');
 			$(this.options.download_el).addEvent('click', this.boundDownloadAddon);
 		}
@@ -132,7 +134,7 @@ var Package = new Class({
 		}).send();
 	},
 
-	downloadAddon: function(e){
+    downloadAddon: function(e) {
 		if (e) {
 		  e.stop();
 		  el = e.target;
@@ -151,7 +153,7 @@ var Package = new Class({
 		  data: data,
 		  onSuccess: fd.downloadXPI
 		}).send();
-	},
+    },
 
 	testAddon: function(e){
 		var el;
@@ -235,7 +237,7 @@ var Package = new Class({
 		this.options.dependencies.each(function(plugin) {
 			plugin.readonly = this.options.readonly;
 			plugin.append = true;
-			this.plugins[plugin.full_name] = new Library(this,plugin);
+			this.libraries[plugin.id_number] = new Library(this,plugin);
 		}, this);
 	},
 	
@@ -316,14 +318,8 @@ var Library = new Class({
 		options.path = options.full_name;
 		this.parent(pack, options);
 		
-		if(!this.options.id_number) {
-			// hacky... maybe we should just always pass this with
-			// the new Package.Edit() data on page load?
-			this.options.id_number = this.options.view_url.split('/')[2];
-		}
-		
 		this.addEvent('destroy', function(){
-			delete pack.plugins[this.options.full_name];
+			delete pack.libraries[this.options.id_number];
 		})
 		
 		if(this.options.append) {
@@ -341,7 +337,15 @@ var Library = new Class({
 	},
 	
 	getID: function() {
-		return 'Library-' + this.options.name;
+		return 'Library-' + this.options.id_number;
+	},
+	
+	storeNewVersion: function(version_data) {
+		this._latest_version = version_data;
+	},
+	
+	retrieveNewVersion: function() {
+		return this._latest_version;
 	}
 	
 });
@@ -615,16 +619,24 @@ Package.Edit = new Class({
 			'full_name', 'version_name', 'package_description', 'revision_message'
 			]
 	},
+	
+	_modules_list: {},
 
 	initialize: function(options) {
 		this.setOptions(options);
+        if (this.isAddon()) {
+            this.boundDownloadAddon = this.downloadAddonOrSave.bind(this);
+        }
         this.data = {};
 		this.parent(options);
+		this.prepareDependenciesInterval();
 		this.assignActions();
 		// autocomplete
 		//this.autocomplete = new FlightDeck.Autocomplete({
 		//	'url': settings.library_autocomplete_url
 		//});
+		
+		this.updateFullModulesList();
 	},
 
 	assignActions: function() {
@@ -668,6 +680,54 @@ Package.Edit = new Class({
 			}.bind(this));
 		}
 		this.bind_keyboard();
+	},
+
+	downloadAddonOrSave: function(e){
+		if (e) {
+		  e.stop();
+        }
+        var that = this;
+        if (fd.edited) {
+            // display message
+            fd.showQuestion({
+                title: 'You\'ve got unsaved changes.',
+                message: 'Choose from the following options',
+                buttons: [{
+                    text: 'Cancel',
+                    type: 'reset',
+                    'class': 'close'
+                },{
+                    text: 'Download without saving',
+                    id: 'downloadwithoutsaving',
+                    'class': 'submit',
+                    type: 'button',
+                    callback: function(){
+                        this.downloadAddon();
+                    }.bind(this)
+                },{
+                    text: 'Save &amp; Download',
+                    id: 'saveanddonload',
+                    'class': 'submit',
+                    type: 'button',
+                    callback: function(){
+                        fd.addVolatileEvent('save', this.boundDownloadAddon);
+                        this.save();
+                    }.bind(this),
+                    'default': true
+                }]
+            });
+        } else {
+            this.downloadAddon(e);
+        }
+	},
+	
+	updateFullModulesList: function() {
+		new Request.JSON({
+			url: this.options.all_modules_list_url,
+			onSuccess: function(response) {
+				this._modules_list = response;
+			}.bind(this)
+		}).send();
 	},
 
 	sendMultipleFiles: function(files, onPartialLoad) {
@@ -738,13 +798,27 @@ Package.Edit = new Class({
 			}
 		});
 	},
+
+    addExternalAttachment: function(url, filename) {
+        // download content and create new attachment
+        $log('FD: DEBUGB downloading ' + filename + ' from ' + url);
+        this.addNewAttachment(
+            this.options.add_attachment_url,
+            {url: url, filename: filename});
+    },
 	
 	addAttachment: function(filename) {
         // add empty attachment
+        this.addNewAttachment(
+            this.options.add_attachment_url,
+            {filename: filename});
+	},
+
+    addNewAttachment: function(url, data) {
 		var that = this;
 		new Request.JSON({
-			url: this.options.add_attachment_url,
-			data: {filename: filename},
+			url: url,
+			data: data,
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				that.registerRevision(response);
@@ -762,7 +836,7 @@ Package.Edit = new Class({
 				});
 			}
 		}).send();
-	},
+    },
 
 	renameAttachment: function(uid, newName, quiet) {
 		var that = this;
@@ -865,6 +939,8 @@ Package.Edit = new Class({
 					get_url: response.get_url
 				});
 				this.modules[response.filename] = mod;
+				
+				this.checkModuleConflicts();
 			}.bind(this)
 		}).send();
 	},
@@ -889,6 +965,8 @@ Package.Edit = new Class({
 				});
 				this.modules[response.filename] = mod;
 				delete this.modules[oldName];
+				
+				this.checkModuleConflicts();
 			}.bind(this)
 		}).send();
 	},
@@ -994,18 +1072,73 @@ Package.Edit = new Class({
 					// set data changed by save
 					this.registerRevision(response);
 					fd.message.alert(response.message_title, response.message);
-					this.plugins[response.full_name] = new Library(this, {
+					this.libraries[response.id_number] = new Library(this, {
 						full_name: response.library_full_name,
 						id_number: response.library_id_number,
 						library_name: response.library_name,
 						view_url: response.library_url,
 						revision_number: response.library_revision_number
 					});
+					this.checkModuleConflicts();
 				}.bind(this)
 			}).send();
 		} else {
 			fd.error.alert('No such Library', 'Please choose a library from the list');
 		}
+	},
+	
+	updateLibrary: function(lib, callback) {
+		new Request.JSON({
+			url: this.options.update_library_url,
+			data: {
+				'id_number': lib.options.id_number,
+				'revision': lib.retrieveNewVersion().revision
+			},
+			useSpinner: true,
+			spinerTarget: $$('#PluginsTree ul')[0],
+			onSuccess: function(response) {
+				fd.setURIRedirect(response.view_url);
+				this.registerRevision(response);
+				fd.message.alert(response.message_title, response.message);
+				lib.setOptions(response);
+				this.checkModuleConflicts();
+				Function.from(callback)(response);
+			}.bind(this)
+		}).send();
+	},
+
+    checkDependencies: function() {
+        var that = this;
+        new Request.JSON({
+            url: that.options.latest_dependencies_url,
+			timeout: 5000,
+            onSuccess: function(res) {
+                res.forEach(function(latest_revision) {
+                    var lib = that.libraries[latest_revision.id_number];
+					if (!lib) return;
+					lib.storeNewVersion(latest_revision);
+					fd.sidebar.setPluginUpdate(lib);
+                });
+            }
+        }).send();
+    },
+	
+	prepareDependenciesInterval: function() {
+		var that = this;
+		function setCheckInterval() {
+			unsetCheckInterval();
+			that.checkDependencies();
+			that.checkDependenciesInterval = that.checkDependencies.periodical(60000, that);
+		}
+		
+		function unsetCheckInterval() {
+			clearInterval(that.checkDependenciesInterval);
+		}
+		
+		window.addEvent('focus', setCheckInterval);
+		window.addEvent('blur', unsetCheckInterval);
+		setCheckInterval();
+		
 	},
     
 	removeLibrary: function(lib) {
@@ -1017,8 +1150,29 @@ Package.Edit = new Class({
 				this.registerRevision(response);
 				fd.message.alert(response.message_title, response.message);
 				lib.destroy();
+				this.updateFullModulesList();
 			}.bind(this)
 		}).send();
+	},
+	
+	checkModuleConflicts: function() {
+		new Request.JSON({
+			url: this.options.conflicting_modules_list_url,
+			onSuccess: function(response) {
+				this.alertModuleConflicts(response);
+			}.bind(this)
+		}).send();
+		this.updateFullModulesList();
+	},
+	
+	alertModuleConflicts: function(conflicts) {
+		var parts = [];
+		Object.each(conflicts, function(modules, pack) {
+			parts.push(pack + ': ' + modules.join(', '));
+		});
+		if (parts.length) {
+			fd.error.alert("Module Conflicts found",parts.join('<br />'));
+		}
 	},
 
 	/*
@@ -1028,6 +1182,7 @@ Package.Edit = new Class({
 	editInfo: function(e) {
 		e.stop();
 		this.savenow = false;
+        $log(Object.merge({}, this.data, this.options).version_name)
 		fd.editPackageInfoModal = fd.displayModal(
 				settings.edit_package_info_template.substitute(
 					Object.merge({}, this.data, this.options)));
@@ -1058,6 +1213,7 @@ Package.Edit = new Class({
 		// Update modal from data (if not saved yet)
 		Object.each(this.data, function(value, key) {
 			if ($(key)) {
+                $log(key + ': ' + value);
 				$(key).value = value;
 			}
 		})
@@ -1172,16 +1328,113 @@ Package.Edit = new Class({
 		}).send();
 	},
 
-	bind_keyboard: function() {
-		this.keyboard = new Keyboard({
-			events: {
-				'ctrl+s': this.boundSaveAction
+    blur: function() {
+        this._focused = false;
+		this.editor.blur();
+        this.fireEvent('blur');
+		this.editor.addEvent('focus:once', function() {
+			if (!this._focused) {
+				this.focus();
 			}
-		});
+		}.bind(this));
+    },
+	
+	_focused: true,
+
+    focus: function() {
+        if (this._focused) return;
+		this._focused = true;
 		this.keyboard.activate();
+		this.editor.focus();
+		
+        this.fireEvent('focus');
+    },
+
+	bind_keyboard: function() {
+	    var that = this;
+        this.keyboard = new Keyboard();
+		this.keyboard.addShortcuts({
+			'save': {
+				keys:'ctrl+s',
+				description: 'Save current outstanding changes.',
+				handler: this.boundSaveAction
+			},
+			'test': {
+                keys:'ctrl+enter',
+				description: 'Test',
+				handler: function(e) {
+                    e.preventDefault();
+                    that.testAddon();
+                }
+			},
+			'new attachment': {
+                keys: 'ctrl+n',
+				description: 'Open the New Attachment prompt.',
+				handler: function(e) {
+                    e.preventDefault();
+                    fd.sidebar.promptAttachment();
+                }
+			},
+			'new module': {
+                keys:'ctrl+shift+n',
+				description: 'Open the New Module prompt.',
+				handler: function(e) {
+                    e.preventDefault();
+                    fd.sidebar.promptNewFile();
+                }
+			},
+			'focus tree / editor': {
+                keys: 'ctrl+e',
+				description: 'Switch focus between the editor and the tree',
+				handler: function(e) {
+                    e.preventDefault();
+                    if(that._focused) {
+						that.blur();
+						fd.sidebar.focus();
+					} else {
+						//fd.sidebar.blur();
+						that.focus();
+					}
+                } 
+			},
+			'shortcuts': {
+				keys: 'ctrl+shift+/',
+				description: 'Show these keyboard shortcuts',
+				handler: function() {
+					that.showShortcuts();
+				}
+			}
+		})
+		this.keyboard.manage(fd.sidebar.keyboard);
+		this.keyboard.activate();
+		fd.sidebar.keyboard.deactivate();
+		this.addEvent('focus', function() {
+			fd.sidebar.blur();
+		});
+	},
+	
+	showShortcuts: function() {
+		function buildLines(shortcut) {
+			var keys = '<kbd>'+ shortcut.keys.split('+').join('</kbd> + <kbd>').split('|').join('</kbd> or <kbd>') + '</kbd>';
+			shortcuts.push(keys + ': ' + shortcut.description);
+		}
+		
+		var shortcuts = [];
+		
+		shortcuts.push('<strong>Editor</strong>');
+		this.keyboard.getShortcuts().forEach(buildLines);
+		shortcuts.push('<strong>Tree</strong>');
+		fd.sidebar.keyboard.getShortcuts().forEach(buildLines);
+		
+		fd.displayModal('<h3>Keyboard Shortcuts</h3>'
+						+'<div class="UI_Modal_Section"><p>'
+						+shortcuts.join('</p><p>')
+						+'</p></div>'
+		);
 	},
 
 	registerRevision: function(urls) {
         this.setOptions(urls);
 	}
+	
 });

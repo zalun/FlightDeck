@@ -8,6 +8,7 @@ import shutil
 import codecs
 import re
 import tempfile
+import urllib
 
 #from django.template.defaultfilters import slugify
 from django.contrib import messages
@@ -28,6 +29,8 @@ from django.views.decorators.http import require_POST
 from django.template.defaultfilters import escape
 from django.conf import settings
 from django.utils import simplejson
+from django.forms.fields import URLField
+#from django.core.validators import URLValidator
 
 from base.shortcuts import get_object_with_related_or_404
 from utils import validator
@@ -37,7 +40,7 @@ from jetpack.package_helpers import get_package_revision, \
         create_package_from_xpi
 from jetpack.models import Package, PackageRevision, Module, Attachment, SDK, \
                            EmptyDir
-from jetpack.errors import FilenameExistException
+from jetpack.errors import FilenameExistException, DependencyException
 
 log = commonware.log.getLogger('f.jetpack')
 
@@ -375,6 +378,7 @@ def package_rename_module(r, id_number, type_id, revision_number):
                 revision.package.full_name))
 
     module.filename = new_name
+    revision.add_commit_message('module renamed')
     revision.update(module)
 
     return render_to_response("json/module_renamed.json",
@@ -398,6 +402,7 @@ def package_remove_module(r, id_number, type_id, revision_number):
 
     filenames = r.POST.get('filename').split(',')
 
+    revision.add_commit_message('module removed')
     try:
         removed_modules, removed_dirs = revision.modules_remove_by_path(
                 filenames)
@@ -572,11 +577,80 @@ def package_add_empty_attachment(r, id_number, type_id,
         attachment = revision.attachment_create_by_filename(r.user, filename,'')
     except ValidationError, e:
         return HttpResponseForbidden('Validation error.')
+    except Exception, e:
+        return HttpResponseForbidden(str(e))
 
     return render_to_response("json/attachment_added.json",
                 {'revision': revision, 'attachment': attachment},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
+
+@require_POST
+@login_required
+def revision_add_attachment(r, pk):
+    """Add attachment, download if necessary
+    """
+    revision = get_object_or_404(PackageRevision, pk=pk)
+    if r.user.pk != revision.author.pk:
+        log_msg = ("[security] Attempt to add attachment to package (%s) by "
+                   "non-owner (%s)" % (id_number, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden(
+            'You are not the author of this %s' \
+                % escape(revision.package.get_type_name()))
+    url = r.POST.get('url', None)
+    filename = r.POST.get('filename', None)
+    log.debug(filename)
+    if not filename or filename == "":
+        log.error('Trying to create an attachment without name')
+        return HttpResponseForbidden('Path not found.')
+    content = None
+    if url:
+        # validate url
+        field = URLField(verify_exists=True)
+        try:
+            url = field.clean(url)
+        except ValidationError, err:
+            # XXX: Ugly log as it appears as [u'Here the message']
+            log.debug('Invalid url provided (%s)\n%s' % (url, err))
+            return HttpResponseForbidden("Loading attachment failed<br/>"
+                "%s" % str(err))
+        except Exception, err:
+            return HttpResponseForbidden(str(e))
+        att = urllib.urlopen(url)
+        # validate filesize
+        att_info = att.info()
+        if not att_info.dict.has_key('content-length'):
+            log.debug('Server did not provide Content-Length header')
+            return HttpResponseForbidden("Loading attachment failed<br/>"
+                    "Server did not respond with the right headers")
+        att_size = int(att_info.dict['content-length'])
+        if att_size > settings.ATTACHMENT_MAX_FILESIZE:
+            log.debug('File (%s) is too big (%db)' % (url, att_size))
+            return HttpResponseForbidden("Loading attachment failed<br/>"
+                    "File is too big")
+        if att_size <= 0:
+            log.debug(
+                    'Content-Length header provided wrong value %d' % att_size)
+            return HttpResponseForbidden("Loading attachment failed<br/>"
+                    "File size is not provided by the server")
+        # download attachment's content
+        log.info('Downloading (%s)' % url)
+        content = att.read()
+        att.close()
+    try:
+        attachment = revision.attachment_create_by_filename(
+            r.user, filename, content)
+    except ValidationError, err:
+        return HttpResponseForbidden('Validation error.<br/>%s' % str(err))
+    except Exception, err:
+        return HttpResponseForbidden(str(err))
+
+    return render_to_response("json/attachment_added.json",
+                {'revision': revision, 'attachment': attachment},
+                context_instance=RequestContext(r),
+                mimetype='application/json')
+
 
 
 @require_POST
@@ -753,13 +827,6 @@ def package_save(r, id_number, type_id, revision_number=None,
             if att.changed():
                 changes.append(att)
 
-    #for key in r.POST.keys():
-    #    attachment = latest_by_uid(revision, key)
-    #    if attachment:
-    #        attachment.data = r.POST[key]
-    #        if attachment.changed():
-    #            changes.append(attachment)
-
     attachments_changed = {}
     if save_revision or changes:
         revision.save()
@@ -787,8 +854,10 @@ def package_save(r, id_number, type_id, revision_number=None,
         revision.package.save()
         response_data['name'] = revision.package.name
 
-    response_data['version_name'] = revision.version_name \
-            if revision.version_name else ""
+    response_data['version_name'] = revision.get_version_name_only()
+
+    if save_revision or changes:
+        revision.update_commit_message(True)
 
     return render_to_response("json/package_saved.json", locals(),
                 context_instance=RequestContext(r),
@@ -927,13 +996,51 @@ def package_remove_library(r, id_number, type_id, revision_number):
     try:
         revision.dependency_remove_by_id_number(lib_id_number)
     except Exception, err:
-        return HttpResponseForbidden(escape(err.__unicode__()))
+        return HttpResponseForbidden(escape(err.__str__()))
 
     return render_to_response('json/dependency_removed.json',
                 {'revision': revision, 'library': library},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
+@require_POST
+@login_required
+def package_update_library(r, id_number, type_id, revision_number):
+    " update a dependency to a certain version "
+    revision = get_package_revision(id_number, type_id, revision_number)
+    if r.user.pk != revision.author.pk:
+        log_msg = ("[security] Attempt to update library in package (%s) by "
+                   "non-owner (%s)" % (id_number, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden(
+            'You are not the author of this %s' % escape(
+                revision.package.get_type_name()))
+
+    lib_id_number = r.POST.get('id_number')
+    lib_revision = r.POST.get('revision')
+
+    library = get_object_or_404(PackageRevision, pk=lib_revision, package__id_number=lib_id_number)
+
+    try:
+        revision.dependency_update(library)
+    except DependencyException, err:
+        return HttpResponseForbidden(escape(err.__str__()))
+
+    return render_to_response('json/library_updated.json',
+                {'revision': revision, 'library': library.package,
+                 'lib_revision': library},
+                context_instance=RequestContext(r),
+                mimetype='application/json')
+
+@login_required
+def package_latest_dependencies(r, id_number, type_id, revision_number):
+    revision = get_package_revision(id_number, type_id, revision_number)
+    out_of_date = revision.get_outdated_dependency_versions()
+
+    return render_to_response('json/latest_dependencies.json',
+            {'revisions': out_of_date},
+            context_instance=RequestContext(r),
+            mimetype='application/json')
 
 def get_revisions_list(id_number):
     " provide a list of the Package's revsisions "
@@ -957,3 +1064,19 @@ def get_latest_revision_number(request, package_id):
     package = get_object_or_404(Package, id_number=package_id)
     return HttpResponse(simplejson.dumps({
         'revision_number': package.latest.revision_number}))
+
+
+def get_revision_modules_list(request, pk):
+    """returns JSON object with all modules which will be exported to XPI
+    """
+    revision = get_object_or_404(PackageRevision, pk=pk)
+    return HttpResponse(simplejson.dumps(revision.get_module_names()),
+                        mimetype="application/json")
+
+
+def get_revision_conflicting_modules_list(request, pk):
+    """returns JSON object with all modules which will be exported to XPI
+    """
+    revision = get_object_or_404(PackageRevision, pk=pk)
+    return HttpResponse(simplejson.dumps(
+        revision.get_conflicting_module_names()), mimetype="application/json")

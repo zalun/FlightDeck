@@ -26,3 +26,12 @@ html, body, #wrapper, #app-content, #editor-wrapper, div.CodeMirror-wrapping {  
 	font-size: 0.9em;
 	font-style: italic;
 }
+.UI_Revisions span.message {
+    font-size: 0.9em;
+}
+.UI_Revisions span.commit_message {
+    font-size: 0.8em;
+    font-style: italic;
+    color: #999;
+    margin-left: 5px;
+}

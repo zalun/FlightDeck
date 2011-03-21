@@ -82,7 +82,7 @@ class AttachmentTest(TestCase):
         addon = Package.objects.get(author=self.author)
         eq_(addon.latest.revision_number, 2)
         eq_(addon.latest.attachments.get().read(), u'ą')
-    
+
     def test_create_image_attachment(self):
         " test simply shouldn't raise any errors "
         image_path = os.path.join(settings.ROOT,
@@ -92,7 +92,7 @@ class AttachmentTest(TestCase):
         f.close()
         self.attachment.ext = 'png'
         self.attachment.write()
-        
+
         self.attachment.read()
 
 
@@ -111,14 +111,14 @@ class TestViews(TestCase):
         self.revision = self.package.revisions.all()[0]
         self.revision_number = 0
 
-        self.add_url = self.get_add_url(self.revision.revision_number)
+        self.add_url = self.get_add_url(self.revision)
         self.upload_url = self.get_upload_url(self.revision.revision_number)
         self.change_url = self.get_change_url(self.revision.revision_number)
         self.client.login(username=self.author.username, password='password')
 
     def test_attachment_error(self):
         res = self.client.post(self.add_url, {})
-        eq_(res.status_code, 500)
+        eq_(res.status_code, 403)
 
     def add_one(self, data = 'foo', filename='some.txt'):
         self.upload(self.get_upload_url(self.revision.revision_number), data, filename)
@@ -130,8 +130,8 @@ class TestViews(TestCase):
         return reverse('jp_addon_revision_upload_attachment', args=args)
 
     def get_add_url(self, revision):
-        args = [self.package.id_number, revision]
-        return reverse('jp_addon_revision_add_attachment', args=args)
+        args = [revision.pk]
+        return reverse('jp_revision_add_attachment', args=args)
 
     def get_change_url(self, revision):
         args = [self.package.id_number, revision]
@@ -194,9 +194,40 @@ class TestViews(TestCase):
         self.upload(self.upload_url, temp.getvalue(), 'some-big-file.txt')
 
     def test_attachment_same_fails(self):
-        self.test_attachment_add()
-        self.assertRaises(FilenameExistException, self.upload,
-                          self.get_upload_url(1), 'foo bar', 'some.txt')
+        revision = self.add_one()
+
+        # upload view
+        res1 = self.upload(self.get_upload_url(1), 'foo bar', 'some.txt')
+        eq_(res1.status_code, 403)
+
+        # add empty view
+        res2 = self.client.post(self.get_add_url(revision),{
+                    "filename": "some.txt"})
+        eq_(res2.status_code, 403)
+
+    def test_external_url_fails(self):
+        revision = self.add_one()
+
+        # invalid url
+        response = self.client.post(self.get_add_url(revision),{
+                    "filename": "some.txt",
+                    "url": "abc"})
+        eq_(response.status_code, 403)
+        # not existing url
+        response = self.client.post(self.get_add_url(revision),{
+                    "filename": "some.txt",
+                    "url": "http://notexistingurl.pl/some.txt"})
+        eq_(response.status_code, 403)
+        # malicious input
+        response = self.client.post(self.get_add_url(revision),{
+                    "filename": "",
+                    "url": "http://example.com/"})
+        eq_(response.status_code, 403)
+        # TODO: Add tests for:
+        #       * no content-length header
+        #       * content-length <= 0
+        #       * content-length > settings.ATTACHMENT_MAX_FILESIZE
+        #       * status_code == 200
 
     def test_attachment_revision_count(self):
         revisions = PackageRevision.objects.filter(package=self.package)
@@ -284,7 +315,7 @@ class TestViews(TestCase):
         response = simplejson.loads(response.content)
         assert response.has_key('uid')
         assert response['uid'] != old_uid
-        
+
         revision = next(revision)
         eq_(revision.attachments.count(), 1)
 
@@ -387,7 +418,7 @@ class TestViews(TestCase):
     def create_next_attachment(self, revision, filename, ext='html'):
         response = simplejson.loads(
                 self.client.post(
-                    self.get_add_url(revision.revision_number),{
+                    self.get_add_url(revision),{
                     "filename": "%s.%s" % (filename, ext)}
                     ).content)
         return response, self.get_revision_from_response(response)

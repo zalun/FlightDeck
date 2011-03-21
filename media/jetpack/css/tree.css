@@ -68,6 +68,10 @@ ul.tree li .label:hover {
 	text-shadow:1px 0 0 #aaa;
 }
 
+ul.tree li.focused > .holder .label {
+    background:#E8F2FE;
+}
+
 ul.tree li .label[contenteditable="true"] {
 	background:#ffd;
 }
@@ -156,6 +160,13 @@ li .actions .edit {
 li .actions .delete {
 	background-image: url(/media/jetpack/img/UI_File_Listing/minus_alt_12x12.png);
 	
+}
+
+li.update > .holder .icon {
+	background-image:url(/media/jetpack/img/UI_File_Listing/exclamation.png);
+}
+li.update > .holder .icon:hover {
+	background-image: url(/media/jetpack/img/UI_File_Listing/arrow_refresh_small.png)
 }
 
 #core_library_lib .label {

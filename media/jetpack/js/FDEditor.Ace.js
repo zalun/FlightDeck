@@ -47,6 +47,13 @@
         initialize: function(wrapper, options) {
             this.previous(wrapper, options);
             this.editor = ace.edit(this.element);
+			var that = this;
+			
+			['blur', 'focus'].each(function(ev) {
+				that.editor.on(ev, function(){
+					that.fireEvent(ev);
+				});
+			});
         },
 
         addMode: function(mode) {

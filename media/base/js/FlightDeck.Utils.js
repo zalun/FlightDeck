@@ -9,3 +9,12 @@ Window.implement({
 		}
 	}
 });
+
+
+(function() {
+
+Slick.definePseudo('hidden', Element.prototype.isHidden)
+
+Slick.definePseudo('visible', Element.prototype.isVisible);
+
+})();

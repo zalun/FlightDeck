@@ -68,7 +68,7 @@ class TestModules(TestCase):
     def get_add_url(self, revision):
         args = [self.package.id_number, revision]
         return reverse('jp_addon_revision_add_module', args=args)
-    
+
     def get_rename_url(self, revision):
         args = [self.package.id_number, revision]
         return reverse('jp_addon_revision_rename_module', args=args)
@@ -93,16 +93,70 @@ class TestModules(TestCase):
 
         revision = self.add_one(filename='void:myXSSFunction(fd.item)')
         eq_(revision.modules.all().order_by('-id')[0].filename, 'void-myXSSFunction-fd')
-    
+
     def test_module_rename(self):
         first_name = 'a-module'
         revision = self.add_one(first_name)
-        
+
         res = self.client.post(self.get_rename_url(self.revision.revision_number),
                                {'old_filename': first_name,
                                 'new_filename': 'different-module.js'})
-        
+
         eq_(res.status_code, 200)
         data = json.loads(res.content)
-        
+
         eq_(data.get('filename'), 'different-module')
+
+    def test_getting_recursive_module_names(self):
+        module_names = self.package.latest.get_module_names()
+        eq_(module_names, {self.package.name: ['main']})
+        assert not self.package.latest.get_conflicting_module_names()
+        # 2 modules
+        mod = self.package.latest.module_create(
+                filename='test',
+                author=self.author)
+        module_names = self.package.latest.get_module_names()
+        assert 'test' in module_names[self.package.name]
+        assert 'main' in module_names[self.package.name]
+        assert not self.package.latest.get_conflicting_module_names()
+        # dependency
+        lib = Package.objects.create(
+                full_name='test',
+                author=self.author,
+                type='l')
+        self.package.latest.dependency_add(lib.latest)
+        module_names = self.package.latest.get_module_names()
+        assert 'test' in module_names[self.package.name]
+        assert 'main' in module_names[self.package.name]
+        assert module_names.has_key('test')
+        assert 'index' in module_names['test']
+        assert not self.package.latest.get_conflicting_module_names()
+        # nested dependencies
+        lib2 = Package.objects.create(
+                full_name='test2',
+                author=self.author,
+                type='l')
+        lib_revision = lib.latest
+        lib.latest.dependency_add(lib2.latest)
+        self.package.latest.dependency_update(lib_revision)
+        module_names = self.package.latest.get_module_names()
+        assert 'test' in module_names[self.package.name]
+        assert 'main' in module_names[self.package.name]
+        assert module_names.has_key('test')
+        assert 'index' in module_names['test']
+        assert module_names.has_key('test2')
+        assert 'index' in module_names['test2']
+        # this should have a conflicting names
+        conflicts = self.package.latest.get_conflicting_module_names()
+        assert conflicts.has_key('test')
+        assert 'index' in conflicts['test']
+        assert conflicts.has_key('test2')
+        assert 'index' in conflicts['test2']
+        response = self.client.get(
+                self.package.latest.get_conflicting_modules_list_url())
+        eq_(response.status_code, 200)
+        conflicts = json.loads(response.content)
+        assert conflicts.has_key('test')
+        assert 'index' in conflicts['test']
+        assert conflicts.has_key('test2')
+        assert 'index' in conflicts['test2']

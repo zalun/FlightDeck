@@ -1,7 +1,3 @@
-"""Models definition for jetpack application."""
-
-# TODO: split module and create the models package
-
 import os
 import csv
 import shutil
@@ -14,11 +10,10 @@ import codecs
 
 from copy import deepcopy
 
-from ecdsa import SigningKey, NIST256p
-from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
-
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models.signals import pre_save, post_save, m2m_changed
+
+from django.db.models.signals import (pre_save, post_delete, post_save,
+                                      m2m_changed)
 from django.db import models, transaction, IntegrityError
 from django.utils import simplejson
 from django.utils.html import escape
@@ -26,19 +21,25 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
 from django.conf import settings
+from django.utils.translation import ugettext as _
+
+
+from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
+from ecdsa import SigningKey, NIST256p
+from pyes import djangoutils
 
 from api.helpers import export_docs
-from utils.exceptions import SimpleException
-from jetpack.errors import SelfDependencyException, FilenameExistException, \
-        UpdateDeniedException, SingletonCopyException, DependencyException, \
-        AttachmentWriteException
-#        ManifestNotValid
-
 from base.models import BaseModel
 from jetpack import tasks
-from xpi import xpi_utils
-from utils.os_utils import make_path
+from jetpack.errors import (SelfDependencyException, FilenameExistException,
+                            UpdateDeniedException, SingletonCopyException,
+                            DependencyException, AttachmentWriteException)
+from jetpack.managers import PackageManager
+from search.decorators import es_required
+from utils.exceptions import SimpleException
 from utils.helpers import pathify, alphanum, alphanum_plus
+from utils.os_utils import make_path
+from xpi import xpi_utils
 
 log = commonware.log.getLogger('f.jetpack')
 
@@ -54,6 +55,7 @@ TYPE_CHOICES = (
     ('a', 'Add-on')
 )
 
+
 class PackageRevision(BaseModel):
     """
     contains data which may be changed and rolled back
@@ -67,6 +69,8 @@ class PackageRevision(BaseModel):
     revision_number = models.IntegerField(blank=True, default=0)
     # commit message
     message = models.TextField(blank=True)
+    # autmagical message
+    commit_message = models.TextField(blank=True, null=True)
 
     # Libraries on which current package depends
     dependencies = models.ManyToManyField('self', blank=True, null=True,
@@ -148,9 +152,7 @@ class PackageRevision(BaseModel):
 
     def get_add_attachment_url(self):
         " returns URL to add attachment to the package revision "
-        return reverse(
-            'jp_%s_revision_add_attachment' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_revision_add_attachment', args=[self.pk])
 
     def get_rename_attachment_url(self):
         " returns URL to rename module in the package revision "
@@ -168,6 +170,12 @@ class PackageRevision(BaseModel):
         " returns url to assign library to the package revision "
         return reverse(
             'jp_%s_revision_assign_library' % self.package.get_type_name(),
+            args=[self.package.id_number, self.revision_number])
+
+    def get_update_library_url(self):
+        " returns url to update library to a specific version "
+        return reverse(
+            'jp_%s_revision_update_library' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
 
     def get_remove_library_url(self):
@@ -213,6 +221,18 @@ class PackageRevision(BaseModel):
         return reverse(
             'jp_%s_revision_remove_folder' % self.package.get_type_name(),
             args=[self.package.id_number, self.revision_number])
+
+    def get_latest_dependencies_url(self):
+        return reverse(
+            'jp_%s_check_latest_dependencies' % self.package.get_type_name(),
+            args=[self.package.id_number, self.revision_number])
+
+    def get_modules_list_url(self):
+        return reverse('jp_revision_get_modules_list', args=[self.pk])
+
+    def get_conflicting_modules_list_url(self):
+        return reverse('jp_revision_get_conflicting_modules_list',
+                args=[self.pk])
 
     ######################
     # Manifest
@@ -299,8 +319,84 @@ class PackageRevision(BaseModel):
                         .filter(revision_number__lt=self.revision_number)[0]
                             .version_name, self.revision_number)
 
+    def get_version_name_only(self):
+        """Returns version name."""
+
+        return self.version_name \
+                if self.version_name \
+                else self.package.revisions.exclude(
+                        version_name=None).filter(
+                                revision_number__lt=self.revision_number
+                        )[0].version_name
+
+    def get_module_names(self):
+        """Return all used module names
+        """
+        module_names = {
+                self.package.name: [mod.filename for mod in self.modules.all()]}
+        for dep in self.dependencies.all():
+            module_names.update(dep.get_module_names())
+        return module_names
+
+    def get_conflicting_module_names(self):
+
+        def _add_conflict(package_name, module_name):
+            if not conflicts.get(package_name, False):
+                conflicts[package_name] = []
+            if module_name not in conflicts[package_name]:
+                conflicts[package_name].append(module_name)
+
+        conflicts = {}
+        tuples = []
+        # iterate over all packages imported
+        for package_name, module_names in self.get_module_names().items():
+            # iterate over all modules within the package
+            for module_name in module_names:
+                # get existing module names
+                if tuples:
+                    package, modules = zip(*tuples)
+                else:
+                    modules = []
+                # check for conflict
+                if module_name in modules:
+                    _add_conflict(package_name, module_name)
+                    # add other packages
+                    # module name has to appear at least twice in conflicts
+                    for tup in tuples:
+                        if tup[1] == module_name:
+                            _add_conflict(tup[0], tup[1])
+                tuples.append((package_name, module_name))
+        return conflicts
+
+
     ######################
     # revision save methods
+
+    def add_commit_message(self, msg, force_save=False):
+        """Collect messages for the revision
+        """
+        if not hasattr(self, '_commit_messages'):
+            self._commit_messages = []
+
+        if msg not in self._commit_messages:
+            self._commit_messages.append(msg)
+        if force_save:
+            self.update_commit_message(True)
+
+    def default_commit_message(self):
+        """commit message is added for new revisions only
+        """
+        self.commit_message = self.build_commit_message()
+
+    def build_commit_message(self):
+        if hasattr(self, '_commit_messages') and self._commit_messages:
+            return ', '.join(self._commit_messages)
+        return ''
+
+    def update_commit_message(self, force_save=False):
+        self.commit_message = self.build_commit_message()
+        if force_save:
+            super(PackageRevision, self).save()
 
     def save(self, **kwargs):
         """
@@ -321,6 +417,8 @@ class PackageRevision(BaseModel):
         # reset instance - force saving a new one
         self.id = None
         self.version_name = None
+        self.message = ''
+        self.commit_message = ''
         self.origin = origin
         self.revision_number = self.get_next_revision_number()
 
@@ -342,6 +440,7 @@ class PackageRevision(BaseModel):
         self.package.save()
         if package:
             self.set_version('copy')
+            self.add_commit_message('package copied', force_save=True)
         return save_return
 
     def get_next_revision_number(self):
@@ -371,6 +470,7 @@ class PackageRevision(BaseModel):
                 version_name=version_name).count() > 0:
             # reset version_name
             version_name = ''
+        self.add_commit_message('version changed')
         self.version_name = version_name
         if current and version_name:
             self.package.version_name = version_name
@@ -425,6 +525,7 @@ class PackageRevision(BaseModel):
                  'with the name "%s". Each module in your add-on '
                  'needs to have a unique name.') % mod.filename
             )
+        self.add_commit_message(_('adding module(s)'))
 
         if save:
             self.save()
@@ -432,6 +533,7 @@ class PackageRevision(BaseModel):
 
     def module_remove(self, *mods):
         " copy to new revision, remove module(s) "
+        self.add_commit_message(_('removing module(s)'))
         self.save()
         return self.modules.remove(*mods)
 
@@ -482,18 +584,21 @@ class PackageRevision(BaseModel):
             self.attachments.filter(filename__startswith=dir.name).count()):
             raise FilenameExistException(errorMsg)
 
+        self.add_commit_message('folder (%s) added' % dir.name)
         if save:
             self.save()
         return self.folders.add(dir)
 
     def folder_remove(self, dir):
         " copy to new revision, remove folder "
+        self.add_commit_message('folder (%s) removed' % dir.name)
         self.save()
         return self.folders.remove(dir)
 
     def update(self, change, save=True):
         " to update a module, new package revision has to be created "
         if save:
+            self.add_commit_message('data updated')
             self.save()
         return change.increment(self)
 
@@ -502,11 +607,18 @@ class PackageRevision(BaseModel):
         if save:
             self.save()
         attachments_changed = {}
+        names = []
         for change in changes:
             old_uid = change.pk
             ch = self.update(change, save=False)
             if isinstance(change, Attachment):
                 attachments_changed[old_uid] = {'uid': ch.get_uid}
+                names.append('%s.%s' % (change.filename, change.ext))
+            else:
+                names.append('%s.js' % change.filename)
+        self.add_commit_message('content changed (%s)' % ', '.join(names))
+        if save:
+            self.update_commit_message(True)
         return attachments_changed
 
     def add_mods_and_atts_from_archive(self, packed, main, lib_dir, att_dir):
@@ -604,6 +716,8 @@ class PackageRevision(BaseModel):
                     att.filename, att.ext)
             )
 
+        self.add_commit_message('attachment (%s.%s) added' % (
+            att.filename, att.ext))
         if save:
             self.save()
         return self.attachments.add(att)
@@ -611,6 +725,8 @@ class PackageRevision(BaseModel):
     def attachment_remove(self, dep):
         " copy to new revision, remove attachment "
         # save as new version
+        self.add_commit_message('attachment (%s.%s) removed' % (
+            dep.filename, dep.ext))
         self.save()
         return self.attachments.remove(dep)
 
@@ -624,6 +740,7 @@ class PackageRevision(BaseModel):
         empty_dirs = self.folders.filter(dir_query)
         if not (attachments or empty_dirs):
             return None
+        self.add_commit_message('folder (%s) removed' % path)
         self.save()
         removed_attachments = [att.pk for att in attachments]
         for att in attachments:
@@ -638,7 +755,6 @@ class PackageRevision(BaseModel):
             empty_dirs = self.folders.filter(dir_query)
             i += 1
         return self, removed_attachments, removed_empty_dirs
-
 
     def dependency_add(self, dep, save=True):
         """
@@ -662,14 +778,37 @@ class PackageRevision(BaseModel):
             raise DependencyException(
                 'Your %s already depends on a library with that name' % (
                     self.package.get_type_name(),))
+        self.add_commit_message('dependency (%s) added' % dep.package.name)
         if save:
             # save as new version
             self.save()
         return self.dependencies.add(dep)
 
+    def dependency_update(self, dep, save=True):
+        " create new version with dependency version updated "
+        try:
+            old_version = self.dependencies.get(package=dep.package_id)
+        except PackageRevision.DoesNotExist:
+            raise DependencyException('This %s does not depend on "%s".'
+                        % (self.package.get_type_name(), dep.package.full_name))
+
+        if old_version == dep:
+            raise DependencyException('"%s" is already up-to-date.'
+                                      % dep.package.full_name)
+
+        else:
+            self.add_commit_message(
+                    'dependency (%s) updated' % dep.package.name)
+            if save:
+                self.save()
+            self.dependencies.remove(old_version)
+            return self.dependencies.add(dep)
+
     def dependency_remove(self, dep):
         " copy to new revision, remove dependency "
         if self.dependencies.filter(pk=dep.pk).count() > 0:
+            self.add_commit_message(
+                    'dependency (%s) removed' % dep.package.name)
             # save as new version
             self.save()
             return self.dependencies.remove(dep)
@@ -687,10 +826,20 @@ class PackageRevision(BaseModel):
             'There is no such library in this %s' \
             % self.package.get_type_name())
 
+    def get_outdated_dependency_versions(self):
+        " check all dependencies for a newer version "
+        out_of_date = []
+        for current_revision in self.dependencies.select_related('package'):
+            latest_revision = current_revision.package.revisions.order_by('-pk')[0]
+            if current_revision != latest_revision:
+                out_of_date.append(latest_revision)
+        return out_of_date
+
     def get_dependencies_list_json(self):
         " returns dependencies list as JSON object "
         d_list = [{
                 'full_name': escape(d.package.full_name),
+                'id_number': d.package.id_number,
                 'view_url': d.get_absolute_url()
                 } for d in self.dependencies.all()
             ] if self.dependencies.count() > 0 else []
@@ -836,7 +985,6 @@ class PackageRevision(BaseModel):
         #self.export_attachments(
         #    '%s/%s' % (package_dir, self.package.get_data_dir()))
         self.export_dependencies(packages_dir, sdk=self.sdk)
-
         args = [sdk_dir, os.path.join(sdk_dir, 'packages', self.package.name),
                 self.package.name, hashtag]
         if rapid:
@@ -895,7 +1043,6 @@ class PackageRevision(BaseModel):
     def is_latest(self):
         return self.pk == self.package.latest.pk
 
-from jetpack.managers import PackageManager
 
 class Package(BaseModel):
     """
@@ -1075,7 +1222,7 @@ class Package(BaseModel):
         self.full_name = _get_full_name(name, self.author.username, self.type)
 
     def update_name(self):
-        self.set_name();
+        self.set_name()
 
     def set_name(self):
         " set's the name from full_name "
@@ -1154,7 +1301,7 @@ class Package(BaseModel):
         """
         for rev_mutation in PackageRevision.objects.filter(
                 origin__package=self):
-            rev_mutation.origin=None
+            rev_mutation.origin = None
             # save without creating a new revision
             super(PackageRevision, rev_mutation).save()
 
@@ -1166,7 +1313,6 @@ class Package(BaseModel):
             return self.save()
         log.info("Package (%s) deleted" % self)
         return super(Package, self).delete()
-
 
     def create_revision_from_xpi(self, packed, manifest, author, jid,
             new_revision=False):
@@ -1244,6 +1390,23 @@ class Package(BaseModel):
         if self.version_name:
             self.version_name = alphanum_plus(self.version_name)
 
+    @es_required
+    def refresh_index(self, es, bulk=False):
+        data = djangoutils.get_values(self)
+        try:
+            if self.latest:
+                deps = self.latest.dependencies.all()
+                data['dependencies'] = [dep.package.id for dep in deps]
+        except PackageRevision.DoesNotExist:
+            pass
+        es.index(data, settings.ES_INDEX, self.get_type_name(), self.id,
+                 bulk=bulk)
+        log.debug('Package %d added to search index.' % self.id)
+
+    @es_required
+    def remove_from_index(self, es):
+        es.delete(settings.ES_INDEX, self.get_type_name(), self.id)
+        log.debug('Package %d removed from search index.' % self.id)
 
 
 class Module(BaseModel):
@@ -1286,8 +1449,9 @@ class Module(BaseModel):
         return package.full_name if package else ''
 
     def get_path(self):
-        """returns the path of directories that would be created from
-        the filename
+        """
+        Returns the path of directories that would be created from the
+        filename.
         """
         parts = self.filename.split('/')[0:-1]
         return ('/'.join(parts)) if parts else None
@@ -1374,8 +1538,9 @@ class Attachment(BaseModel):
         return name
 
     def get_path(self):
-        """ returns the path of directories that would be created from
-        the filename
+        """
+        Returns the path of directories that would be created from the
+        filename.
         """
         parts = self.filename.split('/')[0:-1]
         return ('/'.join(parts)) if parts else None
@@ -1400,11 +1565,11 @@ class Attachment(BaseModel):
     def read(self):
         """Reads the file, if it doesn't exist return empty."""
         if self.path and os.path.exists(self.get_file_path()):
-            kwargs = { 'mode': 'rb' }
+            kwargs = {'mode': 'rb'}
             if self.is_editable:
                 kwargs['encoding'] = 'utf-8'
                 kwargs['mode'] = 'r'
-            
+
             f = codecs.open(self.get_file_path(), **kwargs)
             content = f.read()
             f.close()
@@ -1425,18 +1590,19 @@ class Attachment(BaseModel):
 
         if not os.path.exists(directory):
             os.makedirs(directory)
-        
-        kwargs = { 'mode': 'wb' }
+
+        kwargs = {'mode': 'wb'}
         if self.is_editable:
             kwargs['encoding'] = 'utf-8'
             kwargs['mode'] = 'w'
-            
+
         try:
             with codecs.open(self.get_file_path(), **kwargs) as f:
                 f.write(data)
         except UnicodeDecodeError:
             log.error('Attachment write failure: %s' % self.pk)
             raise AttachmentWriteException('Attachment failed to save properly')
+
 
     def export_code(self, static_dir):
         " creates a file containing the module "
@@ -1493,6 +1659,7 @@ class EmptyDir(BaseModel):
 
     def clean(self):
         self.name = pathify(self.name).replace('.', '')
+
 
 class SDK(BaseModel):
     """
@@ -1561,8 +1728,8 @@ class SDK(BaseModel):
                             'addon-sdk-docs/packages/')[1]
                     member_file = tar_file.extractfile(member)
                     try:
-                        docpage = DocPage.objects.get(
-                                sdk=self, path=member_path)
+                        docpage = DocPage.objects.get(sdk=self,
+                                                      path=member_path)
                     except ObjectDoesNotExist:
                         docpage = DocPage(sdk=self, path=member_path)
                     docpage.html = '<h1>%s</h1>%s' % (
@@ -1572,9 +1739,8 @@ class SDK(BaseModel):
                     docpage.save()
                     member_file.close()
                 # filter module description
-                if '/docs/' in member.name \
-                        and '.md' in member.name \
-                        and '.md.' not in member.name:
+                if ('/docs/' in member.name and '.md' in member.name
+                    and '.md.' not in member.name):
                     # strip down to the member_path
                     member_path = member.name.split('.md')[0]
                     member_path = ''.join(member_path.split('/docs'))
@@ -1591,8 +1757,8 @@ class SDK(BaseModel):
                     member_json_file = tar_file.extractfile(member_json)
                     # create or load docs
                     try:
-                        docpage = DocPage.objects.get(
-                                sdk=self, path=member_path)
+                        docpage = DocPage.objects.get(sdk=self,
+                                                      path=member_path)
                     except ObjectDoesNotExist:
                         docpage = DocPage(sdk=self, path=member_path)
                     docpage.html = member_html_file.read()
@@ -1624,12 +1790,26 @@ def set_package_id_number(instance, **kwargs):
     instance.id_number = _get_next_id_number()
 pre_save.connect(set_package_id_number, sender=Package)
 
+
 def make_keypair_on_create(instance, **kwargs):
     " creates public and private keys for JID "
     if kwargs.get('raw', False) or instance.id or not instance.is_addon():
         return
     instance.generate_key()
 pre_save.connect(make_keypair_on_create, sender=Package)
+
+index_package = lambda instance, **kwargs: instance.refresh_index()
+post_save.connect(index_package, sender=Package)
+
+unindex_package = lambda instance, **kwargs: instance.remove_from_index()
+post_delete.connect(unindex_package, sender=Package)
+
+
+def index_package_m2m(instance, action, **kwargs):
+    if action in ("post_add", "post_remove"):
+        instance.package.refresh_index()
+m2m_changed.connect(index_package_m2m,
+                    sender=PackageRevision.dependencies.through)
 
 
 def save_first_revision(instance, **kwargs):
@@ -1697,8 +1877,8 @@ def manage_empty_lib_dirs(instance, action, **kwargs):
 
             if not instance.modules.filter(
                     filename__startswith=dirname).count():
-                emptydir = EmptyDir(
-                        name=dirname, author=instance.author, root_dir='l')
+                emptydir = EmptyDir(name=dirname, author=instance.author,
+                                    root_dir='l')
                 emptydir.save()
 
                 instance.folders.add(emptydir)
@@ -1734,10 +1914,10 @@ def manage_empty_data_dirs(instance, action, **kwargs):
 
             if not instance.attachments.filter(
                     filename__startswith=dirname).count():
-                emptydir = EmptyDir(
-                        name=dirname, author=instance.author, root_dir='d')
+                emptydir = EmptyDir(name=dirname, author=instance.author,
+                                    root_dir='d')
                 emptydir.save()
 
                 instance.folders.add(emptydir)
-m2m_changed.connect(
-        manage_empty_data_dirs, sender=Attachment.revisions.through)
+m2m_changed.connect(manage_empty_data_dirs,
+                    sender=Attachment.revisions.through)

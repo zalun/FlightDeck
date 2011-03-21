@@ -60,6 +60,7 @@ urlpatterns = patterns('jetpack.views',
     url(r'^library/(?P<id_number>[-\w]+)/revision/(?P<revision_number>\d+)/$',
         'package_view_or_edit', {'type_id': 'l'},
         name='jp_library_revision_details'),
+
     # get full module info
     url(r'^get_module/(?P<id_number>[-\w]+)/(?P<revision_number>\d+)/'
             '(?P<filename>.*)$', 'get_module', name='jp_get_module'),
@@ -92,6 +93,13 @@ urlpatterns = patterns('jetpack.views',
         'package_activate', name='jp_package_activate'),
     url(r'^package/delete/(?P<id_number>[-\w]+)/$',
         'package_delete', name='jp_package_delete'),
+
+    # get all, conflicting modules
+    url(r'^revision/(?P<pk>\d+)/get_modules_list/$',
+        'get_revision_modules_list', name='jp_revision_get_modules_list'),
+    url(r'^revision/(?P<pk>\d+)/get_conflicting_modules_list/$',
+        'get_revision_conflicting_modules_list',
+        name='jp_revision_get_conflicting_modules_list'),
 
     # add/remove module
     url(r'^addon/add_module/(?P<id_number>[-\w]+)/revision/'
@@ -135,14 +143,8 @@ urlpatterns = patterns('jetpack.views',
             '(?P<revision_number>\d+)/$',
         'package_upload_attachment',
         {'type_id': 'l'},  name='jp_library_revision_upload_attachment'),
-    url(r'^addon/add_attachment/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'package_add_empty_attachment',
-        {'type_id': 'a'}, name='jp_addon_revision_add_attachment'),
-    url(r'^library/add_attachment/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'package_add_empty_attachment',
-        {'type_id': 'l'},  name='jp_library_revision_add_attachment'),
+    url(r'^revision/(?P<pk>\d+)/add_attachment/',
+        'revision_add_attachment', name='jp_revision_add_attachment'),
     url(r'^addon/remove_attachment/(?P<id_number>[-\w]+)/revision/'
             '(?P<revision_number>\d+)/$',
         'package_remove_attachment',
@@ -202,6 +204,17 @@ urlpatterns = patterns('jetpack.views',
             '(?P<revision_number>\d+)/$',
         'package_assign_library',
         {'type_id': 'l'}, name='jp_library_revision_assign_library'),
+
+    # update library
+    url(r'^addon/update_library/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
+        'package_update_library',
+        {'type_id': 'a'}, name='jp_addon_revision_update_library'),
+    url(r'^library/update_library/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
+        'package_update_library',
+        {'type_id': 'l'}, name='jp_library_revision_update_library'),
+
     # remove library
     url(r'^addon/remove_dependency/(?P<id_number>[-\w]+)/revision/'
             '(?P<revision_number>\d+)/$',
@@ -211,4 +224,15 @@ urlpatterns = patterns('jetpack.views',
             '(?P<revision_number>\d+)/$',
         'package_remove_library',
         {'type_id': 'l'},  name='jp_library_revision_remove_library'),
+
+    # check libraries for latest versions
+    url(r'addon/check_latest_dependencies/(?P<id_number>[-\w]+)/revision/'
+            '(?P<revision_number>\d+)/$',
+        'package_latest_dependencies',
+        {'type_id': 'a'}, name='jp_addon_check_latest_dependencies'),
+
+    url(r'library/check_latest_dependencies/(?P<id_number>[-\w]+)/revision'
+            '(?P<revision_number>\d+)/$',
+        'package_latest_dependencies',
+        {'type_id': 'l'}, name='jp_library_check_latest_dependencies'),
 )

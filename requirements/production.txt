@@ -3,6 +3,7 @@
 Django==1.2.5
 
 # search functionality
+-e git://github.com/aparo/pyes#egg=pyes
 -e git+git://github.com/toastdriven/django-haystack#egg=django_haystack
 -e git://github.com/warner/python-ecdsa.git#egg=python-ecdsa
 
@@ -14,3 +15,4 @@ Markdown==2.0.3
 python-dateutil
 django-celery
 importlib
+-e git://github.com/mozilla/nuggets.git#egg=nuggets

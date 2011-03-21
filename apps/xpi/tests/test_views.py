@@ -10,6 +10,7 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 
 from base.templatetags.base_helpers import hashtag
+from jetpack.models import PackageRevision
 
 log = commonware.log.getLogger('f.test')
 
@@ -60,4 +61,22 @@ class TestViews(TestCase):
         eq_(response.status_code, 200)
         eq_(response.content, 'test')
 
-
+    def test_hashtag(self):
+        revision = PackageRevision.objects.get(pk=5)
+        uri = reverse('jp_addon_revision_test',
+            args=[revision.package.id_number, revision.revision_number])
+        response = self.client.post(uri, {'hashtag': 'abc/123'})
+        eq_(response.status_code, 403)
+        response = self.client.post(uri, {'hashtag': self.hashtag})
+        eq_(response.status_code, 200)
+        response = self.client.post(
+                reverse('jp_addon_revision_xpi', args=[
+                    revision.package.id_number, revision.revision_number]),
+                {'hashtag': 'abc.123'})
+        eq_(response.status_code, 403)
+        response = self.client.get('/xpi/test/abc/123')
+        eq_(response.status_code, 404)
+        response = self.client.get('/xpi/check_download/abc%20123')
+        eq_(response.status_code, 404)
+        response = self.client.get(reverse('jp_rm_xpi', args=['some/path']))
+        eq_(response.status_code, 403)
