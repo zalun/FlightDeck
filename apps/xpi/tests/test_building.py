@@ -263,3 +263,13 @@ class XPIBuildTest(TestCase):
                             self.library.name,
                             self.library.get_lib_dir(),
                             'test_module')))
+
+    def test_package_included_multiple_times(self):
+        """ If separate dependencies require the same library, it shouldn't error """
+        pack = Package.objects.create(name='another-test-lib', type='l', author=self.author)
+        packrev = pack.latest
+        self.librev.dependency_add(packrev)
+        self.addonrev.dependency_add(packrev)
+        self.addonrev.dependency_add(self.librev)
+        
+        self.addonrev.build_xpi(hashtag=self.hashtag, rapid=True)

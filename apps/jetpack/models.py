@@ -985,7 +985,7 @@ class PackageRevision(BaseModel):
         #self.export_attachments(
         #    '%s/%s' % (package_dir, self.package.get_data_dir()))
         self.export_dependencies(packages_dir, sdk=self.sdk)
-        args = [sdk_dir, os.path.join(sdk_dir, 'packages', self.package.name),
+        args = [sdk_dir, self.package.get_dir_name(packages_dir),
                 self.package.name, hashtag]
         if rapid:
             return xpi_utils.build(*args)
@@ -1028,6 +1028,8 @@ class PackageRevision(BaseModel):
     def export_files(self, packages_dir, sdk=None):
         """Calls all export functions - creates all packages files."""
         package_dir = self.package.make_dir(packages_dir)
+        if not package_dir:
+            return
         self.export_manifest(package_dir, sdk=sdk)
         self.export_modules(
             os.path.join(package_dir, self.package.get_lib_dir()))
@@ -1246,13 +1248,20 @@ class Package(BaseModel):
         self.private_key = sk_text
         self.public_key = vk_text
 
+    def get_dir_name(self, packages_dir):
+        return os.path.join(packages_dir, self.name + '-' + self.id_number)
+
     def make_dir(self, packages_dir):
         """
         create package directories inside packages
         return package directory name
         """
-        package_dir = '%s/%s' % (packages_dir, self.name)
-        os.mkdir(package_dir)
+        package_dir = self.get_dir_name(packages_dir)
+        if not os.path.isdir(package_dir):
+            os.mkdir(package_dir)
+        else:
+            return False
+        
         os.mkdir('%s/%s' % (package_dir, self.get_lib_dir()))
         if not os.path.isdir('%s/%s' % (package_dir, self.get_data_dir())):
             os.mkdir('%s/%s' % (package_dir, self.get_data_dir()))
