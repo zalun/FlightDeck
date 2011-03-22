@@ -55,6 +55,7 @@ sendFile = (function(toString, maxSize){
         xhr.setRequestHeader("If-Modified-Since", "Mon, 26 Jul 1997 05:00:00 GMT");
         xhr.setRequestHeader("Cache-Control", "no-cache");
         xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+		xhr.setRequestHeader("X-CSRFToken", Cookie.read('csrftoken'));
         xhr.setRequestHeader("X-File-Name", handler.file.fileName);
         xhr.setRequestHeader("X-File-Size", handler.file.fileSize);
         xhr.setRequestHeader("Content-Type", "multipart/form-data");
