@@ -73,9 +73,8 @@ class XPIBuildTest(TestCase):
         self.librev.export_modules(
             '%s/%s' % (package_dir, self.library.get_lib_dir()))
 
-        self.failUnless(os.path.isfile('%s/packages/%s/%s/%s.js' % (
-                            self.SDKDIR,
-                            self.library.name,
+        self.failUnless(os.path.isfile('%s/%s/%s.js' % (
+                            package_dir,
                             self.library.get_lib_dir(),
                             'test_module')))
 
@@ -94,7 +93,7 @@ class XPIBuildTest(TestCase):
         " test if all the files are in place "
         self.makeSDKDir()
         self.librev.export_files_with_dependencies('%s/packages' % self.SDKDIR)
-        package_dir = '%s/packages/%s' % (self.SDKDIR, self.library.name)
+        package_dir = self.librev.package.get_dir_name('%s/packages' % self.SDKDIR)
         self.failUnless(os.path.isdir(package_dir))
         self.failUnless(os.path.isdir(
             '%s/%s' % (package_dir, self.library.get_lib_dir())))
@@ -107,13 +106,12 @@ class XPIBuildTest(TestCase):
     def test_addon_export_with_dependency(self):
         " test if lib and main.js are properly exported "
         self.makeSDKDir()
-        addon_dir = '%s/packages/%s' % (self.SDKDIR, self.addon.name)
-        lib_dir = '%s/packages/%s' % (self.SDKDIR, self.library.name)
+        addon_dir = self.addon.get_dir_name('%s/packages' % self.SDKDIR)
+        lib_dir = self.library.get_dir_name('%s/packages' % self.SDKDIR)
 
         self.addonrev.dependency_add(self.librev)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        print '%s/%s' % (addon_dir, self.addon.get_lib_dir())
         self.failUnless(os.path.isdir(
             '%s/%s' % (addon_dir, self.addon.get_lib_dir())))
         self.failUnless(os.path.isdir(
@@ -154,7 +152,7 @@ class XPIBuildTest(TestCase):
             '%s/packages' % self.SDKDIR)
         (xpi_target, out, err) = xpi_utils.build(
                 self.SDKDIR,
-                '%s/packages/%s' % (self.SDKDIR, self.addon.name),
+                self.addon.get_dir_name('%s/packages' % self.SDKDIR),
                 self.addon.name, self.hashtag)
         # assert no error output
         self.assertEqual('', err)
@@ -174,7 +172,7 @@ class XPIBuildTest(TestCase):
             '%s/packages' % self.SDKDIR)
         (xpi_target, out, err) = xpi_utils.build(
                 self.SDKDIR,
-                '%s/packages/%s' % (self.SDKDIR, self.addon.name),
+                self.addon.get_dir_name('%s/packages' % self.SDKDIR),
                 self.addon.name, self.hashtag)
         # assert no error output
         self.assertEqual('', err)
@@ -199,7 +197,7 @@ class XPIBuildTest(TestCase):
             '%s/packages' % self.SDKDIR)
         (xpi_target, out, err) = xpi_utils.build(
                 self.SDKDIR,
-                '%s/packages/%s' % (self.SDKDIR, self.addon.name),
+                self.addon.get_dir_name('%s/packages' % self.SDKDIR),
                 self.addon.name, self.hashtag)
         # assert no error output
         self.assertEqual('', err)
@@ -216,7 +214,7 @@ class XPIBuildTest(TestCase):
             '%s/packages' % self.SDKDIR)
         (xpi_target, out, err) = xpi_utils.build(
                 self.SDKDIR,
-                '%s/packages/%s' % (self.SDKDIR, self.addon.name),
+                self.addon.get_dir_name('%s/packages' % self.SDKDIR),
                 self.addon.name, self.hashtag)
         # assert no error output
         self.assertEqual('', err)
@@ -258,9 +256,8 @@ class XPIBuildTest(TestCase):
         self.librev.export_modules(
             '%s/%s' % (package_dir, self.library.get_lib_dir()))
 
-        self.failUnless(os.path.isfile('%s/packages/%s/%s/%s.js' % (
-                            self.SDKDIR,
-                            self.library.name,
+        self.failUnless(os.path.isfile('%s/%s/%s.js' % (
+                            package_dir,
                             self.library.get_lib_dir(),
                             'test_module')))
 
