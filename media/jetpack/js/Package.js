@@ -1072,7 +1072,7 @@ Package.Edit = new Class({
 					// set data changed by save
 					this.registerRevision(response);
 					fd.message.alert(response.message_title, response.message);
-					this.libraries[response.id_number] = new Library(this, {
+					this.libraries[response.library_id_number] = new Library(this, {
 						full_name: response.library_full_name,
 						id_number: response.library_id_number,
 						library_name: response.library_name,
