@@ -782,11 +782,12 @@ Package.Edit = new Class({
 //        data += parts.join("--" + boundary + CRLF);
 //        data += "--" + boundary + "--" + CRLF;
 //
-        data = file.getAsText("");
+        //data = file.getAsText("");
+        data = file.getAsBinary();
 
         request = new Request.JSON({
             url: this.options.upload_attachment_url,
-            data: file,
+            data: data,
             onSuccess: function(response) {
                 $log(response)
 				if (self.spinner) self.spinner.destroy();

@@ -790,7 +790,8 @@ def download_attachment(request, uid):
     attachment = get_object_or_404(Attachment, id=uid)
     response = serve(request, attachment.path,
                      settings.UPLOAD_DIR, show_indexes=False)
-    response['Content-Disposition'] = 'filename=%s' % attachment.filename
+    response['Content-Disposition'] = 'filename=%s.%s' % (
+            attachment.filename, attachment.ext)
     return response
 
 @require_POST
