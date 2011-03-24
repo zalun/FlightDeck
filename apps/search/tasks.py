@@ -1,8 +1,7 @@
-import commonware.log
 from celeryutils import task
 
 from jetpack.models import Package
-from search.utils import get_es
+from elasticutils import get_es
 
 
 @task
