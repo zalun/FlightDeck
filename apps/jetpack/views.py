@@ -536,7 +536,6 @@ def package_upload_attachment(r, id_number, type_id,
         return HttpResponseServerError('Path not found.')
 
     content = r.FILES.get('upload_attachment').read()
-    #return HttpResponse(str(r.FILES))
 
     try:
         attachment = revision.attachment_create_by_filename(
