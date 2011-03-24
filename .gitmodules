@@ -19,3 +19,6 @@
 [submodule "lib/addon-sdk-1.0b4rc1"]
 	path = lib/addon-sdk-1.0b4rc1
 	url = git://github.com/mozilla/addon-sdk.git
+[submodule "lib/addon-sdk-1.0b4rc3"]
+	path = lib/addon-sdk-1.0b4rc3
+	url = git://github.com/mozilla/addon-sdk.git
