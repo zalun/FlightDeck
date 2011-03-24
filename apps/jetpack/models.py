@@ -669,7 +669,7 @@ class PackageRevision(BaseModel):
                         self.attachments.add(att)
 
     @transaction.commit_on_success
-    def attachment_create_by_filename(self, author, filename, content=None):
+    def attachment_create_by_filename(self, author, filename, content=''):
         """ find out the filename and ext and call attachment_create """
         filename, ext = os.path.splitext(filename)
         ext = ext.split('.')[1].lower() if ext else None
@@ -684,9 +684,12 @@ class PackageRevision(BaseModel):
 
         attachment = self.attachment_create(**kwargs)
 
-        if content or content == '':
-            attachment.data = content
-            attachment.write()
+        # we must write data of some sort, in order to create the file on the disk
+        # so at the least, write a blank string
+        if not content:
+            content = ''
+        attachment.data = content
+        attachment.write()
         return attachment
 
     def attachment_create(self, save=True, **kwargs):
