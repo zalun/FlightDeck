@@ -16,5 +16,8 @@
     "remove_folder_url": "{{ revision.get_remove_folder_url }}",
 	"all_modules_list_url": "{{ revision.get_modules_list_url }}",
 	"conflicting_modules_list_url": "{{ revision.get_conflicting_modules_list_url }}",
-	{% if revision.package.is_addon %}"test_url": "{{ revision.get_test_xpi_url }}",{% endif %}
+	{% if revision.package.is_addon %}
+        "test_url": "{{ revision.get_test_xpi_url }}",
+        "download_url": "{{ revision.get_download_xpi_url }}",
+    {% endif %}
 

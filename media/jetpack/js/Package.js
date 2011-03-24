@@ -71,7 +71,7 @@ var Package = new Class({
             if (!this.boundDownloadAddon) {
                 this.boundDownloadAddon = this.downloadAddon.bind(this);
             }
-			this.download_url = $(this.options.download_el).get('href');
+			this.options.download_url = $(this.options.download_el).get('href');
 			$(this.options.download_el).addEvent('click', this.boundDownloadAddon);
 		}
 		this.copy_el = $(this.options.copy_el)
@@ -149,7 +149,7 @@ var Package = new Class({
 			filename: this.options.name
 		};
 		new Request.JSON({
-		  url: this.download_url,
+		  url: this.options.download_url,
 		  data: data,
 		  onSuccess: fd.downloadXPI
 		}).send();
@@ -1435,6 +1435,10 @@ Package.Edit = new Class({
 
 	registerRevision: function(urls) {
         this.setOptions(urls);
+        // this only for the right display href
+        if (urls.download_url && $(this.options.download_el)) {
+            $(this.options.download_el).set('href', urls.download_url);
+        }
 	}
 	
 });
