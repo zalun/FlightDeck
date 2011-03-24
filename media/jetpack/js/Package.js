@@ -1424,7 +1424,7 @@ Package.Edit = new Class({
 			},
 			'test': {
                 keys:'ctrl+enter',
-				description: 'Test',
+				description: 'Toggle Testing',
 				handler: function(e) {
                     e.preventDefault();
                     that.testAddon();
@@ -1464,7 +1464,9 @@ Package.Edit = new Class({
 				keys: 'ctrl+shift+/',
 				description: 'Show these keyboard shortcuts',
 				handler: function() {
-					that.showShortcuts();
+					that._shortcutsModal ?
+						that.hideShortcuts() :
+						that.showShortcuts();
 				}
 			}
 		})
@@ -1489,11 +1491,20 @@ Package.Edit = new Class({
 		shortcuts.push('<strong>Tree</strong>');
 		fd.sidebar.keyboard.getShortcuts().forEach(buildLines);
 		
-		fd.displayModal('<h3>Keyboard Shortcuts</h3>'
+		this._shortcutsModal = fd.displayModal('<h3>Keyboard Shortcuts</h3>'
 						+'<div class="UI_Modal_Section"><p>'
 						+shortcuts.join('</p><p>')
 						+'</p></div>'
 		);
+		this._shortcutsModal.addEvent('destroy', function() {
+			this._shortcutsModal = null
+		}.bind(this));
+	},
+	
+	hideShortcuts: function() {
+		if (this._shortcutsModal) {
+			this._shortcutsModal.destroy();
+		}
 	},
 
 	registerRevision: function(urls) {
