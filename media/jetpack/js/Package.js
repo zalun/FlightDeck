@@ -730,6 +730,69 @@ Package.Edit = new Class({
 		}).send();
 	},
 
+
+    uploadAttachment: function(files, renameAfterLoad) {
+		var self = this;
+        self.spinner = new Spinner($('attachments')).show();
+        // renameAfterLoad is falsy or callable
+        var file = files[0];
+        
+        var data = new FormData(),
+            xhr = new XMLHttpRequest();
+
+        xhr.onreadystatechange = function() {
+			if (xhr.readyState === 4) {
+				try {
+					var response = JSON.decode(xhr.responseText);
+				} catch(ex) { /* ignored */ }
+				
+				
+				if(xhr.status >= 200 && xhr.status < 300 && response) {
+					//onSuccess
+					
+					$log(response)
+					if (self.spinner) self.spinner.destroy();
+					fd.message.alert(response.message_title, response.message);
+					var attachment = new Attachment(self,{
+						append: true,
+						active: true,
+						filename: response.filename,
+						ext: response.ext,
+						author: response.author,
+						code: response.code,
+						get_url: response.get_url,
+						uid: response.uid,
+						type: response.ext
+					});
+					self.registerRevision(response);
+					self.attachments[response.uid] = attachment;
+					if (self.spinner) self.spinner.destroy();
+					$log('FD: all files uploaded');
+					Function.from(renameAfterLoad)(attachment);
+				} else {
+					//onError
+					
+					if (self.spinner) self.spinner.destroy();
+					if (xhr) {
+						fd.error.alert(
+							'Error {status}'.substitute(xhr),
+							'{statusText}<br/>{responseText}'.substitute(xhr)
+						);
+					} else {
+						fd.error.alert('Error', 'File size was too big');
+					}
+				}
+			}
+		};
+        $log('uploading ' + file.fileName)
+		data.append('upload_attachment', file);
+		xhr.open('POST', this.options.upload_attachment_url);
+		xhr.setRequestHeader('X-File-Name', file.fileName);
+		xhr.setRequestHeader('X-File-Size', file.fileSize)
+		xhr.setRequestHeader("X-CSRFToken", Cookie.read('csrftoken'));
+        xhr.send(data);
+    },
+
 	sendMultipleFiles: function(files, onPartialLoad) {
 		var self = this;
 		self.spinner = false;
@@ -1361,7 +1424,7 @@ Package.Edit = new Class({
 			},
 			'test': {
                 keys:'ctrl+enter',
-				description: 'Test',
+				description: 'Toggle Testing',
 				handler: function(e) {
                     e.preventDefault();
                     that.testAddon();
@@ -1401,7 +1464,9 @@ Package.Edit = new Class({
 				keys: 'ctrl+shift+/',
 				description: 'Show these keyboard shortcuts',
 				handler: function() {
-					that.showShortcuts();
+					that._shortcutsModal ?
+						that.hideShortcuts() :
+						that.showShortcuts();
 				}
 			}
 		})
@@ -1426,11 +1491,20 @@ Package.Edit = new Class({
 		shortcuts.push('<strong>Tree</strong>');
 		fd.sidebar.keyboard.getShortcuts().forEach(buildLines);
 		
-		fd.displayModal('<h3>Keyboard Shortcuts</h3>'
+		this._shortcutsModal = fd.displayModal('<h3>Keyboard Shortcuts</h3>'
 						+'<div class="UI_Modal_Section"><p>'
 						+shortcuts.join('</p><p>')
 						+'</p></div>'
 		);
+		this._shortcutsModal.addEvent('destroy', function() {
+			this._shortcutsModal = null
+		}.bind(this));
+	},
+	
+	hideShortcuts: function() {
+		if (this._shortcutsModal) {
+			this._shortcutsModal.destroy();
+		}
 	},
 
 	registerRevision: function(urls) {

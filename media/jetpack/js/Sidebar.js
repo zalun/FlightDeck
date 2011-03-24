@@ -483,13 +483,17 @@ var Sidebar = new Class({
 	},
 	
 	promptAttachment: function(folder) {
-        var path = (folder && folder.get('path')) || '';
+        var that = this,
+            pack = fd.getItem(),
+            path = (folder && folder.get('path')) || '';
         if (path) path += '/';
-        var that = this;
 		fd.showQuestion({
 			title: 'Create or Upload an Attachment',
 			message: ''
-                + '<input type="file" name="upload_attachment" id="upload_attachment"/></p>'
+                + '<form id="upload_attachment_form" method="post" enctype="multipart/form-data" action="'
+                    + pack.options.upload_attachment_url + '">'
+                    + '<input type="file" name="upload_attachment" id="upload_attachment"/></p>'
+                + '</form>'
 				+ '<p style="text-align:center">&mdash; OR &mdash;</p><p>'
 				+ '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>'
 				+ '<a href="#" id="new_type_folder" class="radio_btn"><span>Folder</span></a>'
@@ -505,7 +509,6 @@ var Sidebar = new Class({
                     externalInput = $('external_attachment'),
 					filename = createInput.value,
                     url = externalInput.value,
-					pack = fd.getItem(),
 					renameAfterLoad,
                     files = uploadInput.files;
 
@@ -527,7 +530,8 @@ var Sidebar = new Class({
 						ex = files[f].fileName.getFileExtension();
 						
 					if (Attachment.exists(fname, ex)) {
-						fd.error.alert('Filename has to be unique', 'You already have an attachment with that name.');
+						fd.error.alert('Filename has to be unique', 
+                                'You already have an attachment with that name.');
 						return;
 					}
 				}
@@ -563,13 +567,12 @@ var Sidebar = new Class({
 				    
 				    
 				    if (!isFolder && !filename.getFileExtension()) {
-				        
 				        filename = filename.replace(/\./, '') + '.js'; //we're defaulting to .js files if the user doesnt enter an extension
 				    }
 				}
 				
 				if(files.length) {
-					pack.sendMultipleFiles(uploadInput.files, renameAfterLoad);
+					pack.uploadAttachment(uploadInput.files, renameAfterLoad);
 				} else if (isFolder) {
 					pack.addFolder(filename, Folder.ROOT_DIR_DATA);
 				} else if (url && filename) {

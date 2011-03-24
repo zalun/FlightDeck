@@ -526,6 +526,47 @@ def package_upload_attachment(r, id_number, type_id,
             'You are not the author of this %s' \
                 % escape(revision.package.get_type_name()))
 
+    
+    filename = r.META.get('HTTP_X_FILE_NAME')
+
+    if not filename:
+        log_msg = 'Path not found: %s, package: %s.' % (
+            filename, id_number)
+        log.error(log_msg)
+        return HttpResponseServerError('Path not found.')
+
+    content = r.FILES.get('upload_attachment').read()
+
+    try:
+        attachment = revision.attachment_create_by_filename(
+            r.user, filename, content)
+    except ValidationError, e:
+        return HttpResponseForbidden('Validation errors.')
+    except Exception, e:
+        return HttpResponseForbidden(str(e))
+
+    return render_to_response("json/attachment_added.json",
+                {'revision': revision, 'attachment': attachment},
+                context_instance=RequestContext(r),
+                mimetype='application/json')
+
+
+@require_POST
+@login_required
+def package_upload_attachments(r, id_number, type_id,
+                           revision_number=None, version_name=None):
+    """ Upload new attachments to the PackageRevision
+    """
+    revision = get_package_revision(id_number, type_id, revision_number,
+                                    version_name)
+    if r.user.pk != revision.author.pk:
+        log_msg = ("[security] Attempt to upload attachment to package (%s) "
+                "by non-owner (%s)" % (id_number, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden(
+            'You are not the author of this %s' \
+                % escape(revision.package.get_type_name()))
+
     content = r.raw_post_data
     filename = r.META.get('HTTP_X_FILE_NAME')
 
@@ -547,7 +588,6 @@ def package_upload_attachment(r, id_number, type_id,
                 {'revision': revision, 'attachment': attachment},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
-
 
 @require_POST
 @login_required
@@ -752,7 +792,8 @@ def download_attachment(request, uid):
     attachment = get_object_or_404(Attachment, id=uid)
     response = serve(request, attachment.path,
                      settings.UPLOAD_DIR, show_indexes=False)
-    response['Content-Disposition'] = 'filename=%s' % attachment.filename
+    response['Content-Disposition'] = 'filename=%s.%s' % (
+            attachment.filename, attachment.ext)
     return response
 
 @require_POST
