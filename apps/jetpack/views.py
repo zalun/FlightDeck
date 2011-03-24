@@ -526,7 +526,7 @@ def package_upload_attachment(r, id_number, type_id,
             'You are not the author of this %s' \
                 % escape(revision.package.get_type_name()))
 
-    content = r.raw_post_data
+    
     filename = r.META.get('HTTP_X_FILE_NAME')
 
     if not filename:
@@ -534,6 +534,9 @@ def package_upload_attachment(r, id_number, type_id,
             filename, id_number)
         log.error(log_msg)
         return HttpResponseServerError('Path not found.')
+
+    content = r.FILES.get('upload_attachment').read()
+    #return HttpResponse(str(r.FILES))
 
     try:
         attachment = revision.attachment_create_by_filename(

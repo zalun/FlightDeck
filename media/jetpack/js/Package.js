@@ -743,51 +743,63 @@ Package.Edit = new Class({
             parts = [],
             data,
             request;
-//
-//        boundary = "AJAX-----------------------" + (new Date).getTime();
-//        Array.forEach(files, function(file, index, all) {
-//            var part = "";
-//            var type = "TEXT";
-//
-//            var fileName = file.fileName;
-//
-//            /*
-//             * Content-Disposition header contains name of the field
-//             * used to upload the file and also the name of the file as
-//             * it was on the user's computer.
-//             */
-//            part += 'Content-Disposition: form-data; ';
-//            part += 'name="upload_attachment"; ';
-//            part += 'filename="'+ fileName + '"' + CRLF;
-//
-//            /*
-//             * Content-Type header contains the mime-type of the file
-//             * to send. Although we could build a map of mime-types
-//             * that match certain file extensions, we'll take the easy
-//             * approach and send a general binary header:
-//             * application/octet-stream
-//             */
-//            part += "Content-Type: application/octet-stream";
-//            part += CRLF + CRLF; // marks end of the headers part
-//
-//            /*
-//             * File contents read as binary data, obviously
-//             */
-//            part += file.getAsBinary() + CRLF;
-//
-//            parts.push(part);
-//        });
-//
-//        data = "--" + boundary + CRLF;
-//        data += parts.join("--" + boundary + CRLF);
-//        data += "--" + boundary + "--" + CRLF;
-//
+			
+		var contentTypes = {
+			'gif': '',
+			'jpg': '',
+			'png': '',
+			'js': 'text/javascript',
+			'txt': 'text/plain',
+			'css': 'text/css',
+			'html': 'text/html'
+		};
+
+        var boundary = (new Date).getTime();
+        Array.forEach(files, function(file, index, all) {
+            var part = "",
+				fileName = file.fileName;
+
+            /*
+             * Content-Disposition header contains name of the field
+             * used to upload the file and also the name of the file as
+             * it was on the user's computer.
+             */
+            part += 'Content-Disposition: file; ';
+            part += 'name="upload_attachment"; ';
+            part += 'filename="'+ fileName + '"' + CRLF;
+
+            /*
+             * Content-Type header contains the mime-type of the file
+             * to send. Although we could build a map of mime-types
+             * that match certain file extensions, we'll take the easy
+             * approach and send a general binary header:
+             * application/octet-stream
+             */
+			console.log(file.type);
+            part += "Content-Type: " + file.type + CRLF;
+			part += "Content-Transfer-Encoding: binary";
+            part += CRLF + CRLF; // marks end of the headers part
+
+            /*
+             * File contents read as binary data, obviously
+             */
+            part += file.getAsBinary() + CRLF;
+
+            parts.push(part);
+        });
+
+        data = "--" + boundary + CRLF;
+        data += parts.join("--" + boundary + CRLF);
+        data += "--" + boundary + CRLF;
+
         //data = file.getAsText("");
-        data = file.getAsBinary();
+        //data = file.getAsBinary();
 
         request = new Request.JSON({
             url: this.options.upload_attachment_url,
             data: data,
+			urlEncoded: false,
+			encoding: '',
             onSuccess: function(response) {
                 $log(response)
 				if (self.spinner) self.spinner.destroy();
@@ -824,8 +836,7 @@ Package.Edit = new Class({
         $log('uploading ' + file.fileName)
         request.setHeader('X-File-Name', file.fileName);
         request.setHeader('X-File-Size', file.fileSize);
-        request.setHeader('Content-Type', 'multipart/form-data');
-        request.setHeader("X-Requested-With", "XMLHttpRequest")
+        request.setHeader('Content-Type', 'multipart/form-data; boundary='+boundary);
         request.setHeader("Cache-Control", "no-cache")
         request.send();
     },
