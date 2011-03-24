@@ -644,7 +644,7 @@ def revision_add_attachment(r, pk):
     if not filename or filename == "":
         log.error('Trying to create an attachment without name')
         return HttpResponseForbidden('Path not found.')
-    content = None
+    content = ''
     if url:
         # validate url
         field = URLField(verify_exists=True)
