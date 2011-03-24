@@ -2,9 +2,6 @@ http.port: 9201
 transport.tcp.port: 9301
 gateway:
     type: local
-    recover_after_nodes: 1
-    recover_after_time: 5m
-    expected_nodes: 3
 
 cluster:
     name: flightdeck

@@ -26,6 +26,7 @@ from django.utils.translation import ugettext as _
 
 from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
 from ecdsa import SigningKey, NIST256p
+from elasticutils import es_required
 from pyes import djangoutils
 
 from api.helpers import export_docs
@@ -35,7 +36,6 @@ from jetpack.errors import (SelfDependencyException, FilenameExistException,
                             UpdateDeniedException, SingletonCopyException,
                             DependencyException, AttachmentWriteException)
 from jetpack.managers import PackageManager
-from search.decorators import es_required
 from utils.exceptions import SimpleException
 from utils.helpers import pathify, alphanum, alphanum_plus
 from utils.os_utils import make_path
