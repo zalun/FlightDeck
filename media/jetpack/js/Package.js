@@ -730,6 +730,105 @@ Package.Edit = new Class({
 		}).send();
 	},
 
+    uploadAttachment: function(files, renameAfterLoad) {
+		var self = this;
+        self.spinner = new Spinner($('attachments')).show();
+        // renameAfterLoad is falsy or callable
+        file = files[0];
+        //$log("File name: " + file.fileName);
+        //$log("File size: " + file.fileSize);
+        //$log("Binary content: " + file.getAsBinary());
+        //$log("Text content: " + file.getAsText(""));
+        var CRLF = "\r\n",
+            parts = [],
+            data,
+            request;
+//
+//        boundary = "AJAX-----------------------" + (new Date).getTime();
+//        Array.forEach(files, function(file, index, all) {
+//            var part = "";
+//            var type = "TEXT";
+//
+//            var fileName = file.fileName;
+//
+//            /*
+//             * Content-Disposition header contains name of the field
+//             * used to upload the file and also the name of the file as
+//             * it was on the user's computer.
+//             */
+//            part += 'Content-Disposition: form-data; ';
+//            part += 'name="upload_attachment"; ';
+//            part += 'filename="'+ fileName + '"' + CRLF;
+//
+//            /*
+//             * Content-Type header contains the mime-type of the file
+//             * to send. Although we could build a map of mime-types
+//             * that match certain file extensions, we'll take the easy
+//             * approach and send a general binary header:
+//             * application/octet-stream
+//             */
+//            part += "Content-Type: application/octet-stream";
+//            part += CRLF + CRLF; // marks end of the headers part
+//
+//            /*
+//             * File contents read as binary data, obviously
+//             */
+//            part += file.getAsBinary() + CRLF;
+//
+//            parts.push(part);
+//        });
+//
+//        data = "--" + boundary + CRLF;
+//        data += parts.join("--" + boundary + CRLF);
+//        data += "--" + boundary + "--" + CRLF;
+//
+        data = file.getAsText("");
+
+        request = new Request.JSON({
+            url: this.options.upload_attachment_url,
+            data: file,
+            onSuccess: function(response) {
+                $log(response)
+				if (self.spinner) self.spinner.destroy();
+				fd.message.alert(response.message_title, response.message);
+				var attachment = new Attachment(self,{
+					append: true,
+					active: true,
+					filename: response.filename,
+					ext: response.ext,
+					author: response.author,
+					code: response.code,
+					get_url: response.get_url,
+					uid: response.uid,
+					type: response.ext
+				});
+				self.registerRevision(response);
+				self.attachments[response.uid] = attachment;
+				if (self.spinner) self.spinner.destroy();
+				$log('FD: all files uploaded');
+				Function.from(renameAfterLoad)(attachment);
+            },
+			onError:function(rpe, xhr){
+				if (self.spinner) self.spinner.destroy();
+				if (xhr) {
+					fd.error.alert(
+						'Error {status}'.substitute(xhr),
+						'{statusText}<br/>{responseText}'.substitute(xhr)
+					);
+				} else {
+					fd.error.alert('Error', 'File size was too big');
+				}
+			}
+        });
+        $log('uploading ' + file.fileName)
+        request.setHeader('X-File-Name', file.fileName);
+        request.setHeader('X-File-Size', file.fileSize);
+        request.setHeader('Content-Type', 'multipart/form-data');
+        request.setHeader("X-Requested-With", "XMLHttpRequest")
+        request.setHeader("Cache-Control", "no-cache")
+        request.send();
+    },
+
 	sendMultipleFiles: function(files, onPartialLoad) {
 		var self = this;
 		self.spinner = false;
