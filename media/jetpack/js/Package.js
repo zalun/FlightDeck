@@ -1163,7 +1163,9 @@ Package.Edit = new Class({
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
 				fd.message.alert(response.message_title, response.message);
-				lib.setOptions(response);
+				lib.setOptions({
+					view_url: response.library_url
+				});
 				this.checkModuleConflicts();
 				Function.from(callback)(response);
 			}.bind(this)
