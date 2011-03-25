@@ -749,7 +749,7 @@ var Sidebar = new Class({
 
     bind_keyboard: function() {
         var that = this;
-        this.keyboard = new Keyboard();
+        this.keyboard = new FlightDeck.Keyboard();
 		this.keyboard.addShortcuts({
             'collapse': {
                 keys:'left',
