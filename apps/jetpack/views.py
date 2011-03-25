@@ -527,15 +527,16 @@ def package_upload_attachment(r, id_number, type_id,
                 % escape(revision.package.get_type_name()))
 
     
+    file = r.FILES.get('upload_attachment')
     filename = r.META.get('HTTP_X_FILE_NAME')
 
-    if not filename:
+    if not file:
         log_msg = 'Path not found: %s, package: %s.' % (
             filename, id_number)
         log.error(log_msg)
         return HttpResponseServerError('Path not found.')
 
-    content = r.FILES.get('upload_attachment').read()
+    content = file.read()
 
     try:
         attachment = revision.attachment_create_by_filename(
