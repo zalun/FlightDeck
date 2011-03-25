@@ -20,7 +20,7 @@ FlightDeck.Keyboard = new Class({
 	
 	addShortcut: function(name, shortcut) {
 		if (shortcut.keys) {
-			shortcut.keys = macControlToMeta(shortcuts.keys);
+			shortcut.keys = macControlToMeta(shortcut.keys);
 		}
 		return this.parent(name, shortcut);
 	}
