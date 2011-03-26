@@ -69,11 +69,11 @@ ul.tree li .label:hover {
 }
 
 ul.tree li.focused > .holder .label {
-    background:#E8F2FE;
+    background:#D8E2EE;
 }
 
 ul.tree li .label[contenteditable="true"] {
-	background:#ffd;
+	background:#ffa;
 }
 
 div.treeIndicator {
