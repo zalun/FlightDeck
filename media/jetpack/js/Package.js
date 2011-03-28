@@ -1418,20 +1418,23 @@ Package.Edit = new Class({
 	bind_keyboard: function() {
 	    var that = this;
         this.keyboard = new FlightDeck.Keyboard();
-		this.keyboard.addShortcuts({
-			'save': {
-				keys:'ctrl+s',
-				description: 'Save current outstanding changes.',
-				handler: this.boundSaveAction
-			},
-			'test': {
+		if(this.options.type == 'a') {
+			this.keyboard.addShortcut('test', {
                 keys:'ctrl+enter',
 				description: 'Toggle Testing',
 				handler: function(e) {
                     e.preventDefault();
                     that.testAddon();
                 }
+			});
+		}
+		this.keyboard.addShortcuts({
+			'save': {
+				keys:'ctrl+s',
+				description: 'Save current outstanding changes.',
+				handler: this.boundSaveAction
 			},
+			
 			'new attachment': {
                 keys: 'ctrl+n',
 				description: 'Open the New Attachment prompt.',
