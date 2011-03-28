@@ -3,7 +3,7 @@
 var isMac = (Browser.Platform.name == 'mac'),
 	controlRE = /control|ctrl/g,
 	macControlToMeta = function(text) {
-		return isMac ? text.replace(metaRE, 'meta') : text;
+		return isMac ? text.replace(controlRE, 'meta') : text;
 	};
 
 FlightDeck.Keyboard = new Class({
