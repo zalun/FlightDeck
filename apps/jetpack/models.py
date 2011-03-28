@@ -253,7 +253,7 @@ class PackageRevision(BaseModel):
             else:
             # jetpack-core or api-utils
                 deps = ['jetpack-core']
-        deps.extend([dep.package.name \
+        deps.extend(["%s-%s" % (dep.package.name, dep.package.id_number) \
                      for dep in self.dependencies.all()])
         return deps
 
@@ -274,9 +274,13 @@ class PackageRevision(BaseModel):
         if test_in_browser:
             version = "%s - test" % version
 
+        name = self.package.name
+        if not self.package.is_addon():
+            name = "%s-%s" % (name, self.package.id_number)
+
         manifest = {
             'fullName': self.package.full_name,
-            'name': self.package.name,
+            'name': name,
             'description': self.get_full_description(),
             'author': self.package.author.username,
             'id': self.package.jid if self.package.is_addon() \
@@ -777,7 +781,8 @@ class PackageRevision(BaseModel):
         # dependency have to be unique in the PackageRevision
         # currently, the SDK can't compile with libraries with same "name"
         if self.dependencies.filter(
-                package__name=dep.package.name).count() > 0:
+                package__name=dep.package.name,
+                author=dep.package.author).count() > 0:
             raise DependencyException(
                 'Your %s already depends on a library with that name' % (
                     self.package.get_type_name(),))
@@ -1012,6 +1017,7 @@ class PackageRevision(BaseModel):
         manifest_file = "%s/package.json" % package_dir
         with codecs.open(manifest_file, mode='w', encoding='utf-8') as f:
             f.write(self.get_manifest_json(sdk=sdk))
+        log.debug(self.get_manifest_json(sdk=sdk))
 
     def export_modules(self, lib_dir):
         """Creates a module file for each module."""
@@ -1264,7 +1270,7 @@ class Package(BaseModel):
             os.mkdir(package_dir)
         else:
             return False
-        
+
         os.mkdir('%s/%s' % (package_dir, self.get_lib_dir()))
         if not os.path.isdir('%s/%s' % (package_dir, self.get_data_dir())):
             os.mkdir('%s/%s' % (package_dir, self.get_data_dir()))
