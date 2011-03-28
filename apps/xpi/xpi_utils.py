@@ -9,7 +9,7 @@ import time
 
 import commonware.log
 
-from django.http import HttpResponseServerError
+from django.http import HttpResponseServerError, HttpResponseForbidden
 from django.conf import settings
 
 log = commonware.log.getLogger('f.xpi_utils')
@@ -42,14 +42,19 @@ def build(sdk_dir, package_dir, filename, hashtag):
                                    stderr=subprocess.PIPE, env=env)
         response = process.communicate()
     except subprocess.CalledProcessError:
-        log.critical("Failed to build xpi: %s.  Command(%s)" % (cfx,
+        log.critical("Failed to build xpi: %s.  Command(%s)" % (
                      subprocess.CalledProcessError, cfx))
         return HttpResponseServerError
+    if response[1]:
+        log.critical("Failed to build xpi.\nError: %s" % response[1])
+        return HttpResponseForbidden(response[1])
 
     # move the XPI created to the XPI_TARGETDIR
     xpi_targetfilename = "%s.xpi" % hashtag
     xpi_targetpath = os.path.join(settings.XPI_TARGETDIR, xpi_targetfilename)
     xpi_path = os.path.join(package_dir, "%s.xpi" % filename)
+    log.debug(response)
+    log.debug("%s, %s" % (xpi_path, xpi_targetpath))
     shutil.copy(xpi_path, xpi_targetpath)
     shutil.rmtree(sdk_dir)
 
