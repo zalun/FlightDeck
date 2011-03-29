@@ -108,6 +108,7 @@ var Sidebar = new Class({
 			
 		if($('PluginsTree')) {	
 			trees.plugins = new FileTree('PluginsTree', Object.merge({}, treeOptions, { actions: {
+				add: false,
 				edit: false,
 				remove: true
 			}}));
