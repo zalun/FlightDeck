@@ -1017,7 +1017,6 @@ class PackageRevision(BaseModel):
         manifest_file = "%s/package.json" % package_dir
         with codecs.open(manifest_file, mode='w', encoding='utf-8') as f:
             f.write(self.get_manifest_json(sdk=sdk))
-        log.debug(self.get_manifest_json(sdk=sdk))
 
     def export_modules(self, lib_dir):
         """Creates a module file for each module."""
@@ -1127,6 +1126,14 @@ class Package(BaseModel):
     ##################
     # Methods
 
+    def save(self, **kwargs):
+        try:
+            super(Package, self).save(**kwargs)
+        except IntegrityError, err:
+            if Package.objects.filter(id_number=self.id_number).exclude(pk=self.pk):
+                self.id_number = _get_next_id_number()
+                self.save(**kwargs)
+
     def __unicode__(self):
         return '%s v. %s by %s' % (self.full_name, self.version_name,
                                    self.author)
@@ -1195,6 +1202,9 @@ class Package(BaseModel):
         # it stays as method as it could be saved in instance in the future
         # TODO: YAGNI!
         return settings.JETPACK_DATA_DIR
+
+    def default_id_number(self):
+        self.id_number = _get_next_id_number()
 
     def default_full_name(self):
         self.set_full_name()
@@ -1801,12 +1811,6 @@ def _get_next_id_number():
 
 
 # Catching Signals
-def set_package_id_number(instance, **kwargs):
-    " sets package's id_number before creating the new one "
-    if kwargs.get('raw', False) or instance.id or instance.id_number:
-        return
-    instance.id_number = _get_next_id_number()
-pre_save.connect(set_package_id_number, sender=Package)
 
 
 def make_keypair_on_create(instance, **kwargs):
