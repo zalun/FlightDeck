@@ -27,4 +27,7 @@ FlightDeck.Keyboard = new Class({
 	
 });
 
+
+Event.Keys.meta = 224;
+
 })();
