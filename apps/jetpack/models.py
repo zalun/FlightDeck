@@ -1126,6 +1126,14 @@ class Package(BaseModel):
     ##################
     # Methods
 
+    def save(self, **kwargs):
+        try:
+            super(Package, self).save(**kwargs)
+        except IntegrityError, err:
+            if Package.objects.filter(id_number=self.id_number).exclude(pk=self.pk):
+                self.id_number = _get_next_id_number()
+                self.save(**kwargs)
+
     def __unicode__(self):
         return '%s v. %s by %s' % (self.full_name, self.version_name,
                                    self.author)
