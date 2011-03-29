@@ -2391,8 +2391,7 @@ var keysStoreKey = '$moo:keys-pressed',
 	},
 	retrieve = function(key, def){
 		return this.retrieve ? this.retrieve(key, def) : (this[key] || def);
-	},
-	modifiers = ['meta'];
+	};
 
 Event.definePseudo('keys', function(split, fn, args){
 	var event = args[0],
@@ -2409,10 +2408,6 @@ Event.definePseudo('keys', function(split, fn, args){
 	});
 
 	pressed.include(event.key);
-	
-	modifiers.each(function(mod) {
-		if(event[mod]) pressed.include(mod);
-	});
 
 	if (keyCombos.some(function(combo){
 		return combo.every(function(key){
@@ -2426,9 +2421,6 @@ Event.definePseudo('keys', function(split, fn, args){
 		var keyup = function(event){
 			(function(){
 				pressed = retrieve.call(this, keysStoreKey, []).erase(event.key);
-				modifiers.each(function(mod) {
-					if(!event[mod]) pressed.erase(mod);
-				});
 				store.call(this, keysStoreKey, pressed);
 			}).delay(0, this); // Fix for IE
 		};
