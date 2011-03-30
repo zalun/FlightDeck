@@ -34,42 +34,14 @@
   {% endfor %}
 </ul>
 
-<h2 class="UI_Heading" style="padding-top: 3em">Celery creates file</h2>
-<p>{{ monitor_file }}</p>
-<p id='monitor_file_result'>Waiting...</p>
-
-<script type="text/javascript">
-  window.addEvent('load', function(){
-    (function(){
-      var monitor_file_result = $('monitor_file_result');
-      new Request.JSON({ 
-        url: '{% url monitor_file %}',
-        method: 'post',
-        data: {
-          'monitor_file': '{{ monitor_file }}'
-        },
-        onSuccess: function(result) {
-          if (!result.success) {
-            monitor_file_result.set('text', 'FAIL');
-            return;
-          }
-          new Request.JSON({ 
-            url: '{% url monitor_file %}',
-            method: 'post',
-            data: {
-              'monitor_file': '{{ monitor_file }}'
-            },
-            onSuccess: function(result) {
-              monitor_file_result.set('text',  
-                (result.success) 
-                  ? 'FAIL - file received but not deleted' : 'SUCCESS');
-            }
-          }).send();
-        }
-      }).send();
-    }).delay(1000);
-  });
-</script>
-
-
+<h2 class="UI_Heading" style="padding-top: 3em">RabbitMQ</h2>
+<p>Tasks are sent to rabbit in a cronjob and results are stored in database.</p>
+<ul>
+    {% for celery_response in celery_responses %}
+    <li>
+        <strong>{{ celery_response.kind|title }}</strong> response: 
+        {{ celery_response.time }} seconds (checked {{ celery_response.modified_at }})
+    </li>
+    {% endfor %}
+</ul>
 {% endblock %}
