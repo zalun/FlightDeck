@@ -65,7 +65,10 @@ def monitor(request):
 
     data['filepaths'] = filepath_results
     template = loader.get_template('monitor.html')
-    data['celery_responses'] = CeleryResponse.objects.all()
+    try:
+        data['celery_responses'] = CeleryResponse.objects.all()
+    except:
+        pass
 
     context = RequestContext(request, data)
     status = 200 if status else 500
