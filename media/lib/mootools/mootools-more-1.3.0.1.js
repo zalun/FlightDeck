@@ -2413,7 +2413,12 @@ Event.definePseudo('keys', function(split, fn, args){
 		return combo.every(function(key){
 			return pressed.contains(key);
 		});
-	})) fn.apply(this, args);
+	})) {
+		fn.apply(this, args);
+		(function() {
+			pressed.empty();
+		}).delay(0);
+	}
 
 	store.call(this, keysStoreKey, pressed);
 
