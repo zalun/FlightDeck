@@ -1,10 +1,14 @@
 <h3>
 	{{ item.full_name }}
-	<span>by
+    {% ifnotequal user item.author %}
+    <span class="author">by
 	<a title="" href="{% url person_public_profile item.author.username %}">{{ item.author.get_profile }}</a>
-	</span>
+    </span>
+    {% endifnotequal %}
+    <span class="version">
+        version <span class="version-name">{{ item.version_name }}</span>
+    </span>
 </h3>
-<h4>{{ item.version_name }}</h4>
 <p>{{ item.description }}</p>
 
 <ul class="UI_Actions">
