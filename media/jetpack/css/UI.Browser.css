@@ -71,17 +71,26 @@ body {
 			display: block;
 		}
 		
-			.UI_Browser .UI_Item h3 span {
+			.UI_Browser .UI_Item h3 > span {
 				font-weight: normal;
 				font-size: .8em;
 				color: #999;
 			}
 			
-				.UI_Browser .UI_Item h3 span a {
+				.UI_Browser .UI_Item h3 span.author a {
 					font-weight: normal;
 					color: #478CDE;
 					
 				}
+
+                .UI_Browser .UI_Item h3 span.version {
+                    font-size: .7em;
+                }
+
+                .UI_Browser .UI_Item h3 span.version-name {
+                    color:#47AB78;
+                    font-size: 1.1em;
+                }
 				
 		.UI_Browser .UI_Item h4 {
 			font-size: .7em;
