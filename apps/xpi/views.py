@@ -4,6 +4,7 @@ import codecs
 
 from django.views.static import serve
 from django.http import HttpResponse, HttpResponseForbidden
+from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
 from base.shortcuts import get_object_with_related_or_404
@@ -15,7 +16,7 @@ from jetpack.models import PackageRevision
 
 log = commonware.log.getLogger('f.xpi')
 
-
+@csrf_exempt
 def prepare_test(r, id_number, revision_number=None):
     """
     Test XPI from data saved in the database
@@ -50,7 +51,7 @@ def prepare_test(r, id_number, revision_number=None):
         response, rm_xpi_url = revision.build_xpi(hashtag=hashtag)
     return HttpResponse('{"delayed": true, "rm_xpi_url": "%s"}' % rm_xpi_url)
 
-
+@csrf_exempt
 def get_test(r, hashtag):
     """
     return XPI file for testing
@@ -68,7 +69,7 @@ def get_test(r, hashtag):
     log.info('Downloading Add-on: %s' % hashtag)
     return HttpResponse(xpi, mimetype=mimetype)
 
-
+@csrf_exempt
 def prepare_download(r, id_number, revision_number=None):
     """
     Prepare download XPI.  This package is built asynchronously and we assume
@@ -88,7 +89,7 @@ def prepare_download(r, id_number, revision_number=None):
     revision.build_xpi(hashtag=hashtag)
     return HttpResponse('{"delayed": true}')
 
-
+@csrf_exempt
 def check_download(r, hashtag):
     """Check if XPI file is prepared."""
     if not validator.is_valid('alphanum', hashtag):
@@ -100,7 +101,7 @@ def check_download(r, hashtag):
         return HttpResponse('{"ready": true}')
     return HttpResponse('{"ready": false}')
 
-
+@csrf_exempt
 def get_download(r, hashtag, filename):
     """
     Download XPI (it has to be ready)
@@ -115,7 +116,7 @@ def get_download(r, hashtag, filename):
             'filename="%s.xpi"' % filename)
     return response
 
-
+@csrf_exempt
 def clean(r, path):
     " remove whole temporary SDK on request "
     # Validate sdk_name
