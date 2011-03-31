@@ -64,12 +64,13 @@ provides: [Element.Event.Pseudos.Keys]
 
 ...
 */
+
 (function(){
 
 var keysStoreKey = '$moo:keys-pressed',
 	keysKeyupStoreKey = '$moo:keys-keyup',
 	store = function(key, val){
-		this.store ? this.store(key,val) : this[key] = val;
+		this.store ? this.store(key, val) : this[key] = val;
 		return this;
 	},
 	retrieve = function(key, def){
@@ -83,14 +84,12 @@ Event.definePseudo('keys', function(split, fn, args){
 
 	keyCombos = keyCombos.map(function(key) {
 		var arr = [];
-		arr.append(key.replace('++', function(){
+		arr.append(key.replace(/ctrl/g, 'control').replace('++', function(){
 			arr.push('+'); // shift++ and shift+++a
 			return '';
 		}).split('+'));
 		return arr;
 	});
-	
-	console.log('asdfadfa')
 
 	pressed.include(event.key);
 
@@ -98,7 +97,10 @@ Event.definePseudo('keys', function(split, fn, args){
 		return combo.every(function(key){
 			return pressed.contains(key);
 		});
-	})) fn.apply(this, args);
+	})) {
+		fn.apply(this, args);
+		pressed = [];
+	}
 
 	store.call(this, keysStoreKey, pressed);
 
@@ -140,6 +142,7 @@ Object.append(Event.Keys, {
 });
 
 })();
+
 
 
 /*

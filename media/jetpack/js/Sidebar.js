@@ -749,20 +749,30 @@ var Sidebar = new Class({
 
     bind_keyboard: function() {
         var that = this;
-        this.keyboard = new Keyboard();
+        this.keyboard = new FlightDeck.Keyboard();
 		this.keyboard.addShortcuts({
             'collapse': {
                 keys:'left',
 				description: 'Collapse focused folder.',
 				handler: function(e) {
-					that.collapseFocused();
+					if(that._current_focus) {
+						var rel = that._current_focus.get('rel');
+						if(rel != 'file' && !(!that._current_focus.hasClass('top_branch') && that._current_focus.getParent('#PluginsTree'))) {
+							that.collapseFocused();
+						} 
+					}
                 }
 			},
 			'expand': {
                 keys: 'right',
 				description: 'Expand focused folder',
 				handler: function(e) {
-					that.expandFocused();
+					if(that._current_focus) {
+						var rel = that._current_focus.get('rel');
+						if(rel != 'file' && !(!that._current_focus.hasClass('top_branch') && that._current_focus.getParent('#PluginsTree'))) {
+							that.expandFocused();
+						} 
+					}
                 }
 			},
 			'up': {
@@ -785,7 +795,7 @@ var Sidebar = new Class({
 				handler: function(e) {
 					if(that._current_focus) {
 						var rel = that._current_focus.get('rel');
-						if(rel == 'file' || that._current_focus.getParent('#PluginsTree')) {
+						if(rel == 'file' || (!that._current_focus.hasClass('top_branch') && that._current_focus.getParent('#PluginsTree'))) {
 							that.selectFile(that._current_focus);
 						} else {
 							that.toggleFocused();

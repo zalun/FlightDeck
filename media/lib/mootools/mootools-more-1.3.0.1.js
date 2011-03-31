@@ -2367,7 +2367,7 @@ var proto = Element.prototype;
 
 name: Element.Event.Pseudos.Keys
 
-description: Adds functionallity fire events if certain keycombinations are pressed
+description: Adds functionality fire events if certain keycombinations are pressed
 
 license: MIT-style license
 
@@ -2386,7 +2386,7 @@ provides: [Element.Event.Pseudos.Keys]
 var keysStoreKey = '$moo:keys-pressed',
 	keysKeyupStoreKey = '$moo:keys-keyup',
 	store = function(key, val){
-		this.store ? this.store(key,val) : this[key] = val;
+		this.store ? this.store(key, val) : this[key] = val;
 		return this;
 	},
 	retrieve = function(key, def){
@@ -2400,7 +2400,7 @@ Event.definePseudo('keys', function(split, fn, args){
 
 	keyCombos = keyCombos.map(function(key) {
 		var arr = [];
-		arr.append(key.replace('++', function(){
+		arr.append(key.replace(/ctrl/g, 'control').replace('++', function(){
 			arr.push('+'); // shift++ and shift+++a
 			return '';
 		}).split('+'));
@@ -2413,7 +2413,12 @@ Event.definePseudo('keys', function(split, fn, args){
 		return combo.every(function(key){
 			return pressed.contains(key);
 		});
-	})) fn.apply(this, args);
+	})) {
+		fn.apply(this, args);
+		(function() {
+			pressed.empty();
+		}).delay(0);
+	}
 
 	store.call(this, keysStoreKey, pressed);
 
@@ -2455,6 +2460,7 @@ Object.append(Event.Keys, {
 });
 
 })();
+
 
 
 /*

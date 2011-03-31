@@ -1417,21 +1417,24 @@ Package.Edit = new Class({
 
 	bind_keyboard: function() {
 	    var that = this;
-        this.keyboard = new Keyboard();
-		this.keyboard.addShortcuts({
-			'save': {
-				keys:'ctrl+s',
-				description: 'Save current outstanding changes.',
-				handler: this.boundSaveAction
-			},
-			'test': {
+        this.keyboard = new FlightDeck.Keyboard();
+		if(this.options.type == 'a') {
+			this.keyboard.addShortcut('test', {
                 keys:'ctrl+enter',
 				description: 'Toggle Testing',
 				handler: function(e) {
                     e.preventDefault();
                     that.testAddon();
                 }
+			});
+		}
+		this.keyboard.addShortcuts({
+			'save': {
+				keys:'ctrl+s',
+				description: 'Save current outstanding changes.',
+				handler: this.boundSaveAction
 			},
+			
 			'new attachment': {
                 keys: 'ctrl+n',
 				description: 'Open the New Attachment prompt.',
@@ -1466,9 +1469,7 @@ Package.Edit = new Class({
 				keys: 'ctrl+shift+/',
 				description: 'Show these keyboard shortcuts',
 				handler: function() {
-					that._shortcutsModal ?
-						that.hideShortcuts() :
-						that.showShortcuts();
+					that.toggleShortcutsModal();
 				}
 			}
 		})
@@ -1480,9 +1481,15 @@ Package.Edit = new Class({
 		});
 	},
 	
+	toggleShortcutsModal: function() {
+		this._shortcutsModal ?
+			this.hideShortcuts() :
+			this.showShortcuts();
+	},
+	
 	showShortcuts: function() {
 		function buildLines(shortcut) {
-			var keys = '<kbd>'+ shortcut.keys.split('+').join('</kbd> + <kbd>').split('|').join('</kbd> or <kbd>') + '</kbd>';
+			var keys = '<kbd>'+ shortcut.keys.split('+').join('</kbd> + <kbd>').split('|').join('</kbd> or <kbd>').replace(/meta/g, 'cmd') + '</kbd>';
 			shortcuts.push(keys + ': ' + shortcut.description);
 		}
 		
