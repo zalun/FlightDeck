@@ -1,4 +1,3 @@
-import MySQLdb
 import hashlib
 import commonware
 
@@ -84,6 +83,7 @@ class AMOAuthentication:
 
     def auth_db_authenticate(self, username, password):
         " authenticate email/password pair in MAO database "
+        import MySQLdb
         columns = ('id', 'email', 'username', 'display_name', 'password',
                    'homepage')
 
