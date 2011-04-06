@@ -11,6 +11,7 @@ from django.views.debug import get_safe_settings
 
 from jetpack.models import Package, SDK
 import base.tasks
+from base.models import CeleryResponse
 
 log = commonware.log.getLogger('f.monitor')
 
@@ -61,12 +62,14 @@ def monitor(request):
             'xpi_targetdir %s' % x_path: (x.f_bavail * x.f_frsize) / 1024,
             'sdkdir_prefix %s' % s_path: (s.f_bavail * s.f_frsize) / 1024
             }
-    monitor_file = os.path.join(x_path, 'monitor.txt')
-    base.tasks.touch_a_file.delay(monitor_file)
-    data['monitor_file'] = monitor_file
 
     data['filepaths'] = filepath_results
     template = loader.get_template('monitor.html')
+    try:
+        data['celery_responses'] = CeleryResponse.objects.all()
+    except:
+        pass
+
     context = RequestContext(request, data)
     status = 200 if status else 500
 

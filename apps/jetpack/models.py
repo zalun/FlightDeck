@@ -26,6 +26,7 @@ from django.utils.translation import ugettext as _
 
 from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
 from ecdsa import SigningKey, NIST256p
+from elasticutils import es_required
 from pyes import djangoutils
 
 from api.helpers import export_docs
@@ -35,7 +36,6 @@ from jetpack.errors import (SelfDependencyException, FilenameExistException,
                             UpdateDeniedException, SingletonCopyException,
                             DependencyException, AttachmentWriteException)
 from jetpack.managers import PackageManager
-from search.decorators import es_required
 from utils.exceptions import SimpleException
 from utils.helpers import pathify, alphanum, alphanum_plus
 from utils.os_utils import make_path
@@ -253,7 +253,7 @@ class PackageRevision(BaseModel):
             else:
             # jetpack-core or api-utils
                 deps = ['jetpack-core']
-        deps.extend([dep.package.name \
+        deps.extend(["%s-%s" % (dep.package.name, dep.package.id_number) \
                      for dep in self.dependencies.all()])
         return deps
 
@@ -274,9 +274,13 @@ class PackageRevision(BaseModel):
         if test_in_browser:
             version = "%s - test" % version
 
+        name = self.package.name
+        if not self.package.is_addon():
+            name = "%s-%s" % (name, self.package.id_number)
+
         manifest = {
             'fullName': self.package.full_name,
-            'name': self.package.name,
+            'name': name,
             'description': self.get_full_description(),
             'author': self.package.author.username,
             'id': self.package.jid if self.package.is_addon() \
@@ -669,7 +673,7 @@ class PackageRevision(BaseModel):
                         self.attachments.add(att)
 
     @transaction.commit_on_success
-    def attachment_create_by_filename(self, author, filename, content=None):
+    def attachment_create_by_filename(self, author, filename, content=''):
         """ find out the filename and ext and call attachment_create """
         filename, ext = os.path.splitext(filename)
         ext = ext.split('.')[1].lower() if ext else None
@@ -684,9 +688,12 @@ class PackageRevision(BaseModel):
 
         attachment = self.attachment_create(**kwargs)
 
-        if content or content == '':
-            attachment.data = content
-            attachment.write()
+        # we must write data of some sort, in order to create the file on the disk
+        # so at the least, write a blank string
+        if not content:
+            content = ''
+        attachment.data = content
+        attachment.write()
         return attachment
 
     def attachment_create(self, save=True, **kwargs):
@@ -774,7 +781,8 @@ class PackageRevision(BaseModel):
         # dependency have to be unique in the PackageRevision
         # currently, the SDK can't compile with libraries with same "name"
         if self.dependencies.filter(
-                package__name=dep.package.name).count() > 0:
+                package__name=dep.package.name,
+                author=dep.package.author).count() > 0:
             raise DependencyException(
                 'Your %s already depends on a library with that name' % (
                     self.package.get_type_name(),))
@@ -1118,6 +1126,14 @@ class Package(BaseModel):
     ##################
     # Methods
 
+    def save(self, **kwargs):
+        try:
+            super(Package, self).save(**kwargs)
+        except IntegrityError, err:
+            if Package.objects.filter(id_number=self.id_number).exclude(pk=self.pk):
+                self.id_number = _get_next_id_number()
+                self.save(**kwargs)
+
     def __unicode__(self):
         return '%s v. %s by %s' % (self.full_name, self.version_name,
                                    self.author)
@@ -1186,6 +1202,9 @@ class Package(BaseModel):
         # it stays as method as it could be saved in instance in the future
         # TODO: YAGNI!
         return settings.JETPACK_DATA_DIR
+
+    def default_id_number(self):
+        self.id_number = _get_next_id_number()
 
     def default_full_name(self):
         self.set_full_name()
@@ -1261,7 +1280,7 @@ class Package(BaseModel):
             os.mkdir(package_dir)
         else:
             return False
-        
+
         os.mkdir('%s/%s' % (package_dir, self.get_lib_dir()))
         if not os.path.isdir('%s/%s' % (package_dir, self.get_data_dir())):
             os.mkdir('%s/%s' % (package_dir, self.get_data_dir()))
@@ -1792,12 +1811,6 @@ def _get_next_id_number():
 
 
 # Catching Signals
-def set_package_id_number(instance, **kwargs):
-    " sets package's id_number before creating the new one "
-    if kwargs.get('raw', False) or instance.id or instance.id_number:
-        return
-    instance.id_number = _get_next_id_number()
-pre_save.connect(set_package_id_number, sender=Package)
 
 
 def make_keypair_on_create(instance, **kwargs):

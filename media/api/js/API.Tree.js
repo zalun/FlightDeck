@@ -31,7 +31,8 @@ FlightDeck = Class.refactor(FlightDeck, {
     initialize: function(options) {
         this.previous(options);
         
-        var actions = { add: false, edit: false, remove: false };
+        var actions = { add: false, edit: false, remove: false },
+			that = this;
         
         API.Tree = new FileTree('PackTree', {
             checkDrag: Function.from(false),
@@ -68,7 +69,8 @@ FlightDeck = Class.refactor(FlightDeck, {
         $('PackTree').addEvent('click:relay(li:not(top_branch) > .holder > .label)', function(e, label) {
             var page = label.getParent('li').retrieve('page');
             if(page) {
-                window.location.href = page.options.get_url;
+                that.setSelectedFile(label.getParent('li'));
+				window.location.href = page.options.get_url;
             }
         });
     },
@@ -86,8 +88,10 @@ FlightDeck = Class.refactor(FlightDeck, {
 		//also be sure to expand all parent folders
 		var tree = API.Tree;
 			node = el;
-			
-		tree.collapse.expand(node);
+		
+		if (node.getElement('li')) {
+			tree.collapse.expand(node);
+		}
 		
 		while (node = node.getParent('li')) {
 			tree.collapse.expand(node);

@@ -146,9 +146,15 @@ class TestViews(TestCase):
 
     def upload(self, url, data, filename):
         # A post that matches the JS and uses raw_post_data.
-        return self.client.post(url, data,
-                                content_type='text/plain',
+        f = open('upload_attachment', 'w')
+        f.write(data)
+        f.close()
+        f = open('upload_attachment', 'r')
+        resp = self.client.post(url, { 'upload_attachment': f },
                                 HTTP_X_FILE_NAME=filename)
+        f.close()
+        os.unlink('upload_attachment')
+        return resp
 
     def test_attachment_path(self):
         res = self.upload(self.upload_url, 'foo', 'some.txt')

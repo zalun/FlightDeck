@@ -29,5 +29,11 @@ FlightDeck.Autocomplete = new Class({
 			}
 		});
 		return this.autocomplete;
+	},
+	
+	positionNextTo: function(target) {
+		target = $(target || this.options.display_el);
+		this.autocomplete.elements.list.positionNextTo(target);
 	}
+	
 });

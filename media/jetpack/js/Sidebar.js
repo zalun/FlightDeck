@@ -108,6 +108,7 @@ var Sidebar = new Class({
 			
 		if($('PluginsTree')) {	
 			trees.plugins = new FileTree('PluginsTree', Object.merge({}, treeOptions, { actions: {
+				add: false,
 				edit: false,
 				remove: true
 			}}));
@@ -624,8 +625,11 @@ var Sidebar = new Class({
 		
 		//setup Library autocomplete
 		// autocomplete
-		var autocomplete = new FlightDeck.Autocomplete({
+		var ac = new FlightDeck.Autocomplete({
 			'url': settings.library_autocomplete_url
+		});
+		$(prompt).retrieve('dragger').addEvent('drag', function(el, evt) {
+			ac.positionNextTo();
 		});
 	},
 

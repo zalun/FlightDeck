@@ -34,3 +34,9 @@ class BaseModel(models.Model):
             attr = getattr(self, attrName)
             if callable(attr):
                 attr()
+
+
+class CeleryResponse(BaseModel):
+    kind = models.CharField(max_length=100)
+    time = models.IntegerField()
+    modified_at = models.DateTimeField(auto_now=True)

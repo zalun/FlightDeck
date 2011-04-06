@@ -1,3 +1,4 @@
+import commonware
 import tempfile
 import os
 
@@ -6,10 +7,14 @@ from test_utils import TestCase
 from nose.tools import eq_
 
 from django.contrib.auth.models import User
+from django.conf import settings
 
 from jetpack.models import Package, PackageRevision, Module, Attachment
 from jetpack.errors import SelfDependencyException, FilenameExistException, \
         DependencyException
+from base.templatetags.base_helpers import hashtag
+
+log = commonware.log.getLogger('f.test')
 
 
 class PackageRevisionTest(TestCase):
@@ -19,6 +24,13 @@ class PackageRevisionTest(TestCase):
         self.author = User.objects.get(username='john')
         self.addon = self.author.packages_originated.addons()[0:1].get()
         self.library = self.author.packages_originated.libraries()[0:1].get()
+        self.hashtag = hashtag()
+        self.xpi_file = os.path.join(settings.XPI_TARGETDIR,
+                "%s.xpi" % self.hashtag)
+
+    def tearDown(self):
+        if os.path.exists(self.xpi_file):
+            os.remove(self.xpi_file)
 
     def test_first_revision_creation(self):
         addon = Package(author=self.author, type='a')
@@ -274,6 +286,19 @@ class PackageRevisionTest(TestCase):
         )
         self.assertRaises(FilenameExistException, first.attachment_add, att)
 
+    def test_assigning_lib_with_the_same_name(self):
+        user2 = User.objects.get(username='jan')
+        lib2 = Package.objects.create(
+                type='l',
+                name=self.library.name,
+                full_name=self.library.full_name,
+                author=user2)
+        self.addon.latest.dependency_add(self.library.latest)
+        self.addon.latest.dependency_add(lib2.latest)
+        eq_(self.addon.latest.dependencies.all().count(), 2)
+        self.addon.latest.build_xpi(hashtag=self.hashtag, rapid=True)
+        log.debug(self.xpi_file)
+        assert os.path.exists(self.xpi_file)
 
     """
     Althought not supported on view and front-en, there is no harm in these two

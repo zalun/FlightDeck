@@ -2,12 +2,12 @@ from django.conf import settings
 from django.contrib.auth.models import User
 
 import test_utils
+from elasticutils import get_es
 from nose import SkipTest
 from nose.tools import eq_
 from pyes import StringQuery, FieldQuery, FieldParameter
 
 from jetpack.models import Package
-from search.utils import get_es
 
 
 def create_addon(name):
