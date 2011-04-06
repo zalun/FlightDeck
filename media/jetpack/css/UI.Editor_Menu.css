@@ -24,7 +24,8 @@ authors:
 	padding: 1px;
 }
 
-.UI_Editor_Menu_Button {
+.UI_Editor_Menu_Button,
+form.UI_Editor_Menu_Descendant {
 	background: #BEC5CC;
 	border-bottom: solid 1px #fff;
 	padding: 1px;
@@ -33,14 +34,19 @@ authors:
 	position: relative;
 }
 
-	.UI_Editor_Menu_Button a {
+	.UI_Editor_Menu_Button a,
+	.UI_Editor_Menu_Descendant fieldset {
 		background: -moz-linear-gradient(270deg, #EBEFF2, #D4D9DF);
 		-moz-box-shadow: 0 -1px 0 #fff;
 		display: block;
-		padding: 7px 7px 7px 30px;
+		padding: 0px 7px 7px 7px;
 		margin: 1px 0 0;
 		font-size: .9em;
 		text-shadow: 0 1px 0 #fff;
+	}
+
+	.UI_Editor_Menu_Button a {
+		padding: 7px 7px 7px 30px;
 	}
 
 	/* Starting element */
@@ -190,3 +196,41 @@ authors:
 		background-position: -178px 0;
 	}
 	
+/* SUBMENU */
+.UI_Editor_Menu_Parent > .UI_Editor_Menu_Descendant {
+    display: none;
+    position: absolute;
+    margin-left: -1px;
+	z-index: 2;
+}
+
+.UI_Editor_Menu_Parent:hover > .UI_Editor_Menu_Descendant {
+    display: block;
+}
+.UI_Editor_Menu_Parent .UI_Editor_Menu_Descendant.UI_Forms {
+    width: auto;
+}
+
+.UI_Editor_Menu_Descendant.UI_Forms .UI_Field label,
+.UI_Editor_Menu_Descendant.UI_Forms .UI_Field input,
+.UI_Editor_Menu_Descendant.UI_Forms .UI_Field textarea {
+     float: none;
+     width: 100%;
+}
+.UI_Editor_Menu_Parent .UI_Editor_Menu_Descendant.UI_Forms .UI_Field {
+    padding-top: 5px;
+    margin-top: 5px;
+}
+
+#test_textarea
+{
+    min-width: 100% !important;   
+}
+
+fieldset p{
+    margin: 0 12px 0 0 !important;   
+}
+
+form{
+    min-width: 200px;   
+}
