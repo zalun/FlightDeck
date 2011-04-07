@@ -266,6 +266,7 @@ var Sidebar = new Class({
 	},
 	
 	removeFile: function(file, prefix) {
+		$log('sidebar destroy')
 	    
 	    if (file instanceof File) {
 	        file.destroy();
