@@ -213,6 +213,9 @@ FileTree = new Class({
 			
 			label.set('title', text);
 			label.set('text', text);
+
+            li.set('name', text);
+            li.set('path', text);
 			li.set('title', text);
 			
 			

@@ -266,6 +266,7 @@ var Sidebar = new Class({
 	},
 	
 	removeFile: function(file, prefix) {
+		$log('sidebar destroy')
 	    
 	    if (file instanceof File) {
 	        file.destroy();
@@ -371,7 +372,7 @@ var Sidebar = new Class({
 		if (fileType != null) {
 		    titleOpts.name = file + " and all its files";
 		} else {
-		    titleOpts.name = file.options.path
+		    titleOpts.name = file.options.filename + "." + file.options.type;
 		}
 		
 		if (fileType == Attachment) {
