@@ -1,0 +1,15 @@
+#Search {
+    padding:5px;
+}
+    #Search input { 
+        display:block; 
+        border:1px solid #ccc; 
+        width:60%;
+        height:20px;
+    }
+
+    #Search label span {
+        float:left;
+        display:block;
+        padding:5px;
+    }

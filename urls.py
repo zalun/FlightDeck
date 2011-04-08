@@ -36,6 +36,9 @@ urls.extend([
     # Person
     (r'^user/', include('person.urls')),
 
+    # Search
+    (r'^search/', include('search.urls')),
+
     # Jetpack
     (r'', include('jetpack.urls')),
 
