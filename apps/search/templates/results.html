@@ -1,13 +1,24 @@
 {% extends "base.html" %}
-{% block head %}
+{% block head %}%
 <link rel="stylesheet" type="text/css" href="/media/search/css/Search.css" />
 {% endblock %}
 {% block app_body %}
     {% include "_search_form.html" %}
 {% endblock %}
+{% block app_sidebar %}
+    {% include "search_filter.html" %}
+{% endblock %}
 {% block app_content %}
-<h2 class="UI_Heading">Results</h2>
-{# for package in results %}
-    
-{% endfor #}
+<h2 class="UI_Heading">Addon Results</h2>
+{% for package in results %}
+    {% ifequal package.type 'a' %}
+        {% include "_package_result.html" %}  
+    {% endifequal %}
+{% endfor %}
+<h2 class="UI_Heading">Library Results</h2>
+{% for package in results %}
+    {% ifequal package.type 'l' %}
+        {% include "_package_result.html" %}
+    {% endifequal %}
+{% endfor %}
 {% endblock %}

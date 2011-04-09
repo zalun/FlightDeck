@@ -1,6 +1,6 @@
 <div class="result package">
     <h3>
-        {{ package.full_name }}
+        <a href="{{ package.get_absolute_url }}">{{ package.full_name }}</a>
         <span>by {{ package.author }}</span>
     </h3>
     <p>{{ package.description }}</p>
