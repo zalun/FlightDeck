@@ -1,8 +1,13 @@
-<form id="Search" method="get" action="{% url search_results %}">
-    <fieldset>
-        <label>
-            <span>Search for</span>
-            <input type="search" name="q" placeholder="Search term" value="{{ q }}"/>
-        </label>
-    </fieldset>
-</form>
+<div id="search-bar">
+    <div class="UI_middleWrapper">
+        <form id="Search" method="get" action="{% url search_results %}">
+            <fieldset>
+                <label>
+                    <span>Search for</span>
+                    <input type="search" name="q" placeholder="Search term" value="{{ q }}"/>
+                </label>
+            </fieldset>
+            <button type="submit">Search</button>
+        </form>
+    </div>
+</div>

@@ -1,10 +1,25 @@
 <h2 class="UI_Heading">Narrow Search</h2>
 <ul class="UI_Action_List">
-    <li>Combined</li>
-    <li>Addons</li>
-    <li>Libraries</li>
+    <li>
+        <a href="#">Combined</a>
+        <strong>({{ addons.count|add:libraries.count }})</strong>
+    </li>
+    <li>
+        <a href="#">Addons</a>
+        <strong>({{ addons.count }})</strong>
+    </li>
+    <li>
+        <a href="#">Libraries</a>
+        <strong>({{ libraries.count }})</strong>
+    </li>
 </ul>
 <ul class="UI_Action_List">
-    <li>By Everyone</li>
-    <li>By Me</li>
+    <li>
+        <a href="#">By Everyone</a>
+        <strong>(0)</strong>
+    </li>
+    <li>
+        <a href="#">By Me</a>
+        <strong>(0)</strong>
+    </li>
 </ul>
