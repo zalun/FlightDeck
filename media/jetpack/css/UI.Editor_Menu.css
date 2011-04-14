@@ -201,7 +201,7 @@ form.UI_Editor_Menu_Descendant {
     display: none;
     position: absolute;
     margin-left: -1px;
-	z-index: 2;
+	z-index: 9;
 }
 
 .UI_Editor_Menu_Parent:hover > .UI_Editor_Menu_Descendant {

@@ -55,6 +55,8 @@ var Package = new Class({
 		this.setOptions(options);
         // create empty editor
         this.editor = new FDEditor('editor-wrapper');
+        // reset version_name (in case of reload)
+        $('version_name').set('value', this.options.version_name);
         // initiate the sidebar 
 		fd.sidebar.options.editable = !this.options.readonly;
 		fd.sidebar.buildTree();
@@ -615,9 +617,7 @@ Package.Edit = new Class({
 			// add_module_url: '',
 			// assign_library_url: '',
 			// switch_sdk_url: '',
-		package_info_form_elements: [
-			'full_name', 'version_name', 'package_description', 'revision_message'
-			]
+		package_info_form_elements: ['full_name', 'package_description']
 	},
 	
 	_modules_list: {},
@@ -641,6 +641,7 @@ Package.Edit = new Class({
 
 	assignActions: function() {
 		// assign menu items
+        var that = this;
 		this.appSidebarValidator = new Form.Validator.Inline('app-sidebar-form');
 		$(this.options.package_info_el).addEvent('click', this.editInfo.bind(this));
 
@@ -658,6 +659,40 @@ Package.Edit = new Class({
 		// submit Info
 		this.boundSubmitInfo = this.submitInfo.bind(this);
 
+        // check if message changed
+        var message_changed = function() {
+            if (!fd.changed) {
+                var message = this.get('value');
+                if (that.options.message != message) {
+                    fd.fireEvent('change');
+                    return;
+                }
+            }
+        }
+        $('revision_message').addEvents({
+            keyup: message_changed,
+            change: function() { 
+                fd.fireEvent('change'); 
+            }
+        });
+        // check if version_name changed
+        var version_name_changed = function() {
+            if (!fd.changed) {
+                var version_name = this.get('value');
+                if (that.options.version_name != version_name) {
+                    fd.fireEvent('change');
+                    return;
+                }
+            }
+        }
+        $('version_name').addEvents({
+            //focus: version_name_changed,
+            //blur: version_name_changed,
+            keyup: version_name_changed,
+            //change: function() { 
+            //    fd.fireEvent('change'); 
+            //}
+        });
 		if ($('jetpack_core_sdk_version')) {
 			$('jetpack_core_sdk_version').addEvent('change', function() {
 				new Request.JSON({
@@ -1247,14 +1282,10 @@ Package.Edit = new Class({
 	editInfo: function(e) {
 		e.stop();
 		this.savenow = false;
-        $log(Object.merge({}, this.data, this.options).version_name)
 		fd.editPackageInfoModal = fd.displayModal(
 				settings.edit_package_info_template.substitute(
 					Object.merge({}, this.data, this.options)));
 		$('package-info_form').addEvent('submit', this.boundSubmitInfo);
-		$('version_name').addEvent('change', function() { 
-			fd.fireEvent('change'); 
-		});
 		$('full_name').addEvent('change', function() { 
 			fd.fireEvent('change'); 
 		});
@@ -1306,6 +1337,8 @@ Package.Edit = new Class({
 
 	collectData: function() {
 		this.editor.dumpCurrent();
+        this.data.version_name = $('version_name').get('value');
+        this.data.revision_message = $('revision_message').get('value');
 		Object.each(this.modules, function(module, filename) {
             var mod = this.editor.items[module.uid];
             if (mod.content && mod.changed) {
@@ -1336,7 +1369,7 @@ Package.Edit = new Class({
 		this.collectData();
 		this.saving = true;
 		new Request.JSON({
-			url: this.options.save_url || this.options.save_url,
+			url: this.options.save_url,
 			data: this.data,
 			onSuccess: function(response) {
 				// set the redirect data to view_url of the new revision
@@ -1345,6 +1378,7 @@ Package.Edit = new Class({
 					$('package-info-name').set('text', response.full_name);
 					this.options.full_name = response.full_name;
 				}
+                $('revision_message').set('value', '');
                 if (response.attachments_changed) {
                     Object.forEach(response.attachments_changed, 
                         function(options, uid) {

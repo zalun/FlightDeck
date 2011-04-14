@@ -434,4 +434,9 @@ window.addEvent('load', function() {
 });
  */
 
-
+// reset the class="emptyreset" fields
+window.addEvent('domready', function() {
+    $$('.emptyreset').forEach(function(el) {
+        el.set('value', '');
+    })
+})
