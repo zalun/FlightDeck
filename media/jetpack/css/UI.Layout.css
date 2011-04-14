@@ -62,7 +62,8 @@ a:hover {
 /*
  =========================================================================== */
 #app-header {
-	position: relative;	
+	position: relative;
+	height: 44px;
 	border-top: 1px solid #153877;
 	border-bottom: 2px solid #153877;
 	background: url(../img/mozilla/header.png) repeat-x left top;
@@ -484,6 +485,7 @@ kbd {
 /*
  =========================================================================== */
 #app-footer {
+	position: relative;	
 	overflow: hidden;
 	background: url(../img/mozilla/footer.png) repeat-x top left;
 }
@@ -494,8 +496,9 @@ kbd {
 
 #footer
 {
-	padding-top: 115px;    
-	color: #fff;	
+	position: absolute;	
+	bottom: 20px;
+    color: #FFFFFF;
 }
 #footer a {
     color: #AFD7FF;
