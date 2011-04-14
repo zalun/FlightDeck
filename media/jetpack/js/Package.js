@@ -1057,11 +1057,14 @@ Package.Edit = new Class({
 				fd.message.alert(response.message_title, response.message);
 				
 				var mod = this.modules[oldName];
+				var modId = mod.getID();
 				mod.setOptions({
 					filename: response.filename,
 					get_url: response.get_url
 				});
 				this.modules[response.filename] = mod;
+				// change the id of the element
+				$(modId).set('id', mod.getID());
 				delete this.modules[oldName];
 				
 				this.checkModuleConflicts();
@@ -1070,6 +1073,7 @@ Package.Edit = new Class({
 	},
 
 	removeModule: function(module) {
+		$log(module);
 		new Request.JSON({
 			url: this.options.remove_module_url,
 			data: module.options,
