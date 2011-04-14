@@ -6,6 +6,26 @@ body {
 	overflow-x: hidden;
 }
 
+/* CSS STICKY FOOTER */
+
+* {
+	margin: 0;
+}
+html, body {
+	height: 100%;
+}
+#wrapper {
+	min-height: 100%;
+	height: auto !important;
+	height: 100%;
+	margin: 0 auto -175px; /* the bottom margin is the negative value of the footer's height */
+}
+#push, #app-footer {
+	height: 175px; /* .push must be the same height as .footer */
+}
+
+/* CSS STICKY FOOTER */
+
 a,
 a:link {
 	text-decoration: none;
@@ -23,6 +43,11 @@ a:hover {
 	min-width: 800px;
 }
 
+.centerSection
+{
+	padding: 0 15px;
+}
+
 .UI_middleWrapper,
 .centerSection p {
 	max-width: 975px;
@@ -37,35 +62,36 @@ a:hover {
 /*
  =========================================================================== */
 #app-header {
-	background: -moz-linear-gradient(270deg, #5A6776, #4E5861);
-	height: 90px;
+	position: relative;	
+	border-top: 1px solid #153877;
+	border-bottom: 2px solid #153877;
+	background: url(../img/mozilla/header.png) repeat-x left top;
+	z-index: 1;
+	-moz-box-shadow: 0 2px 2px -2px #666;
 }
 
 	#app-header nav {
 		float: right;
-		margin: 45px 15px 0 0;
-		padding: 1px;
-		z-index: 20;
-		
+		margin: 9px 9px 0 0;
 	}
    
 	#app-header nav li {
 		float: left;
-		color: #B3B3B3;
+		color: #fff;
 		cursor:default;
 		padding: 5px 2px;
 		margin: 0 4px;
 		position:relative;
 	}
-   
-		#app-header nav li a {
+   		
+		#app-header nav li a, #app-header nav li span {
 			font-size: .9em;
-			text-shadow: 0 1px 0 #000;
-			color: #D4D9DF;
+			color: #fff;
+			text-shadow: 0 1px 0 #153877;
 		}      
 
 		#app-header nav li a.logout {
-			color: #B3B3B3;
+			color: #ddd;
 		}
 
 		#app-header nav li a:hover {
@@ -73,17 +99,17 @@ a:hover {
 		}
       
 	#app-header nav li.active {
-		background: -moz-linear-gradient(270deg, #2C3137, #3E454D);
+		background: -moz-linear-gradient(top, #000, #222);
 		-moz-border-radius: 3px;
-		-moz-box-shadow: 0 1px 0 #7A7E86;
+		-moz-box-shadow: 0 1px 0 #5077BF;
 		margin: 0 3px;
 		padding: 1px;
 		color: #fff;
-		text-shadow: 0 1px 0 #011E4F;
+		text-shadow: 0 1px 0 #000;
 	}
       
 		#app-header nav li.active span {
-			background: -moz-linear-gradient(270deg, #66778C, #545F6B);
+			background: -moz-linear-gradient(top, #555, #666);
 			-moz-border-radius: 2px;
 			padding: 4px 8px;
 			display: inline-block;
@@ -97,9 +123,9 @@ a:hover {
 		display: none;
 		padding-top:10px;
 		position:absolute;
-		left:0;
-		top:95%;
-		z-index:10;
+		right: -13px;
+		margin-top: 3px;
+		z-index:100;
 	}
 	
 		#app-header nav li:hover .pointytip {
@@ -130,16 +156,13 @@ a:hover {
 	display: block;
 	float: left;
 	font-size: 2.0em;
-	width: 246px;
-	height: 60px;
-	margin-left: 15px;
-	margin-top: 15px;
+	margin: 4px 0 2px;
 }
 
 	#flightdeck-logo a {
 		display: block;
-		width: 246px;
-		height: 60px;
+		width: 257px;
+		height: 36px;
 		background: url(../img/flightdeck-logo.png) 0 0 no-repeat;
 		text-indent: -900em;
 	}
@@ -148,52 +171,36 @@ a:hover {
 	display: none;
 }
 
-	#mozillalabs-logo a {
-	}
-   
 
-#brand {
-	height: 35px;
-	background: url(../img/mozilla/header-border.png) 0 0 repeat-x;
-	overflow: hidden;
-	position: absolute;
-	width: 100%;
+#brand
+{
+	float: right;
+	width: 97px;
+	height: 24px;
+	display: block;
+	background: url(../img/mozilla/mozilla_logo.png) 0 0 no-repeat;
+	text-indent: -900em;
+	margin-top: 9px;
 }
-
-	#brand p {
-	}
-
-	#brand a {
-		float: right;
-		width: 82px;
-		height: 31px;
-		display: block;
-		background: url(../img/mozilla/tab-mozilla.png) 0 0 no-repeat;
-		text-indent: -900em;
-		margin-top: 4px;
-		margin-right: 15px;
-	}
 
 /*
  =========================================================================== */
 #app-body {
-	margin-left: 230px;
+	
 }
 
 /*
  =========================================================================== */
 #app-content {
-	float: right;
-	width: 100%;   
+	
 }
 
 /*
  =========================================================================== */
 #editor-menu-wrapper {
 	background: #E5E9EE;
-	border-top: solid 1px #EFF2F5;
 	border-bottom: solid 1px #AFB6BD;
-	padding: 7px;
+	padding: 5px 6px 7px;
 }
 
 /*
@@ -206,34 +213,24 @@ a:hover {
 /*
  =========================================================================== */
 #app-sidebar {
-	float: left;
+	position: absolute;
 	width: 230px;
-	margin-left: -231px;
-	border-right: solid 1px #AFB6BD;
-	background: #fff;
 }
 
 #package-info {
-   
+    margin: 6px 8px 12px 7px;
+    padding: 5px 8px;
+	border: solid 1px;
+	border-color: #333 #222 #000;
+	background: -moz-linear-gradient(top , #666, #444);
+	-moz-border-radius: 3px;
+	-moz-box-shadow: 0 2px 2px -1px #666;
 }
 
-	#package-info #ji-toggler {
-		background: -moz-linear-gradient(270deg, #3A86DA, #022052);
-		padding-right: 1px;
-		right: -1px;
-		width: 230px;
+	#package-info span {
+		color: #fff;
+		font-weight: bold;
 	}
-
-		#package-info #ji-toggler span {
-			display: block;
-			background: -moz-linear-gradient(270deg, #59A1F2, #1C5AAB);
-			border-top: solid 1px #9CC7F8;
-			border-bottom: solid 1px #022052;
-			color: #fff;
-			text-shadow: 0 1px 0 #011E4F;
-			padding: 16px 0 16px 10px;
-			position: relative;
-		}
 		
 /*
  =========================================================================== */
@@ -420,7 +417,7 @@ a:hover {
 			.UI_Actions li.UI_Pick_Version.active a {
 				-moz-border-radius-bottomright: 0;
 			}
-
+#app-footer
 		.UI_Actions li.UI_Pick_Version a span {
 			height: 10px;
 			width: 11px;
@@ -488,37 +485,28 @@ kbd {
  =========================================================================== */
 #app-footer {
 	overflow: hidden;
+	background: url(../img/mozilla/footer.png) repeat-x top left;
 }
 
 
 /* From AMO */
 /* @group Footer */
 
-#footer {
-    background-image: url(../img/mozilla/footer.png);
-    background-repeat: repeat-x;
-    background-position: 0 50px;
-    clear: both;
-    padding-bottom: 1em;
+#footer
+{
+	padding-top: 115px;    
+	color: #fff;	
 }
 #footer a {
-    color: #478CDE;
+    color: #AFD7FF;
 }
 
-#footer .section {
-    min-height: 0;
-	overflow: hidden;
-	background-image: url(../img/mozilla/logo-mozilla.gif);
-    background-repeat: no-repeat;
-    background-position: 15px 70px;
-    padding: 0 15px;
+#footer div.UI_middleWrapper {
+	background: url(../img/mozilla/logo-mozilla.gif) no-repeat 15px 0;
 	
 }
 #footer .primary {
-    float: left;
-    padding-top: 70px;
-    clear: none;
-	width: 75%;
+
 }
 #footer .primary ul {
     margin-top: 7px;
@@ -526,15 +514,7 @@ kbd {
 #footer .primary strong {
     font-weight: bold;
 }
-#footer .secondary {
-    float: right;
-    text-align: right;
-    clear: none;
-}
-#footer .secondary img {
-    max-width: 190px;
-    width: 100%;
-}
+
 #footer p {
     margin-bottom: 0;
     margin-left: 60px;
@@ -555,7 +535,7 @@ kbd {
 #footer .disclaimer {
     font-size: 0.846em;
     line-height: 1.273;
-    color: #666666;
+    color: #ccc;
     margin-right: 1.273em;
 	padding-top: 15px;
 	margin-bottom: 10px;
