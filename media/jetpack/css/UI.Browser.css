@@ -55,11 +55,16 @@ body {
 			background-repeat: no-repeat;
 		}
 
-			.UI_Browser .UI_Icon.jetpack {
+			.UI_Browser .UI_Icon.a {
 				background-position: 0 0;
 			}
 
-			.UI_Browser .UI_Icon.capability {
+			.UI_Browser .UI_Icon.l  {
+				background-position: -96px 0;
+			}
+
+			div.libraries div.UI_Icon
+			{
 				background-position: -96px 0;
 			}
    
