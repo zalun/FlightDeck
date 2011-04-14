@@ -1,15 +1,20 @@
 @import url('UI.Editor_Menu.css');
 @import url('UI.Editor_Area.css');
 
+html, body, #wrapper, #app-content, #editor-wrapper, div.CodeMirror-wrapping
+{
+	height: 100%;
+}
+
+body
+{
+	overflow: hidden;
+}
+
 .UI_middleWrapper,
 .centerSection p {
 	max-width: 100%;
 	position: relative;
-}
-
-html, body, #wrapper, #app-content, #editor-wrapper, div.CodeMirror-wrapping
-{
-	height: 100%;
 }
 
 #app-body
@@ -20,7 +25,7 @@ html, body, #wrapper, #app-content, #editor-wrapper, div.CodeMirror-wrapping
 	left:0;
 	right:0;
 }
-
+	
 	#app-content
 	{
 		position: absolute;		

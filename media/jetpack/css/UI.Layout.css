@@ -40,7 +40,7 @@ a:hover {
 /*
  =========================================================================== */
 #wrapper {
-	min-width: 800px;
+	min-width: 675px;
 }
 
 .centerSection
@@ -56,7 +56,7 @@ a:hover {
 }
 
 .UI_middleWrapper.page {
-	max-width: 775px;
+
 }
 
 /*
