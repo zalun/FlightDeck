@@ -90,6 +90,10 @@ var FlightDeck = new Class({
         // remove SDK from disk
         if (this.tests[hashtag].rm_xpi_url) {
             new Request.JSON({
+                // No data is passed, but this is causing files to be deleted,
+                // so POST might be appropriate.
+                // Why doesn't the server just clean after returning the xpi?
+                method: 'get', 
                 url: this.tests[hashtag].rm_xpi_url,
                 onSuccess: function() {
                     this.fireEvent('sdk_removed');
@@ -160,6 +164,7 @@ var FlightDeck = new Class({
             var url = '/xpi/check_download/'+hashtag+'/';
             $log('FD: DEBUG: checking if ' + url + ' is prepared');
             test_request.download_xpi_request = new Request.JSON({
+                method: 'get',
                 url: url,
                 onSuccess: function(response) {
                     if (response.ready || test_request.download_request_number > 50) {
@@ -213,6 +218,7 @@ var FlightDeck = new Class({
                 url = '/xpi/test/'+hashtag+'/';
                 $log('FD: installing from ' + url);
                 test_request.install_xpi_request = new Request({
+                    method: 'get',
                     url: url,
                     headers: {'Content-Type': 'text/plain; charset=x-user-defined'},
                     onSuccess: function(responseText) {
