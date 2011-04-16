@@ -41,16 +41,10 @@
 
 {% block app_content_menu_items %}
 	<li class="UI_Editor_Menu_Button Icon_try XPI_test">
-		<a id="try_in_browser" title="" href="{{ revision.get_test_xpi_url }}" rel="{{ revision.package.jid }}">
-			Test
-			<span class="UI_Editor_Icon"></span>
-		</a>
+		<a id="try_in_browser" title="Test" href="{{ revision.get_test_xpi_url }}" rel="{{ revision.package.jid }}"></a>
 	</li>
 	<li class="UI_Editor_Menu_Button Icon_download">
-		<a id="download" target="_new" title="" href="{{ revision.get_download_xpi_url }}">
-			Download
-			<span class="UI_Editor_Icon"></span>
-		</a>
+		<a id="download" target="_new" title="Download" href="{{ revision.get_download_xpi_url }}"></a>
 	</li>
 	<li class="UI_Editor_Menu_Separator"></li>
 {% endblock %}

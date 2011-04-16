@@ -1,17 +1,77 @@
 @import url('UI.Editor_Menu.css');
 @import url('UI.Editor_Area.css');
 
+html, body, #wrapper, #app-content, #editor-wrapper, div.CodeMirror-wrapping
+{
+	height: 100%;
+}
+
+body
+{
+	overflow: hidden;
+}
+
 .UI_middleWrapper,
 .centerSection p {
 	max-width: 100%;
 	position: relative;
 }
 
+#app-body
+{
+	position:absolute;
+	top:46px;
+	bottom:72px;
+	left:0;
+	right:0;
+}
+	
+	#app-content
+	{
+		position: absolute;		
+		left: 230px;
+		right: 0px;
+		background: #E5E9EE;
+	}
 
-/* by Daniel */
-html, body, #wrapper, #app-content, #editor-wrapper, div.CodeMirror-wrapping {  height: 100%; }
-#app-body { bottom:51px; left:0; margin-left:230px; position:absolute; right:0; top:90px; }
-/*#editor-wrapper  { -moz-box-shadow: 2px 2px  4px 0 #DDDDDD inset; }*/
+		#editor-tabs
+		{
+			max-height: 40px;
+			padding-left: 56px;
+			border-top: 1px solid #fff;
+			overflow: hidden;
+		}
+
+		#editor-tabs > div
+		{
+			float: left;
+			margin: 8px 6px 0 0;
+    		padding: 3px 6px;
+			background: -moz-linear-gradient(center top , #F4F8FC, #CED4DB);
+			border: 1px solid;
+			border-color: #bbb #888 #555;
+			border-bottom: none;
+			text-shadow: 0 1px 0 #eee;
+			cursor: pointer;
+			-moz-border-radius: 3px 3px 0 0;
+		}
+
+		#editor-tabs > div:hover
+		{
+			color: #000;
+			background: -moz-linear-gradient(center top , #fefeff, #CED4DB);
+		}
+
+			div.selected-tab
+			{
+				border-color: #777 !important;				
+				background: -moz-linear-gradient(top, #bbb, #ccc) !important;
+				font-weight: bold;
+				text-shadow: 0 1px 0 #eee !important;
+				color: #222 !important;
+				cursor: default !important;
+				-moz-box-shadow: 0 1px 2px -1px #555 inset;	
+			}
 
 .ma-container strong { 
 	font-weight: bold;

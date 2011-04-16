@@ -61,9 +61,7 @@
 {% block footer %}{% endblock %}
 
 {% block app_sidebar %}<form id="app-sidebar-form">
-	<section id="package-info" class="UI_Sidebar_Item">
-		{% include "_package_info.html" %}
-	</section>
+	{% include "_package_info.html" %}
 	<div class="trees-container">
 		<section id="modules">
 			<ul id="LibTree" class="tree collapse">
@@ -88,9 +86,7 @@
 		<ul class="UI_Editor_Menu">
 			{% block app_content_menu_items %}{% endblock %}
 			<li class="UI_Editor_Menu_Button Icon_save UI_Editor_Menu_Parent">
-				<a id="package-save" title="" href="#">Save
-					<span class="UI_Editor_Icon"></span>
-				</a>
+				<a id="package-save" title="Save" href="#"></a>
                 <form class="UI_Forms UI_Editor_Menu_Descendant">
                     <fieldset>
                         <p class="UI_Field">
@@ -106,21 +102,27 @@
 			</li>
 			{% if revision.package.public_permission != 2 %}
 				<li class="UI_Editor_Menu_Button Icon_copy">
-					<a id="package-copy" title="" href="#">Copy
-						<span class="UI_Editor_Icon"></span>
-					</a>
+					<a id="package-copy" title="Copy" href="#"></a>
 				</li>
 			{% endif %}
 			<li class="UI_Editor_Menu_Button Icon_logs">
-				<a id="error-console" title="" href="#">
-					Error Console
-					<span class="UI_Editor_Icon"></span>
-				</a>
+				<a id="error-console" title="Error Console" href="#"></a>
 			</li>
 			{% include "_editor_app_menu_items.html" %}
 		</ul>
 	</div> <!-- /editor-menu-wrapper -->
-	<div id='editor-wrapper'>
+	<div id="editor-tabs">
+		<div class="selected-tab">
+			<span>SomeFile.js</span>
+		</div>
+		<div>
+			<span>AnotherFile.css</span>
+		</div>
+		<div>
+			<span>random.txt</span>
+		</div>
+	</div>
+	<div id="editor-wrapper">
 		{# block editor_wrapper #}
 		{# endblock #}
 	</div> <!-- /editor-wrapper -->

@@ -48,9 +48,7 @@
 {% endcomment %}{% endblock %}
 
 {% block app_sidebar %}
-	<section id="package-info" class="UI_Sidebar_Item">
-		{% include "_package_info.html" %}
-	</section>
+	{% include "_package_info.html" %}
 	<div class="trees-container">
 		<section id="modules">
 			<ul id="LibTree" class="tree collapse">
@@ -81,14 +79,23 @@
 			{% block app_content_menu_items %}{% endblock %}
 			{% if revision.package.public_permission != 2 %}
 				<li class="UI_Editor_Menu_Button Icon_copy">
-					<a id="package-copy" title="" href="#">Copy
-						<span class="UI_Editor_Icon"></span>
-					</a>
+					<a id="package-copy" title="Copy" href="#"></a>
 				</li>
 			{% endif %}
 			{% include "_editor_app_menu_items.html" %}
 		</ul>
 	</div> <!-- /editor-menu-wrapper -->
+	<div id="editor-tabs">
+		<div class="selected-tab">
+			<span>SomeFile.js</span>
+		</div>
+		<div>
+			<span>AnotherFile.css</span>
+		</div>
+		<div>
+			<span>random.txt</span>
+		</div>
+	</div>
 	<div id="editor-wrapper">
 	</div>
 {% endblock %}
