@@ -95,6 +95,7 @@ var Package = new Class({
 	checkIfLatest: function(failCallback) {
 		// ask backend for the latest revision number
 		new Request.JSON({
+			method: 'get',
 			url: this.options.check_latest_url,
 			onSuccess: function(response) {
 				if (failCallback && this.options.revision_number != response.revision_number) {
@@ -253,6 +254,7 @@ var Package = new Class({
 	show_revision_list: function(e) {
 		if (e) e.stop();
 		new Request({
+			method: 'get',
 			url: settings.revisions_list_html_url,
 			onSuccess: function(html) {
 				fd.displayModal(html);
@@ -416,8 +418,9 @@ var Attachment = new Class({
 		// load data synchronously
         var that = this;
 		new Request({
+			method: 'get',
 			url: this.options.get_url,
-			async: false,
+			async: false, // This kinda sucks. It makes the app feel weird when loading.
 			useSpinner: true,
 			spinnerTarget: 'editor-wrapper',
 			onSuccess: function() {
@@ -497,8 +500,9 @@ var Module = new Class({
 	loadContent: function() {
 		// load data synchronously
 		new Request.JSON({
-            url: this.options.get_url,
-            async: false,
+            method: 'get',
+			url: this.options.get_url,
+            async: false, // This kinda sucks. It makes the app feel weird when loading.
             useSpinner: true,
             spinnerTarget: 'editor-wrapper',
             onSuccess: function(mod) {
@@ -758,6 +762,7 @@ Package.Edit = new Class({
 	
 	updateFullModulesList: function() {
 		new Request.JSON({
+			method: 'get',
 			url: this.options.all_modules_list_url,
 			onSuccess: function(response) {
 				this._modules_list = response;
@@ -1214,7 +1219,8 @@ Package.Edit = new Class({
     checkDependencies: function() {
         var that = this;
         new Request.JSON({
-            url: that.options.latest_dependencies_url,
+            method: 'get',
+			url: that.options.latest_dependencies_url,
 			timeout: 5000,
             onSuccess: function(res) {
                 res.forEach(function(latest_revision) {
@@ -1261,6 +1267,7 @@ Package.Edit = new Class({
 	
 	checkModuleConflicts: function() {
 		new Request.JSON({
+			method: 'get',
 			url: this.options.conflicting_modules_list_url,
 			onSuccess: function(response) {
 				this.alertModuleConflicts(response);
