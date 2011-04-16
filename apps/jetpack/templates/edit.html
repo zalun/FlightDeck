@@ -85,8 +85,20 @@
 	<div id="editor-menu-wrapper">
 		<ul class="UI_Editor_Menu">
 			{% block app_content_menu_items %}{% endblock %}
-			<li class="UI_Editor_Menu_Button Icon_save">
+			<li class="UI_Editor_Menu_Button Icon_save UI_Editor_Menu_Parent">
 				<a id="package-save" title="Save" href="#"></a>
+                <form class="UI_Forms UI_Editor_Menu_Descendant">
+                    <fieldset>
+                        <p class="UI_Field">
+                            <label for="version_name">Version</label>
+                            <input type="text" id="version_name" name="version_name" autocomplete="off" value="{{ revision.package.version_name }}"/>
+                        </p>
+                        <p class="UI_Field">
+                            <label for="revision_message">Commit Message</label>
+                            <textarea class="emptyreset" id="revision_message" name="revision_message"></textarea>
+                        </p>
+                    </fieldset>
+                </form>
 			</li>
 			{% if revision.package.public_permission != 2 %}
 				<li class="UI_Editor_Menu_Button Icon_copy">

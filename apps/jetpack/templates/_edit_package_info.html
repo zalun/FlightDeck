@@ -9,16 +9,6 @@
 			<label for="package_description">{{ revision.package.get_type_name|capfirst }} description</label>
 			<textarea id="package_description" name="package_description" rows="8" cols="40">{{ revision.package.description }}</textarea>
 		</p>
-		<p class="UI_Field">
-			<label for="version_name">Version</label>
-			<input type="text" name="version_name" id="version_name" class="validate-alphanum_plus" value="{version_name}"/>
-		</p>
-		{% comment %}
-		<p class="UI_Field">
-			<label for="revision_message">Commit message</label>
-			<textarea id="revision_message" name="revision_message">{{ revision.message }}</textarea>
-		</p>
-		{% endcomment %}
 	</fieldset>
 	<div class="UI_Modal_Actions">
 		<ul>

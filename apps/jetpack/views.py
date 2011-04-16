@@ -527,7 +527,7 @@ def package_upload_attachment(r, id_number, type_id,
             'You are not the author of this %s' \
                 % escape(revision.package.get_type_name()))
 
-    
+
     file = r.FILES.get('upload_attachment')
     filename = r.META.get('HTTP_X_FILE_NAME')
 
