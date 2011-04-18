@@ -1086,16 +1086,12 @@ def package_latest_dependencies(r, id_number, type_id, revision_number):
             context_instance=RequestContext(r),
             mimetype='application/json')
 
-@never_cache
-def get_revisions_list(id_number):
-    " provide a list of the Package's revsisions "
-    return PackageRevision.objects.filter(package__id_number=id_number)
 
 @never_cache
 def get_revisions_list_html(r, id_number):
     " returns revision list to be displayed in the modal window "
     package = get_object_with_related_or_404(Package, id_number=id_number)
-    revisions = get_revisions_list(id_number)
+    revisions = package.revisions.all()
     return render_to_response(
         '_package_revisions_list.html', {
             'package': package,
