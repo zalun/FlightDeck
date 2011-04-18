@@ -157,7 +157,7 @@ a:hover {
 	display: block;
 	float: left;
 	font-size: 2.0em;
-	margin: 4px 0 2px;
+	margin: 4px 0 0;
 }
 
 	#flightdeck-logo a {
@@ -485,9 +485,8 @@ kbd {
 /*
  =========================================================================== */
 #app-footer {
-	position: relative;	
-	overflow: hidden;
 	background: url(../img/mozilla/footer.png) repeat-x top left;
+	overflow: hidden;
 }
 
 
@@ -496,9 +495,8 @@ kbd {
 
 #footer
 {
-	position: absolute;	
-	bottom: 20px;
-    color: #FFFFFF;
+	margin-top: 107px;    
+	color: #fff;	
 }
 #footer a {
     color: #AFD7FF;
@@ -521,28 +519,16 @@ kbd {
 #footer p {
     margin-bottom: 0;
     margin-left: 60px;
-    margin-right: 1em;
 }
 #footer ul {
-    font-size: 0.846em;
-    line-height: 1.273;
-    margin-top: 0.3em;
+    font-size: 80%;
+    margin-top: 4px;
+	margin-left: 60px;
     padding: 0;
-    margin-left: 60px;
-    margin-right: 1.273em;
 }
 #footer ul li {
     display: inline;
-    margin-right: 1em;
-}
-#footer .disclaimer {
-    font-size: 0.846em;
-    line-height: 1.273;
-    color: #ccc;
-    margin-right: 1.273em;
-	padding-top: 15px;
-	margin-bottom: 10px;
-	clear: both;
+    margin-right: 10px;
 }
 
 #footer .languages {
