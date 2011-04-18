@@ -680,8 +680,14 @@ Package.Edit = new Class({
             }
         });
         // check if version_name changed
-        var version_name_changed = function() {
-            if (!fd.changed) {
+        var version_name_keyup = function(e) {
+			if (e) {
+				if (e.key == 'enter') {
+					that.save();
+					e.stop();
+				}
+			}
+            if (!fd.edited) {
                 var version_name = this.get('value');
                 if (that.options.version_name != version_name) {
                     fd.fireEvent('change');
@@ -689,13 +695,16 @@ Package.Edit = new Class({
                 }
             }
         }
+        var version_name_keydown = function(e) {
+			if (e) {
+				if (e.key == 'enter') {
+					e.stop();
+				}
+			}
+		}
         $('version_name').addEvents({
-            //focus: version_name_changed,
-            //blur: version_name_changed,
-            keyup: version_name_changed,
-            //change: function() { 
-            //    fd.fireEvent('change'); 
-            //}
+            keyup: version_name_keyup,
+            keydown: version_name_keydown,
         });
 		if ($('jetpack_core_sdk_version')) {
 			$('jetpack_core_sdk_version').addEvent('change', function() {
