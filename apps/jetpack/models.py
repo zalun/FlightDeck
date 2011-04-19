@@ -1581,11 +1581,8 @@ class Attachment(BaseModel):
 
     def create_path(self):
         filename = hashlib.md5(self.filename + self.ext).hexdigest()
-        
-        if not self.pk:
-            self.save()
             
-        args = (self.pk, filename, )
+        args = (self.pk or 0, filename, )
         self.path = os.path.join(time.strftime('%Y/%m/%d'), '%s-%s' % args)
 
     def get_file_path(self):
