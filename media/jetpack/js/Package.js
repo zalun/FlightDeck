@@ -200,6 +200,11 @@ var Package = new Class({
 	isAddon: function() {
 		return (this.options.type == 'a');
 	},
+	
+	generateHashtag: function() {
+		var hashtag = (Number.random(0, 9) + '' + this.options.id_number + Date.now()).toInt().toString(36);
+		this.options.hashtag = hashtag;
+	},
 
 	instantiate_modules: function() {
 		// iterate by modules and instantiate Module

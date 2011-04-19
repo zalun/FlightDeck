@@ -46,6 +46,7 @@ var FlightDeck = new Class({
         this.parseTooltips();
         this.createActionSections();
         this.parseTestButtons.bind(this).delay(10);
+        this.addEvent('xpi_downloaded', this.whenXpiDownloaded);
         this.addEvent('xpi_installed', this.whenXpiInstalled);
         this.addEvent('xpi_uninstalled', this.whenXpiUninstalled);
         //if (!this.isAddonInstalled()) $log('FD: No Addon Builder Helper')
@@ -83,6 +84,12 @@ var FlightDeck = new Class({
         this.parseTestButtons();
         this.message.alert('Add-ons Builder', 'Add-on installed');
         $log('FD: INFO: Add-on installed');
+    },
+
+    whenXpiDownloaded: function(hashtag) {
+        
+        fd.item.generateHashtag();
+        
     },
 
     whenXpiUninstalled: function() {
