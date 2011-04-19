@@ -5,10 +5,7 @@ from django.conf import settings
 from base import views as base_views
 
 
-urls = [
-    # home
-    url(r'^$', base_views.homepage, name='home'),
-    ]
+urls = [url(r'^$', base_views.homepage, name='home')]
 
 if settings.DEBUG:
 
@@ -30,10 +27,8 @@ urls.extend([
     # API Browser
     (r'^api/', include('api.urls')),
 
-    # Tutorial
     (r'^tutorial/', include('tutorial.urls')),
 
-    # Person
     (r'^user/', include('person.urls')),
 
     # Search

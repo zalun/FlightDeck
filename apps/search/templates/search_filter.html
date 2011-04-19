@@ -1,25 +1,23 @@
 <h2 class="UI_Heading">Narrow Search</h2>
 <ul class="UI_Action_List">
     <li>
-        <a href="#">Combined</a>
-        <strong>({{ addons.count|add:libraries.count }})</strong>
+        <a href="{% url search.results %}?q={{ q }}">Combined</a>
+        <strong>({{ total }})</strong>
     </li>
     <li>
-        <a href="#">Addons</a>
-        <strong>({{ addons.count }})</strong>
+        <a href="{% url search 'addon' %}?q={{ q }}">Addons</a>
+        <strong>({{ addon_total }})</strong>
     </li>
     <li>
-        <a href="#">Libraries</a>
-        <strong>({{ libraries.count }})</strong>
+        <a href="{% url search 'library' %}?q={{ q }}">Libraries</a>
+        <strong>({{ library_total }})</strong>
     </li>
 </ul>
+{% if user.is_authenticated %}
 <ul class="UI_Action_List">
     <li>
-        <a href="#">By Everyone</a>
-        <strong>(0)</strong>
-    </li>
-    <li>
-        <a href="#">By Me</a>
-        <strong>(0)</strong>
+        <a href="{% url search.me %}?q={{ q }}">By Me</a>
+        <strong>({{ my_total }})</strong>
     </li>
 </ul>
+{% endif %}
