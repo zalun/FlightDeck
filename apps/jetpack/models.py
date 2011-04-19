@@ -998,8 +998,7 @@ class PackageRevision(BaseModel):
         if rapid:
             return xpi_utils.build(*args)
 
-        return (tasks.xpi_build.delay(*args),
-                reverse('jp_rm_xpi', args=[hashtag]))
+        return tasks.xpi_build.delay(*args)
 
     def export_keys(self, sdk_dir):
         """Export private and public keys to file."""

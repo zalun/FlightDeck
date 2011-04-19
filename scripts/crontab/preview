@@ -4,7 +4,7 @@
 MAILTO=flightdeck-developers@mozilla.org
 
 #once per day
-30 1 * * * cd /data/amo_python/src/builder.preview/flightdeck; /usr/bin/python26 manage.py cron clean_tmp
+30 1 * * * cd /data/amo_python/src/builder.preview/flightdeck; /usr/bin/python26 manage.py cron gc
 #every hour
 30 * * * * cd /data/amo_python/src/builder.preview/flightdeck; /usr/bin/python26 manage.py cron celery
 

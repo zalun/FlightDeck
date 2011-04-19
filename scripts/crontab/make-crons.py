@@ -43,7 +43,7 @@ cron = """\
 MAILTO=flightdeck-developers@mozilla.org
 
 #once per day
-30 1 * * * $F_CRON clean_tmp
+30 1 * * * $F_CRON gc
 #every hour
 30 * * * * $F_CRON celery
 

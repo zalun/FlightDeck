@@ -78,5 +78,3 @@ class TestViews(TestCase):
         eq_(response.status_code, 404)
         response = self.client.get('/xpi/check_download/abc%20123')
         eq_(response.status_code, 404)
-        response = self.client.get(reverse('jp_rm_xpi', args=['some/path']))
-        eq_(response.status_code, 403)
