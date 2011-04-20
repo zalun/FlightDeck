@@ -28,7 +28,7 @@ var FlightDeck = new Class({
         try_in_browser_class: 'XPI_test',
         xpi_hashtag: '',        // hashtag for the XPI creation
         max_request_number: 50, // how many times should system try to download XPI
-        request_interval: 5000  // try to download XPI every 5 sec
+        request_interval: 2000  // try to download XPI every 2 sec
         //user: ''
     },
     initialize: function() {
@@ -129,13 +129,15 @@ var FlightDeck = new Class({
      * Method: downloadXPI it's running in Request's scope
      */
     downloadXPI: function(response) {
-        $log('FD: DEBUG: XPI delayed ... try to load every ' + fd.options.request_interval/1000 + ' seconds' );
+        var time = fd.options.request_interval
+        
+        $log('FD: DEBUG: XPI delayed ... try to load every ' + time/1000 + ' seconds' );
         var hashtag = this.options.data.hashtag;
         var filename = this.options.data.filename;
         fd.tests[hashtag].download_request_number = 0;
-        fd.tryDownloadXPI.delay(1000, fd, [hashtag, filename]);
+        
         fd.tests[hashtag].download_ID = fd.tryDownloadXPI.periodical(
-                fd.options.request_interval, fd, [hashtag, filename]);
+                time, fd, [hashtag, filename]);
     },
 
     /*
@@ -155,6 +157,7 @@ var FlightDeck = new Class({
             test_request.download_xpi_request = new Request.JSON({
                 method: 'get',
                 url: url,
+                timeout: fd.options.request_interval,
                 onSuccess: function(response) {
                     if (response.ready || test_request.download_request_number > 50) {
                         clearInterval(test_request.download_ID);
