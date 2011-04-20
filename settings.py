@@ -119,7 +119,7 @@ JETPACK_ITEMS_PER_PAGE = 10
 JETPACK_LIB_DIR = 'lib'
 JETPACK_DATA_DIR = 'data'
 
-ATTACHMENT_MAX_FILESIZE = 100*1024*1024  # 100kb
+ATTACHMENT_MAX_FILESIZE = 100 * 1024 * 1024  # 100kb
 
 PYTHON_EXEC = 'python'
 
@@ -245,7 +245,7 @@ INSTALLED_APPS = [
 # FLIGHTDECK APPS
     'base',              # basic flightdeck things (utils, urls)
     'person',            # user related stuff (profile etc.)
-    'search',            # ElasticSearch and related stuff.
+    'search',            # ElasticSearch and search views.
     'amo',               # currently addons.mozilla.org authentication
     'jetpack',           # Jetpack functionality
     'xpi',               # XPI management
