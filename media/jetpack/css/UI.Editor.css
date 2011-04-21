@@ -97,3 +97,9 @@ body
     color: #999;
     margin-left: 5px;
 }
+.UI_Revisions li.current {
+	background: #ffb;
+}
+.UI_Revisions em.date {
+	margin-left: 5px;
+}

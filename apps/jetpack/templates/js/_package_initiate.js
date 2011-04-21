@@ -26,4 +26,5 @@ folders: {{ revision.get_folders_list_json|safe }},
 // Actions
 copy_url: '{{ revision.get_copy_url }}',
 hashtag: '{% hashtag %}',
+revisions_list_html_url: '{% url jp_revisions_list_html revision.package.id_number %}/{revision_number}/',
 check_if_latest: {{ revision.is_latest|yesno:"true,false" }}

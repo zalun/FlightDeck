@@ -663,23 +663,20 @@ def revision_add_attachment(r, pk):
         att = urllib.urlopen(url)
         # validate filesize
         att_info = att.info()
-        if not att_info.dict.has_key('content-length'):
-            log.debug('Server did not provide Content-Length header')
-            return HttpResponseForbidden("Loading attachment failed<br/>"
-                    "Server did not respond with the right headers")
-        att_size = int(att_info.dict['content-length'])
-        if att_size > settings.ATTACHMENT_MAX_FILESIZE:
-            log.debug('File (%s) is too big (%db)' % (url, att_size))
-            return HttpResponseForbidden("Loading attachment failed<br/>"
-                    "File is too big")
-        if att_size <= 0:
-            log.debug(
-                    'Content-Length header provided wrong value %d' % att_size)
-            return HttpResponseForbidden("Loading attachment failed<br/>"
-                    "File size is not provided by the server")
+        if att_info.dict.has_key('content-length'):
+            att_size = int(att_info.dict['content-length'])
+            if att_size > settings.ATTACHMENT_MAX_FILESIZE:
+                log.debug('File (%s) is too big (%db)' % (url, att_size))
+                return HttpResponseForbidden("Loading attachment failed<br/>"
+                        "File is too big")
         # download attachment's content
         log.info('Downloading (%s)' % url)
-        content = att.read()
+        content = att.read(settings.ATTACHMENT_MAX_FILESIZE + 1)
+        if len(content) >= settings.ATTACHMENT_MAX_FILESIZE + 1:
+            log.debug('Downloaded file (%s) is too big' % url)
+            return HttpResponseForbidden("Loading attachment failed<br/>"
+                    "File is too big")
+        log.debug('Downloaded %d, max %d' % (len(content), settings.ATTACHMENT_MAX_FILESIZE))
         att.close()
     try:
         attachment = revision.attachment_create_by_filename(
@@ -1088,14 +1085,17 @@ def package_latest_dependencies(r, id_number, type_id, revision_number):
 
 
 @never_cache
-def get_revisions_list_html(r, id_number):
+def get_revisions_list_html(r, id_number, revision_number=None):
     " returns revision list to be displayed in the modal window "
     package = get_object_with_related_or_404(Package, id_number=id_number)
     revisions = package.revisions.all()
+    if revision_number:
+        revision_number = int(revision_number)
     return render_to_response(
         '_package_revisions_list.html', {
             'package': package,
-            'revisions': revisions
+            'revisions': revisions,
+            'revision_number': revision_number
         },
         context_instance=RequestContext(r))
 
