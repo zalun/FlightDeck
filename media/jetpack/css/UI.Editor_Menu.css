@@ -9,7 +9,7 @@ authors:
 */
 
 .UI_Editor_Menu {
-	-moz-user-select: none;
+	-moz-user-select: -moz-none;
 }
 
 .UI_Editor_Menu.minimal {
@@ -197,8 +197,10 @@ form.UI_Editor_Menu_Descendant {
 .UI_Editor_Menu_Parent > .UI_Editor_Menu_Descendant {
     display: none;
     position: absolute;
-    margin-left: -1px;
+    margin-left: -6px;
+	margin-top: 4px;
 	z-index: 9;
+	border-right: 1px solid black;
 }
 
 .UI_Editor_Menu_Parent:hover > .UI_Editor_Menu_Descendant {
@@ -208,9 +210,10 @@ form.UI_Editor_Menu_Descendant {
     width: auto;
 }
 
-.UI_Editor_Menu_Descendant.UI_Forms .UI_Field label,
-.UI_Editor_Menu_Descendant.UI_Forms .UI_Field input,
-.UI_Editor_Menu_Descendant.UI_Forms .UI_Field textarea {
+.UI_Editor_Menu .UI_Editor_Menu_Descendant.UI_Forms .UI_Field label,
+.UI_Editor_Menu .UI_Editor_Menu_Descendant.UI_Forms .UI_Field input,
+.UI_Editor_Menu .UI_Editor_Menu_Descendant.UI_Forms .UI_Field textarea {
+	-moz-user-select: text;
      float: none;
      width: 100%;
 }
