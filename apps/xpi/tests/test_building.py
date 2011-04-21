@@ -12,7 +12,6 @@ from django.conf import settings
 
 from jetpack.models import Module, Package, PackageRevision, SDK
 from xpi import xpi_utils
-from jetpack.cron import find_files, clean_tmp
 from base.templatetags.base_helpers import hashtag
 
 log = commonware.log.getLogger('f.tests')
@@ -222,27 +221,6 @@ class XPIBuildTest(TestCase):
         self.failUnless(os.path.isfile(
             os.path.join(settings.XPI_TARGETDIR, xpi_target)))
 
-    def test_xpi_clean(self):
-        """Test that we clean up the /tmp directory correctly."""
-        rev = Package.objects.get(id=4).revisions.all()[0]
-        sdk = SDK.objects.create(version='0.8',
-                                     core_lib=rev,
-                                     dir='jetpack-sdk-0.8')
-
-        rev.sdk = sdk
-        rev.save()
-
-        # Clean out /tmp directory.
-        for full in find_files():
-            os.remove(full)
-        assert not find_files()
-        rev.build_xpi(hashtag=self.hashtag, rapid=True)
-
-        # There should be one directory in the /tmp directory now.
-        eq_(len(find_files()), 1)
-        clean_tmp(length=0)
-        assert not find_files()
-
     def test_module_with_utf(self):
 
         mod = Module.objects.create(
@@ -268,5 +246,5 @@ class XPIBuildTest(TestCase):
         self.librev.dependency_add(packrev)
         self.addonrev.dependency_add(packrev)
         self.addonrev.dependency_add(self.librev)
-        
+
         self.addonrev.build_xpi(hashtag=self.hashtag, rapid=True)

@@ -25,6 +25,7 @@ from django.core.paginator import Paginator
 from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
 from django.db.models import Q, ObjectDoesNotExist
 from django.db import IntegrityError
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.template.defaultfilters import escape
@@ -178,7 +179,7 @@ def package_view(r, revision):
             'tree': tree
         }, context_instance=RequestContext(r))
 
-@csrf_exempt
+
 def download_module(r, pk):
     """
     return a JSON with all module info
@@ -186,7 +187,7 @@ def download_module(r, pk):
     module = get_object_or_404(Module, pk=pk)
     return HttpResponse(module.get_json())
 
-@csrf_exempt
+
 def get_module(r, id_number, revision_number, filename):
     """
     return a JSON with all module info
@@ -786,7 +787,7 @@ def package_remove_attachment(r, id_number, type_id, revision_number):
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
-@csrf_exempt
+
 def download_attachment(request, uid):
     """
     Display attachment from PackageRevision
@@ -1085,16 +1086,12 @@ def package_latest_dependencies(r, id_number, type_id, revision_number):
             context_instance=RequestContext(r),
             mimetype='application/json')
 
-@csrf_exempt
-def get_revisions_list(id_number):
-    " provide a list of the Package's revsisions "
-    return PackageRevision.objects.filter(package__id_number=id_number)
 
-@csrf_exempt
+@never_cache
 def get_revisions_list_html(r, id_number):
     " returns revision list to be displayed in the modal window "
     package = get_object_with_related_or_404(Package, id_number=id_number)
-    revisions = get_revisions_list(id_number)
+    revisions = package.revisions.all()
     return render_to_response(
         '_package_revisions_list.html', {
             'package': package,
@@ -1102,14 +1099,14 @@ def get_revisions_list_html(r, id_number):
         },
         context_instance=RequestContext(r))
 
-@csrf_exempt
+@never_cache
 def get_latest_revision_number(request, package_id):
     """ returns the latest revision number for given package """
     package = get_object_or_404(Package, id_number=package_id)
     return HttpResponse(simplejson.dumps({
         'revision_number': package.latest.revision_number}))
 
-@csrf_exempt
+@never_cache
 def get_revision_modules_list(request, pk):
     """returns JSON object with all modules which will be exported to XPI
     """
@@ -1117,7 +1114,7 @@ def get_revision_modules_list(request, pk):
     return HttpResponse(simplejson.dumps(revision.get_module_names()),
                         mimetype="application/json")
 
-@csrf_exempt
+@never_cache
 def get_revision_conflicting_modules_list(request, pk):
     """returns JSON object with all modules which will be exported to XPI
     """

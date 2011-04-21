@@ -28,7 +28,7 @@ var FlightDeck = new Class({
         try_in_browser_class: 'XPI_test',
         xpi_hashtag: '',        // hashtag for the XPI creation
         max_request_number: 50, // how many times should system try to download XPI
-        request_interval: 5000  // try to download XPI every 5 sec
+        request_interval: 2000  // try to download XPI every 2 sec
         //user: ''
     },
     initialize: function() {
@@ -61,7 +61,7 @@ var FlightDeck = new Class({
                 y: 16
             }
         });
-        
+
         $$('div.UI_tooltip_source').each(function(tipSource){
             tipSource.hide();
             var target = $(tipSource.get('data-tooltip-for'));
@@ -87,16 +87,9 @@ var FlightDeck = new Class({
     },
 
     whenXpiDownloaded: function(hashtag) {
-        // remove SDK from disk
-        if (this.tests[hashtag].rm_xpi_url) {
-            new Request.JSON({
-                url: this.tests[hashtag].rm_xpi_url,
-                onSuccess: function() {
-                    this.fireEvent('sdk_removed');
-                }.bind(this)
-            }).send();
-            this.rm_xpi_url = undefined;
-        }
+        
+        fd.item.generateHashtag();
+        
     },
 
     whenXpiUninstalled: function() {
@@ -113,7 +106,7 @@ var FlightDeck = new Class({
             document.body.removeEventListener('addonbuilderhelperstart', callback, false);
         }
         document.body.addEventListener('addonbuilderhelperstart', callback, false);
-        (function() { 
+        (function() {
             $log('FD: Warning: not listening to addonbuilderhelperstart, is Helper installed?');
             removeListener();
         }).delay(100000);
@@ -136,31 +129,35 @@ var FlightDeck = new Class({
      * Method: downloadXPI it's running in Request's scope
      */
     downloadXPI: function(response) {
-        $log('FD: DEBUG: XPI delayed ... try to load every ' + fd.options.request_interval/1000 + ' seconds' );
+        var time = fd.options.request_interval
+        
+        $log('FD: DEBUG: XPI delayed ... try to load every ' + time/1000 + ' seconds' );
         var hashtag = this.options.data.hashtag;
         var filename = this.options.data.filename;
         fd.tests[hashtag].download_request_number = 0;
-        fd.tryDownloadXPI.delay(1000, fd, [hashtag, filename]);
+        
         fd.tests[hashtag].download_ID = fd.tryDownloadXPI.periodical(
-                fd.options.request_interval, fd, [hashtag, filename]);
+                time, fd, [hashtag, filename]);
     },
 
     /*
      * Method: tryDownloadXPI
      *
-     * Try to download XPI 
+     * Try to download XPI
      * if finished - stop periodical, stop spinner
      */
     tryDownloadXPI: function(hashtag, filename) {
         var test_request = this.tests[hashtag];
         if (!test_request.download_xpi_request || (
-                    test_request.download_xpi_request && 
+                    test_request.download_xpi_request &&
                     !test_request.download_xpi_request.isRunning())) {
             test_request.download_request_number++;
             var url = '/xpi/check_download/'+hashtag+'/';
             $log('FD: DEBUG: checking if ' + url + ' is prepared');
             test_request.download_xpi_request = new Request.JSON({
+                method: 'get',
                 url: url,
+                timeout: fd.options.request_interval,
                 onSuccess: function(response) {
                     if (response.ready || test_request.download_request_number > 50) {
                         clearInterval(test_request.download_ID);
@@ -187,7 +184,6 @@ var FlightDeck = new Class({
         $log('FD: DEBUG: XPI delayed ... try to load every ' + fd.options.request_interval/1000 + ' seconds' );
         var hashtag = this.options.data.hashtag;
         fd.tests[hashtag].request_number = 0;
-        fd.tests[hashtag].rm_xpi_url = response.rm_xpi_url;
         fd.tryInstallXPI.delay(1000, fd, hashtag);
         fd.tests[hashtag].install_ID = fd.tryInstallXPI.periodical(
                 fd.options.request_interval, fd, hashtag);
@@ -200,19 +196,20 @@ var FlightDeck = new Class({
     /*
      * Method: tryInstallXPI
      *
-     * Try to download XPI 
+     * Try to download XPI
      * if successful - stop periodical
      */
     tryInstallXPI: function(hashtag) {
         if (this.alertIfNoAddOn()) {
             var test_request = this.tests[hashtag];
             if (!test_request.install_xpi_request || (
-                        test_request.install_xpi_request && 
+                        test_request.install_xpi_request &&
                         !test_request.install_xpi_request.isRunning())) {
                 test_request.request_number++;
                 url = '/xpi/test/'+hashtag+'/';
                 $log('FD: installing from ' + url);
                 test_request.install_xpi_request = new Request({
+                    method: 'get',
                     url: url,
                     headers: {'Content-Type': 'text/plain; charset=x-user-defined'},
                     onSuccess: function(responseText) {
@@ -228,11 +225,11 @@ var FlightDeck = new Class({
                             } else {
                                 if (result) $log(result);
                                 this.warning.alert(
-                                    'Add-ons Builder', 
+                                    'Add-ons Builder',
                                     'Wrong response from Add-ons Helper. Please <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=573778">let us know</a>'
                                 );
                             }
-                        } 
+                        }
                     }.bind(this)
                 }).send(this);
             } else {
@@ -278,13 +275,13 @@ var FlightDeck = new Class({
     },
     /*
      * Method: createActionSections
-     */    
+     */
     createActionSections: function(){
         $$('.UI_Editor_Menu_Separator').each(function(separator){
             separator.getPrevious('li').addClass('UI_Section_Close');
             separator.getNext('li').addClass('UI_Section_Open');
         });
-        
+
         var UI_Editor_Menu_Button = $$('.UI_Editor_Menu_Button');
 
         if (UI_Editor_Menu_Button.length === 1){
@@ -316,7 +313,7 @@ Request = Class.refactor(Request, {
             }
 			if (xhr.status != 0 && xhr.responseText) {
 				fd.error.alert(
-					'Error {status}'.substitute(xhr), 
+					'Error {status}'.substitute(xhr),
 					'{statusText}<br/>{responseText}'.substitute(xhr)
 					);
 			}
@@ -342,8 +339,8 @@ Element.implement({
     isHidden: function(){
         var w = this.offsetWidth, h = this.offsetHeight,
         force = (this.tagName.toLowerCase() === 'tr');
-        return (w===0 && h===0 && !force) 
-            ? true 
+        return (w===0 && h===0 && !force)
+            ? true
             : (w!==0 && h!==0 && !force) ? false : this.getStyle('display') === 'none';
     },
     isVisible: function(){

@@ -20,7 +20,7 @@ body
 #app-body
 {
 	position:absolute;
-	top:46px;
+	top:48px;
 	bottom:72px;
 	left:0;
 	right:0;
@@ -45,8 +45,10 @@ body
 		#editor-tabs > div
 		{
 			float: left;
-			margin: 8px 6px 0 0;
-    		padding: 3px 6px;
+			height: 23px;
+			line-height: 23px;
+			margin: 6px 6px 0 0;
+    		padding: 0 6px;
 			background: -moz-linear-gradient(center top , #F4F8FC, #CED4DB);
 			border: 1px solid;
 			border-color: #bbb #888 #555;

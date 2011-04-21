@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block head %}
+  <link rel="stylesheet" href="/media/jetpack/css/UI.Browser.css" />
+	<link rel="stylesheet" href="/media/search/css/Search.css" />
+{% endblock %}
+{% block app_body %}
+    {% include "_search_form.html" %}
+{% endblock %}
+{% block app_sidebar %}
+    {% include "search_filter.html" %}
+{% endblock %}
+{% block app_content %}
+	<section id="SearchResults">
+	{% if addons %}
+		<h2 class="UI_Heading">Addon Results ({{ addon_total }})</h2>
+		{% for package in addons %}
+			{% include "_package_result.html" %}
+		{% endfor %}
+	{% endif %}
+	{% if libraries %}
+		<h2 class="UI_Heading">Library Results ({{ library_total }})</h2>
+		{% for package in libraries %}
+			{% include "_package_result.html" %}
+		{% endfor %}
+	{% endif %}
+	</section>
+{% endblock %}
