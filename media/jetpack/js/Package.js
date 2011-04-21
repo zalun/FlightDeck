@@ -56,7 +56,9 @@ var Package = new Class({
         // create empty editor
         this.editor = new FDEditor('editor-wrapper');
         // reset version_name (in case of reload)
-        $('version_name').set('value', this.options.version_name);
+		if ($('version_name')) {
+			$('version_name').set('value', this.options.version_name);
+		}
         // initiate the sidebar 
 		fd.sidebar.options.editable = !this.options.readonly;
 		fd.sidebar.buildTree();
