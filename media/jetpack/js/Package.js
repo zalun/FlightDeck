@@ -258,9 +258,11 @@ var Package = new Class({
 
 	show_revision_list: function(e) {
 		if (e) e.stop();
+		var that = fd.getItem();
+		$log(that);
 		new Request({
 			method: 'get',
-			url: settings.revisions_list_html_url,
+			url: that.options.revisions_list_html_url.substitute(that.options),
 			onSuccess: function(html) {
 				fd.displayModal(html);
 			}
