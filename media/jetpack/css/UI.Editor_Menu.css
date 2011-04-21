@@ -23,6 +23,10 @@ authors:
 	padding: 1px;
 }
 
+.UI_Editor_Menu_Button {
+    cursor: pointer;
+}
+
 .UI_Editor_Menu_Button,
 form.UI_Editor_Menu_Descendant {
 	float: left;
