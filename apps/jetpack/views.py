@@ -1088,14 +1088,17 @@ def package_latest_dependencies(r, id_number, type_id, revision_number):
 
 
 @never_cache
-def get_revisions_list_html(r, id_number):
+def get_revisions_list_html(r, id_number, revision_number=None):
     " returns revision list to be displayed in the modal window "
     package = get_object_with_related_or_404(Package, id_number=id_number)
     revisions = package.revisions.all()
+    if revision_number:
+        revision_number = int(revision_number)
     return render_to_response(
         '_package_revisions_list.html', {
             'package': package,
-            'revisions': revisions
+            'revisions': revisions,
+            'revision_number': revision_number
         },
         context_instance=RequestContext(r))
 
