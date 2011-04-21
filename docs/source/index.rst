@@ -20,6 +20,7 @@ Contents:
 
    installation.rst
    development/index.rst
+   repackage/index.rst
 
 .. toctree::
    :maxdepth: 1

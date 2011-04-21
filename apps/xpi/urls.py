@@ -19,4 +19,8 @@ urlpatterns = patterns('xpi.views',
     url(r'^download/(?P<hashtag>[a-zA-Z0-9]+)/(?P<filename>.*)/$',
         'get_download', name='jp_download_xpi'),
     url(r'^remove/(?P<path>.*)/$', 'clean', name='jp_rm_xpi'),
+
+    # repackage
+    #url(r'^repackage/sdk/(?P<sdk_dir>[-\\.\\w]+)/(?P<amo_id>[0-9]+)/(?P<amo_file>[-\\w]+)/$', 'repackage'),
+    url(r'^repackage/(?P<amo_id>[0-9]+)/(?P<amo_file>[-\w]+)/$', 'repackage')
 )
