@@ -222,15 +222,14 @@ form.UI_Editor_Menu_Descendant {
     margin-top: 5px;
 }
 
-#test_textarea
-{
+.UI_Editor_Menu .UI_Editor_Menu_Descendant.UI_Forms textarea {
     min-width: 100% !important;   
 }
 
-fieldset p{
+.UI_Editor_Menu .UI_Editor_Menu_Descendant.UI_Forms fieldset p{
     margin: 0 12px 0 0 !important;   
 }
 
-form{
+.UI_Editor_Menu .UI_Editor_Menu_Descendant.UI_Forms {
     min-width: 200px;   
 }
