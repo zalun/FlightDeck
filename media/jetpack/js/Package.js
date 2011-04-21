@@ -692,13 +692,6 @@ Package.Edit = new Class({
 					e.stop();
 				}
 			}
-            if (!fd.edited) {
-                var version_name = this.get('value');
-                if (that.options.version_name != version_name) {
-                    fd.fireEvent('change');
-                    return;
-                }
-            }
         }
         var version_name_keydown = function(e) {
 			if (e) {
