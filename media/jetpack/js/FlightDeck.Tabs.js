@@ -37,6 +37,14 @@ FlightDeck.Tab = new Class({
 		return this;
 	},
 	
+	destroy: function() {
+		this.fireEvent('destroy');
+		this.element = this.element.destroy();
+		this.close = this.close.destroy();
+		this.file.tab = null;
+		this.file = this.container = null;
+	},
+	
 	toElement: function() {
 		return this.element;
 	}

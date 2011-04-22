@@ -332,12 +332,16 @@ var File = new Class({
 		this.selectTab();
 	},
 	
+	makeTab: function() {
+		this.tab = new FlightDeck.Tab(fd.tabs, {
+			title: this.getShortName()
+		});
+		this.tab.file = this;
+	},
+	
 	selectTab: function() {
 		if(!this.tab) {
-			this.tab = new FlightDeck.Tab(fd.tabs, {
-				title: this.getShortName()
-			});
-			this.tab.file = this;
+			this.makeTab();
 		}
 		fd.tabs.setSelected(this.tab);
 	}
