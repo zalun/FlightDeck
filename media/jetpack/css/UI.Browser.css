@@ -14,19 +14,17 @@ body {
 }
 
 #app-sidebar {
-	border-right: none;
-	padding: 0 15px;
-	width: 200px;
-	margin-left: -245px;
+    border: none;
+    float: left;
+    margin-left: -220px;
+    position: relative;
+    width: 200px;
 }
 
 #app-body {
-	margin-top: 20px;
-	margin-left: 245px;
-}
-
-#app-content {
-	margin-right: 15px;
+	max-width: 750px;	
+	margin: 30px auto;
+    padding-left: 220px;
 }
 
 /*
@@ -57,11 +55,16 @@ body {
 			background-repeat: no-repeat;
 		}
 
-			.UI_Browser .UI_Icon.jetpack {
+			.UI_Browser .UI_Icon.a {
 				background-position: 0 0;
 			}
 
-			.UI_Browser .UI_Icon.capability {
+			.UI_Browser .UI_Icon.l  {
+				background-position: -96px 0;
+			}
+
+			div.libraries div.UI_Icon
+			{
 				background-position: -96px 0;
 			}
    

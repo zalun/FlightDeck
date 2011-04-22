@@ -7,27 +7,29 @@ body {
 	color:#478CDE;
 }
 
-#app-sidebar {
-	border: none;
-	padding: 0 0 0 15px;
-	width: 200px;
+#app-body {
+	max-width: 750px;	
+	margin: 30px auto;
+	padding-left: 220px;
 }
-
-	#app-sidebar h3 {
-		font-weight: bold;
-		border-bottom: 1px solid #E9EDF0;
-		padding-bottom: 3px;
-		margin-bottom: 15px;
+	
+	#app-sidebar {
+		position: relative;
+		float: left;	
+		border: none;
+		width: 200px;
+		margin-left: -220px;
 	}
 
-
-#app-body {
-	margin-top: 20px;
-	margin-right: 20px;
-}
+		#app-sidebar h3 {
+			font-weight: bold;
+			border-bottom: 1px solid #E9EDF0;
+			padding-bottom: 3px;
+			margin-bottom: 15px;
+		}
 
 #api-body {
-
+	
 }
 
     #api-body h1{

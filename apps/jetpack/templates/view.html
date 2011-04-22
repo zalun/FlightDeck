@@ -35,9 +35,6 @@
 {# switch off the footer #}
 {% block footer %}{% endblock %}
 
-{% block app_settings %}
-	revisions_list_html_url: '{% url jp_revisions_list_html revision.package.id_number %}',
-{% endblock %}
 
 {% block create_init %}{% comment %}
 	create.init(
@@ -48,9 +45,7 @@
 {% endcomment %}{% endblock %}
 
 {% block app_sidebar %}
-	<section id="package-info" class="UI_Sidebar_Item">
-		{% include "_package_info.html" %}
-	</section>
+	{% include "_package_info.html" %}
 	<div class="trees-container">
 		<section id="modules">
 			<ul id="LibTree" class="tree collapse">
@@ -80,15 +75,15 @@
 		<ul class="UI_Editor_Menu">
 			{% block app_content_menu_items %}{% endblock %}
 			{% if revision.package.public_permission != 2 %}
-				<li class="UI_Editor_Menu_Button Icon_copy">
-					<a id="package-copy" title="" href="#">Copy
-						<span class="UI_Editor_Icon"></span>
-					</a>
+				<li title="Copy" class="UI_Editor_Menu_Button Icon_copy">
+					<a id="package-copy" href="#"></a>
 				</li>
 			{% endif %}
 			{% include "_editor_app_menu_items.html" %}
 		</ul>
 	</div> <!-- /editor-menu-wrapper -->
+	<div id="editor-tabs">
+	</div>
 	<div id="editor-wrapper">
 	</div>
 {% endblock %}

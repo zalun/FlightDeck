@@ -998,8 +998,7 @@ class PackageRevision(BaseModel):
         if rapid:
             return xpi_utils.build(*args)
 
-        return (tasks.xpi_build.delay(*args),
-                reverse('jp_rm_xpi', args=[hashtag]))
+        return tasks.xpi_build.delay(*args)
 
     def export_keys(self, sdk_dir):
         """Export private and public keys to file."""
@@ -1582,7 +1581,8 @@ class Attachment(BaseModel):
 
     def create_path(self):
         filename = hashlib.md5(self.filename + self.ext).hexdigest()
-        args = (self.pk, filename, )
+            
+        args = (self.pk or 0, filename, )
         self.path = os.path.join(time.strftime('%Y/%m/%d'), '%s-%s' % args)
 
     def get_file_path(self):

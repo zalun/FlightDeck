@@ -55,6 +55,10 @@ var Package = new Class({
 		this.setOptions(options);
         // create empty editor
         this.editor = new FDEditor('editor-wrapper');
+        // reset version_name (in case of reload)
+		if ($('version_name')) {
+			$('version_name').set('value', this.options.version_name);
+		}
         // initiate the sidebar 
 		fd.sidebar.options.editable = !this.options.readonly;
 		fd.sidebar.buildTree();
@@ -93,6 +97,7 @@ var Package = new Class({
 	checkIfLatest: function(failCallback) {
 		// ask backend for the latest revision number
 		new Request.JSON({
+			method: 'get',
 			url: this.options.check_latest_url,
 			onSuccess: function(response) {
 				if (failCallback && this.options.revision_number != response.revision_number) {
@@ -197,6 +202,11 @@ var Package = new Class({
 	isAddon: function() {
 		return (this.options.type == 'a');
 	},
+	
+	generateHashtag: function() {
+		var hashtag = (Number.random(0, 9) + '' + this.options.id_number + Date.now()).toInt().toString(36);
+		this.options.hashtag = hashtag;
+	},
 
 	instantiate_modules: function() {
 		// iterate by modules and instantiate Module
@@ -250,8 +260,11 @@ var Package = new Class({
 
 	show_revision_list: function(e) {
 		if (e) e.stop();
+		var that = fd.getItem();
+		$log(that);
 		new Request({
-			url: settings.revisions_list_html_url,
+			method: 'get',
+			url: that.options.revisions_list_html_url.substitute(that.options),
 			onSuccess: function(html) {
 				fd.displayModal(html);
 			}
@@ -272,6 +285,18 @@ var File = new Class({
 	initialize: function(pack, options) {
 		this.pack = pack;
 		this.setOptions(options);
+	},
+	
+	getShortName: function() {
+		return this.getFullName().split('/').pop();
+	},
+	
+	getFullName: function() {
+		var name = this.options.filename;
+		if(this.options.type) {
+			name += '.' + this.options.type;
+		}
+		return name;
 	},
 	
 	is_editable: function() {
@@ -303,7 +328,26 @@ var File = new Class({
 
 	switchTo: function() {
 		this.pack.editor.switchTo(this);
+		this.pack.editor.focus();
+		this.fireEvent('showEditor');
+		this.selectTab();
+	},
+	
+	makeTab: function() {
+		this.tab = new FlightDeck.Tab(fd.tabs, {
+			title: this.getShortName()
+		});
+		this.tab.file = this;
+	},
+	
+	selectTab: function() {
+		if(!this.tab) {
+			this.makeTab();
+		}
+		fd.tabs.setSelected(this.tab);
 	}
+	
+	
 });
 
 var Library = new Class({
@@ -382,7 +426,7 @@ var Attachment = new Class({
 		});
 		// create editor
 		if (this.options.active && this.is_editable()) {
-			pack.editor.switchTo(this);
+			this.switchTo();
 		} else {
             pack.editor.registerItem(this);
         }
@@ -414,14 +458,16 @@ var Attachment = new Class({
 		// load data synchronously
         var that = this;
 		new Request({
+			method: 'get',
 			url: this.options.get_url,
-			async: false,
+			async: false, // This kinda sucks. It makes the app feel weird when loading.
 			useSpinner: true,
 			spinnerTarget: 'editor-wrapper',
 			onSuccess: function() {
-                that.content = this.response.text;
-                that.original_content = this.response.text;
-				that.fireEvent('loadcontent', this.response.text);
+                var content = this.response.text || '';
+				that.content = content;
+                that.original_content = content;
+				that.fireEvent('loadcontent', content);
 			}
 		}).send();
 	},
@@ -478,7 +524,7 @@ var Module = new Class({
         this.uid = this.options.filename + this.options.suffix;
 		// create editor
         if (this.options.main || this.options.active) {
-            pack.editor.switchTo(this);
+            this.switchTo();
         } else {
             pack.editor.registerItem(this);
         }
@@ -495,14 +541,16 @@ var Module = new Class({
 	loadContent: function() {
 		// load data synchronously
 		new Request.JSON({
-            url: this.options.get_url,
-            async: false,
+            method: 'get',
+			url: this.options.get_url,
+            async: false, // This kinda sucks. It makes the app feel weird when loading.
             useSpinner: true,
             spinnerTarget: 'editor-wrapper',
             onSuccess: function(mod) {
-                this.original_content = mod.code;
-                this.content = mod.code;
-                this.fireEvent('loadcontent', mod.code);
+                var code = mod.code || '';
+				this.original_content = code;
+                this.content = code;
+                this.fireEvent('loadcontent', code);
             }.bind(this)
 		}).send();
 	},
@@ -615,9 +663,7 @@ Package.Edit = new Class({
 			// add_module_url: '',
 			// assign_library_url: '',
 			// switch_sdk_url: '',
-		package_info_form_elements: [
-			'full_name', 'version_name', 'package_description', 'revision_message'
-			]
+		package_info_form_elements: ['full_name', 'package_description']
 	},
 	
 	_modules_list: {},
@@ -641,6 +687,7 @@ Package.Edit = new Class({
 
 	assignActions: function() {
 		// assign menu items
+        var that = this;
 		this.appSidebarValidator = new Form.Validator.Inline('app-sidebar-form');
 		$(this.options.package_info_el).addEvent('click', this.editInfo.bind(this));
 
@@ -658,6 +705,42 @@ Package.Edit = new Class({
 		// submit Info
 		this.boundSubmitInfo = this.submitInfo.bind(this);
 
+        // check if message changed
+        var message_changed = function() {
+            if (!fd.changed) {
+                var message = this.get('value');
+                if (that.options.message != message) {
+                    fd.fireEvent('change');
+                    return;
+                }
+            }
+        }
+        $('revision_message').addEvents({
+            keyup: message_changed,
+            change: function() { 
+                fd.fireEvent('change'); 
+            }
+        });
+        // check if version_name changed
+        var version_name_keyup = function(e) {
+			if (e) {
+				if (e.key == 'enter') {
+					that.save();
+					e.stop();
+				}
+			}
+        }
+        var version_name_keydown = function(e) {
+			if (e) {
+				if (e.key == 'enter') {
+					e.stop();
+				}
+			}
+		}
+        $('version_name').addEvents({
+            keyup: version_name_keyup,
+            keydown: version_name_keydown,
+        });
 		if ($('jetpack_core_sdk_version')) {
 			$('jetpack_core_sdk_version').addEvent('change', function() {
 				new Request.JSON({
@@ -723,6 +806,7 @@ Package.Edit = new Class({
 	
 	updateFullModulesList: function() {
 		new Request.JSON({
+			method: 'get',
 			url: this.options.all_modules_list_url,
 			onSuccess: function(response) {
 				this._modules_list = response;
@@ -1179,7 +1263,8 @@ Package.Edit = new Class({
     checkDependencies: function() {
         var that = this;
         new Request.JSON({
-            url: that.options.latest_dependencies_url,
+            method: 'get',
+			url: that.options.latest_dependencies_url,
 			timeout: 5000,
             onSuccess: function(res) {
                 res.forEach(function(latest_revision) {
@@ -1226,6 +1311,7 @@ Package.Edit = new Class({
 	
 	checkModuleConflicts: function() {
 		new Request.JSON({
+			method: 'get',
 			url: this.options.conflicting_modules_list_url,
 			onSuccess: function(response) {
 				this.alertModuleConflicts(response);
@@ -1251,14 +1337,10 @@ Package.Edit = new Class({
 	editInfo: function(e) {
 		e.stop();
 		this.savenow = false;
-        $log(Object.merge({}, this.data, this.options).version_name)
 		fd.editPackageInfoModal = fd.displayModal(
 				settings.edit_package_info_template.substitute(
 					Object.merge({}, this.data, this.options)));
 		$('package-info_form').addEvent('submit', this.boundSubmitInfo);
-		$('version_name').addEvent('change', function() { 
-			fd.fireEvent('change'); 
-		});
 		$('full_name').addEvent('change', function() { 
 			fd.fireEvent('change'); 
 		});
@@ -1310,6 +1392,8 @@ Package.Edit = new Class({
 
 	collectData: function() {
 		this.editor.dumpCurrent();
+        this.data.version_name = $('version_name').get('value');
+        this.data.revision_message = $('revision_message').get('value');
 		Object.each(this.modules, function(module, filename) {
             var mod = this.editor.items[module.uid];
             if (mod.content && mod.changed) {
@@ -1340,7 +1424,7 @@ Package.Edit = new Class({
 		this.collectData();
 		this.saving = true;
 		new Request.JSON({
-			url: this.options.save_url || this.options.save_url,
+			url: this.options.save_url,
 			data: this.data,
 			onSuccess: function(response) {
 				// set the redirect data to view_url of the new revision
@@ -1349,6 +1433,7 @@ Package.Edit = new Class({
 					$('package-info-name').set('text', response.full_name);
 					this.options.full_name = response.full_name;
 				}
+                $('revision_message').set('value', '');
                 if (response.attachments_changed) {
                     Object.forEach(response.attachments_changed, 
                         function(options, uid) {

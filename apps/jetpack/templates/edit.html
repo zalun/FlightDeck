@@ -45,7 +45,6 @@
 {% block app_settings %}
 	edit_package_info_template: '{% escape_template "_edit_package_info.html" %}',
 	library_autocomplete_url: '{% url jp_library_autocomplete %}',
-	revisions_list_html_url: '{% url jp_revisions_list_html revision.package.id_number %}',
 {% endblock %}
 
 
@@ -61,9 +60,7 @@
 {% block footer %}{% endblock %}
 
 {% block app_sidebar %}<form id="app-sidebar-form">
-	<section id="package-info" class="UI_Sidebar_Item">
-		{% include "_package_info.html" %}
-	</section>
+	{% include "_package_info.html" %}
 	<div class="trees-container">
 		<section id="modules">
 			<ul id="LibTree" class="tree collapse">
@@ -87,28 +84,35 @@
 	<div id="editor-menu-wrapper">
 		<ul class="UI_Editor_Menu">
 			{% block app_content_menu_items %}{% endblock %}
-			<li class="UI_Editor_Menu_Button Icon_save">
-				<a id="package-save" title="" href="#">Save
-					<span class="UI_Editor_Icon"></span>
-				</a>
+			<li title="Save" class="UI_Editor_Menu_Button Icon_save UI_Editor_Menu_Parent">
+				<a id="package-save" href="#"></a>
+                <form class="UI_Forms UI_Editor_Menu_Descendant">
+                    <fieldset>
+                        <p class="UI_Field">
+                            <label for="version_name">Version</label>
+                            <input type="text" id="version_name" name="version_name" autocomplete="off" value="{{ revision.package.version_name }}"/>
+                        </p>
+                        <p class="UI_Field">
+                            <label for="revision_message">Commit Message</label>
+                            <textarea class="emptyreset" id="revision_message" name="revision_message"></textarea>
+                        </p>
+                    </fieldset>
+                </form>
 			</li>
 			{% if revision.package.public_permission != 2 %}
-				<li class="UI_Editor_Menu_Button Icon_copy">
-					<a id="package-copy" title="" href="#">Copy
-						<span class="UI_Editor_Icon"></span>
-					</a>
+				<li title="Copy" class="UI_Editor_Menu_Button Icon_copy">
+					<a id="package-copy" href="#"></a>
 				</li>
 			{% endif %}
-			<li class="UI_Editor_Menu_Button Icon_logs">
-				<a id="error-console" title="" href="#">
-					Error Console
-					<span class="UI_Editor_Icon"></span>
-				</a>
+			<li title="Error class="UI_Editor_Menu_Button Icon_logs">
+				<a id="error-console" Console" href="#"></a>
 			</li>
 			{% include "_editor_app_menu_items.html" %}
 		</ul>
 	</div> <!-- /editor-menu-wrapper -->
-	<div id='editor-wrapper'>
+	<div id="editor-tabs">
+	</div>
+	<div id="editor-wrapper">
 		{# block editor_wrapper #}
 		{# endblock #}
 	</div> <!-- /editor-wrapper -->

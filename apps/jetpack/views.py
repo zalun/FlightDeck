@@ -25,6 +25,7 @@ from django.core.paginator import Paginator
 from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
 from django.db.models import Q, ObjectDoesNotExist
 from django.db import IntegrityError
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.template.defaultfilters import escape
@@ -178,7 +179,7 @@ def package_view(r, revision):
             'tree': tree
         }, context_instance=RequestContext(r))
 
-@csrf_exempt
+
 def download_module(r, pk):
     """
     return a JSON with all module info
@@ -186,7 +187,7 @@ def download_module(r, pk):
     module = get_object_or_404(Module, pk=pk)
     return HttpResponse(module.get_json())
 
-@csrf_exempt
+
 def get_module(r, id_number, revision_number, filename):
     """
     return a JSON with all module info
@@ -527,7 +528,7 @@ def package_upload_attachment(r, id_number, type_id,
             'You are not the author of this %s' \
                 % escape(revision.package.get_type_name()))
 
-    
+
     file = r.FILES.get('upload_attachment')
     filename = r.META.get('HTTP_X_FILE_NAME')
 
@@ -662,23 +663,20 @@ def revision_add_attachment(r, pk):
         att = urllib.urlopen(url)
         # validate filesize
         att_info = att.info()
-        if not att_info.dict.has_key('content-length'):
-            log.debug('Server did not provide Content-Length header')
-            return HttpResponseForbidden("Loading attachment failed<br/>"
-                    "Server did not respond with the right headers")
-        att_size = int(att_info.dict['content-length'])
-        if att_size > settings.ATTACHMENT_MAX_FILESIZE:
-            log.debug('File (%s) is too big (%db)' % (url, att_size))
-            return HttpResponseForbidden("Loading attachment failed<br/>"
-                    "File is too big")
-        if att_size <= 0:
-            log.debug(
-                    'Content-Length header provided wrong value %d' % att_size)
-            return HttpResponseForbidden("Loading attachment failed<br/>"
-                    "File size is not provided by the server")
+        if att_info.dict.has_key('content-length'):
+            att_size = int(att_info.dict['content-length'])
+            if att_size > settings.ATTACHMENT_MAX_FILESIZE:
+                log.debug('File (%s) is too big (%db)' % (url, att_size))
+                return HttpResponseForbidden("Loading attachment failed<br/>"
+                        "File is too big")
         # download attachment's content
         log.info('Downloading (%s)' % url)
-        content = att.read()
+        content = att.read(settings.ATTACHMENT_MAX_FILESIZE + 1)
+        if len(content) >= settings.ATTACHMENT_MAX_FILESIZE + 1:
+            log.debug('Downloaded file (%s) is too big' % url)
+            return HttpResponseForbidden("Loading attachment failed<br/>"
+                    "File is too big")
+        log.debug('Downloaded %d, max %d' % (len(content), settings.ATTACHMENT_MAX_FILESIZE))
         att.close()
     try:
         attachment = revision.attachment_create_by_filename(
@@ -786,7 +784,7 @@ def package_remove_attachment(r, id_number, type_id, revision_number):
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
-@csrf_exempt
+
 def download_attachment(request, uid):
     """
     Display attachment from PackageRevision
@@ -1085,31 +1083,30 @@ def package_latest_dependencies(r, id_number, type_id, revision_number):
             context_instance=RequestContext(r),
             mimetype='application/json')
 
-@csrf_exempt
-def get_revisions_list(id_number):
-    " provide a list of the Package's revsisions "
-    return PackageRevision.objects.filter(package__id_number=id_number)
 
-@csrf_exempt
-def get_revisions_list_html(r, id_number):
+@never_cache
+def get_revisions_list_html(r, id_number, revision_number=None):
     " returns revision list to be displayed in the modal window "
     package = get_object_with_related_or_404(Package, id_number=id_number)
-    revisions = get_revisions_list(id_number)
+    revisions = package.revisions.all()
+    if revision_number:
+        revision_number = int(revision_number)
     return render_to_response(
         '_package_revisions_list.html', {
             'package': package,
-            'revisions': revisions
+            'revisions': revisions,
+            'revision_number': revision_number
         },
         context_instance=RequestContext(r))
 
-@csrf_exempt
+@never_cache
 def get_latest_revision_number(request, package_id):
     """ returns the latest revision number for given package """
     package = get_object_or_404(Package, id_number=package_id)
     return HttpResponse(simplejson.dumps({
         'revision_number': package.latest.revision_number}))
 
-@csrf_exempt
+@never_cache
 def get_revision_modules_list(request, pk):
     """returns JSON object with all modules which will be exported to XPI
     """
@@ -1117,7 +1114,7 @@ def get_revision_modules_list(request, pk):
     return HttpResponse(simplejson.dumps(revision.get_module_names()),
                         mimetype="application/json")
 
-@csrf_exempt
+@never_cache
 def get_revision_conflicting_modules_list(request, pk):
     """returns JSON object with all modules which will be exported to XPI
     """

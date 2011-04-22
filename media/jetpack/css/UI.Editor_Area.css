@@ -8,24 +8,60 @@ authors:
 ...
 */
 
-/*
-.UI_Editor_Area {
-   width: 98%;
-   min-height: 600px;
-   background: url(../img/shadow.png) 0 0 repeat-x;
-   padding: 5px;
+#djDebug
+{
+	display: none !important;
 }
-*/
-.UI_Editor_Area {
-	height:100%;
-	padding:0;
-	width:100%;
-	/* background: url(/img/shadow.png) 0 0 repeat-x; */
-}
-.ace_gutter { padding-top: 8px; }
-.ace_scroller { margin-top: 8px; }
 
-body { overflow: hidden; }
+div.UI_Editor_Area {
+	top: 0px;
+	bottom: 0px;
+	width: 100%;
+	height: auto;
+	background: #E5E9EE;
+}
+
+	div.ace_gutter
+	{
+		top: 0px;
+		bottom: 0px;
+		height: auto !important;
+		background: #E5E9EE !important;
+	}
+
+		div.ace_gutter div.ace_gutter-layer
+		{
+			padding: 4px 0;
+		}
+
+	div.ace_scroller
+	{
+		top: 0px;
+		bottom: 0px;	
+		height: auto !important;
+		background: #FFFFFF;
+		border-top: 1px solid #777;
+		border-left: 1px solid #777;
+		-moz-border-radius: 3px 0 0 0;
+		-moz-box-shadow: 1px 1px 2px -2px #000 inset;
+	}
+	
+		div.ace_content
+		{
+			top: 3px;
+			padding: 4px !important;
+		}
+
+			div.ace_content > div.ace_layer
+			{
+				top: -1px;
+			}
+	
+	div.ace_editor div.ace_sb
+	{
+		right: -1px;
+		border-top: 1px solid #777;		
+	}
 
 #jetpack_core_sdk_version option {
     font-weight: bold;

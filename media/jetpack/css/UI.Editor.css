@@ -1,17 +1,90 @@
 @import url('UI.Editor_Menu.css');
 @import url('UI.Editor_Area.css');
 
+html, body, #wrapper, #app-content, #editor-wrapper, div.CodeMirror-wrapping
+{
+	height: 100%;
+}
+
+body
+{
+	overflow: hidden;
+}
+
 .UI_middleWrapper,
 .centerSection p {
 	max-width: 100%;
 	position: relative;
 }
 
+#app-body
+{
+	position:absolute;
+	top:48px;
+	bottom:72px;
+	left:0;
+	right:0;
+}
+	
+	#app-content
+	{
+		position: absolute;		
+		left: 230px;
+		right: 0px;
+		background: #E5E9EE;
+	}
 
-/* by Daniel */
-html, body, #wrapper, #app-content, #editor-wrapper, div.CodeMirror-wrapping {  height: 100%; }
-#app-body { bottom:51px; left:0; margin-left:230px; position:absolute; right:0; top:90px; }
-/*#editor-wrapper  { -moz-box-shadow: 2px 2px  4px 0 #DDDDDD inset; }*/
+		#editor-tabs
+		{
+			height: 30px;
+			padding-left: 56px;
+			border-top: 1px solid #fff;
+			overflow: hidden;
+		}
+
+		#editor-tabs .tab
+		{
+			float: left;
+			height: 23px;
+			line-height: 23px;
+			margin: 6px 6px 0 0;
+    		padding: 0 6px;
+			background: -moz-linear-gradient(center top , #F4F8FC, #CED4DB);
+			border: 1px solid;
+			border-color: #bbb #888 #555;
+			border-bottom: none;
+			text-shadow: 0 1px 0 #eee;
+			cursor: pointer;
+			border-radius: 3px 3px 0 0;
+			-moz-user-select:none;
+		}
+
+		#editor-tabs .tab:hover
+		{
+			color: #000;
+			background: -moz-linear-gradient(center top , #fefeff, #CED4DB);
+		}
+
+			#editor-tabs .tab.selected
+			{
+				border-color: #777 !important;				
+				background: -moz-linear-gradient(top, #bbb, #ccc) !important;
+				font-weight: bold;
+				text-shadow: 0 1px 0 #eee !important;
+				color: #222 !important;
+				cursor: default !important;
+				-moz-box-shadow: 0 1px 2px -1px #555 inset;	
+			}
+		
+		#editor-tabs .tab .tab-close {
+			padding:0 3px;
+		}
+		#editor-tabs .tab .tab-close:hover {
+			background:#c22;
+			text-shadow:0 1px 0 #000;
+			color:#fff;
+			border-radius:10px;
+		}
 
 .ma-container strong { 
 	font-weight: bold;
@@ -34,4 +107,10 @@ html, body, #wrapper, #app-content, #editor-wrapper, div.CodeMirror-wrapping {  
     font-style: italic;
     color: #999;
     margin-left: 5px;
+}
+.UI_Revisions li.current {
+	background: #ffb;
+}
+.UI_Revisions em.date {
+	margin-left: 5px;
 }
