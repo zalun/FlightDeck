@@ -10,7 +10,9 @@ FlightDeck = Class.refactor(FlightDeck,{
 		this.tabs = new FlightDeck.TabBar('editor-tabs', {
 			arrows: false,
 			onTabDown: function(tab) {
-				tab.retrieve('tab:instance').file.onSelect();
+				if (!tab.hasClass('selected')) {
+					tab.retrieve('tab:instance').file.onSelect();
+				}
 			},
 			onCloseDown: function(tabClose) {
 				var tab = tabClose.getParent('.tab');
