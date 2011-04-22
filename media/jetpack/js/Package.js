@@ -328,6 +328,7 @@ var File = new Class({
 
 	switchTo: function() {
 		this.pack.editor.switchTo(this);
+		this.pack.editor.focus();
 		this.fireEvent('showEditor');
 		this.selectTab();
 	},
