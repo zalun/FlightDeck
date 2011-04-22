@@ -62,7 +62,8 @@ a:hover {
 /*
  =========================================================================== */
 #app-header {
-	position: relative;	
+	position: relative;
+	height: 44px;
 	border-top: 1px solid #153877;
 	border-bottom: 2px solid #153877;
 	background: url(../img/mozilla/header.png) repeat-x left top;
@@ -73,6 +74,7 @@ a:hover {
 	#app-header nav {
 		float: right;
 		margin: 9px 9px 0 0;
+		line-height: 18px;
 	}
    
 	#app-header nav li {
@@ -156,7 +158,7 @@ a:hover {
 	display: block;
 	float: left;
 	font-size: 2.0em;
-	margin: 4px 0 2px;
+	margin: 5px 0 0;
 }
 
 	#flightdeck-logo a {
@@ -180,7 +182,7 @@ a:hover {
 	display: block;
 	background: url(../img/mozilla/mozilla_logo.png) 0 0 no-repeat;
 	text-indent: -900em;
-	margin-top: 9px;
+	margin-top: 10px;
 }
 
 /*
@@ -484,8 +486,8 @@ kbd {
 /*
  =========================================================================== */
 #app-footer {
-	overflow: hidden;
 	background: url(../img/mozilla/footer.png) repeat-x top left;
+	overflow: hidden;
 }
 
 
@@ -494,7 +496,8 @@ kbd {
 
 #footer
 {
-	padding-top: 115px;    
+	margin-top: 102px; 
+	line-height: 18px;
 	color: #fff;	
 }
 #footer a {
@@ -518,28 +521,16 @@ kbd {
 #footer p {
     margin-bottom: 0;
     margin-left: 60px;
-    margin-right: 1em;
 }
 #footer ul {
-    font-size: 0.846em;
-    line-height: 1.273;
-    margin-top: 0.3em;
+    font-size: 80%;
+    margin-top: 4px;
+	margin-left: 60px;
     padding: 0;
-    margin-left: 60px;
-    margin-right: 1.273em;
 }
 #footer ul li {
     display: inline;
-    margin-right: 1em;
-}
-#footer .disclaimer {
-    font-size: 0.846em;
-    line-height: 1.273;
-    color: #ccc;
-    margin-right: 1.273em;
-	padding-top: 15px;
-	margin-bottom: 10px;
-	clear: both;
+    margin-right: 10px;
 }
 
 #footer .languages {

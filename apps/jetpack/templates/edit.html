@@ -45,7 +45,6 @@
 {% block app_settings %}
 	edit_package_info_template: '{% escape_template "_edit_package_info.html" %}',
 	library_autocomplete_url: '{% url jp_library_autocomplete %}',
-	revisions_list_html_url: '{% url jp_revisions_list_html revision.package.id_number %}',
 {% endblock %}
 
 
@@ -85,8 +84,8 @@
 	<div id="editor-menu-wrapper">
 		<ul class="UI_Editor_Menu">
 			{% block app_content_menu_items %}{% endblock %}
-			<li class="UI_Editor_Menu_Button Icon_save UI_Editor_Menu_Parent">
-				<a id="package-save" title="Save" href="#"></a>
+			<li title="Save" class="UI_Editor_Menu_Button Icon_save UI_Editor_Menu_Parent">
+				<a id="package-save" href="#"></a>
                 <form class="UI_Forms UI_Editor_Menu_Descendant">
                     <fieldset>
                         <p class="UI_Field">
@@ -101,12 +100,12 @@
                 </form>
 			</li>
 			{% if revision.package.public_permission != 2 %}
-				<li class="UI_Editor_Menu_Button Icon_copy">
-					<a id="package-copy" title="Copy" href="#"></a>
+				<li title="Copy" class="UI_Editor_Menu_Button Icon_copy">
+					<a id="package-copy" href="#"></a>
 				</li>
 			{% endif %}
-			<li class="UI_Editor_Menu_Button Icon_logs">
-				<a id="error-console" title="Error Console" href="#"></a>
+			<li title="Error class="UI_Editor_Menu_Button Icon_logs">
+				<a id="error-console" Console" href="#"></a>
 			</li>
 			{% include "_editor_app_menu_items.html" %}
 		</ul>

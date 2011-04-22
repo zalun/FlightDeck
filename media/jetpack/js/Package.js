@@ -56,7 +56,9 @@ var Package = new Class({
         // create empty editor
         this.editor = new FDEditor('editor-wrapper');
         // reset version_name (in case of reload)
-        $('version_name').set('value', this.options.version_name);
+		if ($('version_name')) {
+			$('version_name').set('value', this.options.version_name);
+		}
         // initiate the sidebar 
 		fd.sidebar.options.editable = !this.options.readonly;
 		fd.sidebar.buildTree();
@@ -200,6 +202,11 @@ var Package = new Class({
 	isAddon: function() {
 		return (this.options.type == 'a');
 	},
+	
+	generateHashtag: function() {
+		var hashtag = (Number.random(0, 9) + '' + this.options.id_number + Date.now()).toInt().toString(36);
+		this.options.hashtag = hashtag;
+	},
 
 	instantiate_modules: function() {
 		// iterate by modules and instantiate Module
@@ -253,9 +260,11 @@ var Package = new Class({
 
 	show_revision_list: function(e) {
 		if (e) e.stop();
+		var that = fd.getItem();
+		$log(that);
 		new Request({
 			method: 'get',
-			url: settings.revisions_list_html_url,
+			url: that.options.revisions_list_html_url.substitute(that.options),
 			onSuccess: function(html) {
 				fd.displayModal(html);
 			}
@@ -687,13 +696,6 @@ Package.Edit = new Class({
 					e.stop();
 				}
 			}
-            if (!fd.edited) {
-                var version_name = this.get('value');
-                if (that.options.version_name != version_name) {
-                    fd.fireEvent('change');
-                    return;
-                }
-            }
         }
         var version_name_keydown = function(e) {
 			if (e) {

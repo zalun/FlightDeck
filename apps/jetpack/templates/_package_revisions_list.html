@@ -4,7 +4,7 @@
 	<div class="UI_Modal_Section">
 		<ul class="UI_Revisions">
 			{% for revision in revisions %}
-				<li>
+            <li{% ifequal revision.revision_number revision_number %} class="current"{% endifequal %}>
 					<em class="date">{{ revision.created_at|date:"Y-m-d" }}</em>
 					<a href="{{ revision.get_absolute_url }}">{{ revision.get_version_name }}</a>
                     {% if revision.message %}<span class='message'>{{ revision.message }}</span>{% endif %}

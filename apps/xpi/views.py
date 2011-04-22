@@ -49,11 +49,11 @@ def prepare_test(r, id_number, revision_number=None):
                 code = r.POST.get(str(att.pk))
                 att.code = code
                 attachments.append(att)
-        response, rm_xpi_url = revision.build_xpi(modules, attachments,
+        response = revision.build_xpi(modules, attachments,
                 hashtag=hashtag)
     else:
-        response, rm_xpi_url = revision.build_xpi(hashtag=hashtag)
-    return HttpResponse('{"delayed": true, "rm_xpi_url": "%s"}' % rm_xpi_url)
+        response = revision.build_xpi(hashtag=hashtag)
+    return HttpResponse('{"delayed": true}')
 
 @never_cache
 def get_test(r, hashtag):
