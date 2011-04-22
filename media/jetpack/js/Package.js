@@ -459,9 +459,10 @@ var Attachment = new Class({
 			useSpinner: true,
 			spinnerTarget: 'editor-wrapper',
 			onSuccess: function() {
-                that.content = this.response.text;
-                that.original_content = this.response.text;
-				that.fireEvent('loadcontent', this.response.text);
+                var content = this.response.text || '';
+				that.content = content;
+                that.original_content = content;
+				that.fireEvent('loadcontent', content);
 			}
 		}).send();
 	},
@@ -541,9 +542,10 @@ var Module = new Class({
             useSpinner: true,
             spinnerTarget: 'editor-wrapper',
             onSuccess: function(mod) {
-                this.original_content = mod.code;
-                this.content = mod.code;
-                this.fireEvent('loadcontent', mod.code);
+                var code = mod.code || '';
+				this.original_content = code;
+                this.content = code;
+                this.fireEvent('loadcontent', code);
             }.bind(this)
 		}).send();
 	},
