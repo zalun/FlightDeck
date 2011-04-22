@@ -287,6 +287,18 @@ var File = new Class({
 		this.setOptions(options);
 	},
 	
+	getShortName: function() {
+		return this.getFullName().split('/').pop();
+	},
+	
+	getFullName: function() {
+		var name = this.options.filename;
+		if(this.options.type) {
+			name += '.' + this.options.type;
+		}
+		return name;
+	},
+	
 	is_editable: function() {
 		return ['css', 'txt', 'js', 'html'].contains(this.options.type);
 	},
@@ -316,7 +328,21 @@ var File = new Class({
 
 	switchTo: function() {
 		this.pack.editor.switchTo(this);
+		this.fireEvent('showEditor');
+		this.selectTab();
+	},
+	
+	selectTab: function() {
+		if(!this.tab) {
+			this.tab = new FlightDeck.Tab(fd.tabs, {
+				title: this.getShortName()
+			});
+			this.tab.file = this;
+		}
+		fd.tabs.setSelected(this.tab);
 	}
+	
+	
 });
 
 var Library = new Class({
@@ -395,7 +421,7 @@ var Attachment = new Class({
 		});
 		// create editor
 		if (this.options.active && this.is_editable()) {
-			pack.editor.switchTo(this);
+			this.switchTo();
 		} else {
             pack.editor.registerItem(this);
         }
@@ -492,7 +518,7 @@ var Module = new Class({
         this.uid = this.options.filename + this.options.suffix;
 		// create editor
         if (this.options.main || this.options.active) {
-            pack.editor.switchTo(this);
+            this.switchTo();
         } else {
             pack.editor.registerItem(this);
         }

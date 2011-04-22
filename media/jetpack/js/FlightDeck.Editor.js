@@ -7,6 +7,22 @@ FlightDeck = Class.refactor(FlightDeck,{
 	initialize: function(options) {
 		this.setOptions(options);
 		this.sidebar = new Sidebar();
+		this.tabs = new FlightDeck.TabBar('editor-tabs', {
+			arrows: false,
+			onTabDown: function(tab) {
+				tab.retrieve('tab:instance').file.onSelect();
+			},
+			onCloseDown: function(tabClose) {
+				var tab = tabClose.getParent('.tab');
+				var nextTab = tab.getPrevious('.tab.') || tab.getNext('.tab');
+				if(nextTab) {
+					this.fireEvent('tabDown', nextTab);
+					tab.retrieve('tab:instance').file.tab = null;
+					tab.destroy();
+				}
+				
+			}
+		});
 		this.previous(options);
 
 		this.edited = false;
