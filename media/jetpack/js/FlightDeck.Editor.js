@@ -7,6 +7,61 @@ FlightDeck = Class.refactor(FlightDeck,{
 	initialize: function(options) {
 		this.setOptions(options);
 		this.sidebar = new Sidebar();
+		this.tabs = new FlightDeck.TabBar('editor-tabs', {
+			arrows: false,
+			onTabDown: function(tab) {
+				if (!tab.hasClass('selected')) {
+					tab.retrieve('tab:instance').file.onSelect();
+				}
+			},
+			onCloseDown: function(tabClose) {
+				var tabEl = tabClose.getParent('.tab');
+				var nextTab = tabEl.getPrevious('.tab.') || tabEl.getNext('.tab');
+				if(nextTab) {
+					var tab = tabEl.retrieve('tab:instance'),
+						that = this,
+						file = tab.file;
+						
+					function closeTab() {
+						tab.destroy();
+						that.fireEvent('tabDown', nextTab);
+					}
+					
+					if(file.changed) {
+						fd.showQuestion({
+							title: 'Lose unsaved changes?',
+							message: 'The tab "'+file.getShortName()+'" that you are trying to close has unsaved changes.',
+							buttons: [
+								{
+									'type': 'reset',
+									'text': 'Cancel',
+									'class': 'close'
+								},
+								{
+									'type': 'submit',
+									'text': 'Close Tab',
+									'id': 'close_tab_btn',
+									'default': true,
+									'irreversible': true,
+									'callback': function() {
+										closeTab();
+										//do this after editor changes instances, cause editor
+										//dumps content when it changes
+										setTimeout(function() {
+											file.content = file.original_content;
+											file.changed = false;
+										}, 1);
+									}
+								}
+							]
+						});
+					} else {
+						closeTab();
+					}
+				}
+				
+			}
+		});
 		this.previous(options);
 
 		this.edited = false;

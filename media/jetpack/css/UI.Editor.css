@@ -36,13 +36,13 @@ body
 
 		#editor-tabs
 		{
-			max-height: 40px;
+			height: 30px;
 			padding-left: 56px;
 			border-top: 1px solid #fff;
 			overflow: hidden;
 		}
 
-		#editor-tabs > div
+		#editor-tabs .tab
 		{
 			float: left;
 			height: 23px;
@@ -55,16 +55,17 @@ body
 			border-bottom: none;
 			text-shadow: 0 1px 0 #eee;
 			cursor: pointer;
-			-moz-border-radius: 3px 3px 0 0;
+			border-radius: 3px 3px 0 0;
+			-moz-user-select:none;
 		}
 
-		#editor-tabs > div:hover
+		#editor-tabs .tab:hover
 		{
 			color: #000;
 			background: -moz-linear-gradient(center top , #fefeff, #CED4DB);
 		}
 
-			div.selected-tab
+			#editor-tabs .tab.selected
 			{
 				border-color: #777 !important;				
 				background: -moz-linear-gradient(top, #bbb, #ccc) !important;
@@ -74,6 +75,16 @@ body
 				cursor: default !important;
 				-moz-box-shadow: 0 1px 2px -1px #555 inset;	
 			}
+		
+		#editor-tabs .tab .tab-close {
+			padding:0 3px;
+		}
+		#editor-tabs .tab .tab-close:hover {
+			background:#c22;
+			text-shadow:0 1px 0 #000;
+			color:#fff;
+			border-radius:10px;
+		}
 
 .ma-container strong { 
 	font-weight: bold;

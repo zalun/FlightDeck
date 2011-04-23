@@ -287,6 +287,18 @@ var File = new Class({
 		this.setOptions(options);
 	},
 	
+	getShortName: function() {
+		return this.getFullName().split('/').pop();
+	},
+	
+	getFullName: function() {
+		var name = this.options.filename;
+		if(this.options.type) {
+			name += '.' + this.options.type;
+		}
+		return name;
+	},
+	
 	is_editable: function() {
 		return ['css', 'txt', 'js', 'html'].contains(this.options.type);
 	},
@@ -316,7 +328,26 @@ var File = new Class({
 
 	switchTo: function() {
 		this.pack.editor.switchTo(this);
+		this.pack.editor.focus();
+		this.fireEvent('showEditor');
+		this.selectTab();
+	},
+	
+	makeTab: function() {
+		this.tab = new FlightDeck.Tab(fd.tabs, {
+			title: this.getShortName()
+		});
+		this.tab.file = this;
+	},
+	
+	selectTab: function() {
+		if(!this.tab) {
+			this.makeTab();
+		}
+		fd.tabs.setSelected(this.tab);
 	}
+	
+	
 });
 
 var Library = new Class({
@@ -395,7 +426,7 @@ var Attachment = new Class({
 		});
 		// create editor
 		if (this.options.active && this.is_editable()) {
-			pack.editor.switchTo(this);
+			this.switchTo();
 		} else {
             pack.editor.registerItem(this);
         }
@@ -433,9 +464,10 @@ var Attachment = new Class({
 			useSpinner: true,
 			spinnerTarget: 'editor-wrapper',
 			onSuccess: function() {
-                that.content = this.response.text;
-                that.original_content = this.response.text;
-				that.fireEvent('loadcontent', this.response.text);
+                var content = this.response.text || '';
+				that.content = content;
+                that.original_content = content;
+				that.fireEvent('loadcontent', content);
 			}
 		}).send();
 	},
@@ -492,7 +524,7 @@ var Module = new Class({
         this.uid = this.options.filename + this.options.suffix;
 		// create editor
         if (this.options.main || this.options.active) {
-            pack.editor.switchTo(this);
+            this.switchTo();
         } else {
             pack.editor.registerItem(this);
         }
@@ -515,9 +547,10 @@ var Module = new Class({
             useSpinner: true,
             spinnerTarget: 'editor-wrapper',
             onSuccess: function(mod) {
-                this.original_content = mod.code;
-                this.content = mod.code;
-                this.fireEvent('loadcontent', mod.code);
+                var code = mod.code || '';
+				this.original_content = code;
+                this.content = code;
+                this.fireEvent('loadcontent', code);
             }.bind(this)
 		}).send();
 	},

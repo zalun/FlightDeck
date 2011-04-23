@@ -119,6 +119,7 @@
         dumpCurrent: function() {
             // dump undo buffers
             this.current.undo_manager = this.getUndoRedoStack();
+			this.current.cursorPos = this.editor.selection.getCursor();
             this.previous();
         },
 
@@ -128,6 +129,10 @@
             if (this.current.undo_manager) {
                 this.setUndoRedoStack(this.current.undo_manager);
             }
+			var cursor = this.current.cursorPos;
+			if (cursor) {
+				this.editor.selection.moveCursorTo(cursor.row, cursor.column);
+			}
         },
 
         setSyntax: function(kind){
