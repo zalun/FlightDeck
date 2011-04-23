@@ -171,22 +171,27 @@ class Extractor(object):
     """Extract add-on info from an install.rdf."""
     App = collections.namedtuple('App', 'appdata id min max')
     manifest = u'urn:mozilla:install-manifest'
-    ADDON_EXTENSION = 1
+    ADDON_EXTENSION ='2'
 
     def __init__(self, install_rdf):
         self.rdf = rdflib.Graph().parse(install_rdf)
         self.find_root()
         self.data = {
-            'guid': self.find('id'),
+            'id': self.find('id'),
             'type': self.find('type') or self.ADDON_EXTENSION,
             'name': self.find('name'),
+            'fullName': self.find('full_name'),
             'version': self.find('version'),
-            'homepage': self.find('homepageURL'),
-            'summary': self.find('description'),
-            'no_restart': self.find('bootstrap') == 'true',
-            'apps': self.App(appdata=FIREFOX, id=FIREFOX.id, min='4.0', max='4.1'),
+            'url': self.find('homepageURL'),
+            'description': self.find('description'),
+            'author': self.find('creator'),
+            'license': self.find('license'),
+            'lib': self.find('lib') or settings.JETPACK_LIB_DIR,
+            'tests': self.find('tests') or 'tests',
+            'packages': self.find('packages') or 'packages',
+            'main': self.find('main') or 'main',
+            'no_restart': True,
         }
-        log.debug(str(self.data))
 
     @classmethod
     def parse(cls, install_rdf):
@@ -259,7 +264,8 @@ class Repackage:
 
     def get_manifest(self):
         install_rdf = self.xpi_zip.open('install.rdf')
-        log.debug(install_rdf)
         extr = Extractor(install_rdf)
+        log.debug(str(extr.data))
+        log.debug(extr.find('contributors'))
 
 
