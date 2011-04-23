@@ -7,8 +7,8 @@
             <li{% ifequal revision.revision_number revision_number %} class="current"{% endifequal %}>
 					<em class="date">{{ revision.created_at|date:"Y-m-d" }}</em>
 					<a href="{{ revision.get_absolute_url }}">{{ revision.get_version_name }}</a>
-                    {% if revision.message %}<span class='message'>{{ revision.message }}</span>{% endif %}
                     {% if revision.commit_message %}<span class='commit_message'>{{ revision.commit_message }}</span>{% endif %}
+                    {% if revision.message %}<span class='message'>{{ revision.message }}</span>{% endif %}
 				</li>
 			{% endfor %}
 		</ul>
