@@ -36,11 +36,14 @@ def build(sdk_dir, package_dir, filename, hashtag):
 
     # create XPI
     os.chdir(package_dir)
+    log.debug('changing url to %s' % package_dir)
 
     # @TODO xulrunner should be a config variable
     cfx = [settings.PYTHON_EXEC, '%s/bin/cfx' % sdk_dir,
            '--binary=/usr/bin/xulrunner',
            '--keydir=%s/%s' % (sdk_dir, settings.KEYDIR), 'xpi']
+
+    log.debug(cfx)
 
     env = dict(PATH='%s/bin:%s' % (sdk_dir, os.environ['PATH']),
                VIRTUAL_ENV=sdk_dir,
@@ -189,7 +192,7 @@ class Extractor(object):
             'lib': self.find('lib') or settings.JETPACK_LIB_DIR,
             'data': self.find('data') or settings.JETPACK_DATA_DIR,
             'tests': self.find('tests') or 'tests',
-            'packages': self.find('packages') or 'packages',
+            #'packages': self.find('packages') or 'packages',
             'main': self.find('main') or 'main',
             'no_restart': True,
         }
@@ -316,7 +319,6 @@ class Repackage:
             manifest.write(simplejson.dumps(self.install_rdf.data))
         # extract dependencies
         self.sdk_dir = sdk_dir
-        log.debug([self.sdk_dir, package_dir, self.amo_file, self.hashtag])
         # build xpi
         return build(self.sdk_dir, package_dir, self.amo_file, self.hashtag)
 
