@@ -53,10 +53,10 @@ def build(sdk_dir, package_dir, filename, hashtag):
     except subprocess.CalledProcessError:
         log.critical("Failed to build xpi: %s.  Command(%s)" % (
                      subprocess.CalledProcessError, cfx))
-        return HttpResponseServerError
+        return subprocess.CalledProcessError
     if response[1]:
         log.critical("Failed to build xpi.\nError: %s" % response[1])
-        return HttpResponseForbidden(response[1])
+        return response[1]
 
     # move the XPI created to the XPI_TARGETDIR
     xpi_targetfilename = "%s.xpi" % hashtag
@@ -76,7 +76,7 @@ def build(sdk_dir, package_dir, filename, hashtag):
                                                            xpi_targetpath,
                                                            ((t2 - t1) * 1000)))
 
-    return ret
+    return None
 
 
 def remove(path):
@@ -317,5 +317,6 @@ class Repackage:
         # extract dependencies
         self.sdk_dir = sdk_dir
         log.debug([self.sdk_dir, package_dir, self.amo_file, self.hashtag])
+        # build xpi
+        return build(self.sdk_dir, package_dir, self.amo_file, self.hashtag)
 
-        build(self.sdk_dir, package_dir, self.amo_file, self.hashtag)

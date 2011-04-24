@@ -3,7 +3,7 @@ import commonware.log
 import codecs
 
 from django.views.static import serve
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseServerError
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
@@ -145,8 +145,10 @@ def repackage(r, amo_id, amo_file, sdk_dir=None):
     sdk = SDK.objects.get(dir=sdk_dir) if sdk_dir else SDK.objects.all()[0]
     hashtag = get_random_string(10)
     rep = xpi_utils.Repackage(amo_id, amo_file, sdk, hashtag)
-    rep.build_xpi()
+    response = rep.build_xpi()
     rep.destroy()
+    if response:
+        return HttpResponseForbidden('{"error": "%s"}' % response)
     # extract packages
     # call build xpi task
     # respond with a hashtag which will identify downloadable xpi
