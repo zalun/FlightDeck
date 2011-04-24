@@ -6,6 +6,7 @@ import os
 import rdflib
 import re
 import shutil
+import simplejson
 import subprocess
 import tempfile
 import time
@@ -28,6 +29,8 @@ def sdk_copy(sdk_source, sdk_dir=None):
 
 def build(sdk_dir, package_dir, filename, hashtag):
     """Build xpi from source in sdk_dir."""
+
+    log.debug([sdk_dir, package_dir, filename, hashtag])
 
     t1 = time.time()
 
@@ -151,8 +154,6 @@ def version_int(version):
 
 ###########
 
-VERSION_RE = re.compile('^[-+*.\w]{,32}$')
-
 class FIREFOX:
     id = 1
     shortername = 'fx'
@@ -176,22 +177,27 @@ class Extractor(object):
     def __init__(self, install_rdf):
         self.rdf = rdflib.Graph().parse(install_rdf)
         self.find_root()
-        self.data = {
+        data = {
             'id': self.find('id'),
             'type': self.find('type') or self.ADDON_EXTENSION,
-            'name': self.find('name'),
-            'fullName': self.find('full_name'),
+            'fullName': self.find('name'),
             'version': self.find('version'),
             'url': self.find('homepageURL'),
             'description': self.find('description'),
             'author': self.find('creator'),
             'license': self.find('license'),
             'lib': self.find('lib') or settings.JETPACK_LIB_DIR,
+            'data': self.find('data') or settings.JETPACK_DATA_DIR,
             'tests': self.find('tests') or 'tests',
             'packages': self.find('packages') or 'packages',
             'main': self.find('main') or 'main',
             'no_restart': True,
         }
+        self.data = {}
+        for key, value in data.items():
+            if value:
+                self.data[key] = value
+
 
     @classmethod
     def parse(cls, install_rdf):
@@ -254,6 +260,7 @@ class Repackage:
         self.xpi_temp.write(xpi_remote.read())
         self.xpi_zip = zipfile.ZipFile(self.xpi_temp)
         xpi_remote.close()
+        self.read_rdf()
 
     def _get_amo_url(self):
         return "%s%s/%s.xpi" % (self.AMO_PREFIX, self.amo_id, self.amo_file)
@@ -262,10 +269,53 @@ class Repackage:
         self.xpi_zip.close()
         self.xpi_temp.close()
 
-    def get_manifest(self):
+    def read_rdf(self):
         install_rdf = self.xpi_zip.open('install.rdf')
-        extr = Extractor(install_rdf)
-        log.debug(str(extr.data))
-        log.debug(extr.find('contributors'))
+        self.install_rdf = Extractor(install_rdf)
+        harness_options_json = self.xpi_zip.open('harness-options.json')
+        self.harness_options = simplejson.loads(harness_options_json.read())
+        self.install_rdf.data['name'] = self.harness_options['name']
+        self.install_rdf.data['dependencies'] = 'addon-kit'
 
+    def build_xpi(self):
+        package_name = self.install_rdf.data['name']
+        sdk_dir = os.path.join(settings.SDKDIR_PREFIX, self.hashtag)
+        package_dir = "%s/packages/%s" % (sdk_dir, package_name)
+        def get_package_dir(name):
+            return "%s/%s" % (package_dir, self.install_rdf.data[name])
+        resource_dir_prefix = "resources/%s-%s" % (
+            self.install_rdf.data['id'].split('@')[0].lower(),
+            package_name)
+        resource_dir = lambda x: "%s-%s/" % (resource_dir_prefix, x)
+        # copy sdk
+        sdk_copy(self.sdk.get_source_dir(), sdk_dir)
+        # extract package
+        os.makedirs(get_package_dir('lib'))
+        os.makedirs(get_package_dir('data'))
+        def extract(name):
+            if f.startswith(resource_dir(name)) and f != resource_dir(name):
+                f_name = "%s/%s" % (
+                        get_package_dir(name),
+                        f.split(resource_dir(name))[1])
+                if f.endswith('/'):
+                    if not os.path.isdir(f_name):
+                        os.makedirs(f_name)
+                else:
+                    parent_dir = '/'.join(f_name.split('/')[:-1])
+                    if not os.path.isdir(parent_dir):
+                        os.makedirs(parent_dir)
+                    with open(f_name, 'w') as f_file:
+                        f_file.write(self.xpi_zip.open(f).read())
+        for f in self.xpi_zip.namelist():
+            extract('lib')
+            extract('data')
+            extract('tests')
 
+        # create package.json
+        with open(os.path.join(package_dir, 'package.json'), 'w') as manifest:
+            manifest.write(simplejson.dumps(self.install_rdf.data))
+        # extract dependencies
+        self.sdk_dir = sdk_dir
+        log.debug([self.sdk_dir, package_dir, self.amo_file, self.hashtag])
+
+        build(self.sdk_dir, package_dir, self.amo_file, self.hashtag)
