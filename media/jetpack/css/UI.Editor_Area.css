@@ -8,11 +8,6 @@ authors:
 ...
 */
 
-#djDebug
-{
-	display: none !important;
-}
-
 div.UI_Editor_Area {
 	top: 0px;
 	bottom: 0px;

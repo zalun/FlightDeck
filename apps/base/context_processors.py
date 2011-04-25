@@ -11,6 +11,9 @@ def settings(request):
 def uri(request):
     login_url = _settings.LOGIN_URL
     path = request.get_full_path()
-    login_with_return = '%s?%s=%s' % (
+    if path.startswith('/addon') or path.startswith('/library'):
+        login_with_return = '%s?%s=%s' % (
                 login_url, urlquote(REDIRECT_FIELD_NAME), urlquote(path))
+    else:
+        login_with_return = login_url
     return {'login_url': login_with_return}
