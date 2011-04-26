@@ -44,6 +44,13 @@ FlightDeck.Tab = new Class({
 		this.file.tab = null;
 		this.file = this.container = null;
 	},
+
+    setLabel: function(text) {
+        this.element.set('text', text);
+        if(this.close) {
+            this.element.grab(this.close);
+        }
+    },
 	
 	toElement: function() {
 		return this.element;

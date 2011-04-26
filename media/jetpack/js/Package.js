@@ -323,6 +323,11 @@ var File = new Class({
 				this.pack.editor.setContent('');
 			}
 		}
+
+        if(this.tab) {
+            this.tab.destroy();
+        
+        }
 		this.fireEvent('destroy');
 	},
 
@@ -416,7 +421,7 @@ var Attachment = new Class({
 		this.parent(pack, options);
 		this.options.path = options.filename + '.' + options.type;
         // uid for editor items
-        this.uid = this.options.uid + this.options.code_editor_suffix;
+        this.uid = this.getEditorID();
 
 		if (this.options.append) {
 			this.append();
@@ -476,9 +481,41 @@ var Attachment = new Class({
 		return 'Attachment-'+this.uid;
 	},
 
+    getEditorID: function() {
+        return this.options.uid + this.options.code_editor_suffix;
+    },
+
 	append: function() {
 		fd.sidebar.addData(this);
-	}
+	},
+
+    reassign: function(options) {
+        // every revision, attachments that have changed get a new `uid`.
+        // since Attachments are currently kept track of via the `uid`,
+        // we must adjust all instances that keep track of this
+        // attachment to use the new id, and any other new options that
+        // comes with it
+
+        var packAttachments = this.pack.attachments,
+            editorItems = this.pack.editor.items,
+            oldUID = this.options.uid;
+
+        delete packAttachments[oldUID];
+
+        this.setOptions(options);
+        packAttachments[options.uid] = this;
+
+        var editorUID = this.getEditorID();
+        editorItems[editorUID] = editorItems[this.uid];
+        delete editorItems[this.uid];
+        this.uid = editorUID;
+
+        if (this.tab) {
+            this.tab.setLabel(this.getShortName());
+        }
+        this.fireEvent('reassign', this.options.uid);
+    }
+
 });
 
 Attachment.exists = function(filename, ext) {
@@ -877,75 +914,6 @@ Package.Edit = new Class({
         xhr.send(data);
     },
 
-	sendMultipleFiles: function(files, onPartialLoad) {
-		var self = this;
-		self.spinner = false;
-        $log('FD:DEBUG: ' + this.options.upload_attachment_url);
-		sendMultipleFiles({
-			url: Function.from(this.options.upload_attachment_url),
-
-			// list of files to upload
-			files: files,
-
-			// clear the container
-			onloadstart:function(){
-				if (self.spinner) {
-					self.spinner.position();
-				} else {
-					self.spinner = new Spinner($('attachments')).show();
-				}
-			},
-
-			// do something during upload ...
-			//onprogress:function(rpe){
-			//	$log('progress');
-			//},
-
-			onpartialload: function(rpe, xhr) {
-				if (xhr.status > 399) return this.onerror(rpe, xhr);
-				
-				var response = JSON.parse(xhr.responseText);
-				fd.message.alert(response.message_title, response.message);
-				var attachment = new Attachment(self,{
-					append: true,
-					active: true,
-					filename: response.filename,
-					ext: response.ext,
-					author: response.author,
-					code: response.code,
-					get_url: response.get_url,
-					uid: response.uid,
-					type: response.ext
-				});
-				self.registerRevision(response);
-				self.attachments[response.uid] = attachment;
-				
-				Function.from(onPartialLoad)(attachment);
-			},
-
-			// fired when last file has been uploaded
-			onload:function(rpe, xhr){
-				if (self.spinner) self.spinner.destroy();
-				$log('FD: all files uploaded');
-				//$(self.add_attachment_el).set('value','');
-				//$('add_attachment_fake').set('value','')
-			},
-
-			// if something is wrong ... (from native instance or because of size)
-			onerror:function(rpe, xhr){
-				if (self.spinner) self.spinner.destroy();
-				if (xhr) {
-					fd.error.alert(
-						'Error {status}'.substitute(xhr),
-						'{statusText}<br/>{responseText}'.substitute(xhr)
-					);
-				} else {
-					fd.error.alert('Error', 'File size was too big');
-				}
-			}
-		});
-	},
-
     addExternalAttachment: function(url, filename) {
         // download content and create new attachment
         $log('FD: DEBUGB downloading ' + filename + ' from ' + url);
@@ -1012,10 +980,10 @@ Package.Edit = new Class({
 				// whole new one anyways. then it has the updated uid,
 				// and we dont get weird extra files created
 				var attachment = that.attachments[uid];
-				attachment.destroy();
-				that.attachments[response.uid] = new Attachment(that, {
+                
+				attachment.reassign({
 					append: true,
-					active: true,
+					active: false,
 					filename: response.filename,
 					ext: response.ext,
 					author: response.author,
@@ -1024,6 +992,7 @@ Package.Edit = new Class({
 					uid: response.uid,
 					type: response.ext
 				});
+                
 			}
 		}).send();
 	},
@@ -1437,22 +1406,11 @@ Package.Edit = new Class({
                 if (response.attachments_changed) {
                     Object.forEach(response.attachments_changed, 
                         function(options, uid) {
-                            $log(this.attachments);
                             $log(this.attachments[uid]);
                             if (this.attachments[uid]) {
                                 // updating attachment's uid
                                 var att = this.attachments[uid];
-                                att.setOptions(options);
-                                // reindexing this.attachments
-                                this.attachments[options.uid] = att
-                                delete this.attachments[uid];
-                                // reindexing this.editor.items
-                                var new_uid = options.uid 
-                                    + att.options.code_editor_suffix;
-                                var old_uid = uid 
-                                    + att.options.code_editor_suffix;
-                                this.editor.items[new_uid] = this.editor.items[old_uid];
-                                delete this.editor.items[old_uid];
+                                att.reassign(options);
                             }
                         }, this
                     );
