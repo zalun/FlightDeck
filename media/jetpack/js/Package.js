@@ -70,12 +70,12 @@ var Package = new Class({
 		$('revisions_list').addEvent('click', this.show_revision_list);
 		if (this.isAddon()) {
             this.boundTestAddon = this.testAddon.bind(this);
-			this.options.test_url = $(this.options.test_el).get('href');
+			this.options.test_url = $(this.options.test_el).getElement('a').get('href');
 			$(this.options.test_el).addEvent('click', this.boundTestAddon);
             if (!this.boundDownloadAddon) {
                 this.boundDownloadAddon = this.downloadAddon.bind(this);
             }
-			this.options.download_url = $(this.options.download_el).get('href');
+			this.options.download_url = $(this.options.download_el).getElement('a').get('href');
 			$(this.options.download_el).addEvent('click', this.boundDownloadAddon);
 		}
 		this.copy_el = $(this.options.copy_el)
@@ -1469,7 +1469,7 @@ Package.Edit = new Class({
 					}
 				}, this);
 				if (fd.editPackageInfoModal) fd.editPackageInfoModal.destroy();
-				if ($(this.options.test_el) && $(this.options.test_el).getParent('li').hasClass('pressed')) {
+				if ($(this.options.test_el) && $(this.options.test_el).hasClass('pressed')) {
 					// only one add-on of the same id should be allowed on the Helper side
 					this.installAddon();
 				}
