@@ -101,12 +101,17 @@ body
 }
 .UI_Revisions span.message {
     font-size: 0.9em;
+	display: block;
+	padding-left: 100px; 
+	max-width: 300px;
 }
 .UI_Revisions span.commit_message {
     font-size: 0.8em;
     font-style: italic;
     color: #999;
-    margin-left: 5px;
+	display: block;
+	padding-left: 100px; 
+	max-width: 300px;
 }
 .UI_Revisions li.current {
 	background: #ffb;

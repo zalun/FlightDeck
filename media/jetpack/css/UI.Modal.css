@@ -86,12 +86,6 @@ authors:
 			padding-top: 10px; 
 		}
 
-		.UI_Modal .UI_Modal_Section .message {
-            display: block;
-			padding-left: 100px; 
-            max-width: 300px;
-		}
-
 		.UI_Modal .UI_Modal_Actions {
 			border-top: solid 1px #fff;
 			padding: 7px 14px;
