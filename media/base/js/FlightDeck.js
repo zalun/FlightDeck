@@ -87,9 +87,8 @@ var FlightDeck = new Class({
     },
 
     whenXpiDownloaded: function(hashtag) {
-        
+        // this belongs to Package.js
         fd.item.generateHashtag();
-        
     },
 
     whenXpiUninstalled: function() {
@@ -218,7 +217,9 @@ var FlightDeck = new Class({
                             test_request.spinner.destroy();
                         }
                         if (responseText) {
-                            this.fireEvent('xpi_downloaded', hashtag);
+                            if (fd.item) {
+								this.fireEvent('xpi_downloaded', hashtag);
+							}
                             var result = window.mozFlightDeck.send({cmd: "install", contents: responseText});
                             if (result && result.success) {
                                 this.fireEvent('xpi_installed', '');
