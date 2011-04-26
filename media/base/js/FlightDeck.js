@@ -87,8 +87,6 @@ var FlightDeck = new Class({
     },
 
     whenXpiDownloaded: function(hashtag) {
-        // this belongs to Package.js
-        fd.item.generateHashtag();
     },
 
     whenXpiUninstalled: function() {
@@ -257,6 +255,10 @@ var FlightDeck = new Class({
                 menuItem.removeClass('disabled');
             }
         });
+    },
+
+    generateHashtag: function(id_number) {
+        return (Number.random(0,9) + '' + id_number + Date.now()).toInt().toString(36);
     },
 
     isAddonInstalled: function() {
