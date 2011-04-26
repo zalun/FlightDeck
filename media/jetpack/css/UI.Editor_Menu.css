@@ -235,6 +235,7 @@ form.UI_Editor_Menu_Descendant {
 
 .UI_Editor_Menu .UI_Editor_Menu_Descendant.UI_Forms textarea {
     min-width: 100% !important;   
+    min-height: 120px;
 }
 
 .UI_Editor_Menu .UI_Editor_Menu_Descendant.UI_Forms fieldset p{
@@ -242,5 +243,5 @@ form.UI_Editor_Menu_Descendant {
 }
 
 .UI_Editor_Menu .UI_Editor_Menu_Descendant.UI_Forms {
-    min-width: 200px;   
+    min-width: 300px;   
 }
