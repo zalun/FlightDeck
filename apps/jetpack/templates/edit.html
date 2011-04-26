@@ -85,7 +85,7 @@
 		<ul class="UI_Editor_Menu">
 			{% block app_content_menu_items %}{% endblock %}
 			<li title="Save" class="UI_Editor_Menu_Button Icon_save UI_Editor_Menu_Parent">
-				<a id="package-save" href="#"></a>
+            <a id="package-save" href="#"><span></span></a>
                 <form class="UI_Forms UI_Editor_Menu_Descendant">
                     <fieldset>
                         <p class="UI_Field">
@@ -101,11 +101,11 @@
 			</li>
 			{% if revision.package.public_permission != 2 %}
 				<li id="package-copy" title="Copy" class="UI_Editor_Menu_Button Icon_copy">
-					<a href="#"></a>
+                <a href="#"><span></span></a>
 				</li>
 			{% endif %}
 			<li id="error-console" title="Error Console" class="UI_Editor_Menu_Button Icon_logs">
-				<a href="#"></a>
+            <a href="#"><span></span></a>
 			</li>
 			{% include "_editor_app_menu_items.html" %}
 		</ul>
