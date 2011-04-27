@@ -1,0 +1,39 @@
+# This is to be used with https://github.com/davedash/mysql-anonymous.
+database:
+    truncate:
+        - auth_group
+        - auth_group_permissions
+        - auth_message
+        - auth_permission
+        - auth_user_groups
+        - auth_user_user_permissions
+        - base_celeryresponse
+        - django_admin_log
+        - django_session
+        - django_site
+    tables:
+        auth_user:
+            nullify:
+                - first_name
+                - last_name
+                - password
+            random_username: [username]
+            random_email: [email]
+        jetpack_package:
+            delete:
+                public_permission: 0
+            nullify:
+                - private_key
+                - public_key
+                - jid
+                - program_id
+        jetpack_packagerevision:
+            nullify: [message, contributors]
+        person_profile:
+            nullify:
+                - nickname
+                - location
+                - occupation
+                - homepage
+                - photo
+            random_username: [nickname]
