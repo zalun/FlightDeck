@@ -240,7 +240,13 @@ var Sidebar = new Class({
 		file.addEvent('destroy', file._removeFromTree);
 		file.addEvent('destroy', function() {
 			element.erase('file');
-		})
+		});
+
+        file.addEvent('select', function() {
+            if (file.is_editable()) {
+                that.setSelectedFile(file);
+            }
+        });
 		
 		//check all of element's parents for Folders, destroy them
 		this.silentlyRemoveFolders(element);
@@ -333,10 +339,6 @@ var Sidebar = new Class({
 	selectFile: function(li) {
 		var file = li.retrieve('file');
 		if(file) {
-			if(file.is_editable()) {
-				this.setSelectedFile(li);
-			}
-			
 			file.onSelect();
 		}
 	},

@@ -334,6 +334,10 @@ var File = new Class({
 		this.fireEvent('destroy');
 	},
 
+    onSelect: function() {
+        this.fireEvent('select');
+    },
+
 	switchTo: function() {
 		this.pack.editor.switchTo(this);
 		this.pack.editor.focus();
@@ -384,8 +388,9 @@ var Library = new Class({
 	},
 	
 	onSelect: function() {
-		//open in a new tab, of course
-		window.open(this.options.view_url);
+		this.parent();
+        //open in a new tab, of course
+        window.open(this.options.view_url);
 	},
 	
 	getID: function() {
@@ -441,7 +446,8 @@ var Attachment = new Class({
 	},
 
 	onSelect: function() {
-		if (this.is_editable()) {
+		this.parent();
+        if (this.is_editable()) {
 			this.switchTo();
 		} else {
 			var template_start = '<div id="attachment_view"><h3>'
@@ -571,7 +577,8 @@ var Module = new Class({
 	},
 
 	onSelect: function() {
-		this.switchTo();
+		this.parent();
+        this.switchTo();
 	},
 
 	append: function() {
@@ -636,7 +643,8 @@ var Folder = new Class({
 	},
 	
 	onSelect: function() {
-		$log('selected a Folder');
+		this.parent();
+        $log('selected a Folder');
 	},
 	
 	getID: function() {
