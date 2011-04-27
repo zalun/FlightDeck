@@ -87,6 +87,10 @@ var Package = new Class({
                 this.checkIfLatest(this.askForReload.bind(this));
             }.bind(this));
         }
+
+        fd.addEvent('xpi_downloaded', function() {
+           this.generateHashtag(); 
+        }.bind(this));
 	},
 
 	/*
@@ -204,8 +208,7 @@ var Package = new Class({
 	},
 	
 	generateHashtag: function() {
-		var hashtag = (Number.random(0, 9) + '' + this.options.id_number + Date.now()).toInt().toString(36);
-		this.options.hashtag = hashtag;
+		this.options.hashtag = fd.generateHashtag(this.options.id_number);
 	},
 
 	instantiate_modules: function() {
