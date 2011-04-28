@@ -753,41 +753,25 @@ Package.Edit = new Class({
 		// submit Info
 		this.boundSubmitInfo = this.submitInfo.bind(this);
 
-        // check if message changed
-        var message_changed = function() {
-            if (!fd.changed) {
-                var message = this.get('value');
-                if (that.options.message != message) {
-                    fd.fireEvent('change');
-                    return;
-                }
-            }
-        }
-        $('revision_message').addEvents({
-            keyup: message_changed,
-            change: function() { 
-                fd.fireEvent('change'); 
-            }
-        });
+        
         // check if version_name changed
-        var version_name_keyup = function(e) {
-			if (e) {
-				if (e.key == 'enter') {
-					that.save();
-					e.stop();
-				}
-			}
-        }
-        var version_name_keydown = function(e) {
-			if (e) {
-				if (e.key == 'enter') {
-					e.stop();
-				}
-			}
-		}
+        
         $('version_name').addEvents({
-            keyup: version_name_keyup,
-            keydown: version_name_keydown,
+			keyup: function(e) {
+				if (e) {
+					if (e.key == 'enter') {
+						that.save();
+						e.stop();
+					}
+				}
+			},
+            keydown: function(e) {
+				if (e) {
+					if (e.key == 'enter') {
+						e.stop();
+					}
+				}
+			}
         });
 		if ($('jetpack_core_sdk_version')) {
 			$('jetpack_core_sdk_version').addEvent('change', function() {
