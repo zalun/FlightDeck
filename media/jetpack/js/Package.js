@@ -758,18 +758,14 @@ Package.Edit = new Class({
         
         $('version_name').addEvents({
 			keyup: function(e) {
-				if (e) {
-					if (e.key == 'enter') {
-						that.save();
-						e.stop();
-					}
+				if (e && e.key == 'enter') {
+					that.save();
+					e.stop();
 				}
 			},
             keydown: function(e) {
-				if (e) {
-					if (e.key == 'enter') {
-						e.stop();
-					}
+				if (e && e.key == 'enter') {
+					e.stop();
 				}
 			}
         });
