@@ -474,7 +474,6 @@ var Attachment = new Class({
 		new Request({
 			method: 'get',
 			url: this.options.get_url,
-			async: false, // This kinda sucks. It makes the app feel weird when loading.
 			useSpinner: true,
 			spinnerTarget: 'editor-wrapper',
 			onSuccess: function() {
@@ -590,7 +589,6 @@ var Module = new Class({
 		new Request.JSON({
             method: 'get',
 			url: this.options.get_url,
-            async: false, // This kinda sucks. It makes the app feel weird when loading.
             useSpinner: true,
             spinnerTarget: 'editor-wrapper',
             onSuccess: function(mod) {
