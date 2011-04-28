@@ -21,7 +21,7 @@ var Sidebar = new Class({
 		var that = this;
 		var treeOptions = {
 			checkDrag: function(el){
-				return !el.hasClass('nodrag') && that.options.editable && !el.getElement('> .holder > .label[contenteditable="true"]');
+				return (el.get('rel') == 'file') && !el.hasClass('nodrag') && that.options.editable && !el.getElement('> .holder > .label[contenteditable="true"]');
 			},
 			checkDrop: function(el, drop){
 				var isFile = el.get('rel') == 'file',
