@@ -1524,6 +1524,13 @@ class Module(BaseModel):
         first_period = self.filename.find('.')
         if first_period > -1:
             self.filename = self.filename[:first_period]
+    
+    def can_view(self, viewer=None):
+        can_view_q = models.Q(package__active=True)
+        if viewer and viewer.is_authenticated():
+            can_view_q |= models.Q(package__author=viewer)
+    
+        return self.revisions.filter(can_view_q).count() > 0
 
 
 class Attachment(BaseModel):
@@ -1673,6 +1680,13 @@ class Attachment(BaseModel):
         self.filename = pathify(self.filename)
         if self.ext:
             self.ext = alphanum(self.ext)
+    
+    def can_view(self, viewer=None):
+        can_view_q = models.Q(package__active=True)
+        if viewer and viewer.is_authenticated():
+            can_view_q |= models.Q(package__author=viewer)
+    
+        return self.revisions.filter(can_view_q).count() > 0
 
 
 class EmptyDir(BaseModel):

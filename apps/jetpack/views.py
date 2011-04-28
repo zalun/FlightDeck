@@ -184,7 +184,12 @@ def download_module(r, pk):
     """
     return a JSON with all module info
     """
-    module = get_object_or_404(Module, pk=pk)
+    module = get_object_with_related_or_404(Module, pk=pk)
+    if not module.can_view(r.user):
+        log_msg = ("[security] Attempt to download private module (%s) by "
+                   "non-owner (%s)" % (pk, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden('You are not the author of this module.')
     return HttpResponse(module.get_json())
 
 
@@ -197,10 +202,16 @@ def get_module(r, id_number, revision_number, filename):
                 package__id_number=id_number,
                 revision_number=revision_number)
         mod = revision.modules.get(filename=filename)
-    except:
+    except PackageRevision.DoesNotExist, Module.DoesNotExist:
         log_msg = 'No such module %s' % filename
         log.error(log_msg)
         raise Http404()
+    
+    if not mod.can_view(r.user):
+        log_msg = ("[security] Attempt to download private module (%s) by "
+                   "non-owner (%s)" % (pk, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden('You are not the author of this module.')
     return HttpResponse(mod.get_json())
 
 
@@ -787,12 +798,18 @@ def package_remove_attachment(r, id_number, type_id, revision_number):
                 mimetype='application/json')
 
 
-def download_attachment(request, uid):
+def download_attachment(r, uid):
     """
     Display attachment from PackageRevision
     """
-    attachment = get_object_or_404(Attachment, id=uid)
-    response = serve(request, attachment.path,
+    attachment = get_object_with_related_or_404(Attachment, id=uid)
+    if not attachment.can_view(r.user):
+        log_msg = ("[security] Attempt to download private attachment (%s) by "
+                   "non-owner (%s)" % (uid, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden(
+            'You are not the author of this attachment.')
+    response = serve(r, attachment.path,
                      settings.UPLOAD_DIR, show_indexes=False)
     response['Content-Disposition'] = 'filename=%s.%s' % (
             attachment.filename, attachment.ext)
