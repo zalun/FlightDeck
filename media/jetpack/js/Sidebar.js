@@ -292,7 +292,7 @@ var Sidebar = new Class({
 			title;
 		
 		if(file instanceof Library) {
-			title = file.options.full_name;
+			title = file.getID();
 		} else if (file instanceof Folder) {
 			title = file.options.name;
 		} else if (file instanceof Module 

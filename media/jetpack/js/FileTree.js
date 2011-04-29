@@ -234,7 +234,7 @@ FileTree = new Class({
 	addPath: function(obj, options){
 		options = options || {};
 		var	suffix = options.suffix || '',
-			splitted = obj.options.path.split('/'),
+			splitted = obj.getFullName().split('/'),
 			elements = Array.clone(splitted),
 			end = splitted.length - 1,
 			selector = '',
@@ -251,8 +251,8 @@ FileTree = new Class({
 			if (i == end){
 				var previous = elements[i - 1] ? elements[i - 1].getElement('ul') : (options.target.getElement('ul') || options.target);
 				el = elements[i] = previous.getChildren(selector += 'li[title='+ name + suffix +'] ')[0] || this.addBranch({
-					'title': name + suffix,
-					'name': name,
+					'title': obj.getShortName(),
+					'name': obj.getShortName(),
 					'path': path,
 					'url': obj.options.url,
 					'id': obj.getID(),
