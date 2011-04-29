@@ -307,6 +307,14 @@ class TestViews(TestCase):
         revision = PackageRevision.objects.get(package=self.package,
                                                revision_number=2)
         assert not revision.attachments.all().count()
+    
+    def test_fake_attachment_remove(self):
+        revision = self.add_one()
+
+        data = {'uid': '1337'}
+        resp = self.client.post(self.get_delete_url(1), data)
+        
+        eq_(resp.status_code, 404)
 
     def test_attachment_rename(self):
         revision = self.add_one()
