@@ -466,6 +466,7 @@ def package_remove_folder(r, id_number, type_id, revision_number):
     try:
         folder = revision.folders.get(name=foldername, root_dir=root)
     except EmptyDir.DoesNotExist:
+        response = None
         if root == 'data':
             response = revision.attachment_rmdir(foldername)
         if not response:
