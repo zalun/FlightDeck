@@ -1426,9 +1426,14 @@ class Package(BaseModel):
                 data['dependencies'] = [dep.package.id for dep in deps]
         except PackageRevision.DoesNotExist:
             pass
-        es.index(data, settings.ES_INDEX, self.get_type_name(), self.id,
+        
+        try:
+            es.index(data, settings.ES_INDEX, self.get_type_name(), self.id,
                  bulk=bulk)
-        log.debug('Package %d added to search index.' % self.id)
+        except Exception, e:
+            log.error("ElasticSearch errored for addon (%s): %s" % (self, e))
+        else:
+            log.debug('Package %d added to search index.' % self.id)
 
     @es_required
     def remove_from_index(self, es):

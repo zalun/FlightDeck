@@ -38,11 +38,11 @@
 
 
 {% block app_content_menu_items %}
-	<li title="Test" class="UI_Editor_Menu_Button Icon_try XPI_test">
-		<a id="try_in_browser" rel="{{ revision.package.jid }}" href="{{ revision.get_test_xpi_url }}"></a>
+	<li id="try_in_browser" title="Test" class="UI_Editor_Menu_Button Icon_try XPI_test">
+    <a rel="{{ revision.package.jid }}" href="{{ revision.get_test_xpi_url }}"><span></span></a>
 	</li>
-	<li title="Download" class="UI_Editor_Menu_Button Icon_download">
-		<a id="download" target="_new" href="{{ revision.get_download_xpi_url }}"></a>
+	<li id="download" title="Download" class="UI_Editor_Menu_Button Icon_download">
+    <a target="_new" href="{{ revision.get_download_xpi_url }}"><span></span></a>
 	</li>
 	<li class="UI_Editor_Menu_Separator"></li>
 {% endblock %}
