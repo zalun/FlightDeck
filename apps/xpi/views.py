@@ -14,6 +14,7 @@ from utils import validator
 from utils.helpers import get_random_string
 from xpi import xpi_utils
 
+from jetpack import tasks
 from jetpack.models import PackageRevision, SDK
 
 
@@ -35,24 +36,21 @@ def prepare_test(r, id_number, revision_number=None):
     if not validator.is_valid('alphanum', hashtag):
         log.warning('[security] Wrong hashtag provided')
         return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
+    # prepare codes to be sent to the task
+    mod_codes = {}
+    att_codes = {}
     if r.POST.get('live_data_testing', False):
-        modules = []
         for mod in revision.modules.all():
             if r.POST.get(mod.filename, False):
                 code = r.POST.get(mod.filename, '')
                 if mod.code != code:
-                    mod.code = code
-                    modules.append(mod)
-        attachments = []
+                    mod_codes[str(mod.pk)] = code
         for att in revision.attachments.all():
             if r.POST.get(str(att.pk), False):
                 code = r.POST.get(str(att.pk))
-                att.code = code
-                attachments.append(att)
-        response = revision.build_xpi(modules, attachments,
-                hashtag=hashtag)
-    else:
-        response = revision.build_xpi(hashtag=hashtag)
+                att_codes[str(att.pk)] = code
+    tasks.xpi_build_from_model(revision.pk,
+            mod_codes=mod_codes, att_codes=att_codes, hashtag=hashtag)
     return HttpResponse('{"delayed": true}')
 
 @never_cache

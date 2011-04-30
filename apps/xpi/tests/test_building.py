@@ -19,7 +19,7 @@ log = commonware.log.getLogger('f.tests')
 
 class XPIBuildTest(TestCase):
 
-    fixtures = ['nozilla', 'core_sdk', 'users', 'packages']
+    fixtures = ['mozilla', 'core_sdk', 'users', 'packages']
 
     def setUp(self):
         self.hashtag = hashtag()
@@ -149,15 +149,15 @@ class XPIBuildTest(TestCase):
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        (xpi_target, out, err) = xpi_utils.build(
+        err = xpi_utils.build(
                 self.SDKDIR,
                 self.addon.get_dir_name('%s/packages' % self.SDKDIR),
                 self.addon.name, self.hashtag)
         # assert no error output
-        self.assertEqual('', err)
+        assert not err
         # assert xpi was created
         self.failUnless(os.path.isfile(
-            os.path.join(settings.XPI_TARGETDIR, xpi_target)))
+            "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
 
     def test_addon_with_other_modules(self):
         " addon has now more modules "
@@ -169,16 +169,15 @@ class XPIBuildTest(TestCase):
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        (xpi_target, out, err) = xpi_utils.build(
+        err = xpi_utils.build(
                 self.SDKDIR,
                 self.addon.get_dir_name('%s/packages' % self.SDKDIR),
                 self.addon.name, self.hashtag)
         # assert no error output
-        self.assertEqual('', err)
-        self.failUnless(out)
+        assert not err
         # assert xpi was created
         self.failUnless(os.path.isfile(
-            os.path.join(settings.XPI_TARGETDIR, xpi_target)))
+            "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
 
     def test_xpi_with_empty_dependency(self):
         " empty lib is created "
@@ -194,15 +193,15 @@ class XPIBuildTest(TestCase):
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        (xpi_target, out, err) = xpi_utils.build(
+        err = xpi_utils.build(
                 self.SDKDIR,
                 self.addon.get_dir_name('%s/packages' % self.SDKDIR),
                 self.addon.name, self.hashtag)
         # assert no error output
-        self.assertEqual('', err)
+        assert not err
         # assert xpi was created
         self.failUnless(os.path.isfile(
-            os.path.join(settings.XPI_TARGETDIR, xpi_target)))
+            "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
 
     def test_xpi_with_dependency(self):
         " addon has one dependency with a file "
@@ -211,15 +210,15 @@ class XPIBuildTest(TestCase):
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
-        (xpi_target, out, err) = xpi_utils.build(
+        err = xpi_utils.build(
                 self.SDKDIR,
                 self.addon.get_dir_name('%s/packages' % self.SDKDIR),
                 self.addon.name, self.hashtag)
         # assert no error output
-        self.assertEqual('', err)
+        assert not err
         # assert xpi was created
         self.failUnless(os.path.isfile(
-            os.path.join(settings.XPI_TARGETDIR, xpi_target)))
+            "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
 
     def test_module_with_utf(self):
 
