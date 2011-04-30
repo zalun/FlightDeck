@@ -466,6 +466,7 @@ def package_remove_folder(r, id_number, type_id, revision_number):
     try:
         folder = revision.folders.get(name=foldername, root_dir=root)
     except EmptyDir.DoesNotExist:
+        response = None
         if root == 'data':
             response = revision.attachment_rmdir(foldername)
         if not response:
@@ -767,7 +768,8 @@ def package_remove_attachment(r, id_number, type_id, revision_number):
         return HttpResponseForbidden('You are not the author of this Package')
 
     uid = r.POST.get('uid', '').strip()
-    attachment = Attachment.objects.get(pk=uid, revisions=revision)
+    attachment = get_object_with_related_or_404(Attachment,
+                                                pk=uid, revisions=revision)
 
     if not attachment:
         log_msg = ('Attempt to remove a non existing attachment. attachment: '
