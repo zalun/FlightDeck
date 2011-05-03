@@ -17,6 +17,7 @@ import commonware.log
 
 from django.http import HttpResponseServerError, HttpResponseForbidden
 from django.conf import settings
+from django.template.defaultfilters import slugify
 from django.utils.translation import ugettext as _
 
 log = commonware.log.getLogger('f.xpi_utils')
@@ -26,8 +27,30 @@ def sdk_copy(sdk_source, sdk_dir=None):
     log.debug("Copying tree (%s) to (%s)" % (sdk_source, sdk_dir))
     shutil.copytree(sdk_source, sdk_dir)
 
+def hack_guid(xpi_path, guid):
+    original_xpi = zipfile.ZipFile(xpi_path)
+    temp_xpi_path = '%s-temp' % xpi_path
+    target_xpi = zipfile.ZipFile(temp_xpi_path, mode='a')
+    # get temp guid
+    original_extr = Extractor(original_xpi.open('install.rdf'))
+    # TODO: check if it's a JetPack addon
+    temp_guid = original_extr.guid
 
-def build(sdk_dir, package_dir, filename, hashtag):
+    # change install.rdf and harness-options.json
+    for f in original_xpi.namelist():
+        if f in ('install.rdf', 'harness-options.json'):
+            target_xpi.writestr(f, original_xpi.read(f).replace(temp_guid, guid))
+        else:
+            f_name = f.replace(temp_guid, guid)
+            target_xpi.writestr(f_name, original_xpi.read(f))
+
+    original_xpi.close()
+    target_xpi.close()
+    os.remove(xpi_path)
+    shutil.copy(temp_xpi_path, xpi_path)
+    os.remove(temp_xpi_path)
+
+def build(sdk_dir, package_dir, filename, hashtag, force_guid=None):
     """Build xpi from source in sdk_dir."""
 
     log.debug([sdk_dir, package_dir, filename, hashtag])
@@ -57,15 +80,32 @@ def build(sdk_dir, package_dir, filename, hashtag):
         log.critical("Failed to build xpi: %s.  Command(%s)" % (
                      subprocess.CalledProcessError, cfx))
         return subprocess.CalledProcessError
-    if response[1]:
+    if response[1] and not force_guid:
         log.critical("Failed to build xpi.\nError: %s" % response[1])
         return response[1]
+
+    log.debug(response)
+
+    xpi_path = os.path.join(package_dir, "%s.xpi" % filename)
+
+    if force_guid:
+        # XXX: This is a hack - it is ugly in code and execution
+        try:
+            process = subprocess.Popen(cfx, shell=False, stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE, env=env)
+            response = process.communicate()
+        except subprocess.CalledProcessError:
+            log.critical("Failed to build xpi: %s.  Command(%s)" % (
+                         subprocess.CalledProcessError, cfx))
+            return subprocess.CalledProcessError
+        if response[1]:
+            log.critical("Failed to build xpi.\nError: %s" % response[1])
+            return response[1]
+        hack_guid(xpi_path, force_guid)
 
     # move the XPI created to the XPI_TARGETDIR
     xpi_targetfilename = "%s.xpi" % hashtag
     xpi_targetpath = os.path.join(settings.XPI_TARGETDIR, xpi_targetfilename)
-    xpi_path = os.path.join(package_dir, "%s.xpi" % filename)
-    log.debug(response)
     log.debug("%s, %s" % (xpi_path, xpi_targetpath))
     shutil.copy(xpi_path, xpi_targetpath)
     shutil.rmtree(sdk_dir)
@@ -180,8 +220,11 @@ class Extractor(object):
     def __init__(self, install_rdf):
         self.rdf = rdflib.Graph().parse(install_rdf)
         self.find_root()
+        # TODO: check if it's a JetPack addon
+        self.guid = self.find('id')
+
+    def read_manifest(self):
         data = {
-            'id': self.find('id'),
             'type': self.find('type') or self.ADDON_EXTENSION,
             'fullName': self.find('name'),
             'version': self.find('version'),
@@ -248,7 +291,7 @@ class Extractor(object):
 
 class Repackage:
 
-    AMO_PREFIX = "http://piotr.zalewa.info/downloads/"
+    AMO_PREFIX = "ftp://ftp.mozilla.org/pub/mozilla.org/addons/"
 
     def __init__(self, amo_id, amo_file, sdk, hashtag):
         # validate entries
@@ -275,9 +318,13 @@ class Repackage:
     def read_rdf(self):
         install_rdf = self.xpi_zip.open('install.rdf')
         self.install_rdf = Extractor(install_rdf)
+        self.install_rdf.read_manifest()
+        self.guid = self.install_rdf.guid
         harness_options_json = self.xpi_zip.open('harness-options.json')
         self.harness_options = simplejson.loads(harness_options_json.read())
-        self.install_rdf.data['name'] = self.harness_options['name']
+        # read name from harness options, generate it from fullName if none
+        self.install_rdf.data['name'] = self.harness_options.get('name',
+                slugify(self.install_rdf.data['fullName']))
         self.install_rdf.data['dependencies'] = 'addon-kit'
 
     def build_xpi(self):
@@ -287,7 +334,7 @@ class Repackage:
         def get_package_dir(name):
             return "%s/%s" % (package_dir, self.install_rdf.data[name])
         resource_dir_prefix = "resources/%s-%s" % (
-            self.install_rdf.data['id'].split('@')[0].lower(),
+            self.guid.split('@')[0].lower(),
             package_name)
         resource_dir = lambda x: "%s-%s/" % (resource_dir_prefix, x)
         # copy sdk
@@ -319,6 +366,6 @@ class Repackage:
             manifest.write(simplejson.dumps(self.install_rdf.data))
         # extract dependencies
         self.sdk_dir = sdk_dir
-        # build xpi
-        return build(self.sdk_dir, package_dir, self.amo_file, self.hashtag)
+        return build(self.sdk_dir, package_dir, self.install_rdf.data['name'],
+                self.hashtag, self.guid)
 
