@@ -6,13 +6,20 @@ body {
     margin-top:0;
 }
 
+    #app-body .page {
+        padding-top:60px;
+    }
+
 #search-bar {
     background: -moz-linear-gradient(270deg, #FFFFFE, #F3F5F7) repeat scroll 0 0 transparent;
     border-bottom:1px solid #fff;
     box-shadow:0 1px 0 #D0D5DB;
-    margin-left:-245px; /* wtf? :( */
-    margin-bottom:20px;
+    position:absolute;
+    left:0px;
+    width:100%;
+    z-index:3;
 }
+
 #Search {
     overflow:hidden;
     padding:5px 5px 5px 200px;

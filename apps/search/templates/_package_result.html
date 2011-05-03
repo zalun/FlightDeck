@@ -1,7 +1,7 @@
 <div class="result package">
     <h3>
         <a href="{{ package.get_absolute_url }}">{{ package.full_name }}</a>
-        <span>by <a href="#">{{ package.author }}</a></span>
+        <span>by <a href="{% url person_public_profile package.author.username %}">{{ package.author.get_profile }}</a></span>
     </h3>
     <p class="description">{{ package.description }}</p>
     <ul class="UI_Actions">
