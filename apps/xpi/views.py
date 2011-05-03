@@ -49,7 +49,7 @@ def prepare_test(r, id_number, revision_number=None):
             if r.POST.get(str(att.pk), False):
                 code = r.POST.get(str(att.pk))
                 att_codes[str(att.pk)] = code
-    tasks.xpi_build_from_model(revision.pk,
+    tasks.xpi_build_from_model.delay(revision.pk,
             mod_codes=mod_codes, att_codes=att_codes, hashtag=hashtag)
     return HttpResponse('{"delayed": true}')
 
@@ -89,7 +89,7 @@ def prepare_download(r, id_number, revision_number=None):
     if not validator.is_valid('alphanum', hashtag):
         log.warning('[security] Wrong hashtag provided')
         return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
-    revision.build_xpi(hashtag=hashtag)
+    tasks.xpi_build_from_model.delay(revision.pk, hashtag=hashtag)
     return HttpResponse('{"delayed": true}')
 
 
