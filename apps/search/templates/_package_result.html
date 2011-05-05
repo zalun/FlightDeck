@@ -7,6 +7,8 @@
     <p class="description">{{ package.description }}</p>
     <ul class="UI_Actions">
         <li class="UI_Edit_Version"><a href="{{ package.get_latest_url }}">Source</a></li>
+        {% if package.is_addon %}
         <li class="UI_Try_in_Browser XPI_Test"><a href="{{ package.latest.get_test_xpi_url }}" rel="{{ package.jid }}" data-hashtag="{% hashtag %}">Test</a></li>
+        {% endif %}
     </ul>
 </div>
