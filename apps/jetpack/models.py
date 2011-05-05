@@ -1851,7 +1851,8 @@ post_delete.connect(unindex_package, sender=Package)
 
 def index_package_m2m(instance, action, **kwargs):
     if action in ("post_add", "post_remove"):
-        instance.package.refresh_index()
+        from search.tasks import index_all
+        index_all.delay([instance.package.id])
 m2m_changed.connect(index_package_m2m,
                     sender=PackageRevision.dependencies.through)
 
