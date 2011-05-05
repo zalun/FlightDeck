@@ -150,6 +150,5 @@ def repackage(r, amo_id, amo_file, sdk_dir=None):
     # extract packages
     # call build xpi task
     # respond with a hashtag which will identify downloadable xpi
-    xpi_targetpath = "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, hashtag)
-    return HttpResponse('{"hashtag": "%s", "file": "%s"}' % (
-        hashtag, xpi_targetpath))#, mimetype='application/json')
+    return HttpResponse('{"hashtag": "%s"}' % hashtag)
+        #, mimetype='application/json')

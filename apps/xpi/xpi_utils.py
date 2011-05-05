@@ -291,7 +291,6 @@ class Extractor(object):
 
 class Repackage:
 
-    AMO_PREFIX = "ftp://ftp.mozilla.org/pub/mozilla.org/addons/"
 
     def __init__(self, amo_id, amo_file, sdk, hashtag):
         # validate entries
@@ -309,7 +308,7 @@ class Repackage:
         self.read_rdf()
 
     def _get_amo_url(self):
-        return "%s%s/%s.xpi" % (self.AMO_PREFIX, self.amo_id, self.amo_file)
+        return "%s%s/%s.xpi" % (settings.XPI_AMO_PREFIX, self.amo_id, self.amo_file)
 
     def destroy(self):
         self.xpi_zip.close()
@@ -328,24 +327,40 @@ class Repackage:
         self.install_rdf.data['dependencies'] = 'addon-kit'
 
     def build_xpi(self):
+        sdk_dependencies = ['addon-kit', 'api-utils']
         package_name = self.install_rdf.data['name']
         sdk_dir = os.path.join(settings.SDKDIR_PREFIX, self.hashtag)
-        package_dir = "%s/packages/%s" % (sdk_dir, package_name)
-        def get_package_dir(name):
-            return "%s/%s" % (package_dir, self.install_rdf.data[name])
-        resource_dir_prefix = "resources/%s-%s" % (
-            self.guid.split('@')[0].lower(),
-            package_name)
-        resource_dir = lambda x: "%s-%s/" % (resource_dir_prefix, x)
+
+        def get_package_dir(dir_name, current_package_name):
+            return os.path.join(sdk_dir, 'packages', current_package_name,
+                    self.install_rdf.data[dir_name])
+
+        resource_dir_prefix = "resources/%s-" % self.guid.split('@')[0].lower()
         # copy sdk
         sdk_copy(self.sdk.get_source_dir(), sdk_dir)
-        # extract package
-        os.makedirs(get_package_dir('lib'))
-        os.makedirs(get_package_dir('data'))
-        def extract(name):
+        # extract packages
+        exporting = []
+        dependencies = []
+        def extract(f, name):
+            if  name not in f:
+                return
+            # get current package name from directory name (f)
+            current_package_name = '-'.join(f.split(resource_dir_prefix)[1].split('/')[0].split('-')[:-1])
+            if current_package_name in sdk_dependencies:
+                return
+            # create aprropriate directories
+            if (current_package_name, name) not in exporting:
+                os.makedirs(get_package_dir(name, current_package_name))
+                exporting.append((current_package_name, name))
+            if (current_package_name != package_name
+                    and current_package_name not in dependencies):
+                dependencies.append(current_package_name)
+
+            resource_dir = lambda x: "%s-%s-%s/" % (
+                    resource_dir_prefix, current_package_name, x)
             if f.startswith(resource_dir(name)) and f != resource_dir(name):
                 f_name = "%s/%s" % (
-                        get_package_dir(name),
+                        get_package_dir(name, current_package_name),
                         f.split(resource_dir(name))[1])
                 if f.endswith('/'):
                     if not os.path.isdir(f_name):
@@ -356,16 +371,18 @@ class Repackage:
                         os.makedirs(parent_dir)
                     with open(f_name, 'w') as f_file:
                         f_file.write(self.xpi_zip.open(f).read())
+        log.debug(dependencies)
         for f in self.xpi_zip.namelist():
-            extract('lib')
-            extract('data')
-            extract('tests')
+            extract(f, 'lib')
+            extract(f, 'data')
+            extract(f, 'tests')
 
         # create package.json
-        with open(os.path.join(package_dir, 'package.json'), 'w') as manifest:
+        with open(os.path.join(sdk_dir, 'packages', package_name, 'package.json'), 'w') as manifest:
             manifest.write(simplejson.dumps(self.install_rdf.data))
         # extract dependencies
         self.sdk_dir = sdk_dir
-        return build(self.sdk_dir, package_dir, self.install_rdf.data['name'],
-                self.hashtag, self.guid)
+        return build(self.sdk_dir,
+                os.path.join(sdk_dir, 'packages', package_name),
+                self.install_rdf.data['name'], self.hashtag, self.guid)
 
