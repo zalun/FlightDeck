@@ -1419,6 +1419,9 @@ class Package(BaseModel):
 
     @es_required
     def refresh_index(self, es, bulk=False):
+        if not self.active:  # Don't index active things, and remove them.
+            return self.remove_from_index()
+
         data = djangoutils.get_values(self)
         try:
             if self.latest:
@@ -1426,7 +1429,7 @@ class Package(BaseModel):
                 data['dependencies'] = [dep.package.id for dep in deps]
         except PackageRevision.DoesNotExist:
             pass
-        
+
         try:
             es.index(data, settings.ES_INDEX, self.get_type_name(), self.id,
                  bulk=bulk)
@@ -1524,12 +1527,12 @@ class Module(BaseModel):
         first_period = self.filename.find('.')
         if first_period > -1:
             self.filename = self.filename[:first_period]
-    
+
     def can_view(self, viewer=None):
         can_view_q = models.Q(package__active=True)
         if viewer and viewer.is_authenticated():
             can_view_q |= models.Q(package__author=viewer)
-    
+
         return self.revisions.filter(can_view_q).count() > 0
 
 
@@ -1593,7 +1596,7 @@ class Attachment(BaseModel):
 
     def create_path(self):
         filename = hashlib.md5(self.filename + self.ext).hexdigest()
-            
+
         args = (self.pk or 0, filename, )
         self.path = os.path.join(time.strftime('%Y/%m/%d'), '%s-%s' % args)
 
@@ -1680,12 +1683,12 @@ class Attachment(BaseModel):
         self.filename = pathify(self.filename)
         if self.ext:
             self.ext = alphanum(self.ext)
-    
+
     def can_view(self, viewer=None):
         can_view_q = models.Q(package__active=True)
         if viewer and viewer.is_authenticated():
             can_view_q |= models.Q(package__author=viewer)
-    
+
         return self.revisions.filter(can_view_q).count() > 0
 
 
@@ -1839,7 +1842,10 @@ def make_keypair_on_create(instance, **kwargs):
     instance.generate_key()
 pre_save.connect(make_keypair_on_create, sender=Package)
 
-index_package = lambda instance, **kwargs: instance.refresh_index()
+def index_package(instance, **kwargs):
+    from search.tasks import index_all
+    index_all.delay([instance.id])
+
 post_save.connect(index_package, sender=Package)
 
 unindex_package = lambda instance, **kwargs: instance.remove_from_index()
@@ -1848,7 +1854,8 @@ post_delete.connect(unindex_package, sender=Package)
 
 def index_package_m2m(instance, action, **kwargs):
     if action in ("post_add", "post_remove"):
-        instance.package.refresh_index()
+        from search.tasks import index_all
+        index_all.delay([instance.package.id])
 m2m_changed.connect(index_package_m2m,
                     sender=PackageRevision.dependencies.through)
 
