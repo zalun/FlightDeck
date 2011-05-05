@@ -6,23 +6,20 @@ body {
     margin-top:0;
 }
 
-    #app-body .page {
-        padding-top:60px;
-    }
 
 #search-bar {
     background: -moz-linear-gradient(270deg, #FFFFFE, #F3F5F7) repeat scroll 0 0 transparent;
     border-bottom:1px solid #fff;
     box-shadow:0 1px 0 #D0D5DB;
-    position:absolute;
-    left:0px;
+    margin-bottom:20px;
+    padding:5px 0 4px;
     width:100%;
     z-index:3;
 }
 
 #Search {
     overflow:hidden;
-    padding:5px 5px 5px 200px;
+    padding:5px 40px;
 }
     
     #Search fieldset {
@@ -32,7 +29,7 @@ body {
     #Search input { 
         display:block; 
         border:1px solid #ccc; 
-        width:83%;
+        width:85%;
         height:20px;
         padding:3px;
     }
@@ -82,14 +79,12 @@ body {
     
     #SearchResults .result {
         border-bottom:1px solid #ccc;
+        min-height:35px;
         overflow:hidden;
         padding:10px 120px 10px 0;
         position:relative;
     }
         
-        #SearchResults .result:hover {
-            background-color:#F2F7FD;
-        }
     
     #SearchResults .package h3 > a {
         color:#478CDE;
