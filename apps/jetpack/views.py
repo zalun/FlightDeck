@@ -889,7 +889,10 @@ def package_save(r, id_number, type_id, revision_number=None,
 
     attachments_changed = {}
     if save_revision or changes:
-        revision.save()
+        try:
+            revision.save()
+        except ValidationError, err:
+            return HttpResponseForbidden(escape(err.__str__()))
 
     if changes:
         attachments_changed = simplejson.dumps(
