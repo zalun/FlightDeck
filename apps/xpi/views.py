@@ -140,8 +140,10 @@ def repackage(r, amo_id, amo_file, target_version=None, sdk_dir=None):
     """
     # validate entries
     # prepare data
-    sdk = SDK.objects.get(dir=sdk_dir) if sdk_dir else SDK.objects.all()[0]
     hashtag = get_random_string(10)
+    sdk = SDK.objects.all()[0]
+    # if (when?) choosing sdk_dir will be possible
+    # sdk = SDK.objects.get(dir=sdk_dir) if sdk_dir else SDK.objects.all()[0]
     sdk_source_dir = sdk.get_source_dir()
     # extract packages
     tasks.repackage.delay(
