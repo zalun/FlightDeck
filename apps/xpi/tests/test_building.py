@@ -4,8 +4,9 @@ import shutil
 import simplejson
 import commonware
 
-from utils.test import TestCase
+from mock import Mock
 from nose.tools import eq_
+from utils.test import TestCase
 
 from django.contrib.auth.models import User
 from django.conf import settings
@@ -13,6 +14,7 @@ from django.conf import settings
 from jetpack.models import Module, Package, PackageRevision, SDK
 from xpi import xpi_utils
 from base.templatetags.base_helpers import hashtag
+from utils.helpers import get_random_string
 
 log = commonware.log.getLogger('f.tests')
 
@@ -43,6 +45,8 @@ class XPIBuildTest(TestCase):
         handle.close()
         # link core to the latest SDK
         self.createCore()
+        settings.XPI_AMO_PREFIX = "file://%s" % os.path.join(
+                settings.ROOT, 'apps/xpi/tests/sample_addons/')
 
     def tearDown(self):
         self.deleteCore()
@@ -247,3 +251,20 @@ class XPIBuildTest(TestCase):
         self.addonrev.dependency_add(self.librev)
 
         self.addonrev.build_xpi(hashtag=self.hashtag, rapid=True)
+
+    # mock self.sdk.get_source_dir()
+    def test_repackage(self):
+        sample_addons = ["sample_add-on-1.0b1", "sample_add-on-1.0b2",
+                         "sample_add-on-1.0b3", "sample_add-on-1.0b4" ]
+        sample_addons = ["sample_add-on-1.0b4"]
+        sdk = Mock()
+        sdk.get_source_dir = Mock(
+                return_value=os.path.join(settings.ROOT, 'lib/addon-sdk-1.0b4'))
+        log.debug(sdk.get_source_dir())
+        for sample in sample_addons:
+            hashtag = get_random_string(10)
+            rep = xpi_utils.Repackage(123, sample, sdk, hashtag)
+            response = rep.build_xpi()
+            rep.destroy()
+            assert not response
+

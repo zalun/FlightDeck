@@ -329,6 +329,7 @@ class Repackage:
     def build_xpi(self):
         sdk_dependencies = ['addon-kit', 'api-utils']
         package_name = self.install_rdf.data['name']
+        # XXX: this should use a tempfile
         sdk_dir = os.path.join(settings.SDKDIR_PREFIX, self.hashtag)
 
         def get_package_dir(dir_name, current_package_name):
