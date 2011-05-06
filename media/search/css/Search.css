@@ -6,6 +6,10 @@ body {
     margin-top:0;
 }
 
+#app-sidebar {
+    float:left;
+    position:static;
+}
 
 #search-bar {
     background: -moz-linear-gradient(270deg, #FFFFFE, #F3F5F7) repeat scroll 0 0 transparent;
@@ -71,7 +75,39 @@ body {
             background:-moz-linear-gradient(90deg, #EBEFF2, #D4D9DF);
         }
 
-#SearchResults {}
+/* No Results page */
+
+#BlankSearch {
+    margin:100px 200px;
+}
+    #BlankSearch #search-bar {
+        background:transparent;
+        border:0;
+        box-shadow:none;
+        margin:0;
+    }
+    
+    #BlankSearch #Search {
+        padding:2px 0;
+    }
+    
+        #BlankSearch #Search fieldset {
+            width:85%;
+        }
+    
+        #BlankSearch #Search span {
+            display:none;
+        }
+        
+        #BlankSearch #Search input {
+            width:95%;
+        }
+
+#SearchResults {
+    float:left;
+    margin-left:20px;
+    width:725px;
+}
     
     #SearchResults .result + h2 {
         margin-top:20px;

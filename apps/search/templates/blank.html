@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Search - {% endblock %}
+
+{% block head %}
+	<link rel="stylesheet" type="text/css" href="/media/search/css/Search.css" />
+	<script src="/media/jetpack/js/FlightDeck.Browser.js"></script>
+{% endblock %}
+
+{% block app_content %}
+	<section id="BlankSearch">
+        {% include "_search_form.html" %}
+        <p>Suggested Searches: <a href="{% url search.results %}?q=MooTools">MooTools</a>, <a href="{% url search.results %}?q=Twitter">Twitter</a></p>
+    </section>
+{% endblock %}
