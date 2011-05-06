@@ -9,7 +9,13 @@
 
 {% block app_content %}
 	<section id="BlankSearch">
-        {% include "_search_form.html" %}
-        <p>Suggested Searches: <a href="{% url search.results %}?q=MooTools">MooTools</a>, <a href="{% url search.results %}?q=Twitter">Twitter</a></p>
+		<form method="get" action="{% url search.results %}" id="BlankSearchForm">
+			<fieldset>
+				<label>
+					<h2>Enter your search terms:</h2>
+					<input type="search" name="q" id="q" />
+				</label>
+			</fieldset>
+		</form>
     </section>
 {% endblock %}

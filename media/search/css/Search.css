@@ -78,29 +78,31 @@ body {
 /* No Results page */
 
 #BlankSearch {
-    margin:100px 200px;
+    margin:100px 150px;
 }
-    #BlankSearch #search-bar {
-        background:transparent;
-        border:0;
-        box-shadow:none;
-        margin:0;
+    
+    #BlankSearchForm {
+        background: -moz-linear-gradient(270deg, #FFFFFE, #F3F5F7);
+        border:1px solid #ccc;
+        border-radius:3px;
+        padding:10px;
     }
     
-    #BlankSearch #Search {
-        padding:2px 0;
-    }
-    
-        #BlankSearch #Search fieldset {
-            width:85%;
+        #BlankSearchForm h2 {
+            font-size:1.5em;
+            color:#163876;
+            margin:0 0 10px;
         }
     
-        #BlankSearch #Search span {
-            display:none;
-        }
-        
-        #BlankSearch #Search input {
-            width:95%;
+        #BlankSearchForm #q {
+            background:#fff url('../img/magnifying_glass.png') 2px center no-repeat;
+            border:1px solid #aaa;
+            border-radius:3px;
+            -moz-box-sizing: border-box;
+            display:block;
+            margin-bottom:10px;
+            padding:8px 8px 8px 35px;
+            width:100%;
         }
 
 #SearchResults {
