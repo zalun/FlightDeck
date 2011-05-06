@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Search - {% endblock %}
+
+{% block head %}
+	<link rel="stylesheet" type="text/css" href="/media/search/css/Search.css" />
+	<script src="/media/jetpack/js/FlightDeck.Browser.js"></script>
+{% endblock %}
+
+{% block app_content %}
+	<section id="BlankSearch">
+		<form method="get" action="{% url search.results %}" id="BlankSearchForm">
+			<fieldset>
+				<label>
+					<h2>Enter your search terms:</h2>
+					<input type="search" name="q" id="q" />
+				</label>
+			</fieldset>
+		</form>
+    </section>
+{% endblock %}
