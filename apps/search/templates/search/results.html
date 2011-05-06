@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 
+{% block title %}{% if q %}{{q}} - {% endif %}Search - {% endblock %}
+
 {% block head %}
-  <link rel="stylesheet" href="/media/jetpack/css/UI.Browser.css"
-        type="text/css" />
 	<link rel="stylesheet" type="text/css" href="/media/search/css/Search.css" />
+	<script src="/media/jetpack/js/FlightDeck.Browser.js"></script>
 {% endblock %}
 {% block app_body %}
     {% include "_search_form.html" %}
