@@ -22,5 +22,6 @@ urlpatterns = patterns('xpi.views',
 
     # repackage
     #url(r'^repackage/sdk/(?P<sdk_dir>[-\\.\\w]+)/(?P<amo_id>[0-9]+)/(?P<amo_file>[-\\w]+)/$', 'repackage'),
-    url(r'^repackage/(?P<amo_id>[0-9]+)/(?P<amo_file>[-+\.\w]+)/$', 'repackage')
+    url(r'^repackage/(?P<amo_id>[0-9]+)/(?P<amo_file>[-+\.\w]+)/$', 'repackage'),
+    url(r'^repackage/(?P<amo_id>[0-9]+)/(?P<amo_file>[-+\.\w]+)/(?P<target_version>[-+\.\w]+)/$', 'repackage')
 )

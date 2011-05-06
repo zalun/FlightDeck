@@ -15,7 +15,7 @@ import zipfile
 
 import commonware.log
 
-from django.http import HttpResponseServerError, HttpResponseForbidden
+from django.http import Http404, HttpResponseServerError, HttpResponseForbidden
 from django.conf import settings
 from django.template.defaultfilters import slugify
 from django.utils.translation import ugettext as _
@@ -292,15 +292,20 @@ class Extractor(object):
 class Repackage:
 
 
-    def __init__(self, amo_id, amo_file, sdk, hashtag):
+    def __init__(self, amo_id, amo_file, sdk, hashtag, target_version):
         # validate entries
         # prepare data
         self.amo_id = amo_id
         self.amo_file = amo_file
         self.sdk = sdk
         self.hashtag = hashtag
+        self.target_version = target_version
         # pull xpi from AMO and unpack it
-        xpi_remote = urllib.urlopen(self._get_amo_url())
+        try:
+            xpi_remote = urllib.urlopen(self._get_amo_url())
+        except IOError:
+            log.info("Wrong url provided (%s)" % self._get_amo_url())
+            raise Http404
         self.xpi_temp = tempfile.TemporaryFile()
         self.xpi_temp.write(xpi_remote.read())
         self.xpi_zip = zipfile.ZipFile(self.xpi_temp)
@@ -319,12 +324,14 @@ class Repackage:
         self.install_rdf = Extractor(install_rdf)
         self.install_rdf.read_manifest()
         self.guid = self.install_rdf.guid
+        if self.target_version:
+            self.install_rdf.data['version'] = self.target_version
         harness_options_json = self.xpi_zip.open('harness-options.json')
         self.harness_options = simplejson.loads(harness_options_json.read())
         # read name from harness options, generate it from fullName if none
         self.install_rdf.data['name'] = self.harness_options.get('name',
                 slugify(self.install_rdf.data['fullName']))
-        self.install_rdf.data['dependencies'] = 'addon-kit'
+        self.install_rdf.data['dependencies'] = ['addon-kit']
 
     def build_xpi(self):
         sdk_dependencies = ['addon-kit', 'api-utils']
@@ -343,41 +350,64 @@ class Repackage:
         exporting = []
         dependencies = []
         def extract(f, name):
+            # extract only package files
             if  name not in f:
                 return
             # get current package name from directory name (f)
             current_package_name = '-'.join(f.split(resource_dir_prefix)[1].split('/')[0].split('-')[:-1])
+            # do not extract SDK libs
             if current_package_name in sdk_dependencies:
                 return
-            # create aprropriate directories
+
+            # create lib, data and tests directories
             if (current_package_name, name) not in exporting:
                 os.makedirs(get_package_dir(name, current_package_name))
                 exporting.append((current_package_name, name))
+
             if (current_package_name != package_name
                     and current_package_name not in dependencies):
+                # collect info about exported dependencies
                 dependencies.append(current_package_name)
+                # export package.json
+                try:
+                    p_meta = self.harness_options['metadata'].get(
+                        current_package_name, None)
+                except Exception, err:
+                    log.error("No metadata about dependency "
+                            "(%s) required by (%s)\n%s" % (
+                            current_package_name, package_name, str(err)))
+                    return
+                with open(os.path.join(sdk_dir, 'packages',
+                    current_package_name, 'package.json'),
+                        'w') as manifest:
+                    manifest.write(simplejson.dumps(p_meta))
 
-            resource_dir = lambda x: "%s-%s-%s/" % (
+            # create aprropriate subdirectories and export files
+            resource_dir = lambda x: "%s%s-%s/" % (
                     resource_dir_prefix, current_package_name, x)
             if f.startswith(resource_dir(name)) and f != resource_dir(name):
                 f_name = "%s/%s" % (
                         get_package_dir(name, current_package_name),
                         f.split(resource_dir(name))[1])
+                # if f is a directory, create it only
                 if f.endswith('/'):
                     if not os.path.isdir(f_name):
                         os.makedirs(f_name)
-                else:
-                    parent_dir = '/'.join(f_name.split('/')[:-1])
-                    if not os.path.isdir(parent_dir):
-                        os.makedirs(parent_dir)
-                    with open(f_name, 'w') as f_file:
-                        f_file.write(self.xpi_zip.open(f).read())
-        log.debug(dependencies)
+                    return
+                # if directory does not exist - cxreate it
+                parent_dir = '/'.join(f_name.split('/')[:-1])
+                if not os.path.isdir(parent_dir):
+                    os.makedirs(parent_dir)
+                # export file
+                with open(f_name, 'w') as f_file:
+                    f_file.write(self.xpi_zip.open(f).read())
         for f in self.xpi_zip.namelist():
             extract(f, 'lib')
             extract(f, 'data')
             extract(f, 'tests')
+        self.install_rdf.data['dependencies'].extend(dependencies)
 
+        log.debug(self.install_rdf.data)
         # create package.json
         with open(os.path.join(sdk_dir, 'packages', package_name, 'package.json'), 'w') as manifest:
             manifest.write(simplejson.dumps(self.install_rdf.data))

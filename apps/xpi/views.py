@@ -135,14 +135,14 @@ def clean(r, path):
 
 
 @never_cache
-def repackage(r, amo_id, amo_file, sdk_dir=None):
+def repackage(r, amo_id, amo_file, target_version=None, sdk_dir=None):
     """Pull amo_id/amo_file.xpi, schedule xpi creation, return hashtag
     """
     # validate entries
     # prepare data
     sdk = SDK.objects.get(dir=sdk_dir) if sdk_dir else SDK.objects.all()[0]
     hashtag = get_random_string(10)
-    rep = xpi_utils.Repackage(amo_id, amo_file, sdk, hashtag)
+    rep = xpi_utils.Repackage(amo_id, amo_file, sdk, hashtag, target_version)
     response = rep.build_xpi()
     rep.destroy()
     if response:
@@ -150,5 +150,9 @@ def repackage(r, amo_id, amo_file, sdk_dir=None):
     # extract packages
     # call build xpi task
     # respond with a hashtag which will identify downloadable xpi
-    return HttpResponse('{"hashtag": "%s"}' % hashtag)
-        #, mimetype='application/json')
+    # URL to check if XPI is ready:
+    # /xpi/check_download/{hashtag}/
+    # URL to download:
+    # /xpi/download/{hashtag}/{desired_filename}/
+    return HttpResponse('{"hashtag": "%s"}' % hashtag,
+            mimetype='application/json')

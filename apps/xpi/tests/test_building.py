@@ -14,7 +14,6 @@ from django.conf import settings
 from jetpack.models import Module, Package, PackageRevision, SDK
 from xpi import xpi_utils
 from base.templatetags.base_helpers import hashtag
-from utils.helpers import get_random_string
 
 log = commonware.log.getLogger('f.tests')
 
@@ -254,17 +253,21 @@ class XPIBuildTest(TestCase):
 
     # mock self.sdk.get_source_dir()
     def test_repackage(self):
-        sample_addons = ["sample_add-on-1.0b1", "sample_add-on-1.0b2",
-                         "sample_add-on-1.0b3", "sample_add-on-1.0b4" ]
-        sample_addons = ["sample_add-on-1.0b4"]
+        sample_addons = [
+                # TODO: Investigate
+                # 1.0b1 and 1.0b2 are not working
+                # No such file or directory:
+                # '/tempSDK/packages/sample-add-on/package.json'
+                # "sample_add-on-1.0b1","sample_add-on-1.0b2",
+                "sample_add-on-1.0b3",
+                "sample_add-on-1.0b4" ]
         sdk = Mock()
         sdk.get_source_dir = Mock(
                 return_value=os.path.join(settings.ROOT, 'lib/addon-sdk-1.0b4'))
-        log.debug(sdk.get_source_dir())
         for sample in sample_addons:
-            hashtag = get_random_string(10)
+            log.debug(sample)
+            hashtag = self.hashtag
             rep = xpi_utils.Repackage(123, sample, sdk, hashtag)
             response = rep.build_xpi()
             rep.destroy()
             assert not response
-
