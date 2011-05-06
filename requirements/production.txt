@@ -16,3 +16,6 @@ python-dateutil
 django-celery
 importlib
 -e git://github.com/mozilla/nuggets.git#egg=nuggets
+
+# Repackage
+rdflib

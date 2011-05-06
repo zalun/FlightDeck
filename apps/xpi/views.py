@@ -3,7 +3,7 @@ import commonware.log
 import codecs
 
 from django.views.static import serve
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseServerError
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
@@ -11,9 +11,11 @@ from django.conf import settings
 
 from base.shortcuts import get_object_with_related_or_404
 from utils import validator
+from utils.helpers import get_random_string
 from xpi import xpi_utils
 
-from jetpack.models import PackageRevision
+from jetpack import tasks
+from jetpack.models import PackageRevision, SDK
 
 
 log = commonware.log.getLogger('f.xpi')
@@ -34,24 +36,21 @@ def prepare_test(r, id_number, revision_number=None):
     if not validator.is_valid('alphanum', hashtag):
         log.warning('[security] Wrong hashtag provided')
         return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
+    # prepare codes to be sent to the task
+    mod_codes = {}
+    att_codes = {}
     if r.POST.get('live_data_testing', False):
-        modules = []
         for mod in revision.modules.all():
             if r.POST.get(mod.filename, False):
                 code = r.POST.get(mod.filename, '')
                 if mod.code != code:
-                    mod.code = code
-                    modules.append(mod)
-        attachments = []
+                    mod_codes[str(mod.pk)] = code
         for att in revision.attachments.all():
             if r.POST.get(str(att.pk), False):
                 code = r.POST.get(str(att.pk))
-                att.code = code
-                attachments.append(att)
-        response = revision.build_xpi(modules, attachments,
-                hashtag=hashtag)
-    else:
-        response = revision.build_xpi(hashtag=hashtag)
+                att_codes[str(att.pk)] = code
+    tasks.xpi_build_from_model.delay(revision.pk,
+            mod_codes=mod_codes, att_codes=att_codes, hashtag=hashtag)
     return HttpResponse('{"delayed": true}')
 
 @never_cache
@@ -90,7 +89,7 @@ def prepare_download(r, id_number, revision_number=None):
     if not validator.is_valid('alphanum', hashtag):
         log.warning('[security] Wrong hashtag provided')
         return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
-    revision.build_xpi(hashtag=hashtag)
+    tasks.xpi_build_from_model.delay(revision.pk, hashtag=hashtag)
     return HttpResponse('{"delayed": true}')
 
 
@@ -105,6 +104,7 @@ def check_download(r, hashtag):
     if os.path.isfile(path):
         return HttpResponse('{"ready": true}')
     return HttpResponse('{"ready": false}')
+
 
 @never_cache
 def get_download(r, hashtag, filename):
@@ -121,6 +121,7 @@ def get_download(r, hashtag, filename):
             'filename="%s.xpi"' % filename)
     return response
 
+
 @never_cache
 def clean(r, path):
     " remove whole temporary SDK on request "
@@ -130,3 +131,26 @@ def clean(r, path):
         return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
     xpi_utils.remove(os.path.join(settings.XPI_TARGETDIR, '%s.xpi' % path))
     return HttpResponse('{"success": true}', mimetype='application/json')
+
+
+
+@never_cache
+def repackage(r, amo_id, amo_file, target_version=None, sdk_dir=None):
+    """Pull amo_id/amo_file.xpi, schedule xpi creation, return hashtag
+    """
+    # validate entries
+    # prepare data
+    sdk = SDK.objects.get(dir=sdk_dir) if sdk_dir else SDK.objects.all()[0]
+    hashtag = get_random_string(10)
+    sdk_source_dir = sdk.get_source_dir()
+    # extract packages
+    tasks.repackage.delay(
+            amo_id, amo_file, sdk_source_dir, hashtag, target_version)
+    # call build xpi task
+    # respond with a hashtag which will identify downloadable xpi
+    # URL to check if XPI is ready:
+    # /xpi/check_download/{hashtag}/
+    # URL to download:
+    # /xpi/download/{hashtag}/{desired_filename}/
+    return HttpResponse('{"hashtag": "%s"}' % hashtag,
+            mimetype='application/json')

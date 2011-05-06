@@ -31,7 +31,6 @@ from pyes import djangoutils
 
 from api.helpers import export_docs
 from base.models import BaseModel
-from jetpack import tasks
 from jetpack.errors import (SelfDependencyException, FilenameExistException,
                             UpdateDeniedException, SingletonCopyException,
                             DependencyException, AttachmentWriteException)
@@ -995,10 +994,11 @@ class PackageRevision(BaseModel):
         self.export_dependencies(packages_dir, sdk=self.sdk)
         args = [sdk_dir, self.package.get_dir_name(packages_dir),
                 self.package.name, hashtag]
-        if rapid:
-            return xpi_utils.build(*args)
+        #if rapid:
+        # XXX: Whole method is called from task
+        return xpi_utils.build(*args)
 
-        return tasks.xpi_build.delay(*args)
+        #return tasks.xpi_build.delay(*args)
 
     def export_keys(self, sdk_dir):
         """Export private and public keys to file."""
@@ -1426,7 +1426,7 @@ class Package(BaseModel):
                 data['dependencies'] = [dep.package.id for dep in deps]
         except PackageRevision.DoesNotExist:
             pass
-        
+
         try:
             es.index(data, settings.ES_INDEX, self.get_type_name(), self.id,
                  bulk=bulk)
@@ -1586,7 +1586,7 @@ class Attachment(BaseModel):
 
     def create_path(self):
         filename = hashlib.md5(self.filename + self.ext).hexdigest()
-            
+
         args = (self.pk or 0, filename, )
         self.path = os.path.join(time.strftime('%Y/%m/%d'), '%s-%s' % args)
 
