@@ -21,7 +21,7 @@ from django.http import HttpResponseRedirect, HttpResponse, \
 from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage, InvalidPage
 from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
 from django.db.models import Q, ObjectDoesNotExist
 from django.db import IntegrityError
@@ -70,11 +70,14 @@ def package_browser(r, page_number=1, type_id=None, username=None):
 
     limit = r.GET.get('limit', settings.PACKAGES_PER_PAGE)
 
-    pager = Paginator(
-        packages,
-        per_page=limit,
-        orphans=1
-    ).page(page_number)
+    try:
+        pager = Paginator(
+            packages,
+            per_page=limit,
+            orphans=1
+        ).page(page_number)
+    except (EmptyPage, InvalidPage):
+        raise Http404
 
     return render_to_response(
         'package_browser%s.html' % template_suffix, {
