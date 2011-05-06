@@ -940,6 +940,8 @@ class PackageRevision(BaseModel):
         :param modules: list of modules from editor - potentially unsaved
         :param rapid: if True - do not use celery to produce xpi
         :rtype: dict containing load xpi information if rapid else AsyncResult
+
+        This method is called from cellery task
         """
         if self.package.type == 'l':
             log.error("Attempt to build xpi (%s), but package is not an "
@@ -994,11 +996,7 @@ class PackageRevision(BaseModel):
         self.export_dependencies(packages_dir, sdk=self.sdk)
         args = [sdk_dir, self.package.get_dir_name(packages_dir),
                 self.package.name, hashtag]
-        #if rapid:
-        # XXX: Whole method is called from task
         return xpi_utils.build(*args)
-
-        #return tasks.xpi_build.delay(*args)
 
     def export_keys(self, sdk_dir):
         """Export private and public keys to file."""
