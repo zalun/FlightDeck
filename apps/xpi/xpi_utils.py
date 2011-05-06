@@ -292,12 +292,13 @@ class Extractor(object):
 class Repackage:
 
 
-    def __init__(self, amo_id, amo_file, sdk, hashtag, target_version):
+    def __init__(self, amo_id, amo_file, sdk_source_dir, hashtag,
+            target_version=None):
         # validate entries
         # prepare data
         self.amo_id = amo_id
         self.amo_file = amo_file
-        self.sdk = sdk
+        self.sdk_source_dir = sdk_source_dir
         self.hashtag = hashtag
         self.target_version = target_version
         # pull xpi from AMO and unpack it
@@ -345,7 +346,7 @@ class Repackage:
 
         resource_dir_prefix = "resources/%s-" % self.guid.split('@')[0].lower()
         # copy sdk
-        sdk_copy(self.sdk.get_source_dir(), sdk_dir)
+        sdk_copy(self.sdk_source_dir, sdk_dir)
         # extract packages
         exporting = []
         dependencies = []

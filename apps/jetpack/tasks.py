@@ -37,3 +37,11 @@ def xpi_build_from_model(rev_pk, mod_codes={}, att_codes={}, hashtag=None):
             modules=modules,
             attachments=attachments,
             hashtag=hashtag)
+
+@task(rate_limit='30/m')
+def repackage(amo_id, amo_file, sdk_source_dir, hashtag, target_version):
+    rep = xpi_utils.Repackage(
+            amo_id, amo_file, sdk_source_dir, hashtag, target_version)
+    response = rep.build_xpi()
+    rep.destroy()
+
