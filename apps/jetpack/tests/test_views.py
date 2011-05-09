@@ -17,7 +17,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
-from jetpack.models import Package, PackageRevision, Attachment
+from jetpack.models import Package, PackageRevision, Attachment, Module
 from jetpack.errors import FilenameExistException
 from base.templatetags.base_helpers import hashtag
 
@@ -187,3 +187,23 @@ class TestEmptyDirs(TestCase):
         revision = self.add_one(name='/absolute///and/triple/')
         eq_(revision.folders.all()[0].name, 'absolute/and/triple')
 
+
+class TestEditing(TestCase):
+    fixtures = ('mozilla_user', 'core_sdk', 'users', 'packages')
+
+    def setUp(self):
+        self.hashtag = hashtag()
+
+    def test_revision_list_contains_added_modules(self):
+        author = User.objects.get(username='john')
+        addon = Package(author=author, type='a')
+        addon.save()
+        mod = Module.objects.create(
+                filename='test_filename',
+                author=author,
+                code='// test')
+        rev = addon.latest
+        rev.module_add(mod)
+        r = self.client.get(
+                reverse('jp_revisions_list_html', args=[addon.id_number]))
+        assert 'test_filename' in r.content
