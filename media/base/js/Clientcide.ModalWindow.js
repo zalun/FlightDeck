@@ -14,6 +14,7 @@ var ModalWindow = new Class({
 			content: content,
 			relativeTo: $(document.body),
 			position: 'center',
+			offset: { x: 0, y: 0 },
 			edge: 'center',
 			closeClassName: 'closeModal',
 			draggable: true,
