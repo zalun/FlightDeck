@@ -254,11 +254,13 @@ class PackageTest(TestCase):
     def test_package_copy(self):
         addon = Package.objects.create(author=self.author, type='a')
         addon_copy = addon.copy(author=self.author)
-        assert "Copy" in addon_copy.full_name
-        assert "(copy" not in addon_copy.full_name
-
-        addon_copy = addon.copy(author=self.author)
         assert "(copy 1)" in addon_copy.full_name
 
         addon_copy = addon.copy(author=self.author)
+        assert "(copy 1)" not in addon_copy.full_name
         assert "(copy 2)" in addon_copy.full_name
+
+        addon_copy = addon.copy(author=self.author)
+        assert "(copy 1)" not in addon_copy.full_name
+        assert "(copy 2)" not in addon_copy.full_name
+        assert "(copy 3)" in addon_copy.full_name
