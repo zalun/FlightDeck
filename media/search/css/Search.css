@@ -6,16 +6,24 @@ body {
     margin-top:0;
 }
 
+#app-sidebar {
+    float:left;
+    position:static;
+}
+
 #search-bar {
     background: -moz-linear-gradient(270deg, #FFFFFE, #F3F5F7) repeat scroll 0 0 transparent;
     border-bottom:1px solid #fff;
     box-shadow:0 1px 0 #D0D5DB;
-    margin-left:-245px; /* wtf? :( */
     margin-bottom:20px;
+    padding:5px 0 4px;
+    width:100%;
+    z-index:3;
 }
+
 #Search {
     overflow:hidden;
-    padding:5px 5px 5px 200px;
+    padding:5px 40px;
 }
     
     #Search fieldset {
@@ -25,7 +33,7 @@ body {
     #Search input { 
         display:block; 
         border:1px solid #ccc; 
-        width:83%;
+        width:85%;
         height:20px;
         padding:3px;
     }
@@ -67,7 +75,41 @@ body {
             background:-moz-linear-gradient(90deg, #EBEFF2, #D4D9DF);
         }
 
-#SearchResults {}
+/* No Results page */
+
+#BlankSearch {
+    margin:100px 150px;
+}
+    
+    #BlankSearchForm {
+        background: -moz-linear-gradient(270deg, #FFFFFE, #F3F5F7);
+        border:1px solid #ccc;
+        border-radius:3px;
+        padding:10px;
+    }
+    
+        #BlankSearchForm h2 {
+            font-size:1.5em;
+            color:#163876;
+            margin:0 0 10px;
+        }
+    
+        #BlankSearchForm #q {
+            background:#fff url('../img/magnifying_glass.png') 2px center no-repeat;
+            border:1px solid #aaa;
+            border-radius:3px;
+            -moz-box-sizing: border-box;
+            display:block;
+            margin-bottom:10px;
+            padding:8px 8px 8px 35px;
+            width:100%;
+        }
+
+#SearchResults {
+    float:left;
+    margin-left:20px;
+    width:725px;
+}
     
     #SearchResults .result + h2 {
         margin-top:20px;
@@ -75,14 +117,12 @@ body {
     
     #SearchResults .result {
         border-bottom:1px solid #ccc;
+        min-height:35px;
         overflow:hidden;
         padding:10px 120px 10px 0;
         position:relative;
     }
         
-        #SearchResults .result:hover {
-            background-color:#F2F7FD;
-        }
     
     #SearchResults .package h3 > a {
         color:#478CDE;

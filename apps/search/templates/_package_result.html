@@ -1,11 +1,14 @@
+{% load base_helpers %}
 <div class="result package">
     <h3>
         <a href="{{ package.get_absolute_url }}">{{ package.full_name }}</a>
-        <span>by <a href="#">{{ package.author }}</a></span>
+        <span>by <a href="{% url person_public_profile package.author.username %}">{{ package.author.get_profile }}</a></span>
     </h3>
     <p class="description">{{ package.description }}</p>
     <ul class="UI_Actions">
-        <li class="UI_Edit_Version"><a href="#">Source</a></li>
-        <li class="UI_Try_in_Browser XPI_Test"><a href="#">Test</a></li>
+        <li class="UI_Edit_Version"><a href="{{ package.get_latest_url }}">Source</a></li>
+        {% if package.is_addon %}
+        <li class="UI_Try_in_Browser XPI_Test"><a href="{{ package.latest.get_test_xpi_url }}" rel="{{ package.jid }}" data-hashtag="{% hashtag %}">Test</a></li>
+        {% endif %}
     </ul>
 </div>

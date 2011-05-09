@@ -31,7 +31,6 @@ from pyes import djangoutils
 
 from api.helpers import export_docs
 from base.models import BaseModel
-from jetpack import tasks
 from jetpack.errors import (SelfDependencyException, FilenameExistException,
                             UpdateDeniedException, SingletonCopyException,
                             DependencyException, AttachmentWriteException)
@@ -941,6 +940,8 @@ class PackageRevision(BaseModel):
         :param modules: list of modules from editor - potentially unsaved
         :param rapid: if True - do not use celery to produce xpi
         :rtype: dict containing load xpi information if rapid else AsyncResult
+
+        This method is called from cellery task
         """
         if self.package.type == 'l':
             log.error("Attempt to build xpi (%s), but package is not an "
@@ -995,10 +996,7 @@ class PackageRevision(BaseModel):
         self.export_dependencies(packages_dir, sdk=self.sdk)
         args = [sdk_dir, self.package.get_dir_name(packages_dir),
                 self.package.name, hashtag]
-        if rapid:
-            return xpi_utils.build(*args)
-
-        return tasks.xpi_build.delay(*args)
+        return xpi_utils.build(*args)
 
     def export_keys(self, sdk_dir):
         """Export private and public keys to file."""
@@ -1419,6 +1417,9 @@ class Package(BaseModel):
 
     @es_required
     def refresh_index(self, es, bulk=False):
+        if not self.active:  # Don't index active things, and remove them.
+            return self.remove_from_index()
+
         data = djangoutils.get_values(self)
         try:
             if self.latest:
@@ -1524,6 +1525,13 @@ class Module(BaseModel):
         first_period = self.filename.find('.')
         if first_period > -1:
             self.filename = self.filename[:first_period]
+
+    def can_view(self, viewer=None):
+        can_view_q = models.Q(package__active=True)
+        if viewer and viewer.is_authenticated():
+            can_view_q |= models.Q(package__author=viewer)
+
+        return self.revisions.filter(can_view_q).count() > 0
 
 
 class Attachment(BaseModel):
@@ -1673,6 +1681,13 @@ class Attachment(BaseModel):
         self.filename = pathify(self.filename)
         if self.ext:
             self.ext = alphanum(self.ext)
+
+    def can_view(self, viewer=None):
+        can_view_q = models.Q(package__active=True)
+        if viewer and viewer.is_authenticated():
+            can_view_q |= models.Q(package__author=viewer)
+
+        return self.revisions.filter(can_view_q).count() > 0
 
 
 class EmptyDir(BaseModel):
@@ -1825,7 +1840,10 @@ def make_keypair_on_create(instance, **kwargs):
     instance.generate_key()
 pre_save.connect(make_keypair_on_create, sender=Package)
 
-index_package = lambda instance, **kwargs: instance.refresh_index()
+def index_package(instance, **kwargs):
+    from search.tasks import index_all
+    index_all.delay([instance.id])
+
 post_save.connect(index_package, sender=Package)
 
 unindex_package = lambda instance, **kwargs: instance.remove_from_index()
@@ -1834,7 +1852,8 @@ post_delete.connect(unindex_package, sender=Package)
 
 def index_package_m2m(instance, action, **kwargs):
     if action in ("post_add", "post_remove"):
-        instance.package.refresh_index()
+        from search.tasks import index_all
+        index_all.delay([instance.package.id])
 m2m_changed.connect(index_package_m2m,
                     sender=PackageRevision.dependencies.through)
 

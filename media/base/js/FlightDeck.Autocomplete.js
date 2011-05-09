@@ -44,11 +44,9 @@ FlightDeck.Autocomplete = new Class({
 		}).hide();
 		
 		this.autocomplete.addEvent('deselect', function() {
-			console.log('hide')
 			warning.hide();
 		});
 		this.autocomplete.addEvent('noItemToList', function(els) {
-			console.log('show')
 			warning.show();
 		});
 		return this.autocomplete;

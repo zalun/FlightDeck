@@ -126,6 +126,7 @@ class TestPackage(TestCase):
         response = self.client.get(lib.get_absolute_url())
         eq_(response.status_code, 200)
 
+
 class TestEmptyDirs(TestCase):
     fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']
 

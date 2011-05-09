@@ -371,12 +371,11 @@ var Library = new Class({
 	},
 	
 	initialize: function(pack, options) {
-		options.path = options.full_name;
 		this.parent(pack, options);
 		
 		this.addEvent('destroy', function(){
 			delete pack.libraries[this.options.id_number];
-		})
+		});
 		
 		if(this.options.append) {
 			this.append();
@@ -395,6 +394,14 @@ var Library = new Class({
 	
 	getID: function() {
 		return 'Library-' + this.options.id_number;
+	},
+	
+	getShortName: function() {
+		return this.options.full_name;
+	},
+	
+	getFullName: function() {
+		return this.getID();
 	},
 	
 	storeNewVersion: function(version_data) {
@@ -417,6 +424,7 @@ var Attachment = new Class({
 		active: false,
 		type: 'js',
 		append: false,
+		filename: '',
 		readonly: false,
 		counter: 'attachments'
 	},
@@ -474,7 +482,6 @@ var Attachment = new Class({
 		new Request({
 			method: 'get',
 			url: this.options.get_url,
-			async: false, // This kinda sucks. It makes the app feel weird when loading.
 			useSpinner: true,
 			spinnerTarget: 'editor-wrapper',
 			onSuccess: function() {
@@ -590,7 +597,6 @@ var Module = new Class({
 		new Request.JSON({
             method: 'get',
 			url: this.options.get_url,
-            async: false, // This kinda sucks. It makes the app feel weird when loading.
             useSpinner: true,
             spinnerTarget: 'editor-wrapper',
             onSuccess: function(mod) {
@@ -618,12 +624,12 @@ var Folder = new Class({
 	Extends: File,
 	
 	options: {
-		root_dir: 'l'
+		root_dir: 'l',
+		name: '',
 	},
 	
 	initialize: function(pack, options) {
 		this.parent(pack, options);
-		this.options.path = this.options.name;
 		
 		this.addEvent('destroy', function(){
 			delete pack.folders[this.options.root_dir + '/' +this.options.name];
@@ -645,6 +651,10 @@ var Folder = new Class({
 	onSelect: function() {
 		this.parent();
         $log('selected a Folder');
+	},
+	
+	getFullName: function() {
+		return this.options.name;
 	},
 	
 	getID: function() {

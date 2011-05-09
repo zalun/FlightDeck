@@ -21,7 +21,7 @@ from django.http import HttpResponseRedirect, HttpResponse, \
 from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage, InvalidPage
 from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
 from django.db.models import Q, ObjectDoesNotExist
 from django.db import IntegrityError
@@ -70,11 +70,14 @@ def package_browser(r, page_number=1, type_id=None, username=None):
 
     limit = r.GET.get('limit', settings.PACKAGES_PER_PAGE)
 
-    pager = Paginator(
-        packages,
-        per_page=limit,
-        orphans=1
-    ).page(page_number)
+    try:
+        pager = Paginator(
+            packages,
+            per_page=limit,
+            orphans=1
+        ).page(page_number)
+    except (EmptyPage, InvalidPage):
+        raise Http404
 
     return render_to_response(
         'package_browser%s.html' % template_suffix, {
@@ -184,7 +187,12 @@ def download_module(r, pk):
     """
     return a JSON with all module info
     """
-    module = get_object_or_404(Module, pk=pk)
+    module = get_object_with_related_or_404(Module, pk=pk)
+    if not module.can_view(r.user):
+        log_msg = ("[security] Attempt to download private module (%s) by "
+                   "non-owner (%s)" % (pk, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden('You are not the author of this module.')
     return HttpResponse(module.get_json())
 
 
@@ -197,10 +205,16 @@ def get_module(r, id_number, revision_number, filename):
                 package__id_number=id_number,
                 revision_number=revision_number)
         mod = revision.modules.get(filename=filename)
-    except:
+    except PackageRevision.DoesNotExist, Module.DoesNotExist:
         log_msg = 'No such module %s' % filename
         log.error(log_msg)
         raise Http404()
+    
+    if not mod.can_view(r.user):
+        log_msg = ("[security] Attempt to download private module (%s) by "
+                   "non-owner (%s)" % (pk, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden('You are not the author of this module.')
     return HttpResponse(mod.get_json())
 
 
@@ -466,6 +480,7 @@ def package_remove_folder(r, id_number, type_id, revision_number):
     try:
         folder = revision.folders.get(name=foldername, root_dir=root)
     except EmptyDir.DoesNotExist:
+        response = None
         if root == 'data':
             response = revision.attachment_rmdir(foldername)
         if not response:
@@ -767,7 +782,8 @@ def package_remove_attachment(r, id_number, type_id, revision_number):
         return HttpResponseForbidden('You are not the author of this Package')
 
     uid = r.POST.get('uid', '').strip()
-    attachment = Attachment.objects.get(pk=uid, revisions=revision)
+    attachment = get_object_with_related_or_404(Attachment,
+                                                pk=uid, revisions=revision)
 
     if not attachment:
         log_msg = ('Attempt to remove a non existing attachment. attachment: '
@@ -785,12 +801,18 @@ def package_remove_attachment(r, id_number, type_id, revision_number):
                 mimetype='application/json')
 
 
-def download_attachment(request, uid):
+def download_attachment(r, uid):
     """
     Display attachment from PackageRevision
     """
-    attachment = get_object_or_404(Attachment, id=uid)
-    response = serve(request, attachment.path,
+    attachment = get_object_with_related_or_404(Attachment, id=uid)
+    if not attachment.can_view(r.user):
+        log_msg = ("[security] Attempt to download private attachment (%s) by "
+                   "non-owner (%s)" % (uid, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden(
+            'You are not the author of this attachment.')
+    response = serve(r, attachment.path,
                      settings.UPLOAD_DIR, show_indexes=False)
     response['Content-Disposition'] = 'filename=%s.%s' % (
             attachment.filename, attachment.ext)
@@ -870,7 +892,10 @@ def package_save(r, id_number, type_id, revision_number=None,
 
     attachments_changed = {}
     if save_revision or changes:
-        revision.save()
+        try:
+            revision.save()
+        except ValidationError, err:
+            return HttpResponseForbidden(escape(err.__str__()))
 
     if changes:
         attachments_changed = simplejson.dumps(
