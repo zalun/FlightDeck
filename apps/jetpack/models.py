@@ -1246,9 +1246,11 @@ class Package(BaseModel):
         " set's the name from full_name "
         self.name = self.make_name()
 
-    def make_name(self):
+    def make_name(self, value=None):
         " wrap for slugify - this function was changed before "
-        return slugify(self.full_name)
+        if not value:
+            value = self.full_name
+        return slugify(value)
 
     def generate_key(self):
         """
@@ -1283,14 +1285,25 @@ class Package(BaseModel):
             os.mkdir('%s/%s' % (package_dir, self.get_data_dir()))
         return package_dir
 
-    def get_copied_full_name(self):
+    def get_copied_full_name(self, basic_name=None, iteration=0):
         """
         Add "Copy of" before the full name if package is copied
         """
-        full_name = self.full_name
-        if not full_name.startswith('Copy of'):
-            full_name = "Copy of %s" % full_name
-        return full_name
+        copystr = 'Copy of'
+        full_name = self.full_name if not basic_name else basic_name
+        if full_name.startswith(copystr):
+            full_name = ' '.join(full_name.split(' ')[2:])
+        if '(copy ' in full_name:
+            full_name = full_name.split('(copy')[0]
+        new_name = '%s %s' % (copystr, full_name)
+        if iteration > 0:
+            new_name = '%s (copy %d)' % (new_name, iteration)
+        try:
+            Package.objects.get(name=self.make_name(new_name))
+        except ObjectDoesNotExist:
+            return new_name
+        return self.get_copied_full_name(
+                basic_name=full_name, iteration=iteration+1)
 
     def copy(self, author):
         """
