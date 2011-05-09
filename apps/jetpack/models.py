@@ -529,7 +529,7 @@ class PackageRevision(BaseModel):
                  'with the name "%s". Each module in your add-on '
                  'needs to have a unique name.') % mod.filename
             )
-        self.add_commit_message(_('adding module(s)'))
+        self.add_commit_message(_('module (%s.js) added' % mod.filename))
 
         if save:
             self.save()
@@ -1426,7 +1426,7 @@ class Package(BaseModel):
                 data['dependencies'] = [dep.package.id for dep in deps]
         except PackageRevision.DoesNotExist:
             pass
-        
+
         try:
             es.index(data, settings.ES_INDEX, self.get_type_name(), self.id,
                  bulk=bulk)
@@ -1586,7 +1586,7 @@ class Attachment(BaseModel):
 
     def create_path(self):
         filename = hashlib.md5(self.filename + self.ext).hexdigest()
-            
+
         args = (self.pk or 0, filename, )
         self.path = os.path.join(time.strftime('%Y/%m/%d'), '%s-%s' % args)
 
