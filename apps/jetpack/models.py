@@ -528,7 +528,7 @@ class PackageRevision(BaseModel):
                  'with the name "%s". Each module in your add-on '
                  'needs to have a unique name.') % mod.filename
             )
-        self.add_commit_message(_('adding module(s)'))
+        self.add_commit_message(_('module (%s.js) added' % mod.filename))
 
         if save:
             self.save()
