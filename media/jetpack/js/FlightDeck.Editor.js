@@ -52,7 +52,7 @@ FlightDeck = Class.refactor(FlightDeck,{
 											file.changed = false;
 											fd.edited--;
 											if(!fd.edited) {
-												fd.onSaved();
+												fd.fireEvent('reset');
 											}
 										}, 1);
 									}
@@ -79,6 +79,7 @@ FlightDeck = Class.refactor(FlightDeck,{
 		this.enableMenuButtons();
 		this.addEvent('change', this.onChanged);
 		this.addEvent('save', this.onSaved);
+		this.addEvent('reset', this.onReset);
 	},
 
 	onChanged: function() {
@@ -88,7 +89,12 @@ FlightDeck = Class.refactor(FlightDeck,{
 	},
 
 	onSaved: function() {
-        $log('FD: INFO: document saved - onbeforeunload warning is off and save button is not lit.');
+        //any save specific logic?
+		this.fireEvent('reset');
+	},
+	
+	onReset: function() {
+		$log('FD: INFO: document saved - onbeforeunload warning is off and save button is not lit.');
         $$('li.Icon_save').removeClass('Icon_save_changes');
 		this.edited = 0;
 	},
