@@ -26,7 +26,7 @@ FlightDeck.Tab = new Class({
 		if (this.options.closeable) {
 			this.close = new Element('span', {
 				'class': 'tab-close',
-				'html': '&#10799;',
+				'html': 'x',
 				'styles': {
 					'margin-left': 4,
 					'text-align': 'right'
