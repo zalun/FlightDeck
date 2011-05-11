@@ -26,5 +26,9 @@
 			{% include "_package_result.html" %}
 		{% endfor %}
 	{% endif %}
+	
+	{% if not addons and not libraries %}
+		<p>No results were found for the term "{{q}}".</p>
+	{% endif %}
 	</section>
 {% endblock %}
