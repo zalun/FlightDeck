@@ -41,7 +41,7 @@ def _query(searchq, type_=None, user=None, filter_by_user=False):
             facets['author'] = facet
 
         query = dict(query=dict(query_string=dict(query=searchq)),
-                     facets=facets)
+                     facets=facets, size=50)
 
         if type_ in ('addon', 'library'):
             query['filter'] = {'term': {'_type': type_}}
