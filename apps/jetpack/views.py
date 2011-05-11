@@ -966,7 +966,12 @@ def upload_xpi(request):
     """
     upload XPI and create Addon and eventual Libraries
     """
-    xpi = request.FILES['xpi']
+    try:
+        xpi = request.FILES['xpi']
+    except KeyError:
+        log.warning('No file "xpi" posted')
+        return HttpResponseForbidden('No xpi supplied.')
+    
     temp_dir = tempfile.mkdtemp()
     path = os.path.join(temp_dir, xpi.name)
     xpi_file = codecs.open(path, mode='wb+')
