@@ -1426,7 +1426,7 @@ class Package(BaseModel):
     @es_required
     def refresh_index(self, es, bulk=False):
         if not self.active:  # Don't index active things, and remove them.
-            return self.remove_from_index()
+            return self.remove_from_index(bulk)
 
         data = djangoutils.get_values(self)
         try:
@@ -1445,9 +1445,15 @@ class Package(BaseModel):
             log.debug('Package %d added to search index.' % self.id)
 
     @es_required
-    def remove_from_index(self, es):
-        es.delete(settings.ES_INDEX, self.get_type_name(), self.id)
-        log.debug('Package %d removed from search index.' % self.id)
+    def remove_from_index(self, es, bulk=False):
+        try:
+            es.delete(settings.ES_INDEX, self.get_type_name(), self.id,
+                 bulk=bulk)
+        except Exception, e:
+            log.error("ElasticSearch error removing addon (%s): %s" %
+                      (self, e))
+        else:
+            log.debug('Package %d removed from search index.' % self.id)
 
 
 class Module(BaseModel):
