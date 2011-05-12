@@ -1427,7 +1427,7 @@ class Package(BaseModel):
     @es_required
     def refresh_index(self, es, bulk=False):
         if not self.active:  # Don't index active things, and remove them.
-            return self.remove_from_index(bulk)
+            return self.remove_from_index(bulk=bulk)
 
         data = djangoutils.get_values(self)
         try:
