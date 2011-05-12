@@ -14,5 +14,5 @@ def index_all():
     """This reindexes all the known packages and libraries."""
     ids = Package.objects.all().values_list('id', flat=True)
     with establish_connection() as conn:
-        for chunk in chunked(ids, 1000):
+        for chunk in chunked(ids, 100):
             tasks.index_all.apply_async(args=[chunk], connection=conn)
