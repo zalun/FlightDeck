@@ -28,6 +28,7 @@ from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
 from ecdsa import SigningKey, NIST256p
 from elasticutils import es_required
 from pyes import djangoutils
+from pyes.exceptions import NotFoundException as PyesNotFoundException
 
 from api.helpers import export_docs
 from base.models import BaseModel
@@ -1449,6 +1450,8 @@ class Package(BaseModel):
         try:
             es.delete(settings.ES_INDEX, self.get_type_name(), self.id,
                  bulk=bulk)
+        except PyesNotFoundException:
+            pass
         except Exception, e:
             log.error("ElasticSearch error removing addon (%s): %s" %
                       (self, e))
