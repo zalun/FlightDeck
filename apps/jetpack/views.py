@@ -60,7 +60,10 @@ def package_browser(r, page_number=1, type_id=None, username=None):
 
     author = None
     if username:
-        profile = Profile.objects.get_user_by_username_or_nick(username)
+        try:
+            profile = Profile.objects.get_user_by_username_or_nick(username)
+        except ObjectDoesNotExist:
+            raise Http404
         author = profile.user
         packages = packages.filter(author__username=username)
         template_suffix = '%s_user' % template_suffix
