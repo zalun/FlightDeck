@@ -1444,6 +1444,14 @@ class Package(BaseModel):
         else:
             log.debug('Package %d added to search index.' % self.id)
 
+    def get_author_nickname(self):
+        return self.author.get_profile().get_nickname()
+
+    def get_author_profile_url(self):
+        " returns URL to the view with author's profile "
+        log.debug(self.get_author_nickname())
+        return reverse('person_public_profile', args=[self.get_author_nickname()])
+
     @es_required
     def remove_from_index(self, es):
         es.delete(settings.ES_INDEX, self.get_type_name(), self.id)

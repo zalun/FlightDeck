@@ -44,6 +44,8 @@ from jetpack.models import Package, PackageRevision, Module, Attachment, SDK, \
                            EmptyDir
 from jetpack.errors import FilenameExistException, DependencyException
 
+from person.models import Profile
+
 log = commonware.log.getLogger('f.jetpack')
 
 
@@ -58,7 +60,8 @@ def package_browser(r, page_number=1, type_id=None, username=None):
 
     author = None
     if username:
-        author = get_object_or_404(User, username=username)
+        profile = Profile.objects.get_user_by_username_or_nick(username)
+        author = profile.user
         packages = packages.filter(author__username=username)
         template_suffix = '%s_user' % template_suffix
     if type_id:
@@ -209,7 +212,7 @@ def get_module(r, id_number, revision_number, filename):
         log_msg = 'No such module %s' % filename
         log.error(log_msg)
         raise Http404()
-    
+
     if not mod.can_view(r.user):
         log_msg = ("[security] Attempt to download private module (%s) by "
                    "non-owner (%s)" % (pk, r.user))
@@ -971,7 +974,7 @@ def upload_xpi(request):
     except KeyError:
         log.warning('No file "xpi" posted')
         return HttpResponseForbidden('No xpi supplied.')
-    
+
     temp_dir = tempfile.mkdtemp()
     path = os.path.join(temp_dir, xpi.name)
     xpi_file = codecs.open(path, mode='wb+')

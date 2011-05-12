@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+from person.managers import ProfileManager
 
 class Limit(models.Model):
     email = models.CharField(max_length=255)
@@ -13,6 +14,8 @@ class Profile(models.Model):
     occupation = models.CharField(max_length=255, blank=True, null=True)
     homepage = models.CharField(max_length=255, blank=True, null=True)
     photo = models.CharField(max_length=255, blank=True, null=True)
+
+    objects = ProfileManager()
 
     def get_name(self):
         if not (self.user.first_name or self.user.last_name or self.nickname):
@@ -27,6 +30,10 @@ class Profile(models.Model):
         if not name and self.nickname:
             return self.nickname
         return name
+
+    def get_nickname(self):
+        " return nickname or username if no nickname "
+        return self.nickname or self.user.username
 
     def __unicode__(self):
         return self.get_name()
