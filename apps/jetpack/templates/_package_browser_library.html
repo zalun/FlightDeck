@@ -2,7 +2,7 @@
 	{{ item.full_name }}
     {% ifnotequal user item.author %}
     <span class="author">by
-	<a title="" href="{% url person_public_profile item.author.username %}">{{ item.author.get_profile }}</a>
+        <a title="" href="{{ item.get_author_profile_url }}">{{ item.author.get_profile }}</a>
     </span>
     {% endifnotequal %}
     <span class="version">
