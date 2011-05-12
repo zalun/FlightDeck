@@ -23,5 +23,5 @@ class AuthTest(TestCase):
         if not (settings.TEST_AMO_USERNAME and settings.TEST_AMO_PASSWORD):
             raise SkipTest()
         assert authenticate(
-                username=settings.AMO_USERNAME,
-                password=settings.AMO_PASSWORD)
+                username=settings.TEST_AMO_USERNAME,
+                password=settings.TEST_AMO_PASSWORD)
