@@ -25,15 +25,8 @@ source $VENV/bin/activate
 
 pip install -q -r requirements/compiled.txt
 
-# adding eventual SDK
-git submodule update --init
-
-if  [ ! -d "$WORKSPACE/vendor" ]; then
-    git clone git://github.com/mozilla/FlightDeck-lib.git vendor
-fi
-
-pushd vendor && git pull && git submodule update --init
-popd
+# vendor
+git submodule update --init --recursive
 
 # Create paths we want for addons
 if [ ! -d "/tmp/flightdeck" ]; then
