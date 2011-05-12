@@ -1449,7 +1449,6 @@ class Package(BaseModel):
 
     def get_author_profile_url(self):
         " returns URL to the view with author's profile "
-        log.debug(self.get_author_nickname())
         return reverse('person_public_profile', args=[self.get_author_nickname()])
 
     @es_required
