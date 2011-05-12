@@ -15,7 +15,15 @@ API.Page = new Class({
     
     getID: function() {
         return 'Page-' + this.options.filename.replace(/\//g, '-');
-    }
+    },
+	
+	getShortName: function() {
+		return this.getFullName().split('/').pop();
+	},
+	
+	getFullName: function() {
+		return this.options.filename;
+	}
     
 });
 
