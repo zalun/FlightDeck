@@ -65,7 +65,7 @@ def package_browser(r, page_number=1, type_id=None, username=None):
         except ObjectDoesNotExist:
             raise Http404
         author = profile.user
-        packages = packages.filter(author__username=username)
+        packages = packages.filter(author__pk=author.pk)
         template_suffix = '%s_user' % template_suffix
     if type_id:
         other_type = 'l' if type_id == 'a' else 'a'
