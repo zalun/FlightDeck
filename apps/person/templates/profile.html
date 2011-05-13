@@ -18,13 +18,13 @@
 	<ul class="UI_Action_List">
 		{% if addons %}
 			<li>
-				<a title="Add-ons" href="{% url jp_browser_user_addons person.username %}">Add-ons</a> 
+            <a title="Add-ons" href="{{ profile.get_addons_url }}">Add-ons</a> 
 				<strong>({{ addons|length }})</strong>
 			</li>
 		{% endif %}
 		{% if libraries %}
 			<li>
-				<a title="Libraries" href="{% url jp_browser_user_libraries person.username %}">Libraries</a> 
+            <a title="Libraries" href="{{ profile.get_libraries_url }}">Libraries</a> 
 				<strong>({{ libraries|length }})</strong>
 			</li>
 		{% endif %}

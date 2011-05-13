@@ -1,5 +1,6 @@
-from django.db import models
 from django.contrib.auth.models import User
+from django.core.urlresolvers import reverse
+from django.db import models
 
 from person.managers import ProfileManager
 
@@ -37,3 +38,9 @@ class Profile(models.Model):
 
     def __unicode__(self):
         return self.get_name()
+
+    def get_addons_url(self):
+        return reverse('jp_browser_user_addons', args=[self.get_nickname()])
+
+    def get_libraries_url(self):
+        return reverse('jp_browser_user_libraries', args=[self.get_nickname()])
