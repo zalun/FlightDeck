@@ -6,7 +6,7 @@ Code Workflow
 
 Please read for a detailed explanation.
 
-.. figure:: ../../../_static/workflow.png
+.. figure:: /_static/workflow.png
     :width: 250px
 
     Code Workflow Diagram [:ref:`full size <code_workflow_diagram>`]
