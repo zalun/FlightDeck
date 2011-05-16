@@ -363,7 +363,11 @@ var Sidebar = new Class({
 		if (fileType != null) {
 		    titleOpts.name = file + " and all its files";
 		} else {
-		    titleOpts.name = file.options.filename + "." + file.options.type;
+            if (file.options.filename && file.options.type) {
+                titleOpts.name = file.options.filename + "." + file.options.type;
+            } else if (file.options.full_name) {
+                titleOpts.name = file.options.full_name;
+            }
 		}
 		
 		if (fileType == Attachment) {

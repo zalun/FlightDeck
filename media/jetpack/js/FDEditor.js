@@ -33,6 +33,9 @@ var FDEditor = new Class({
         // prepare change events
         this.boundWhenItemChanged = this.whenItemChanged.bind(this);
         this.boundSetContent = this.setContent.bind(this);
+        this.addEvent('setContent', function(c) {
+            this.switching = false;
+        });
     },
 
     registerItem: function(item){
@@ -55,7 +58,13 @@ var FDEditor = new Class({
         this.current = item;
         this.current.active = true;
         if (this.current.content == null) {
-            this.current.addVolatileEvent('loadcontent', this.boundSetContent);
+            this.current.addVolatileEvent('loadcontent', function(content) {
+                //if item == this.current still
+                if (item == this.current) {
+                    this.setContent(content);
+                }
+                //else another file has become active
+            }.bind(this));
             this.current.loadContent();
         } else {
             this.setContent(this.current.content);
@@ -79,7 +88,6 @@ var FDEditor = new Class({
             this.deactivateCurrent();
         }
         this.activateItem(item);
-        this.switching = false;
     },
 
     dumpCurrent: function() {
@@ -89,7 +97,7 @@ var FDEditor = new Class({
     setReadOnly: function() {
         this.element.set('readonly', 'readonly');
         if (this.change_hooked) {
-            this.unookChange();
+            this.unhookChange();
         }
     },
 
@@ -140,7 +148,9 @@ var FDEditor = new Class({
             // fire the fd event
             if (!fd.edited) {
                 fd.fireEvent('change');
-            }
+            } else {
+				fd.edited++;
+			}
             this.unhookChange();
         } else if (!this.switching && this.current.changed) {
             this.current.changed = false;
@@ -152,7 +162,8 @@ var FDEditor = new Class({
 	},
 
 	setContent: function(value) {
-		this.element.set('value', value);
+        this.element.set('value', value);
+        this.fireEvent('setContent', value);
 		return this;
 	},
 

@@ -21,7 +21,7 @@ from django.http import HttpResponseRedirect, HttpResponse, \
 from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, EmptyPage, InvalidPage
 from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
 from django.db.models import Q, ObjectDoesNotExist
 from django.db import IntegrityError
@@ -44,6 +44,8 @@ from jetpack.models import Package, PackageRevision, Module, Attachment, SDK, \
                            EmptyDir
 from jetpack.errors import FilenameExistException, DependencyException
 
+from person.models import Profile
+
 log = commonware.log.getLogger('f.jetpack')
 
 
@@ -58,8 +60,12 @@ def package_browser(r, page_number=1, type_id=None, username=None):
 
     author = None
     if username:
-        author = get_object_or_404(User, username=username)
-        packages = packages.filter(author__username=username)
+        try:
+            profile = Profile.objects.get_user_by_username_or_nick(username)
+        except ObjectDoesNotExist:
+            raise Http404
+        author = profile.user
+        packages = packages.filter(author__pk=author.pk)
         template_suffix = '%s_user' % template_suffix
     if type_id:
         other_type = 'l' if type_id == 'a' else 'a'
@@ -70,11 +76,14 @@ def package_browser(r, page_number=1, type_id=None, username=None):
 
     limit = r.GET.get('limit', settings.PACKAGES_PER_PAGE)
 
-    pager = Paginator(
-        packages,
-        per_page=limit,
-        orphans=1
-    ).page(page_number)
+    try:
+        pager = Paginator(
+            packages,
+            per_page=limit,
+            orphans=1
+        ).page(page_number)
+    except (EmptyPage, InvalidPage):
+        raise Http404
 
     return render_to_response(
         'package_browser%s.html' % template_suffix, {
@@ -184,7 +193,12 @@ def download_module(r, pk):
     """
     return a JSON with all module info
     """
-    module = get_object_or_404(Module, pk=pk)
+    module = get_object_with_related_or_404(Module, pk=pk)
+    if not module.can_view(r.user):
+        log_msg = ("[security] Attempt to download private module (%s) by "
+                   "non-owner (%s)" % (pk, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden('You are not the author of this module.')
     return HttpResponse(module.get_json())
 
 
@@ -197,10 +211,16 @@ def get_module(r, id_number, revision_number, filename):
                 package__id_number=id_number,
                 revision_number=revision_number)
         mod = revision.modules.get(filename=filename)
-    except:
+    except PackageRevision.DoesNotExist, Module.DoesNotExist:
         log_msg = 'No such module %s' % filename
         log.error(log_msg)
         raise Http404()
+
+    if not mod.can_view(r.user):
+        log_msg = ("[security] Attempt to download private module (%s) by "
+                   "non-owner (%s)" % (pk, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden('You are not the author of this module.')
     return HttpResponse(mod.get_json())
 
 
@@ -787,12 +807,18 @@ def package_remove_attachment(r, id_number, type_id, revision_number):
                 mimetype='application/json')
 
 
-def download_attachment(request, uid):
+def download_attachment(r, uid):
     """
     Display attachment from PackageRevision
     """
-    attachment = get_object_or_404(Attachment, id=uid)
-    response = serve(request, attachment.path,
+    attachment = get_object_with_related_or_404(Attachment, id=uid)
+    if not attachment.can_view(r.user):
+        log_msg = ("[security] Attempt to download private attachment (%s) by "
+                   "non-owner (%s)" % (uid, r.user))
+        log.warning(log_msg)
+        return HttpResponseForbidden(
+            'You are not the author of this attachment.')
+    response = serve(r, attachment.path,
                      settings.UPLOAD_DIR, show_indexes=False)
     response['Content-Disposition'] = 'filename=%s.%s' % (
             attachment.filename, attachment.ext)
@@ -872,7 +898,10 @@ def package_save(r, id_number, type_id, revision_number=None,
 
     attachments_changed = {}
     if save_revision or changes:
-        revision.save()
+        try:
+            revision.save()
+        except ValidationError, err:
+            return HttpResponseForbidden(escape(err.__str__()))
 
     if changes:
         attachments_changed = simplejson.dumps(
@@ -943,7 +972,12 @@ def upload_xpi(request):
     """
     upload XPI and create Addon and eventual Libraries
     """
-    xpi = request.FILES['xpi']
+    try:
+        xpi = request.FILES['xpi']
+    except KeyError:
+        log.warning('No file "xpi" posted')
+        return HttpResponseForbidden('No xpi supplied.')
+
     temp_dir = tempfile.mkdtemp()
     path = os.path.join(temp_dir, xpi.name)
     xpi_file = codecs.open(path, mode='wb+')

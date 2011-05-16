@@ -126,6 +126,8 @@ PYTHON_EXEC = 'python'
 # amo defaults
 XPI_AMO_PREFIX = "ftp://ftp.mozilla.org/pub/mozilla.org/addons/"
 
+TEST_AMO_USERNAME = None
+TEST_AMO_PASSWORD = None
 AUTH_DATABASE = None
 # set it in settings_local.py if AMO auth should be used
 #AUTH_DATABASE = {

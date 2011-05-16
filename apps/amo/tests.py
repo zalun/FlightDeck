@@ -1,6 +1,8 @@
+from django.conf import settings
 from django.test import TestCase
 from django.contrib.auth import authenticate
 
+from nose import SkipTest
 
 class AuthTest(TestCase):
 
@@ -13,3 +15,13 @@ class AuthTest(TestCase):
                 username='non existing',
                 password='user')
             )
+
+    def test_successful_login(self):
+        # if settings_local contains AMO user data  check if login is
+        # successful
+        # assumes that FlightDeck has access to AMO database
+        if not (settings.TEST_AMO_USERNAME and settings.TEST_AMO_PASSWORD):
+            raise SkipTest()
+        assert authenticate(
+                username=settings.TEST_AMO_USERNAME,
+                password=settings.TEST_AMO_PASSWORD)

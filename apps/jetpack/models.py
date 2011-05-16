@@ -28,6 +28,7 @@ from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
 from ecdsa import SigningKey, NIST256p
 from elasticutils import es_required
 from pyes import djangoutils
+from pyes.exceptions import NotFoundException as PyesNotFoundException
 
 from api.helpers import export_docs
 from base.models import BaseModel
@@ -528,7 +529,7 @@ class PackageRevision(BaseModel):
                  'with the name "%s". Each module in your add-on '
                  'needs to have a unique name.') % mod.filename
             )
-        self.add_commit_message(_('adding module(s)'))
+        self.add_commit_message(_('module (%s.js) added' % mod.filename))
 
         if save:
             self.save()
@@ -1247,9 +1248,11 @@ class Package(BaseModel):
         " set's the name from full_name "
         self.name = self.make_name()
 
-    def make_name(self):
+    def make_name(self, value=None):
         " wrap for slugify - this function was changed before "
-        return slugify(self.full_name)
+        if not value:
+            value = self.full_name
+        return slugify(value)
 
     def generate_key(self):
         """
@@ -1284,14 +1287,20 @@ class Package(BaseModel):
             os.mkdir('%s/%s' % (package_dir, self.get_data_dir()))
         return package_dir
 
-    def get_copied_full_name(self):
+    def get_copied_full_name(self, basic_name=None, iteration=1):
         """
         Add "Copy of" before the full name if package is copied
         """
-        full_name = self.full_name
-        if not full_name.startswith('Copy of'):
-            full_name = "Copy of %s" % full_name
-        return full_name
+        full_name = self.full_name if not basic_name else basic_name
+        if '(copy ' in full_name:
+            full_name = full_name.split('(copy')[0]
+        new_name = '%s (copy %d)' % (full_name, iteration)
+        try:
+            Package.objects.get(name=self.make_name(new_name))
+        except ObjectDoesNotExist:
+            return new_name
+        return self.get_copied_full_name(
+                basic_name=full_name, iteration=iteration+1)
 
     def copy(self, author):
         """
@@ -1418,6 +1427,9 @@ class Package(BaseModel):
 
     @es_required
     def refresh_index(self, es, bulk=False):
+        if not self.active:  # Don't index active things, and remove them.
+            return self.remove_from_index(bulk=bulk)
+
         data = djangoutils.get_values(self)
         try:
             if self.latest:
@@ -1434,10 +1446,25 @@ class Package(BaseModel):
         else:
             log.debug('Package %d added to search index.' % self.id)
 
+    def get_author_nickname(self):
+        return self.author.get_profile().get_nickname()
+
+    def get_author_profile_url(self):
+        " returns URL to the view with author's profile "
+        return reverse('person_public_profile', args=[self.get_author_nickname()])
+
     @es_required
-    def remove_from_index(self, es):
-        es.delete(settings.ES_INDEX, self.get_type_name(), self.id)
-        log.debug('Package %d removed from search index.' % self.id)
+    def remove_from_index(self, es, bulk=False):
+        try:
+            es.delete(settings.ES_INDEX, self.get_type_name(), self.id,
+                 bulk=bulk)
+        except PyesNotFoundException:
+            pass
+        except Exception, e:
+            log.error("ElasticSearch error removing addon (%s): %s" %
+                      (self, e))
+        else:
+            log.debug('Package %d removed from search index.' % self.id)
 
 
 class Module(BaseModel):
@@ -1523,6 +1550,13 @@ class Module(BaseModel):
         first_period = self.filename.find('.')
         if first_period > -1:
             self.filename = self.filename[:first_period]
+
+    def can_view(self, viewer=None):
+        can_view_q = models.Q(package__active=True)
+        if viewer and viewer.is_authenticated():
+            can_view_q |= models.Q(package__author=viewer)
+
+        return self.revisions.filter(can_view_q).count() > 0
 
 
 class Attachment(BaseModel):
@@ -1672,6 +1706,13 @@ class Attachment(BaseModel):
         self.filename = pathify(self.filename)
         if self.ext:
             self.ext = alphanum(self.ext)
+
+    def can_view(self, viewer=None):
+        can_view_q = models.Q(package__active=True)
+        if viewer and viewer.is_authenticated():
+            can_view_q |= models.Q(package__author=viewer)
+
+        return self.revisions.filter(can_view_q).count() > 0
 
 
 class EmptyDir(BaseModel):
@@ -1824,7 +1865,10 @@ def make_keypair_on_create(instance, **kwargs):
     instance.generate_key()
 pre_save.connect(make_keypair_on_create, sender=Package)
 
-index_package = lambda instance, **kwargs: instance.refresh_index()
+def index_package(instance, **kwargs):
+    from search.tasks import index_all
+    index_all.delay([instance.id])
+
 post_save.connect(index_package, sender=Package)
 
 unindex_package = lambda instance, **kwargs: instance.remove_from_index()
@@ -1833,7 +1877,8 @@ post_delete.connect(unindex_package, sender=Package)
 
 def index_package_m2m(instance, action, **kwargs):
     if action in ("post_add", "post_remove"):
-        instance.package.refresh_index()
+        from search.tasks import index_all
+        index_all.delay([instance.package.id])
 m2m_changed.connect(index_package_m2m,
                     sender=PackageRevision.dependencies.through)
 

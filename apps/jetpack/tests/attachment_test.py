@@ -460,3 +460,19 @@ class TestViews(TestCase):
         revision = self.get_revision_from_response(response)
         eq_(revision.attachments.count(), 1)
         eq_(revision.folders.count(), 0)
+    
+    def test_private_attachments(self):
+        revision = self.add_one()
+        revision.package.active = False
+        revision.package.save()
+        
+        att = revision.attachments.all()[0]
+        url = reverse('jp_attachment', args=[att.get_uid])
+        
+        res = self.client.get(url)
+        eq_(res.status_code, 200)
+        
+        self.client.logout()
+        res = self.client.get(url)
+        eq_(res.status_code, 403)
+        

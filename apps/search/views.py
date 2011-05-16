@@ -41,7 +41,7 @@ def _query(searchq, type_=None, user=None, filter_by_user=False):
             facets['author'] = facet
 
         query = dict(query=dict(query_string=dict(query=searchq)),
-                     facets=facets)
+                     facets=facets, size=50)
 
         if type_ in ('addon', 'library'):
             query['filter'] = {'term': {'_type': type_}}
@@ -73,15 +73,19 @@ def _query(searchq, type_=None, user=None, filter_by_user=False):
 def results(request):
     """This aggregates the first results from add-ons and libraries."""
     q = request.GET.get('q')
-    data = _query(q, user=request.user)
-    return render(request, 'search/results.html', data)
+    
+    if q:
+        data = _query(q, user=request.user)
+        return render(request, 'results.html', data)
+    else:
+        return render(request, 'blank.html')
 
 
 def search(request, type_):
     """This is a search into either addons or libraries."""
     q = request.GET.get('q')
     data = _query(q, type_, user=request.user)
-    return render(request, 'search/filtered.html', data)
+    return render(request, 'results.html', data)
 
 
 def me(request):
@@ -90,4 +94,4 @@ def me(request):
                         request.META['QUERY_STRING'])
     q = request.GET.get('q')
     data = _query(q, user=request.user, filter_by_user=True)
-    return render(request, 'search/filtered.html', data)
+    return render(request, 'results.html', data)

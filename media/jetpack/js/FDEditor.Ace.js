@@ -100,6 +100,7 @@
 
         setContent: function(value){
             this.editor.getSession().setValue(value);
+            this.fireEvent('setContent', value);
             return this;
         },
 

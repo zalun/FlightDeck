@@ -219,34 +219,48 @@ class PackageTest(TestCase):
         lib.delete()
         eq_(Package.objects.addons().count(), 1)
         eq_(Package.objects.libraries().filter(author=self.author).count(), 0)
-    
+
     def test_get_outdated_dependencies(self):
         addon = Package.objects.create(author=self.author, type='a')
         lib = Package.objects.create(author=self.author, type='l')
         addon.latest.dependency_add(lib.latest)
-        
+
         lib.latest.module_create(author=self.author, filename='test', code='foo')
-        
+
         out_of_date = addon.latest.get_outdated_dependency_versions()
         eq_(len(out_of_date), 1)
-    
+
     def test_update_dependency_version(self):
         addon = Package.objects.create(author=self.author, type='a')
         lib = Package.objects.create(author=self.author, type='l')
         addon.latest.dependency_add(lib.latest)
-        
+
         lib.latest.module_create(author=self.author, filename='test', code='foo')
-        
+
         previous_addon = addon.latest.pk
         addon.latest.dependency_update(lib.latest)
-        
+
         self.assertNotEqual(addon.latest.pk, previous_addon)
         eq_(addon.latest.dependencies.get(package=lib), lib.latest)
-    
+
     def test_update_invalid_dependency(self):
         addon = Package.objects.create(author=self.author, type='a')
         lib = Package.objects.create(author=self.author, type='l')
-        
+
         self.assertRaises(DependencyException,
                           addon.latest.dependency_update,
                           lib.latest)
+
+    def test_package_copy(self):
+        addon = Package.objects.create(author=self.author, type='a')
+        addon_copy = addon.copy(author=self.author)
+        assert "(copy 1)" in addon_copy.full_name
+
+        addon_copy = addon.copy(author=self.author)
+        assert "(copy 1)" not in addon_copy.full_name
+        assert "(copy 2)" in addon_copy.full_name
+
+        addon_copy = addon.copy(author=self.author)
+        assert "(copy 1)" not in addon_copy.full_name
+        assert "(copy 2)" not in addon_copy.full_name
+        assert "(copy 3)" in addon_copy.full_name

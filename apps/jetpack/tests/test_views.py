@@ -17,7 +17,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
-from jetpack.models import Package, PackageRevision, Attachment
+from jetpack.models import Package, PackageRevision, Attachment, Module
 from jetpack.errors import FilenameExistException
 from base.templatetags.base_helpers import hashtag
 
@@ -125,3 +125,86 @@ class TestPackage(TestCase):
         # addon depends on lib should be visable
         response = self.client.get(lib.get_absolute_url())
         eq_(response.status_code, 200)
+
+
+class TestEmptyDirs(TestCase):
+    fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']
+
+    def setUp(self):
+        if not os.path.exists(settings.UPLOAD_DIR):
+            os.makedirs(settings.UPLOAD_DIR)
+
+        self.author = User.objects.get(username='john')
+        self.author.set_password('password')
+        self.author.save()
+
+        self.package = self.author.packages_originated.addons()[0:1].get()
+        self.revision = self.package.revisions.all()[0]
+
+        self.client.login(username=self.author.username, password='password')
+
+    def post(self, url, data):
+        return self.client.post(url, data);
+
+    def add_one(self, name='tester', root_dir='l'):
+        self.post(self.get_add_url(self.revision.revision_number),
+                  { 'name': name, 'root_dir': root_dir })
+        self.revision = next(self.revision)
+        return self.revision
+
+    def get_add_url(self, revision):
+        args = [self.package.id_number, revision]
+        return reverse('jp_addon_revision_add_folder', args=args)
+
+    def get_delete_url(self, revision):
+        args = [self.package.id_number, revision]
+        return reverse('jp_addon_revision_remove_folder', args=args)
+
+    def test_add_folder(self):
+        res = self.post(self.get_add_url(self.revision.revision_number),
+                        { 'name': 'tester', 'root_dir': 'l' })
+        eq_(res.status_code, 200)
+        json.loads(res.content)
+
+        revision = next(self.revision)
+        folder = revision.folders.all()[0]
+        eq_(folder.name, 'tester')
+
+    def test_remove_folder(self):
+        self.add_one()
+        res = self.post(self.get_delete_url(self.revision.revision_number),
+                        { 'name': 'tester', 'root_dir': 'l' })
+        eq_(res.status_code, 200)
+        json.loads(res.content)
+
+        revision = next(self.revision)
+        eq_(revision.folders.count(), 0)
+
+    def test_folder_sanitization(self):
+        revision = self.add_one(name='A"> <script src="google.com">/m@l!c!ous')
+        eq_(revision.folders.all()[0].name, 'A-script-src-googlecom-/m-l-c-ous')
+        revision.folder_remove(revision.folders.all()[0])
+
+        revision = self.add_one(name='/absolute///and/triple/')
+        eq_(revision.folders.all()[0].name, 'absolute/and/triple')
+
+
+class TestEditing(TestCase):
+    fixtures = ('mozilla_user', 'core_sdk', 'users', 'packages')
+
+    def setUp(self):
+        self.hashtag = hashtag()
+
+    def test_revision_list_contains_added_modules(self):
+        author = User.objects.get(username='john')
+        addon = Package(author=author, type='a')
+        addon.save()
+        mod = Module.objects.create(
+                filename='test_filename',
+                author=author,
+                code='// test')
+        rev = addon.latest
+        rev.module_add(mod)
+        r = self.client.get(
+                reverse('jp_revisions_list_html', args=[addon.id_number]))
+        assert 'test_filename' in r.content
