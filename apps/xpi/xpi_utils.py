@@ -24,7 +24,7 @@ log = commonware.log.getLogger('f.xpi_utils')
 
 
 def sdk_copy(sdk_source, sdk_dir=None):
-    log.debug("Copying tree (%s) to (%s)" % (sdk_source, sdk_dir))
+    log.debug("Copying SDK from (%s) to (%s)" % (sdk_source, sdk_dir))
     shutil.copytree(sdk_source, sdk_dir)
 
 def hack_guid(xpi_path, guid):
