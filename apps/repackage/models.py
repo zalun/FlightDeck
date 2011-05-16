@@ -23,7 +23,7 @@ from repackage.helpers import Extractor
 log = commonware.log.getLogger('f.packager')
 
 
-class Repackage(BaseModel):
+class Repackage(object):
 
     def download(self, amo_id, amo_file):
         """Downloads the XPI (from address build with
