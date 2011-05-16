@@ -954,6 +954,7 @@ class PackageRevision(BaseModel):
                       "hashtag.  Failing." % self.get_version_name())
             raise IntegrityError("Hashtag is required to create an xpi.")
 
+        # XXX: this should be a tempfile directory
         sdk_dir = self.get_sdk_dir(hashtag)
         sdk_source = self.sdk.get_source_dir()
 
