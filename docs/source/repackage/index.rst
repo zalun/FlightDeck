@@ -12,10 +12,11 @@ XPI Repackage is a server service which is converting provided ``xpi`` to
 another ``xpi`` using chosen (latest by default) Add-on SDK.
 
 
-Contents:
+JJG:
 
 .. toctree::
    :maxdepth: 2
 
    strategy.rst
-
+   structure.rst
+   implementation.rst

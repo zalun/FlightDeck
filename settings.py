@@ -253,6 +253,7 @@ INSTALLED_APPS = [
     'amo',               # currently addons.mozilla.org authentication
     'jetpack',           # Jetpack functionality
     'xpi',               # XPI management
+    'repackage',         # repackaging XPI
     'api',               # API browser
     'tutorial',          # Load tutorial templates
     'cronjobs',

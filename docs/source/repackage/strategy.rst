@@ -30,14 +30,15 @@ User Needs
 
 #. Obtain a XPI without touching the SDK
 
-#. Get a list of supported SDKs
+#. Send a XPI and request it to be rebuild with the newest SDK
+
+#. Send an id (or a list of ids) of the XPI on an AMO service and reuest it to be
+   rebuild with the newest SDK
 
 
 User Segmentation
 *****************
 
-#. Add-on Builder developers
+#. AMO service adinistrators
 
-#. Potentially Add-ons developers coding localy
-
-
+#. Potentially Add-ons developers coding localy)
