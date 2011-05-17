@@ -5,7 +5,7 @@ from django.template import RequestContext
 from elasticutils import get_es
 
 from jetpack.models import Package
-from utils.helpers import alphanum_plus
+from utils.helpers import alphanum_space
 
 
 def render(request, template, data={}):
@@ -73,7 +73,7 @@ def _query(searchq, type_=None, user=None, filter_by_user=False):
 
 def results(request):
     """This aggregates the first results from add-ons and libraries."""
-    q = alphanum_plus(request.GET.get('q', ''))
+    q = alphanum_space(request.GET.get('q', ''))
     
     if q:
         data = _query(q, user=request.user)
@@ -84,7 +84,7 @@ def results(request):
 
 def search(request, type_):
     """This is a search into either addons or libraries."""
-    q = alphanum_plus(request.GET.get('q', ''))
+    q = alphanum_space(request.GET.get('q', ''))
     data = _query(q, type_, user=request.user)
     return render(request, 'results.html', data)
 
@@ -93,6 +93,6 @@ def me(request):
     if not request.user.is_authenticated():
         return redirect(reverse('search.results') + '?' +
                         request.META['QUERY_STRING'])
-    q = alphanum_plus(request.GET.get('q', ''))
+    q = alphanum_space(request.GET.get('q', ''))
     data = _query(q, user=request.user, filter_by_user=True)
     return render(request, 'results.html', data)
