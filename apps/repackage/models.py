@@ -80,8 +80,9 @@ class Repackage(object):
         extracted = Extractor(install_rdf)
         self.manifest = extracted.read_manifest(target_version=target_version)
         # get data provided by harness-options.json
-        with self.xpi_zip.open('harness-options.json') as ho_json:
-            self.harness_options = simplejson.loads(ho_json.read())
+        ho_json = self.xpi_zip.open('harness-options.json')
+        self.harness_options = simplejson.loads(ho_json.read())
+        ho_json.close()
         # ``name`` is provided since SDK 1.0b2, it needs to be generated from
         # ``fullName`` for older add-ons
         self.manifest['name'] = self.harness_options.get('name',
