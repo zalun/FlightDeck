@@ -1727,8 +1727,11 @@ class EmptyDir(BaseModel):
     )
     root_dir = models.CharField(max_length=10, choices=ROOT_DIR_CHOICES)
 
+    class Meta:
+        unique_together = ('root_dir', 'name',)
+
     def __unicode__(self):
-        return 'Dir: %s (by %s)' % (self.name, self.author.username)
+        return '%s/' % self.name
 
     def clean(self):
         self.name = pathify(self.name).replace('.', '')
