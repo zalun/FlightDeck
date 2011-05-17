@@ -11,7 +11,29 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os
+import sys, os, site
+
+prev_sys_path = list(sys.path)
+
+PROJECTROOT = os.path.abspath(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)),'../../'))
+path = lambda *a: os.path.join(PROJECTROOT, *a)
+
+site.addsitedir(path('vendor'))
+site.addsitedir(path('vendor/lib/python'))
+site.addsitedir(path('apps'))
+site.addsitedir(path('lib'))
+site.addsitedir(path(''))
+
+# Move the new items to the front of sys.path. (via virtualenv)
+new_sys_path = []
+for item in list(sys.path):
+    if item not in prev_sys_path:
+        new_sys_path.append(item)
+        sys.path.remove(item)
+sys.path[:0] = new_sys_path
+
+os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
