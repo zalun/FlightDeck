@@ -67,7 +67,8 @@ var Package = new Class({
 		this.instantiate_folders();
 		this.instantiate_dependencies();
 		// hook event to menu items
-		$('revisions_list').addEvent('click', this.show_revision_list);
+		this.revision_list_btn = $('revisions_list')
+        this.revision_list_btn.addEvent('click', this.show_revision_list);
 		if (this.isAddon()) {
             this.boundTestAddon = this.testAddon.bind(this);
 			this.options.test_url = $(this.options.test_el).getElement('a').get('href');
@@ -137,6 +138,8 @@ var Package = new Class({
 		}
 		new Request.JSON({
 			url: this.options.copy_url,
+            useSpinner: true,
+            spinnerTarget: this.options.copy_el,
 			onSuccess: function(response) {
 				window.location.href = response.view_url;
 			}
@@ -158,9 +161,11 @@ var Package = new Class({
 			filename: this.options.name
 		};
 		new Request.JSON({
-		  url: this.options.download_url,
-		  data: data,
-		  onSuccess: fd.downloadXPI
+            url: this.options.download_url,
+            useSpinner: true,
+            spinnerTarget: el,
+            data: data,
+            onSuccess: fd.downloadXPI
 		}).send();
     },
 
@@ -190,16 +195,19 @@ var Package = new Class({
 	},
 
 	installAddon: function() {
-		fd.tests[this.options.hashtag] = {
-			spinner: new Spinner(
-                             $(this.options.test_el).getParent('div')).show()
+		var spinner = new Spinner($(this.options.test_el).getParent('div')).show()
+        fd.tests[this.options.hashtag] = {
+			spinner: spinner
 		};
 		var data = this.data || {};
 		data['hashtag'] = this.options.hashtag;
 		new Request.JSON({
             url: this.options.test_url,
             data: data,
-            onSuccess: fd.testXPI
+            onSuccess: fd.testXPI,
+            onFailure: function() {
+                spinner.destroy();
+            }
 		}).send();
 	},
 
@@ -264,9 +272,10 @@ var Package = new Class({
 	show_revision_list: function(e) {
 		if (e) e.stop();
 		var that = fd.getItem();
-		$log(that);
 		new Request({
 			method: 'get',
+            useSpinner: true,
+            spinnerTarget: that.revision_list_btn,
 			url: that.options.revisions_list_html_url.substitute(that.options),
 			onSuccess: function(html) {
 				fd.displayModal(html);
@@ -783,6 +792,8 @@ Package.Edit = new Class({
 			$('jetpack_core_sdk_version').addEvent('change', function() {
 				new Request.JSON({
 					url: this.options.switch_sdk_url,
+                    useSpinner: true,
+                    spinnerTarget: 'core_library_lib',
 					data: {'id': $('jetpack_core_sdk_version').get('value')},
 					onSuccess: function(response) {
 						// set the redirect data to view_url of the new revision
@@ -855,7 +866,7 @@ Package.Edit = new Class({
 
     uploadAttachment: function(files, renameAfterLoad) {
 		var self = this;
-        self.spinner = new Spinner($('attachments')).show();
+        var spinner = new Spinner($('attachments')).show();
         // renameAfterLoad is falsy or callable
         var file = files[0];
         
@@ -866,14 +877,16 @@ Package.Edit = new Class({
 			if (xhr.readyState === 4) {
 				try {
 					var response = JSON.decode(xhr.responseText);
-				} catch(ex) { /* ignored */ }
+				} catch(ex) { 
+                    $log(ex);
+                    return;
+                }
 				
 				
 				if(xhr.status >= 200 && xhr.status < 300 && response) {
 					//onSuccess
 					
 					$log(response)
-					if (self.spinner) self.spinner.destroy();
 					fd.message.alert(response.message_title, response.message);
 					var attachment = new Attachment(self,{
 						append: true,
@@ -888,13 +901,13 @@ Package.Edit = new Class({
 					});
 					self.registerRevision(response);
 					self.attachments[response.uid] = attachment;
-					if (self.spinner) self.spinner.destroy();
+					if (spinner) spinner.destroy();
 					$log('FD: all files uploaded');
 					Function.from(renameAfterLoad)(attachment);
 				} else {
 					//onError
 					
-					if (self.spinner) self.spinner.destroy();
+					if (spinner) spinner.destroy();
 					if (xhr) {
 						fd.error.alert(
 							'Error {status}'.substitute(xhr),
@@ -935,6 +948,8 @@ Package.Edit = new Class({
 		new Request.JSON({
 			url: url,
 			data: data,
+            useSpinner: true,
+            spinnerTarget: 'attachments',
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				that.registerRevision(response);
@@ -955,7 +970,8 @@ Package.Edit = new Class({
     },
 
 	renameAttachment: function(uid, newName, quiet) {
-		var that = this;
+		var that = this,
+            att = this.attachments[uid];
 		
 		// break off an extension from the filename
 		var ext = newName.getFileExtension() || '';
@@ -963,8 +979,11 @@ Package.Edit = new Class({
 			newName = newName.getFileName();
 		}
 
+
 		new Request.JSON({
 			url: that.options.rename_attachment_url,
+            useSpinner: true,
+            spinnerTarget: fd.sidebar.getBranchFromFile(att),
 			data: {
 				uid: uid,
 				new_filename: newName,
@@ -1002,6 +1021,8 @@ Package.Edit = new Class({
 		var self = this;
 		new Request.JSON({
 			url: self.options.remove_attachment_url,
+            useSpinner: true,
+            spinnerTarget: fd.sidebar.getBranchFromFile(attachment),
 			data: {uid: attachment.options.uid},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
@@ -1013,32 +1034,11 @@ Package.Edit = new Class({
 		}).send();
 	},
 	
-	removeAttachments: function(pathname) {
-	    new Request.JSON({
-			url: this.options.remove_folder_url,
-			data: {
-				name: path,
-				root_dir: 'data'
-			},
-			onSuccess: function(response) {
-				fd.setURIRedirect(response.view_url);
-				this.registerRevision(response);
-				fd.message.alert(response.message_title, response.message);
-				response.removed_attachments.forEach(function(uid) {
-				    this.attachments[uid].destroy();
-				}, this);
-				
-				response.removed_dirs.forEach(function(name) {				    
-				    fd.sidebar.removeFile(name, 'd')
-				}, this);
-				
-			}.bind(this)
-		}).send();
-	},
-
 	addModule: function(filename) {
 		new Request.JSON({
 			url: this.options.add_module_url,
+            useSpinner: true,
+            spinnerTarget: 'modules',
 			data: {'filename': filename},
 			onSuccess: function(response) {
 				// set the redirect data to view_url of the new revision
@@ -1064,8 +1064,11 @@ Package.Edit = new Class({
 
 	renameModule: function(oldName, newName) {
 		newName = newName.replace(/\..*$/, '');
+        var el = fd.sidebar.getBranchFromPath(oldName, 'lib');
 		new Request.JSON({
 			url: this.options.rename_module_url,
+            useSpinner: true,
+            spinnerTarget: el,
 			data: {
 				old_filename: oldName,
 				new_filename: newName
@@ -1092,9 +1095,11 @@ Package.Edit = new Class({
 	},
 
 	removeModule: function(module) {
-		$log(module);
+        var el = fd.sidebar.getBranchFromFile(module);
 		new Request.JSON({
 			url: this.options.remove_module_url,
+            useSpinner: true,
+            spinnerTarget: el,
 			data: module.options,
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
@@ -1106,12 +1111,15 @@ Package.Edit = new Class({
 	},
 	
 	removeAttachments: function(path) {
+        var el = fd.sidebar.getBranchFromPath(path, 'data');
 		new Request.JSON({
 			url: this.options.remove_folder_url,
 			data: {
 				name: path,
 				root_dir: 'data'
 			},
+            useSpinner: true,
+            spinnerTarget: el,
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
@@ -1128,9 +1136,12 @@ Package.Edit = new Class({
 	},
 
 	removeModules: function(path) {
+        var el = fd.sidebar.getBranchFromPath(path, 'lib');
 	    new Request.JSON({
 			url: this.options.remove_module_url,
 			data: {filename: path+'/'},
+            useSpinner: true,
+            spinnerTarget: el,
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
@@ -1147,12 +1158,16 @@ Package.Edit = new Class({
 	},
 	
 	addFolder: function(name, root_dir) {
-		new Request.JSON({
+		var el = root_dir == Folder.ROOT_DIR_LIB ?
+            'modules' : 'attachments';
+        new Request.JSON({
 			url: this.options.add_folder_url,
 			data: {
 				name: name,
 				root_dir: root_dir
 			},
+            useSpinner: true,
+            spinnerTarget: el,
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
@@ -1173,6 +1188,8 @@ Package.Edit = new Class({
 				name: folder.options.name,
 				root_dir: folder.options.root_dir
 			},
+            useSpinner: true,
+            spinnerTarget: fd.sidebar.getBranchFromFile(folder),
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
@@ -1187,6 +1204,8 @@ Package.Edit = new Class({
 			new Request.JSON({
 				url: this.options.assign_library_url,
 				data: {'id_number': library_id},
+                useSpinner: true,
+                spinnerTarget: 'plugins',
 				onSuccess: function(response) {
 					// set the redirect data to view_url of the new revision
 					fd.setURIRedirect(response.view_url);
@@ -1216,7 +1235,7 @@ Package.Edit = new Class({
 				'revision': lib.retrieveNewVersion().revision
 			},
 			useSpinner: true,
-			spinerTarget: $$('#PluginsTree ul')[0],
+			spinerTarget: 'plugins',
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
@@ -1269,6 +1288,8 @@ Package.Edit = new Class({
 		new Request.JSON({
 			url: this.options.remove_library_url,
 			data: {'id_number': lib.options.id_number},
+            useSpinner: true,
+            spinnerTarget: fd.sidebar.getBranchFromFile(lib),
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
@@ -1396,6 +1417,8 @@ Package.Edit = new Class({
 		new Request.JSON({
 			url: this.options.save_url,
 			data: this.data,
+            useSpinner: true,
+            spinnerTarget: this.options.save_el,
 			onSuccess: function(response) {
 				// set the redirect data to view_url of the new revision
                 $log('response success')
