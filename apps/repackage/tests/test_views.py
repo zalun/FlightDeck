@@ -19,7 +19,7 @@ from jetpack.models import SDK
 #from repackage.models import Repackage
 from repackage import tasks
 
-log = commonware.log.getLogger('f.tests')
+log = commonware.log.getLogger('f.repackage')
 
 
 def _del_xpi(hashtag):
