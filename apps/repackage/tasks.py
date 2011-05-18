@@ -4,7 +4,7 @@ from celery.decorators import task
 
 from xpi import xpi_utils
 
-from jetpack.models import PackageRevision
+from repackage.models import Repackage
 
 log = commonware.log.getLogger('f.repackage.tasks')
 
@@ -23,5 +23,4 @@ def download_and_rebuild(amo_id, amo_file, sdk_source_dir, hashtag,
     """
     rep = Repackage()
     rep.download(amo_id, amo_file)
-    rep.rebuild(sdk_source_dir, hashtag, target_version)
-
+    return rep.rebuild(sdk_source_dir, hashtag, target_version)
