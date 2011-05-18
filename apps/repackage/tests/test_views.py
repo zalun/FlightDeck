@@ -42,6 +42,20 @@ class RepackageViewsTest(TestCase):
                 settings.ROOT, 'lib/addon-sdk-1.0b5')
         self.single_rebuild = reverse('repackage_rebuild')
 
+    def test_repackage_bad_request(self):
+        # POST request is required
+        response = self.client.get(self.single_rebuild)
+        eq_(response.status_code, 405)
+        # Some POST parameters are required
+        response = self.client.post(self.single_rebuild)
+        eq_(response.status_code, 400)
+        # invalid version format
+        response = self.client.post(self.single_rebuild, {
+            'amo_id': 123,
+            'amo_file': self.sample_addons[1],
+            'target_version': 'invalid string'})
+        eq_(response.status_code, 400)
+
     def test_repackage_with_download(self):
         tasks.download_and_rebuild.delay = Mock(return_value=None)
         get_rebuild = lambda sample: self.client.post(self.single_rebuild, {
