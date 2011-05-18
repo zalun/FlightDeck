@@ -1728,7 +1728,7 @@ class EmptyDir(BaseModel):
     root_dir = models.CharField(max_length=10, choices=ROOT_DIR_CHOICES)
 
     def __unicode__(self):
-        return 'Dir: %s (by %s)' % (self.name, self.author.username)
+        return '%s/' % self.name
 
     def clean(self):
         self.name = pathify(self.name).replace('.', '')
@@ -1948,9 +1948,14 @@ def manage_empty_lib_dirs(instance, action, **kwargs):
 
             if not instance.modules.filter(
                     filename__startswith=dirname).count():
-                emptydir = EmptyDir(name=dirname, author=instance.author,
-                                    root_dir='l')
-                emptydir.save()
+                try:
+                    emptydir = EmptyDir.objects.get(
+                        revisions__package=instance.package_id, name=dirname,
+                        root_dir='l')
+                except EmptyDir.DoesNotExist:
+                    emptydir = EmptyDir(name=dirname, root_dir='l',
+                                        author=instance.author)
+                    emptydir.save()
 
                 instance.folders.add(emptydir)
 m2m_changed.connect(manage_empty_lib_dirs, sender=Module.revisions.through)
@@ -1985,9 +1990,14 @@ def manage_empty_data_dirs(instance, action, **kwargs):
 
             if not instance.attachments.filter(
                     filename__startswith=dirname).count():
-                emptydir = EmptyDir(name=dirname, author=instance.author,
-                                    root_dir='d')
-                emptydir.save()
+                try:
+                    emptydir = EmptyDir.objects.get(
+                        revisions__package=instance.package_id, name=dirname,
+                        root_dir='d')
+                except EmptyDir.DoesNotExist:
+                    emptydir = EmptyDir(name=dirname, root_dir='d',
+                                        author=instance.author)
+                    emptydir.save()
 
                 instance.folders.add(emptydir)
 m2m_changed.connect(manage_empty_data_dirs,
