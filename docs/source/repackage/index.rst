@@ -16,6 +16,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   api.rst
    strategy.rst
    structure.rst
    implementation.rst
@@ -24,9 +25,6 @@ Bugzilla:
 
 * `Bug 640432 - Develop a CFX XPI repackaging service w/ external API 
   <https://bugzilla.mozilla.org/show_bug.cgi?id=640432>`_
-
-* `Bug 656511 - Read package name from install.rdf in upload XPI feature 
-  <https://bugzilla.mozilla.org/show_bug.cgi?id=656511>`_
 
 * `Bug 656972 - Accept POSTed files to the repackager script 
   <https://bugzilla.mozilla.org/show_bug.cgi?id=656972>`_
