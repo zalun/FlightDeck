@@ -478,10 +478,20 @@ var Attachment = new Class({
                 +this.options.filename
                 +'</a>';
 			if (this.is_image()) {
-                template_middle += '<p><img src="'+this.options.get_url
-                    +'"/></p>';
+                template_middle += '<p></p>';
+                var img = new Element('img', { src: this.options.get_url });
+                var spinner;
+                img.addEvent('load', function() {
+                    if (spinner) spinner.destroy();
+                    modal.position();
+                });
             }
-			this.attachmentWindow = fd.displayModal(template_start+template_middle+template_end);
+			var modal = this.attachmentWindow = fd.displayModal(template_start+template_middle+template_end);
+            var target = $(this.attachmentWindow).getElement('.UI_Modal_Section p');
+            if (target) {
+                spinner = new Spinner(target);
+                target.grab(img);
+            }
 		}
 	},
 
