@@ -59,9 +59,11 @@
 {# switch off the footer #}
 {% block footer %}{% endblock %}
 
-{% block app_sidebar %}<form id="app-sidebar-form">
+{% block app_sidebar %}
+<div class="scroll-container">
 	{% include "_package_info.html" %}
-	<div class="trees-container">
+    <div class="trees-container">
+    <form id="app-sidebar-form">
 		<section id="modules">
 			<ul id="LibTree" class="tree collapse">
 				
@@ -76,9 +78,11 @@
 			<ul id="PluginsTree" class="tree collapse">
 				{% block core_library %}{% endblock %}
 			</ul>
-		</section>
+        </section>
+    </form>
 	</div>
-</form>{% endblock %}
+</div>
+{% endblock %}
 
 {% block app_content %}
 	<div id="editor-menu-wrapper">

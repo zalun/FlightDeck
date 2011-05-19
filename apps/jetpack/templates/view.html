@@ -45,6 +45,7 @@
 {% endcomment %}{% endblock %}
 
 {% block app_sidebar %}
+<div class="scroll-container">
 	{% include "_package_info.html" %}
 	<div class="trees-container">
 		<section id="modules">
@@ -65,8 +66,9 @@
 				{% block core_library %}{% endblock %}
 			</ul>
 		</section>
+	    {% endif %}
 	</div>
-	{% endif %}
+</div>
 {% endblock %}
 
 

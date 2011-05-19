@@ -219,6 +219,9 @@
 	}
 	
 .UI_Sidebar .trees-container {
-	overflow:auto;
+	overflow: auto;
+    -moz-box-flex: 1;
+    -moz-box-orient: vertical;
+    display: -moz-box;
 	
 }
