@@ -215,11 +215,12 @@ FileTree = new Class({
 			label.set('text', text);
 
             li.set('name', text);
-            li.set('path', text);
 			li.set('title', text);
+			var path = this.getFullPath(li)
+			li.set('path', path);
 			
 			
-			this.fireEvent('renameComplete', [li, this.getFullPath(li)]);
+			this.fireEvent('renameComplete', [li, path]);
 			return false;
 		}
 		
