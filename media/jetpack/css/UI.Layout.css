@@ -215,9 +215,18 @@ a:hover {
 /*
  =========================================================================== */
 #app-sidebar {
-	position: absolute;
-	width: 230px;
+	bottom:-72px;
+    position: absolute;
+    top:0;
+	width: 229px;
 }
+
+    #app-sidebar .scroll-container {
+        -moz-box-orient: vertical;
+        display: -moz-box;
+        height:100%;
+        width:100%;
+    }
 
 #package-info {
     margin: 6px 8px 12px 7px;

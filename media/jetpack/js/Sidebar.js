@@ -289,29 +289,33 @@ var Sidebar = new Class({
 	
 	getBranchFromFile: function(file) {
 		var branch,
-			title;
+			title,
+            tree;
 		
 		if(file instanceof Library) {
 			title = file.getID();
+            tree = 'data';
 		} else if (file instanceof Folder) {
 			title = file.options.name;
+            tree = file.options.root_dir == Folder.ROOT_DIR_LIB
+                ? 'lib' : 'data';
 		} else if (file instanceof Module 
                 || file instanceof Attachment) {
 			title = file.options.filename + '.' + file.options.type;
-			
+            tree = file instanceof Module ? 'lib' : 'data';
 		} else {
             return null; //throw Error? this is a bad case!
         }
 		
-		$(this).getElements('.tree li[path="{title}"]'.substitute({title:title})).some(function(el) {
-			if(el.retrieve('file') == file) {
-				branch = el;
-				return true;
-			}
-		});
-		
+        branch = this.getBranchFromPath(title, tree);	
 		return branch;
 	},
+
+    getBranchFromPath: function(path, treeName) { 
+		var tree = this.trees[treeName];
+        if (!tree) return null;
+        return $(tree).getElement('li[path="{p}"]'.substitute({p:path}));
+    },
 	
 	setSelectedFile: function(el) {
 		var options = this.options;
