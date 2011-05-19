@@ -971,22 +971,26 @@ Package.Edit = new Class({
 
 	renameAttachment: function(uid, newName, quiet) {
 		var that = this,
-            att = this.attachments[uid];
+            att = this.attachments[uid],
+			filename = newName;
 		
 		// break off an extension from the filename
-		var ext = newName.getFileExtension() || '';
+		var ext = filename.getFileExtension() || '';
 		if (ext) {
-			newName = newName.getFileName();
+			filename = filename.getFileName();
 		}
+		
+		var spinnerEl = fd.sidebar.getBranchFromPath(newName, 'data');
+		console.log(att, spinnerEl);
 
 
 		new Request.JSON({
 			url: that.options.rename_attachment_url,
             useSpinner: true,
-            spinnerTarget: fd.sidebar.getBranchFromFile(att),
+            spinnerTarget: spinnerEl,
 			data: {
 				uid: uid,
-				new_filename: newName,
+				new_filename: filename,
 				new_ext: ext
 			},
 			onSuccess: function(response) {
@@ -1064,7 +1068,8 @@ Package.Edit = new Class({
 
 	renameModule: function(oldName, newName) {
 		newName = newName.replace(/\..*$/, '');
-        var el = fd.sidebar.getBranchFromPath(oldName, 'lib');
+        var el = fd.sidebar.getBranchFromPath(newName+'.js', 'lib');
+		console.log(newName+'.js', el);
 		new Request.JSON({
 			url: this.options.rename_module_url,
             useSpinner: true,
