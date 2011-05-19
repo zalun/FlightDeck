@@ -490,6 +490,7 @@ var Attachment = new Class({
             var target = $(this.attachmentWindow).getElement('.UI_Modal_Section p');
             if (target) {
                 spinner = new Spinner(target);
+				spinner.show();
                 target.grab(img);
             }
 		}
