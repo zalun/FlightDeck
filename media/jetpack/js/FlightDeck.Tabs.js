@@ -3,7 +3,7 @@ FlightDeck.Tab = new Class({
 	Implements: [Events, Options],
 	
 	options: {
-		tag: 'li',
+		tag: 'span',
 		title: 'Untitled',
 		inject: 'bottom',
 		closeable: true
@@ -18,8 +18,9 @@ FlightDeck.Tab = new Class({
 			'class': 'tab',
 			'text': this.options.title,
 			'styles': {
-				'display': 'inline',
-				'cursor': 'pointer'
+				'position': 'relative',
+				'display': 'inline-block',
+				'cursor': 'default'
 			}
 		}).store('tab:instance', this).inject(this.container, this.options.inject)
 		
@@ -28,8 +29,11 @@ FlightDeck.Tab = new Class({
 				'class': 'tab-close',
 				'html': 'x',
 				'styles': {
+					'display': 'inline-block',
+					'height': 15,
+					'line-height': 14,
 					'margin-left': 4,
-					'text-align': 'right'
+					'cursor': 'pointer'
 				}
 			}).inject(this.element);
 		}
@@ -63,7 +67,7 @@ FlightDeck.TabBar = new Class({
 	Implements: [Events, Options],
 	
 	options: {
-		tag: 'ul',
+		tag: 'div',
 		inject: 'top',
 		scrollStart: 0,
 		arrows: {
@@ -74,7 +78,7 @@ FlightDeck.TabBar = new Class({
 			duration: 250,
 			transition: 'circ:out',
 			link: 'cancel',
-			wheelStops: false,
+			wheelStops: false
 		}
 	},
 	
@@ -101,7 +105,7 @@ FlightDeck.TabBar = new Class({
 			'closeDown': ['mousedown', 'tab-close'],
 			'closeUp': ['mouseup', 'tab-close'],
 			'closeEnter': ['mouseenter', 'tab-close'],
-			'closeLeave': ['mouseleave', 'tab-close'],
+			'closeLeave': ['mouseleave', 'tab-close']
 		}, function(val, key){
 			tabEvents[val[0] + ':relay(.' + val[1] + ')'] = function(e){
 				if(e.target.hasClass(val[1])) bar.fireEvent(key, [this, e]);
@@ -111,7 +115,8 @@ FlightDeck.TabBar = new Class({
 		this.tabs = new Element(this.options.tag, {
 			'class': 'tab-container',
 			'styles': {
-				'overflow': 'hidden'
+				'overflow': 'hidden',
+				'white-space': 'nowrap'
 			},
 			'events': tabEvents
 		}).addEvent('mousewheel', function(e){
@@ -188,6 +193,5 @@ FlightDeck.TabBar = new Class({
 	toElement: function() {
 		return this.tabs;
 	}
-	
 	
 });
