@@ -49,7 +49,7 @@ FlightDeck = Class.refactor(FlightDeck,{
 										//dumps content when it changes
 										setTimeout(function() {
 											file.content = file.original_content;
-											file.changed = false;
+											file.setChanged(false);
 											fd.edited--;
 											if(!fd.edited) {
 												fd.fireEvent('reset');

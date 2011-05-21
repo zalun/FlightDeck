@@ -85,6 +85,14 @@ body
 			border-radius:10px;
 		}
 
+        #editor-tabs .tab.modified .label {
+            font-style:italic;
+        }
+
+            #editor-tabs .tab.modified .label:after {
+                content:'*';
+            }
+
 .ma-container strong { 
 	font-weight: bold;
 }
