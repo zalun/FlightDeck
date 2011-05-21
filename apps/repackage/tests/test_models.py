@@ -52,5 +52,5 @@ class RepackageTest(TestCase):
         for sample in self.sample_addons:
             rep = Repackage()
             rep.download(123, sample)
-            rep.get_manifest('force.version')
+            rep.get_manifest({'version': 'force.version'})
         eq_(rep.manifest['version'], 'force.version')

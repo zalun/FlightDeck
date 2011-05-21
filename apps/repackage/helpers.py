@@ -21,7 +21,7 @@ class Extractor(object):
         # TODO: check if it's a JetPack addon
         self.data = {}
 
-    def read_manifest(self, target_version=None):
+    def read_manifest(self, package_overrides={}):
         """Extracts data from ``install.rdf``, assignes it to ``self.data``
 
         :param: target_version (String) forces the version
@@ -32,7 +32,7 @@ class Extractor(object):
             'id': self.find('id').split('@jetpack')[0],
             'type': self.find('type') or self.ADDON_EXTENSION,
             'fullName': self.find('name'),
-            'version': target_version or self.find('version'),
+            'version': self.find('version'),
             'url': self.find('homepageURL'),
             'description': self.find('description'),
             'author': self.find('creator'),
@@ -45,8 +45,8 @@ class Extractor(object):
             'no_restart': True,
         }
         for key, value in data.items():
-            if value:
-                self.data[key] = value
+            if value or package_overrides.get(key, None):
+                self.data[key] = package_overrides.get(key, None) or value
         return self.data
 
     def uri(self, name):
