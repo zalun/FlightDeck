@@ -53,7 +53,7 @@ class RepackageViewsTest(TestCase):
         response = self.client.post(self.single_rebuild, {
             'amo_id': 123,
             'amo_file': self.sample_addons[1],
-            'target_version': 'invalid string'})
+            'version': 'invalid string'})
         eq_(response.status_code, 400)
 
     def test_repackage_with_download(self):
@@ -76,3 +76,6 @@ class RepackageViewsTest(TestCase):
         eq_(response.status_code, 200)
         content = simplejson.loads(response.content)
         assert 'hashtag' in content
+
+    def test_with_overriding_package(self):
+        pass

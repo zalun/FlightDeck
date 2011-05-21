@@ -46,12 +46,24 @@ def rebuild(request):
     # recognize entry values
     amo_id = request.POST.get('amo_id')
     amo_file = request.POST.get('amo_file')
-    target_version = request.POST.get('target_version', None)
-    if target_version and not validator.is_valid(
-        'alphanum_plus', target_version):
+    package_overrides = {
+        'version': request.POST.get('version', None),
+        'type': request.POST.get('type', None),
+        'fullName': request.POST.get('fullName', None),
+        'url': request.POST.get('url', None),
+        'description': request.POST.get('description', None),
+        'author': request.POST.get('author', None),
+        'license': request.POST.get('license', None),
+        'lib': request.POST.get('lib', None),
+        'data': request.POST.get('data', None),
+        'tests': request.POST.get('tests', None),
+        'main': request.POST.get('main', None)
+    }
+    if package_overrides.get('version', None) and not validator.is_valid(
+        'alphanum_plus', package_overrides.get('version')):
         return HttpResponseBadRequest('Invalid version format')
     # call download and build xpi task
     tasks.download_and_rebuild.delay(
-            amo_id, amo_file, sdk_source_dir, hashtag, target_version)
+            amo_id, amo_file, sdk_source_dir, hashtag, package_overrides)
     return HttpResponse('{"hashtag": "%s"}' % hashtag,
             mimetype='application/json')

@@ -35,7 +35,8 @@ class Repackage(object):
         :param: amo_id (Integer) id of the package in AMO (translates to
                 direcory in ``ftp://ftp.mozilla.org/pub/mozilla.org/addons/``)
         :param: amo_file (String) filename of the XPI to download
-        :param: target_version (String)
+        :param: package_overrides (dict) fields which need to be overriden in
+                package.json
 
         :returns: None
         """
@@ -52,14 +53,14 @@ class Repackage(object):
         self.xpi_zip = zipfile.ZipFile(self.xpi_temp)
         xpi_remote_file.close()
 
-    def rebuild(self, sdk_source_dir, hashtag, target_version=None):
+    def rebuild(self, sdk_source_dir, hashtag, package_overrides={}):
         """Drive the rebuild process
 
         :param: sdk_source_dir (String) absolute path of the SDK
         :param: hashtag (String) filename for the buid XPI
         :param: target_version (String)
         """
-        self.get_manifest(target_version=target_version)
+        self.get_manifest(package_overrides=package_overrides)
         sdk_dir = self.extract_packages(sdk_source_dir)
         # build xpi
         response = xpi_utils.build(sdk_dir,
@@ -69,7 +70,7 @@ class Repackage(object):
         self.cleanup()
         return response
 
-    def get_manifest(self, target_version=None):
+    def get_manifest(self, package_overrides={}):
         """extracts manifest from ``install.rdf`` it does not contain all
         dependencies, these will be appended during copying package files
 
@@ -78,7 +79,7 @@ class Repackage(object):
         # extract data provided in install.rdf
         install_rdf = self.xpi_zip.open('install.rdf')
         extracted = Extractor(install_rdf)
-        self.manifest = extracted.read_manifest(target_version=target_version)
+        self.manifest = extracted.read_manifest(package_overrides=package_overrides)
         # get data provided by harness-options.json
         ho_json = self.xpi_zip.open('harness-options.json')
         self.harness_options = simplejson.loads(ho_json.read())

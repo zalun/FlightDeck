@@ -11,7 +11,7 @@ log = commonware.log.getLogger('f.repackage.tasks')
 
 @task(rate_limit='30/m')
 def download_and_rebuild(amo_id, amo_file, sdk_source_dir, hashtag,
-        target_version=None):
+        package_overrides={}):
     """creates a Repackage instance, downloads xpi and rebuilds it
 
     :param: amo_id (Integer) id of the package in AMO (translates to
@@ -23,4 +23,4 @@ def download_and_rebuild(amo_id, amo_file, sdk_source_dir, hashtag,
     """
     rep = Repackage()
     rep.download(amo_id, amo_file)
-    return rep.rebuild(sdk_source_dir, hashtag, target_version)
+    return rep.rebuild(sdk_source_dir, hashtag, package_overrides)
