@@ -5,6 +5,7 @@ var Sidebar = new Class({
 	options: {
 		file_selected_class: 'UI_File_Selected',
 		file_normal_class: 'UI_File_Normal',
+        file_modified_class: 'UI_File_Modified',
 		file_listing_class: 'tree',
 		editable: false
 	},
@@ -246,6 +247,16 @@ var Sidebar = new Class({
             if (file.is_editable()) {
                 that.setSelectedFile(file);
             }
+        });
+
+        
+        // file.onChange should add an asterisk to the tree branch
+        // file.onReset should remove the asterisk
+        file.addEvent('change', function() {
+            element.addClass(that.options.file_modified_class);
+        });
+        file.addEvent('reset', function() {
+            element.removeClass(that.options.file_modified_class);
         });
 		
 		//check all of element's parents for Folders, destroy them

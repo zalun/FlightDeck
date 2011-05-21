@@ -355,10 +355,16 @@ var File = new Class({
 	},
 	
 	makeTab: function() {
-		this.tab = new FlightDeck.Tab(fd.tabs, {
+		var tab = this.tab = new FlightDeck.Tab(fd.tabs, {
 			title: this.getShortName()
 		});
-		this.tab.file = this;
+        this.addEvent('change', function() {
+            $(tab).addClass('modified');
+        });
+        this.addEvent('reset', function() {
+            $(tab).removeClass('modified');
+        })
+		tab.file = this;
 	},
 	
 	selectTab: function() {
@@ -366,8 +372,14 @@ var File = new Class({
 			this.makeTab();
 		}
 		fd.tabs.setSelected(this.tab);
-	}
-	
+	},
+
+    setChanged: function(isChanged) {
+        if (this.changed != isChanged) {
+            this.fireEvent(isChanged ? 'change' : 'reset');
+        }
+        this.changed = isChanged;
+    }
 	
 });
 

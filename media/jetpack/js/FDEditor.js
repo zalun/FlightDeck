@@ -110,7 +110,7 @@ var FDEditor = new Class({
     
     cleanChangeState: function(){
         Object.each(this.items, function(item){
-            item.changed = false;
+            item.setChanged(false);
             item.change_hooked = false;
             // refresh original content
             item.original_content = item.content;
@@ -141,7 +141,7 @@ var FDEditor = new Class({
 
     whenItemChanged: function() {
         if (!this.switching && this.getContent() != this.current.original_content) {
-            this.current.changed = true;
+            this.current.setChanged(true);
             this.fireEvent('change');
             $log('FD: DEBUG: changed, code is considered dirty and will remain'
                     +'be treated as such even if changes are reverted');
@@ -153,7 +153,7 @@ var FDEditor = new Class({
 			}
             this.unhookChange();
         } else if (!this.switching && this.current.changed) {
-            this.current.changed = false;
+            this.current.setChanged(false);
         }
     },
 
