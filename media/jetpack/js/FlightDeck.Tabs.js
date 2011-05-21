@@ -16,13 +16,15 @@ FlightDeck.Tab = new Class({
 		
 		this.element = new Element(this.options.tag, {
 			'class': 'tab',
-			'text': this.options.title,
 			'styles': {
 				'position': 'relative',
 				'display': 'inline-block',
 				'cursor': 'default'
 			}
 		}).store('tab:instance', this).inject(this.container, this.options.inject)
+        this.label = new Element('span.label', {
+            'text': this.options.title
+        }).inject(this.element);
 		
 		if (this.options.closeable) {
 			this.close = new Element('span', {
@@ -50,10 +52,7 @@ FlightDeck.Tab = new Class({
 	},
 
     setLabel: function(text) {
-        this.element.set('text', text);
-        if(this.close) {
-            this.element.grab(this.close);
-        }
+        this.label.set('text', text);
     },
 	
 	toElement: function() {

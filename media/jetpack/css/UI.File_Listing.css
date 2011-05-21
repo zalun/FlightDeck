@@ -73,13 +73,14 @@
          }
 
       /* Modified file */
-      .UI_File_Listing li.UI_File_Modified a {
-         
+      .tree li.UI_File_Modified > .holder .label {
+         font-style:italic;
       }
          
          /* Modification indicator of a modified file */
-         .UI_File_Listing li.UI_File_Modified a span.File_status {
-            background-color: -moz-linear-gradient(270deg, #5AA2F3, #3E81D2);
+         .tree li.UI_File_Modified > .holder .label:after {
+            /*background-color: -moz-linear-gradient(270deg, #5AA2F3, #3E81D2);*/
+             content:'*';
          }
       
       /* Selected file */
@@ -88,11 +89,6 @@
          text-shadow: 1px 0 0 #011E4F;
       }
       
-         /* Modification indicator of a modified & selected file */
-         .tree li.UI_File_Selected.UI_File_Modified a span.File_status {
-            background-color: #fff;
-            -moz-box-shadow: 0 1px 0 #011E4F;
-         }
    
       /* Normal file */
       .UI_File_Listing li.UI_File_Normal a {
