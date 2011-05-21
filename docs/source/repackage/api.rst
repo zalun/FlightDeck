@@ -22,8 +22,9 @@ Fields:
 **amo_file**
    Base filename of the ``XPI`` file (without extension)
 
-**target_version** (optional)
-   Force version for the rebuild package
+**version, type, fullName, url, description, author, license, lib, data,
+tests, main** (optional)
+   Force ``package.json`` fields.
 
 Returns
 -------
