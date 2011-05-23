@@ -4,8 +4,9 @@ repackage.views
 """
 import commonware
 
+from django.conf import settings
 from django.http import (HttpResponse, HttpResponseBadRequest,
-        HttpResponseNotAllowed)
+        HttpResponseNotAllowed, HttpResponseForbidden)
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -30,11 +31,13 @@ def rebuild(request):
               :method:`xpi.views.get_download`
     """
     # validate entries
-    if not (request.POST.get('amo_id') and request.POST.get('amo_file')):
-        return HttpResponseBadRequest('Please provide access to the XPI file.')
+    location = request.POST.get('location', None)
+    if not location:
+        return HttpResponseBadRequest('Please provide URL of the XPI file')
 
-    # XXX: add xpi_file
-    # XXX: validate POST data
+    secret = request.POST['secret']
+    if not secret or secret != settings.AMO_SECRET_KEY:
+        return HttpResponseForbidden('Access denied')
 
     hashtag = get_random_string(10)
     # get latest SDK
@@ -44,8 +47,9 @@ def rebuild(request):
     sdk_source_dir = sdk.get_source_dir()
 
     # recognize entry values
-    amo_id = request.POST.get('amo_id')
-    amo_file = request.POST.get('amo_file')
+    filename = request.POST.get('filename', None)
+    pingback = request.POST.get('pingback', None)
+
     package_overrides = {
         'version': request.POST.get('version', None),
         'type': request.POST.get('type', None),
@@ -64,6 +68,10 @@ def rebuild(request):
         return HttpResponseBadRequest('Invalid version format')
     # call download and build xpi task
     tasks.download_and_rebuild.delay(
-            amo_id, amo_file, sdk_source_dir, hashtag, package_overrides)
+            location, sdk_source_dir, hashtag,
+            package_overrides=package_overrides,
+            filename=filename, pingback=pingback,
+            post=request.POST.urlencode())
+
     return HttpResponse('{"hashtag": "%s"}' % hashtag,
             mimetype='application/json')

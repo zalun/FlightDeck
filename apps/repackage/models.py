@@ -25,27 +25,23 @@ log = commonware.log.getLogger('f.packager')
 
 class Repackage(object):
 
-    def download(self, amo_id, amo_file):
+    def download(self, location):
         """Downloads the XPI (from address build with
         ``settings.XPI_AMO_PREFIX``, ``amo_id`` and ``amo_file``) and
         instantiates XPI in ``self.xpi_zip``
 
         This eventually will record statistics about build times
 
-        :param: amo_id (Integer) id of the package in AMO (translates to
-                direcory in ``ftp://ftp.mozilla.org/pub/mozilla.org/addons/``)
-        :param: amo_file (String) filename of the XPI to download
-        :param: package_overrides (dict) fields which need to be overriden in
-                package.json
+        :param: location (String) location of the file to download rebuild
+                ``XPI``
 
         :returns: None
         """
 
-        amo_url = "%s%s/%s.xpi" % (settings.XPI_AMO_PREFIX, amo_id, amo_file)
         try:
-            xpi_remote_file = urllib.urlopen(amo_url)
+            xpi_remote_file = urllib.urlopen(location)
         except IOError:
-            log.info("Wrong url provided (%s)" % amo_url)
+            log.info("Wrong url provided (%s)" % location)
             raise Http404
         # zipfile doesn't work on the urllib filelike entities
         self.xpi_temp = tempfile.TemporaryFile()

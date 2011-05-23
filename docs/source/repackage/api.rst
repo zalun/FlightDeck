@@ -7,8 +7,6 @@ API
 Rebuild an addon from FTP
 #########################
 
-Rebuild a package hosted on ``ftp://ftp.mozilla.org/pub/mozilla.org/addons/``
-
 **URL:** ``/repackage/rebuild/``
 
 **method:** POST
@@ -16,11 +14,20 @@ Rebuild a package hosted on ``ftp://ftp.mozilla.org/pub/mozilla.org/addons/``
 Fields:
 -------
 
-**amo_id**
-   Integer number specifying the directory
+**priority**
+   force the priority of the task 
 
-**amo_file**
-   Base filename of the ``XPI`` file (without extension)
+**secret**
+   password proving the request came from a trusted source
+
+**location**
+   URL for the ``XPI`` file to download
+
+**pingback**
+   URL to pass the result
+
+**filename**
+   desired filename for the downloaded ``XPI``
 
 **version, type, fullName, url, description, author, license, lib, data,
 tests, main** (optional)
@@ -28,18 +35,48 @@ tests, main** (optional)
 
 Returns
 -------
+After the ``XPI`` has been created Builder will send the response to the 
+pingback URL. Whole request will also be send back.
 
-Service immediately returns JSON object with a ``hashtag`` field. 
-This hashtag is the used to check if the rebuild process has been
-finished and later to download new ``XPI`` file.
+**result**
+   "success" or "failure"
 
-**check URL**
-   ``/xpi/check_download/{hashtag}/``
+**msg**
+   ``stdout`` if result is ``success`` else ``stderr`` returned by ``cfx xpi``
 
-   Returns JSON with a field ``ready`` which is either ``true`` or
-   ``false``
+**location**
+   URL to download the rebuild ``XPI`` from
 
-**download URL**
-   ``/xpi/download/{hashtag}/``
+**secret**
+   password proving the request came from a trusted source
 
-   Returns a ``XPI`` file.
+**request**
+   urlified request.POST used for initial request
+
+
+API send and return
+###################
+
+Send
+----
+
+.. code-block:: python
+
+   post = {'addon': file_.version.addon_id,
+           'file_id': file_.id,
+           'priority': priority,
+           'secret': settings.BUILDER_SECRET_KEY,
+           'location': file_.get_url_path(None, 'builder'), 
+           'uuid': data['uuid'],
+           'pingback': reverse('files.builder-pingback')}
+
+Response
+--------
+
+.. code-block:: python
+
+   response = {'result': ...,
+               'msg': ...,
+               'location': ...,
+               'secret': ...,
+               'request': json.dumps(post)}

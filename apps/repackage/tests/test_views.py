@@ -33,11 +33,11 @@ class RepackageViewsTest(TestCase):
 
     def setUp(self):
         settings.CELERY_ALWAYS_EAGER = True
-        settings.XPI_AMO_PREFIX = "file://%s" % os.path.join(
+        self.xpi_file_prefix = "file://%s" % os.path.join(
                 settings.ROOT, 'apps/xpi/tests/sample_addons/')
         self.sample_addons = [
-                "sample_add-on-1.0b3",
-                "sample_add-on-1.0b4" ]
+                "sample_add-on-1.0b3.xpi",
+                "sample_add-on-1.0b4.xpi" ]
         sdk_source_dir = os.path.join(
                 settings.ROOT, 'lib/addon-sdk-1.0b5')
         self.single_rebuild = reverse('repackage_rebuild')
@@ -51,19 +51,18 @@ class RepackageViewsTest(TestCase):
         eq_(response.status_code, 400)
         # invalid version format
         response = self.client.post(self.single_rebuild, {
-            'amo_id': 123,
-            'amo_file': self.sample_addons[1],
+            'location': os.path.join(
+                self.xpi_file_prefix, self.sample_addons[1]),
+            'secret': settings.AMO_SECRET_KEY,
             'version': 'invalid string'})
         eq_(response.status_code, 400)
+        # invalid secret key
 
     def test_repackage_with_download(self):
         tasks.download_and_rebuild.delay = Mock(return_value=None)
         get_rebuild = lambda sample: self.client.post(self.single_rebuild, {
-            'amo_id': 123,
-            'amo_file': sample})
-
-        # XXX: repackage.task.download_and_rebuild is called, however
-        # it stops with the first line (rep = Repackage() )
+            'location': os.path.join(self.xpi_file_prefix, sample),
+            'secret': settings.AMO_SECRET_KEY})
 
         # test add-ons build with SDK 1.0b3
         response = get_rebuild(self.sample_addons[0])
@@ -76,6 +75,3 @@ class RepackageViewsTest(TestCase):
         eq_(response.status_code, 200)
         content = simplejson.loads(response.content)
         assert 'hashtag' in content
-
-    def test_with_overriding_package(self):
-        pass

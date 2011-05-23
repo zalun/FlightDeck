@@ -27,39 +27,26 @@ def sdk_copy(sdk_source, sdk_dir=None):
     log.debug("Copying SDK from (%s) to (%s)" % (sdk_source, sdk_dir))
     shutil.copytree(sdk_source, sdk_dir)
 
-def hack_guid(xpi_path, guid):
-    original_xpi = zipfile.ZipFile(xpi_path)
-    temp_xpi_path = '%s-temp' % xpi_path
-    target_xpi = zipfile.ZipFile(temp_xpi_path, mode='a')
-    # get temp guid
-    original_extr = Extractor(original_xpi.open('install.rdf'))
-    # TODO: check if it's a JetPack addon
-    temp_guid = original_extr.guid
 
-    # change install.rdf and harness-options.json
-    for f in original_xpi.namelist():
-        if f in ('install.rdf', 'harness-options.json'):
-            target_xpi.writestr(f, original_xpi.read(f).replace(temp_guid, guid))
-        else:
-            f_name = f.replace(temp_guid, guid)
-            target_xpi.writestr(f_name, original_xpi.read(f))
+def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
+    """Build xpi from SDK with prepared packages in sdk_dir.
 
-    original_xpi.close()
-    target_xpi.close()
-    os.remove(xpi_path)
-    shutil.copy(temp_xpi_path, xpi_path)
-    os.remove(temp_xpi_path)
+    :params:
+        * sdk_dir (String) SDK directory
+        * package_dir (string) dir of the Add-on package
+        * filename (string) XPI will be build with this name
+        * hashtag (string) XPI will be copied to a file which name is creted
+          using the unique hashtag
+        * t1 (integer) time.time() of the process started
 
-def build(sdk_dir, package_dir, filename, hashtag, force_guid=None):
-    """Build xpi from source in sdk_dir."""
-
-    log.debug([sdk_dir, package_dir, filename, hashtag])
+    :returns: (list) ``cfx xpi`` response where ``[0]`` is ``stdout`` and
+              ``[1]`` ``stderr``
+    """
 
     t1 = time.time()
 
     # create XPI
     os.chdir(package_dir)
-    log.debug('changing url to %s' % package_dir)
 
     # @TODO xulrunner should be a config variable
     cfx = [settings.PYTHON_EXEC, '%s/bin/cfx' % sdk_dir,
@@ -79,34 +66,16 @@ def build(sdk_dir, package_dir, filename, hashtag, force_guid=None):
     except subprocess.CalledProcessError:
         log.critical("Failed to build xpi: %s.  Command(%s)" % (
                      subprocess.CalledProcessError, cfx))
-        return subprocess.CalledProcessError
+        raise subprocess.CalledProcessError
     if response[1] and not force_guid:
         log.critical("Failed to build xpi.\nError: %s" % response[1])
-        return response[1]
-
-    log.debug(response)
+        return response
 
     xpi_path = os.path.join(package_dir, "%s.xpi" % filename)
-
-    if force_guid:
-        # XXX: This is a hack - it is ugly in code and execution
-        try:
-            process = subprocess.Popen(cfx, shell=False, stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE, env=env)
-            response = process.communicate()
-        except subprocess.CalledProcessError:
-            log.critical("Failed to build xpi: %s.  Command(%s)" % (
-                         subprocess.CalledProcessError, cfx))
-            return subprocess.CalledProcessError
-        if response[1]:
-            log.critical("Failed to build xpi.\nError: %s" % response[1])
-            return response[1]
-        hack_guid(xpi_path, force_guid)
 
     # move the XPI created to the XPI_TARGETDIR
     xpi_targetfilename = "%s.xpi" % hashtag
     xpi_targetpath = os.path.join(settings.XPI_TARGETDIR, xpi_targetfilename)
-    log.debug("%s, %s" % (xpi_path, xpi_targetpath))
     shutil.copy(xpi_path, xpi_targetpath)
     shutil.rmtree(sdk_dir)
 
@@ -115,11 +84,10 @@ def build(sdk_dir, package_dir, filename, hashtag, force_guid=None):
 
     t2 = time.time()
 
-    log.info('[xpi:%s] Created xpi: %s (time: %0.3fms)' % (hashtag,
-                                                           xpi_targetpath,
-                                                           ((t2 - t1) * 1000)))
+    log.info('[xpi:%s] Created xpi: %s (time: %0.3fms)' % (
+        hashtag, xpi_targetpath, ((t2 - t1) * 1000)))
 
-    return None
+    return response
 
 
 def remove(path):

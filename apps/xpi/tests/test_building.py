@@ -157,7 +157,7 @@ class XPIBuildTest(TestCase):
                 self.addon.get_dir_name('%s/packages' % self.SDKDIR),
                 self.addon.name, self.hashtag)
         # assert no error output
-        assert not err
+        assert not err[1]
         # assert xpi was created
         self.failUnless(os.path.isfile(
             "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
@@ -177,7 +177,7 @@ class XPIBuildTest(TestCase):
                 self.addon.get_dir_name('%s/packages' % self.SDKDIR),
                 self.addon.name, self.hashtag)
         # assert no error output
-        assert not err
+        assert not err[1]
         # assert xpi was created
         self.failUnless(os.path.isfile(
             "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
@@ -201,7 +201,7 @@ class XPIBuildTest(TestCase):
                 self.addon.get_dir_name('%s/packages' % self.SDKDIR),
                 self.addon.name, self.hashtag)
         # assert no error output
-        assert not err
+        assert not err[1]
         # assert xpi was created
         self.failUnless(os.path.isfile(
             "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
@@ -218,7 +218,7 @@ class XPIBuildTest(TestCase):
                 self.addon.get_dir_name('%s/packages' % self.SDKDIR),
                 self.addon.name, self.hashtag)
         # assert no error output
-        assert not err
+        assert not err[1]
         # assert xpi was created
         self.failUnless(os.path.isfile(
             "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
