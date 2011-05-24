@@ -63,9 +63,9 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
         process = subprocess.Popen(cfx, shell=False, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE, env=env)
         response = process.communicate()
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError, err:
         log.critical("Failed to build xpi: %s.  Command(%s)" % (
-                     subprocess.CalledProcessError, cfx))
+                     str(err), cfx))
         raise subprocess.CalledProcessError
     if response[1] and not force_guid:
         log.critical("Failed to build xpi.\nError: %s" % response[1])
