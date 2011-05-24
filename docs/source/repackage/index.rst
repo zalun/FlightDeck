@@ -32,3 +32,5 @@ Bugzilla:
 * `Bug 657042 - Switch repackager from GET to POST
   <https://bugzilla.mozilla.org/show_bug.cgi?id=657042>`_
 
+* `Bug 656993 - Have the repackager take an optional pingback URL
+  <https://bugzilla.mozilla.org/show_bug.cgi?id=656993>`_
