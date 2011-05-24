@@ -348,10 +348,10 @@ var File = new Class({
     },
 
 	switchTo: function() {
+		this.selectTab();
 		this.pack.editor.switchTo(this);
 		this.pack.editor.focus();
 		this.fireEvent('showEditor');
-		this.selectTab();
 	},
 	
 	makeTab: function() {
@@ -510,12 +510,13 @@ var Attachment = new Class({
 
 	loadContent: function() {
 		// load data synchronously
-        var that = this;
+        var that = this,
+			spinnerEl = $(this.tab);
 		new Request({
 			method: 'get',
 			url: this.options.get_url,
-			useSpinner: true,
-			spinnerTarget: 'editor-wrapper',
+			useSpinner: !!spinnerEl,
+			spinnerTarget: spinnerEl,
 			onSuccess: function() {
                 var content = this.response.text || '';
 				that.content = content;
@@ -523,6 +524,10 @@ var Attachment = new Class({
 				that.fireEvent('loadcontent', content);
 			}
 		}).send();
+	},
+	
+	isLoaded: function() {
+		return this.content != null;
 	},
 
 	getID: function() {
@@ -626,11 +631,20 @@ var Module = new Class({
 	
 	loadContent: function() {
 		// load data synchronously
+		var spinnerEl = $(this.tab),
+			computedSize = spinnerEl.getComputedSize({styles:['padding']})
 		new Request.JSON({
             method: 'get',
 			url: this.options.get_url,
-            useSpinner: true,
-            spinnerTarget: 'editor-wrapper',
+            useSpinner: !!spinnerEl,
+            spinnerTarget: spinnerEl,
+			spinnerOptions: {
+				width: computedSize.totalWidth,
+				height: computedSize.totalHeight,
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
             onSuccess: function(mod) {
                 var code = mod.code || '';
 				this.original_content = code;
@@ -638,6 +652,10 @@ var Module = new Class({
                 this.fireEvent('loadcontent', code);
             }.bind(this)
 		}).send();
+	},
+	
+	isLoaded: function() {
+		return this.content != null;
 	},
 	
 	getID: function() {
@@ -657,7 +675,7 @@ var Folder = new Class({
 	
 	options: {
 		root_dir: 'l',
-		name: '',
+		name: ''
 	},
 	
 	initialize: function(pack, options) {

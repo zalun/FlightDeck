@@ -92,6 +92,13 @@ body
             #editor-tabs .tab.modified .label:after {
                 content:'*';
             }
+		
+	#editor-tabs .spinner {
+		margin:1px 0 0 1px;
+	}
+		#editor-tabs .spinner .spinner-content {
+			margin:-1px 0 0 -1px;
+		}
 
 .ma-container strong { 
 	font-weight: bold;
