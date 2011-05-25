@@ -40,40 +40,28 @@ class RepackageViewsTest(TestCase):
                 "sample_add-on-1.0b4.xpi" ]
         sdk_source_dir = os.path.join(
                 settings.ROOT, 'lib/addon-sdk-1.0b5')
-        self.single_rebuild = reverse('repackage_rebuild')
-        self.bulk_rebuild = reverse('repackage_bulk_rebuild')
+        self.rebuild_url = reverse('repackage_rebuild')
 
     def test_repackage_bad_request(self):
         # POST request is required
-        response = self.client.get(self.single_rebuild)
-        eq_(response.status_code, 405)
-        response = self.client.get(self.bulk_rebuild)
+        response = self.client.get(self.rebuild_url)
         eq_(response.status_code, 405)
         # security field is required
-        response = self.client.post(self.single_rebuild)
-        eq_(response.status_code, 403)
-        response = self.client.post(self.bulk_rebuild)
+        response = self.client.post(self.rebuild_url)
         eq_(response.status_code, 403)
         # location field is reuired
-        response = self.client.post(self.single_rebuild, {
-            'secret': settings.AMO_SECRET_KEY})
-        eq_(response.status_code, 400)
-        response = self.client.post(self.bulk_rebuild, {
+        response = self.client.post(self.rebuild_url, {
             'secret': settings.AMO_SECRET_KEY})
         eq_(response.status_code, 400)
         # invalid version format
-        response = self.client.post(self.single_rebuild, {
+        response = self.client.post(self.rebuild_url, {
             'location': os.path.join(
                 self.xpi_file_prefix, self.sample_addons[1]),
             'secret': settings.AMO_SECRET_KEY,
-            'version': 'invalid string'})
-        eq_(response.status_code, 400)
-        response = self.client.post(self.bulk_rebuild, {
             'addons': simplejson.dumps([{
                 'location': os.path.join(
                     self.xpi_file_prefix, self.sample_addons[1]),
                 }]),
-            'secret': settings.AMO_SECRET_KEY,
             'version': 'invalid string'})
         log.debug(response.content)
         eq_(response.status_code, 200)
@@ -82,7 +70,7 @@ class RepackageViewsTest(TestCase):
 
     def test_repackage_with_download(self):
         tasks.download_and_rebuild.delay = Mock(return_value=None)
-        get_rebuild = lambda sample: self.client.post(self.single_rebuild, {
+        get_rebuild = lambda sample: self.client.post(self.rebuild_url, {
             'location': os.path.join(self.xpi_file_prefix, sample),
             'secret': settings.AMO_SECRET_KEY})
 
@@ -90,17 +78,19 @@ class RepackageViewsTest(TestCase):
         response = get_rebuild(self.sample_addons[0])
         eq_(response.status_code, 200)
         content = simplejson.loads(response.content)
-        assert 'hashtag' in content
+        assert 'status' in content
+        eq_(content['status'], 'success')
 
         # test add-ons build with SDK 1.0b4
         response = get_rebuild(self.sample_addons[1])
         eq_(response.status_code, 200)
         content = simplejson.loads(response.content)
-        assert 'hashtag' in content
+        assert 'status' in content
+        eq_(content['status'], 'success')
 
     def test_bulk_repackage_with_download(self):
         tasks.bulk_download_and_rebuild.delay = Mock(return_value=None)
-        response = self.client.post(self.bulk_rebuild, {
+        response = self.client.post(self.rebuild_url, {
             'addons': simplejson.dumps([
                 {'location': os.path.join(
                     self.xpi_file_prefix, self.sample_addons[0])},
