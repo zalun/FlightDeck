@@ -298,7 +298,41 @@ var FlightDeck = new Class({
  */
 
 Spinner = Class.refactor(Spinner, {
-    options: { delay: 400 },
+    options: { 
+        delay: 400,
+        maskBorder: true
+    },
+    initialize: function(target, options) {
+        this.previous(target, options);
+        if (!this.options.maskBorder) {
+            this.addEvent('show', this.unmaskBorder, true);
+        }
+    },
+    unmaskBorder: function() {
+        $log('DEBUG: Spinner is unmaskingBorder');
+        //1. change height/width to not cover border
+        var el = this.element,
+            oldHeight = el.getStyle('height').toInt(),
+            oldWidth = el.getStyle('width').toInt(),
+            oldLeft = el.getStyle('left').toInt();
+            oldTop = el.getStyle('top').toInt();
+            computedSize = this.target.getComputedSize({
+                styles: ['padding']
+            });
+
+        el.setStyle('width', computedSize.totalWidth);
+        el.setStyle('height', computedSize.totalHeight);
+
+        //2. change top/left to not cover border
+        $log('oldTop:', oldTop);
+        $log('oldHeight:', oldHeight);
+        $log('newHeight:',computedSize.totalHeight);
+        var newLeft = oldLeft + (oldWidth - computedSize.totalWidth) / 2,
+            newTop = oldTop + (oldHeight - computedSize.totalHeight) / 2;
+        $log('newTop:', newTop);
+        el.setStyle('left', newLeft);
+        el.setStyle('top', newTop);
+    }
 });
 
 /*

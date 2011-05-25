@@ -68,7 +68,6 @@ body
 			{
 				border-color: #777 !important;				
 				background: -moz-linear-gradient(top, #bbb, #ccc) !important;
-				font-weight: bold;
 				text-shadow: 0 1px 0 #eee !important;
 				color: #222 !important;
 				cursor: default !important;
@@ -93,12 +92,6 @@ body
                 content:'*';
             }
 		
-	#editor-tabs .spinner {
-		margin:1px 0 0 1px;
-	}
-		#editor-tabs .spinner .spinner-content {
-			margin:-1px 0 0 -1px;
-		}
 
 .ma-container strong { 
 	font-weight: bold;
