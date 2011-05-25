@@ -304,9 +304,10 @@ Spinner = Class.refactor(Spinner, {
     },
     initialize: function(target, options) {
         this.previous(target, options);
-        if (!this.options.maskBorder) {
-            this.addEvent('show', this.unmaskBorder, true);
-        }
+    },
+    position: function() {
+        this.previous();
+        this.unmaskBorder();
     },
     unmaskBorder: function() {
         $log('DEBUG: Spinner is unmaskingBorder');
@@ -324,12 +325,8 @@ Spinner = Class.refactor(Spinner, {
         el.setStyle('height', computedSize.totalHeight);
 
         //2. change top/left to not cover border
-        $log('oldTop:', oldTop);
-        $log('oldHeight:', oldHeight);
-        $log('newHeight:',computedSize.totalHeight);
         var newLeft = oldLeft + (oldWidth - computedSize.totalWidth) / 2,
             newTop = oldTop + (oldHeight - computedSize.totalHeight) / 2;
-        $log('newTop:', newTop);
         el.setStyle('left', newLeft);
         el.setStyle('top', newTop);
     }
