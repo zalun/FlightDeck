@@ -301,6 +301,11 @@ djcelery.setup_loader()
 # Setting this to true will bypass celeryd and execute tasks in-process
 CELERY_ALWAYS_EAGER = True
 
+CELERY_ROUTES = {
+    'repackage.tasks.bulk_download_and_rebuild': 'bulk_repackage',
+    'repackage.tasks.bulk_download_and_rebuild_high': 'bulk_repackage_high',
+}
+
 ENGAGE_ROBOTS = False
 
 # For search:
