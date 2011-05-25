@@ -139,7 +139,13 @@ var Package = new Class({
 		new Request.JSON({
 			url: this.options.copy_url,
             useSpinner: true,
-            spinnerTarget: this.options.copy_el,
+            spinnerTarget: this.options.copy_el.getElement('a'),
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                },
+                maskBorder: false
+            },
 			onSuccess: function(response) {
 				window.location.href = response.view_url;
 			}
@@ -149,12 +155,16 @@ var Package = new Class({
     downloadAddon: function(e) {
 		if (e) {
 		  e.stop();
-		  el = e.target;
-		} else {
-		  el = $(this.options.download_el);
-		}
+	    }
+        var el = $(this.options.download_el).getElement('a');
+
 		fd.tests[this.options.hashtag] = {
-			spinner: new Spinner(el.getParent('div')).show()
+			spinner: new Spinner(el, {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                },
+                maskBorder: false
+            }).show()
 		};
 		data = {
 			hashtag: this.options.hashtag, 
@@ -162,8 +172,6 @@ var Package = new Class({
 		};
 		new Request.JSON({
             url: this.options.download_url,
-            useSpinner: true,
-            spinnerTarget: el,
             data: data,
             onSuccess: fd.downloadXPI
 		}).send();
@@ -195,7 +203,12 @@ var Package = new Class({
 	},
 
 	installAddon: function() {
-		var spinner = new Spinner($(this.options.test_el).getParent('div')).show()
+		var spinner = new Spinner($(this.options.test_el).getElement('a'), {
+            img: {
+                'class': 'spinner-img spinner-16'
+            },
+            maskBorder: false
+        }).show()
         fd.tests[this.options.hashtag] = {
 			spinner: spinner
 		};
@@ -275,7 +288,13 @@ var Package = new Class({
 		new Request({
 			method: 'get',
             useSpinner: true,
-            spinnerTarget: that.revision_list_btn,
+            spinnerTarget: that.revision_list_btn.getElement('a'),
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                },
+                maskBorder: false
+            },
 			url: that.options.revisions_list_html_url.substitute(that.options),
 			onSuccess: function(html) {
 				fd.displayModal(html);
@@ -348,10 +367,10 @@ var File = new Class({
     },
 
 	switchTo: function() {
+		this.selectTab();
 		this.pack.editor.switchTo(this);
 		this.pack.editor.focus();
 		this.fireEvent('showEditor');
-		this.selectTab();
 	},
 	
 	makeTab: function() {
@@ -510,12 +529,19 @@ var Attachment = new Class({
 
 	loadContent: function() {
 		// load data synchronously
-        var that = this;
+        var that = this,
+			spinnerEl = $(this.tab);
 		new Request({
 			method: 'get',
 			url: this.options.get_url,
-			useSpinner: true,
-			spinnerTarget: 'editor-wrapper',
+			useSpinner: !!spinnerEl,
+			spinnerTarget: spinnerEl,
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                },
+                maskBorder: false
+            },
 			onSuccess: function() {
                 var content = this.response.text || '';
 				that.content = content;
@@ -523,6 +549,10 @@ var Attachment = new Class({
 				that.fireEvent('loadcontent', content);
 			}
 		}).send();
+	},
+	
+	isLoaded: function() {
+		return this.content != null;
 	},
 
 	getID: function() {
@@ -626,11 +656,18 @@ var Module = new Class({
 	
 	loadContent: function() {
 		// load data synchronously
+		var spinnerEl = $(this.tab);
 		new Request.JSON({
             method: 'get',
 			url: this.options.get_url,
-            useSpinner: true,
-            spinnerTarget: 'editor-wrapper',
+            useSpinner: !!spinnerEl,
+            spinnerTarget: spinnerEl,
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				},
+                maskBorder: false
+			},
             onSuccess: function(mod) {
                 var code = mod.code || '';
 				this.original_content = code;
@@ -638,6 +675,10 @@ var Module = new Class({
                 this.fireEvent('loadcontent', code);
             }.bind(this)
 		}).send();
+	},
+	
+	isLoaded: function() {
+		return this.content != null;
 	},
 	
 	getID: function() {
@@ -657,7 +698,7 @@ var Folder = new Class({
 	
 	options: {
 		root_dir: 'l',
-		name: '',
+		name: ''
 	},
 	
 	initialize: function(pack, options) {
@@ -1446,7 +1487,13 @@ Package.Edit = new Class({
 			url: this.options.save_url,
 			data: this.data,
             useSpinner: true,
-            spinnerTarget: this.options.save_el,
+            spinnerTarget: this.options.save_el.getElement('a'),
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                },
+                maskBorder: false
+            },
 			onSuccess: function(response) {
 				// set the redirect data to view_url of the new revision
                 $log('response success')
