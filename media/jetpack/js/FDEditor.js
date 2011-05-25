@@ -29,6 +29,7 @@ var FDEditor = new Class({
             'class': 'UI_Editor_Area'
         });
         this.element.inject(wrapper);
+		this.spinner = new Spinner('editor-wrapper');
 		this.changed = false;
         // prepare change events
         this.boundWhenItemChanged = this.whenItemChanged.bind(this);
@@ -57,17 +58,20 @@ var FDEditor = new Class({
         // activate load and hook events
         this.current = item;
         this.current.active = true;
-        if (this.current.content == null) {
-            this.current.addVolatileEvent('loadcontent', function(content) {
+        if (!this.current.isLoaded()) {
+            this.spinner.show();
+			this.current.addVolatileEvent('loadcontent', function(content) {
                 //if item == this.current still
                 if (item == this.current) {
                     this.setContent(content);
+					this.spinner.hide();
                 }
                 //else another file has become active
             }.bind(this));
             this.current.loadContent();
         } else {
             this.setContent(this.current.content);
+			this.spinner.hide();
         }
         if (this.current.options.readonly) {
             this.setReadOnly();

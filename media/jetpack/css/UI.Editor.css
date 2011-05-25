@@ -68,7 +68,6 @@ body
 			{
 				border-color: #777 !important;				
 				background: -moz-linear-gradient(top, #bbb, #ccc) !important;
-				font-weight: bold;
 				text-shadow: 0 1px 0 #eee !important;
 				color: #222 !important;
 				cursor: default !important;
@@ -92,6 +91,7 @@ body
             #editor-tabs .tab.modified .label:after {
                 content:'*';
             }
+		
 
 .ma-container strong { 
 	font-weight: bold;
