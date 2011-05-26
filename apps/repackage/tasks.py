@@ -45,7 +45,7 @@ def download_and_rebuild(location, sdk_source_dir, hashtag,
     rep = Repackage()
     rep.download(location)
     response = rep.rebuild(sdk_source_dir, hashtag, package_overrides)
-    log.debug('response from rebuild: %s' % str(response))
+    log.debug('[%s] Response from rebuild: %s' % (hashtag, str(response)))
 
     if not filename:
         filename = '.'.join(
@@ -62,7 +62,7 @@ def download_and_rebuild(location, sdk_source_dir, hashtag,
         data['request'] = post
 
     if pingback:
-        log.debug('Pingback: %s, hashtag (%s)' % (pingback, hashtag))
+        log.debug('[%s] Pingback: %s' % (hashtag, pingback))
         urllib.urlopen(pingback, data=urllib.urlencode(data))
     log.info("[%s] Finished package rebuild." % hashtag)
     return response
