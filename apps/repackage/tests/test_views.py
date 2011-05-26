@@ -69,7 +69,7 @@ class RepackageViewsTest(TestCase):
         # invalid secret key
 
     def test_repackage_with_download(self):
-        tasks.download_and_rebuild.delay = Mock(return_value=None)
+        tasks.low_download_and_rebuild.delay = Mock(return_value=None)
         get_rebuild = lambda sample: self.client.post(self.rebuild_url, {
             'location': os.path.join(self.xpi_file_prefix, sample),
             'secret': settings.AMO_SECRET_KEY})
@@ -89,7 +89,7 @@ class RepackageViewsTest(TestCase):
         eq_(content['status'], 'success')
 
     def test_bulk_repackage_with_download(self):
-        tasks.bulk_download_and_rebuild.delay = Mock(return_value=None)
+        tasks.low_download_and_rebuild.delay = Mock(return_value=None)
         response = self.client.post(self.rebuild_url, {
             'addons': simplejson.dumps([
                 {'location': os.path.join(
@@ -102,4 +102,4 @@ class RepackageViewsTest(TestCase):
         eq_(response.status_code, 200)
         content = simplejson.loads(response.content)
         eq_(content['status'], 'success')
-        eq_(tasks.bulk_download_and_rebuild.delay.call_count, 2)
+        eq_(tasks.low_download_and_rebuild.delay.call_count, 2)
