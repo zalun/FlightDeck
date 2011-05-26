@@ -21,6 +21,7 @@ def bulk_download_and_rebuild(*args, **kwargs):
     different route in celery for bulk rebuilds
     https://bugzilla.mozilla.org/show_bug.cgi?id=656978
     """
+    log.info("Starting bulk package rebuild...")
     return download_and_rebuild(*args, **kwargs)
 
 @task(rate_limit='30/m')
@@ -40,6 +41,7 @@ def download_and_rebuild(location, sdk_source_dir, hashtag,
     :returns: (list) ``cfx xpi`` response where ``[0]`` is ``stdout`` and
               ``[1]`` ``stderr``
     """
+    log.info("[%s] Starting package rebuild..." % hashtag)
     rep = Repackage()
     rep.download(location)
     response = rep.rebuild(sdk_source_dir, hashtag, package_overrides)
@@ -62,4 +64,5 @@ def download_and_rebuild(location, sdk_source_dir, hashtag,
     if pingback:
         log.debug('Pingback: %s, hashtag (%s)' % (pingback, hashtag))
         urllib.urlopen(pingback, data=urllib.urlencode(data))
+    log.info("[%s] Finished package rebuild." % hashtag)
     return response
