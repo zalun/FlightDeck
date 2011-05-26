@@ -20,7 +20,7 @@ from xpi import xpi_utils
 
 from repackage.helpers import Extractor
 
-log = commonware.log.getLogger('f.packager')
+log = commonware.log.getLogger('f.repackage')
 
 
 class Repackage(object):
@@ -38,6 +38,7 @@ class Repackage(object):
         :returns: None
         """
 
+        log.info("Retrieving file to rebuild from (%s)" % location)
         try:
             xpi_remote_file = urllib.urlopen(location)
         except IOError:
@@ -59,9 +60,11 @@ class Repackage(object):
         self.get_manifest(package_overrides=package_overrides)
         sdk_dir = self.extract_packages(sdk_source_dir)
         # build xpi
+        log.debug("[%s] Rebuilding XPI" % hashtag)
         response = xpi_utils.build(sdk_dir,
                 os.path.join(sdk_dir, 'packages', self.manifest['name']),
                 self.manifest['name'], hashtag)
+        log.debug("[%s] Done rebuilding XPI; cleaning up" % hashtag)
         # clean up (sdk_dir is already removed)
         self.cleanup()
         return response

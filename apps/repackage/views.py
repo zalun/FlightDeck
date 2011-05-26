@@ -18,7 +18,7 @@ from utils import validator, exceptions
 
 from repackage import tasks
 
-log = commonware.log.getLogger('f.test')
+log = commonware.log.getLogger('f.repackage')
 
 class BadManifestFieldException(exceptions.SimpleException):
     """Wrong value in one of the Manifest fields
@@ -64,11 +64,13 @@ def rebuild(request):
     # validate entries
     secret = request.POST.get('secret', None)
     if not secret or secret != settings.AMO_SECRET_KEY:
+        log.error("Rebuild requested with an invalid key.  Rejecting.")
         return HttpResponseForbidden('Access denied')
 
     location = request.POST.get('location', None)
     addons = request.POST.get('addons', None)
     if not location and not addons:
+        log.error("Rebuild requested but files weren't specified.  Rejecting.")
         return HttpResponseBadRequest('Please provide XPI files to rebuild')
 
     sdk_source_dir = _get_latest_sdk_source_dir()
@@ -122,8 +124,12 @@ def rebuild(request):
             response['status'] = 'success'
 
     if errors:
+        log.error("[%s] Errors reported when rebuilding:" % hashtag)
         response['status'] = 'some failures'
-        response['errors'] = '\n'.join([str(e) for e in errors])
+        response['errors'] = ''
+        for e in errors:
+            response['errors'] = "%s%s\n" % (response['errors'], e)
+            log.error("    [%s] Error: %s" % (hashtag, e))
 
     return HttpResponse(simplejson.dumps(response),
             mimetype='application/json')
