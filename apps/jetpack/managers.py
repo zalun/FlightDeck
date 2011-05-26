@@ -1,6 +1,7 @@
 """
 Managers for the Jetpack models
 """
+import datetime
 import commonware
 
 from django.db import models
@@ -66,3 +67,12 @@ class PackageManager(models.Manager):
     def libraries(self):
         " return libraries only "
         return self.active().filter(type="l")
+
+    def sort_recently_active(self):
+        last_month = datetime.datetime.utcnow() - datetime.timedelta(30)
+        return self.extra(select={
+            'rev_count': 'select count(*) from jetpack_packagerevision '
+                         'where jetpack_packagerevision.created_at > \'%s\' '
+                         'and jetpack_packagerevision.package_id = jetpack_package.id'
+                         % last_month.strftime('%Y-%m-%d')
+        }).order_by('-rev_count', *self.model._meta.ordering)

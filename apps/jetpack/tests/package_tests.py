@@ -1,4 +1,5 @@
 import os
+import datetime
 import commonware
 
 from test_utils import TestCase
@@ -116,6 +117,28 @@ class PackageTest(TestCase):
 
         self.assertEqual(Package.objects.addons().count(), 2)
         self.assertEqual(Package.objects.libraries().count(), 2)
+
+    def test_manager_sort_recently_active(self):
+        p1 = Package(author=self.author, type='a')
+        p1.save()
+        p2 = Package(author=self.author, type='a')
+        p2.save()
+        Package(author=self.author, type='l').save()
+
+
+        p1rev2 = PackageRevision(author=self.author, revision_number=2)
+        p1.revisions.add(p1rev2)
+        p1rev2.created_at = datetime.datetime.utcnow() - datetime.timedelta(60)
+        super(PackageRevision, p1rev2).save()
+
+        p2rev = p2.revisions.all()[0]
+        p2rev.save() #makes a new revision
+
+        qs = Package.objects.sort_recently_active().filter(type='a')
+        eq_(qs.count(), 2)
+        eq_(p2.id, qs[0].id)
+        eq_(qs[0].rev_count, 2)
+        eq_(qs[1].rev_count, 1)
 
     def test_related_name(self):
         Package(author=self.author, type='a').save()
