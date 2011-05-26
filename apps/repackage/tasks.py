@@ -41,9 +41,10 @@ def download_and_rebuild(location, sdk_source_dir, hashtag,
     :returns: (list) ``cfx xpi`` response where ``[0]`` is ``stdout`` and
               ``[1]`` ``stderr``
     """
-    log.info("[%s] Starting package rebuild..." % hashtag)
+    log.info("[%s] Starting package rebuild... (%s)" % (hashtag, location))
     rep = Repackage()
     rep.download(location)
+    log.info("[%s] XPI file downloaded (%s)" % (hashtag, location))
     response = rep.rebuild(sdk_source_dir, hashtag, package_overrides)
     log.debug('[%s] Response from rebuild: %s' % (hashtag, str(response)))
 
