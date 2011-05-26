@@ -78,9 +78,9 @@ def rebuild(request):
     priority = request.POST.get('priority', None)
     post = request.POST.urlencode()
     if priority and priority == 'high':
-        rebuild = tasks.download_and_rebuild
+        rebuild = tasks.high_download_and_rebuild
     else:
-        rebuild = tasks.bulk_download_and_rebuild
+        rebuild = tasks.low_download_and_rebuild
     response = {}
     errors = []
     counter = 0
