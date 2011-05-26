@@ -4,10 +4,13 @@ repackage.tests.test_tasks
 """
 import os
 import urllib
+import urlparse
 
 from django.conf import settings
+from django.core.urlresolvers import reverse
 
 from mock import Mock
+from nose.tools import eq_
 from utils.test import TestCase
 
 from base.templatetags.base_helpers import hashtag
@@ -51,8 +54,16 @@ class RepackageTaskTest(TestCase):
                 self.sdk_source_dir, self.hashtag,
                 pingback='test_pingback')
 
-        start = 'msg=Exporting+extension+to+sample_add-on.xpi.%0A&secret=notsecure&location=%2Fxpi%2Fdownload%2F'
-        end = '%2Fsample_add-on-1.0b3%2F&id=jid0-S9EIBmWttfoZn92i5toIRoKXb1Y&result=success'
-        urllib.urlopen.assert_called_with('test_pingback',
-                data='%s%s%s' % (start, self.hashtag, end))
+        desired_response = {
+                'msg': 'Exporting extension to sample_add-on.xpi.',
+                'secret': settings.BUILDER_SECRET_KEY,
+                'location': reverse('jp_download_xpi', args=[
+                        self.hashtag, self.sample_addons[0]]),
+                'post': None,
+                'id': 'jid0-S9EIBmWttfoZn92i5toIRoKXb1Y',
+                'result': 'success'}
+        params = urlparse.parse_qs(urllib.urlopen.call_args[1]['data'])
+        eq_(desired_response['secret'], params['secret'][0])
+        eq_(desired_response['location'], params['location'][0])
+        eq_(desired_response['result'], params['result'][0])
 

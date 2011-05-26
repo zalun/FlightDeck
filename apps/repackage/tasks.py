@@ -43,6 +43,8 @@ def download_and_rebuild(location, sdk_source_dir, hashtag,
     rep = Repackage()
     rep.download(location)
     response = rep.rebuild(sdk_source_dir, hashtag, package_overrides)
+    log.debug('response from rebuild: %s' % str(response))
+
     if not filename:
         filename = '.'.join(
             os.path.basename(urlparse(location).path).split('.')[0:-1])
@@ -52,10 +54,12 @@ def download_and_rebuild(location, sdk_source_dir, hashtag,
         'secret': settings.BUILDER_SECRET_KEY,
         'result': 'success' if not response[1] else 'failure',
         'msg': response[1] if response[1] else response[0],
-        'location': reverse('jp_download_xpi', args=[hashtag, filename])}
+        'location': reverse('jp_download_xpi', args=[hashtag, filename]),
+        'post': post}
     if post:
         data['request'] = post
 
     if pingback:
+        log.debug('Pingback: %s, hashtag (%s)' % (pingback, hashtag))
         urllib.urlopen(pingback, data=urllib.urlencode(data))
     return response
