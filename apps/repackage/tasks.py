@@ -15,6 +15,13 @@ from repackage.models import Repackage
 
 log = commonware.log.getLogger('f.repackage.tasks')
 
+@task(rate_limit='5/m')
+def bulk_download_and_rebuild(*args, **kwargs):
+    """A wrapper for :meth:`download_and_rebuild` needed to create
+    different route in celery for bulk rebuilds
+    https://bugzilla.mozilla.org/show_bug.cgi?id=656978
+    """
+    return download_and_rebuild(*args, **kwargs)
 
 @task(rate_limit='30/m')
 def download_and_rebuild(location, sdk_source_dir, hashtag,
