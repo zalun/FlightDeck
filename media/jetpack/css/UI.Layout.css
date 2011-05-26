@@ -574,5 +574,11 @@ kbd {
   margin: 0 auto;
 }
 
+.spinner-img.spinner-16 {
+	background-image:url(../img/spinner-16.gif);
+	height:16px;
+	width:16px;
+}
+
 
 /* @end */

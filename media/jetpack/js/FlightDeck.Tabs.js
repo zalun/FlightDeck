@@ -96,19 +96,30 @@ FlightDeck.TabBar = new Class({
 			}
 		}).inject($(element), this.options.inject);
 		
+		//events: Down,Up,Enter,Leave
+		//targets: tab-close, everything else
 		Object.each({
-			'tabDown': ['mousedown', 'tab'],
-			'tabUp': ['mouseup', 'tab'],
-			'tabEnter': ['mouseenter', 'tab'],
-			'tabLeave': ['mouseleave', 'tab'],
+			'tabDown': ['mousedown'],
+			'tabUp': ['mouseup'],
+			'tabEnter': ['mouseenter'],
+			'tabLeave': ['mouseleave'],
 			'closeDown': ['mousedown', 'tab-close'],
 			'closeUp': ['mouseup', 'tab-close'],
 			'closeEnter': ['mouseenter', 'tab-close'],
 			'closeLeave': ['mouseleave', 'tab-close']
-		}, function(val, key){
-			tabEvents[val[0] + ':relay(.' + val[1] + ')'] = function(e){
-				if(e.target.hasClass(val[1])) bar.fireEvent(key, [this, e]);
+		}, function(val, eventName){
+			var evt = val[0],
+				cls = val[1] || 'tab';
+			//unless otherwise specified (like tab-close), events will bubble
+			//to the .tab element, and therefore still fire. This lets us
+			//add a .label element, and still fire events for the whole .tab.
+			tabEvents[evt + ':relay(.' + cls + ')'] = function(e){
+				if(cls == 'tab' || e.target.hasClass(cls)) {
+					bar.fireEvent(eventName, [this, e]);
+				}
 			};
+			
+			
 		});
 		
 		this.tabs = new Element(this.options.tag, {
