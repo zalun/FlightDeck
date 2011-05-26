@@ -81,6 +81,7 @@ def rebuild(request):
         rebuild = tasks.bulk_download_and_rebuild
     response = {}
     errors = []
+    counter = 0
 
     if location:
         hashtag = get_random_string(10)
@@ -97,6 +98,7 @@ def rebuild(request):
                     filename=filename, pingback=pingback,
                     post=request.POST.urlencode())
             response['status'] = 'success'
+            counter = counter + 1
 
     if addons:
         try:
@@ -119,11 +121,18 @@ def rebuild(request):
                         package_overrides=package_overrides,
                         filename=filename, pingback=pingback,
                         post=post)
+                    counter = counter + 1
             response['status'] = 'success'
 
     if errors:
         response['status'] = 'some failures'
         response['errors'] = '\n'.join([str(e) for e in errors])
+
+    response['addons'] = counter
+    uuid = request.POST.get('uuid', 'no uuid')
+
+    log.info("%d addon(s) will be created, %d error(s), uuid: %s" % (
+        counter, len(errors), uuid))
 
     return HttpResponse(simplejson.dumps(response),
             mimetype='application/json')
