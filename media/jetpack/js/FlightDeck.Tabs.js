@@ -114,7 +114,8 @@ FlightDeck.TabBar = new Class({
 			//to the .tab element, and therefore still fire. This lets us
 			//add a .label element, and still fire events for the whole .tab.
 			tabEvents[evt + ':relay(.' + cls + ')'] = function(e){
-				if(cls == 'tab' || e.target.hasClass(cls)) {
+				if((cls == 'tab' && !e.target.hasClass('tab-close'))
+				   || e.target.hasClass(cls)) {
 					bar.fireEvent(eventName, [this, e]);
 				}
 			};
@@ -134,10 +135,10 @@ FlightDeck.TabBar = new Class({
 		}).inject(this.element);
 		
 		this.scroll = new Fx.Scroll(this.tabs, this.options.fx)
-		.start(this.options.scrollStart, 0)
-		.addEvent('complete', function(){
-			this.passed = [];
-		});
+			.start(this.options.scrollStart, 0)
+			.addEvent('complete', function(){
+				this.passed = [];
+			});
 		
 		if(arrows) {
 			this.buildArrows();
