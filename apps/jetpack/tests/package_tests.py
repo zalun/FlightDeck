@@ -226,11 +226,11 @@ class PackageTest(TestCase):
         addon = Package.objects.create(author=self.author, type='a')
         addon_copy = addon.copy(self.author)
         # check copy
-        eq_(Package.objects.addons().exclude(pk=addon.pk).count(), 1)
+        eq_(Package.objects.addons().active().exclude(pk=addon.pk).count(), 1)
         # deleting addon
         addon.delete()
         eq_(Package.objects.active().filter(type='a').count(), 1)
-        eq_(Package.objects.active(viewer=self.author).filter(type='a').count(), 1)
+        eq_(Package.objects.active(viewer=self.author).addons().count(), 1)
         eq_(PackageRevision.objects.filter(package=addon).count(), 0)
         eq_(PackageRevision.objects.filter(package=addon_copy).count(), 1)
 
@@ -240,8 +240,8 @@ class PackageTest(TestCase):
         addon.latest.dependency_add(lib.latest)
         # deleting lib
         lib.delete()
-        eq_(Package.objects.addons().count(), 1)
-        eq_(Package.objects.libraries().filter(author=self.author).count(), 0)
+        eq_(Package.objects.addons().active().count(), 1)
+        eq_(Package.objects.libraries().active().filter(author=self.author).count(), 0)
 
     def test_get_outdated_dependencies(self):
         addon = Package.objects.create(author=self.author, type='a')

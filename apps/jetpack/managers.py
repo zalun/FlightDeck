@@ -66,11 +66,11 @@ class PackageManager(QuerySetManager):
 
         def addons(self):
             " return addons only "
-            return self.active().filter(type="a")
+            return self.filter(type="a")
 
         def libraries(self):
             " return libraries only "
-            return self.active().filter(type="l")
+            return self.filter(type="l")
 
         def sort_recently_active(self):
             last_month = datetime.datetime.utcnow() - datetime.timedelta(30)
