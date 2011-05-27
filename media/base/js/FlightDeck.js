@@ -329,6 +329,21 @@ Spinner = Class.refactor(Spinner, {
             newTop = oldTop + (oldHeight - computedSize.totalHeight) / 2;
         el.setStyle('left', newLeft);
         el.setStyle('top', newTop);
+        
+        //3. add border-radius if needed
+        var computed = document.defaultView.getComputedStyle(this.target, null);
+        var radiusProps = [
+            'border-bottom-left-radius',
+            'border-bottom-right-radius',
+            'border-top-left-radius',
+            'border-top-right-radius'
+        ];
+        radiusProps.forEach(function(prop) {
+            var value = computed.getPropertyValue(prop);
+            if (value) {
+                el.setStyle(prop, value);
+            }
+        });
     }
 });
 
