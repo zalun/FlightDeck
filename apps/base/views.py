@@ -91,8 +91,8 @@ def homepage(r):
     # one more for the main one
     addons_limit = settings.HOMEPAGE_PACKAGES_NUMBER
 
-    libraries = Package.objects.libraries()[:settings.HOMEPAGE_PACKAGES_NUMBER]
-    addons = Package.objects.addons()[:addons_limit]
+    libraries = Package.objects.libraries().active().sort_recently_active()[:settings.HOMEPAGE_PACKAGES_NUMBER]
+    addons = Package.objects.addons().active().sort_recently_active()[:addons_limit]
 
     addons = list(addons)
     page = 'homepage'
