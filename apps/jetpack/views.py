@@ -74,6 +74,7 @@ def package_browser(r, page_number=1, type_id=None, username=None):
         template_suffix = '%s_%s' % (template_suffix,
                                      settings.PACKAGE_PLURAL_NAMES[type_id])
 
+    packages = packages.sort_recently_active()
     limit = r.GET.get('limit', settings.PACKAGES_PER_PAGE)
 
     try:

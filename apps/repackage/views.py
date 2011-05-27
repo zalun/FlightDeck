@@ -87,8 +87,8 @@ def rebuild(request):
 
     if location:
         hashtag = get_random_string(10)
-        log.debug('[%s] Single rebuild started for location (%s)' % (
-            hashtag, location) )
+        log.debug('[%s] Single rebuild started for location (%s)' %
+                (hashtag, location) )
         filename = request.POST.get('filename', None)
 
         try:
@@ -139,8 +139,8 @@ def rebuild(request):
     response['addons'] = counter
     uuid = request.POST.get('uuid', 'no uuid')
 
-    log.info("%d addon(s) will be created, %d error(s), uuid: %s" % (
-        counter, len(errors), uuid))
+    log.info("%d addon(s) will be created, %d error(s), uuid: %s" %
+            (counter, len(errors), uuid))
 
     return HttpResponse(simplejson.dumps(response),
             mimetype='application/json')
