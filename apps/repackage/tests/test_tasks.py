@@ -14,7 +14,7 @@ from nose.tools import eq_
 from utils.test import TestCase
 
 from base.templatetags.base_helpers import hashtag
-from repackage.tasks import download_and_rebuild
+from repackage.tasks import rebuild
 
 
 class RepackageTaskTest(TestCase):
@@ -38,9 +38,10 @@ class RepackageTaskTest(TestCase):
             os.remove(target_xpi)
 
     def test_download_and_rebuild(self):
-        rep_response = download_and_rebuild(
+        rep_response = rebuild(
                 os.path.join(
                     self.xpi_file_prefix, '%s.xpi' % self.sample_addons[0]),
+                None,
                 self.sdk_source_dir, self.hashtag)
         assert not rep_response[1]
 
@@ -48,9 +49,10 @@ class RepackageTaskTest(TestCase):
         urllib.urlopen = Mock(return_value=open(os.path.join(
                 settings.ROOT, 'apps/xpi/tests/sample_addons/',
                 '%s.xpi' % self.sample_addons[0])))
-        rep_response = download_and_rebuild(
+        rep_response = rebuild(
                 os.path.join(
                     self.xpi_file_prefix, '%s.xpi' % self.sample_addons[0]),
+                None,
                 self.sdk_source_dir, self.hashtag,
                 pingback='test_pingback')
 

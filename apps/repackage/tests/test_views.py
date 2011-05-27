@@ -69,7 +69,7 @@ class RepackageViewsTest(TestCase):
         # invalid secret key
 
     def test_repackage_with_download(self):
-        tasks.low_download_and_rebuild.delay = Mock(return_value=None)
+        tasks.low_rebuild.delay = Mock(return_value=None)
         get_rebuild = lambda sample: self.client.post(self.rebuild_url, {
             'location': os.path.join(self.xpi_file_prefix, sample),
             'secret': settings.AMO_SECRET_KEY})
@@ -89,7 +89,7 @@ class RepackageViewsTest(TestCase):
         eq_(content['status'], 'success')
 
     def test_bulk_repackage_with_download(self):
-        tasks.low_download_and_rebuild.delay = Mock(return_value=None)
+        tasks.low_rebuild.delay = Mock(return_value=None)
         response = self.client.post(self.rebuild_url, {
             'addons': simplejson.dumps([
                 {'location': os.path.join(
@@ -102,4 +102,35 @@ class RepackageViewsTest(TestCase):
         eq_(response.status_code, 200)
         content = simplejson.loads(response.content)
         eq_(content['status'], 'success')
-        eq_(tasks.low_download_and_rebuild.delay.call_count, 2)
+        eq_(tasks.low_rebuild.delay.call_count, 2)
+
+    def test_single_upload_and_rebuild(self):
+        file_pre = os.path.join(settings.ROOT, 'apps/xpi/tests/sample_addons/')
+        tasks.low_rebuild.delay = Mock(return_value=None)
+        with open(os.path.join(file_pre, self.sample_addons[1])) as f:
+            response = self.client.post(self.rebuild_url, {
+                'upload': f,
+                'secret': settings.AMO_SECRET_KEY})
+        eq_(response.status_code, 200)
+        content = simplejson.loads(response.content)
+        eq_(content['status'], 'success')
+        eq_(tasks.low_rebuild.delay.call_count, 1)
+
+    def test_bulk_upload_and_rebuild(self):
+        file_pre = os.path.join(settings.ROOT, 'apps/xpi/tests/sample_addons/')
+        tasks.low_rebuild.delay = Mock(return_value=None)
+        f0 = open(os.path.join(file_pre, self.sample_addons[0]))
+        f1 = open(os.path.join(file_pre, self.sample_addons[1]))
+        response = self.client.post(self.rebuild_url, {
+            'upload_a': f0,
+            'upload_b': f1,
+            'addons': simplejson.dumps([
+                {'upload': 'upload_a'},
+                {'upload': 'upload_b'}
+                ]),
+            'secret': settings.AMO_SECRET_KEY})
+        eq_(response.status_code, 200)
+        content = simplejson.loads(response.content)
+        eq_(content['status'], 'success')
+        eq_(tasks.low_rebuild.delay.call_count, 2)
+

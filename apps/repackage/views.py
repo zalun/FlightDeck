@@ -69,8 +69,13 @@ def rebuild(request):
 
     location = request.POST.get('location', None)
     addons = request.POST.get('addons', None)
-    if not location and not addons:
+    upload = request.FILES.get('upload', None)
+    if not location and not upload and not addons:
         log.error("Rebuild requested but files weren't specified.  Rejecting.")
+        return HttpResponseBadRequest('Please provide XPI files to rebuild')
+    if location and upload:
+        log.error("Rebuild requested but location and upload provided."
+                "Rejecting")
         return HttpResponseBadRequest('Please provide XPI files to rebuild')
 
     sdk_source_dir = _get_latest_sdk_source_dir()
@@ -78,17 +83,21 @@ def rebuild(request):
     priority = request.POST.get('priority', None)
     post = request.POST.urlencode()
     if priority and priority == 'high':
-        rebuild = tasks.high_download_and_rebuild
+        rebuild = tasks.high_rebuild
     else:
-        rebuild = tasks.low_download_and_rebuild
-    response = {}
+        rebuild = tasks.low_rebuild
+    response = {'status': 'success'}
     errors = []
     counter = 0
 
-    if location:
+    if location or upload:
         hashtag = get_random_string(10)
-        log.debug('[%s] Single rebuild started for location (%s)' %
-                (hashtag, location) )
+        if location:
+            log.debug('[%s] Single rebuild started for location (%s)' %
+                    (hashtag, location) )
+        else:
+            log.debug ('[%s] Single rebuild started from upload' % hashtag)
+
         filename = request.POST.get('filename', None)
 
         try:
@@ -97,11 +106,10 @@ def rebuild(request):
             errors.append(str(err))
         else:
             rebuild.delay(
-                    location, sdk_source_dir, hashtag,
+                    location, upload, sdk_source_dir, hashtag,
                     package_overrides=package_overrides,
                     filename=filename, pingback=pingback,
-                    post=request.POST.urlencode())
-            response['status'] = 'success'
+                    post=post)
             counter = counter + 1
 
     if addons:
@@ -111,30 +119,42 @@ def rebuild(request):
             log.error(str(err))
             errors.append(str(err))
         else:
+            log.debug(post)
             for addon in addons:
+                error = False
                 filename = addon.get('filename', None)
                 hashtag = get_random_string(10)
+                location = addon.get('location', None)
+                upload_name = addon.get('upload', None)
+                upload = None
+                if upload_name:
+                    upload = request.FILES.get(upload_name, None)
+                if not (location or upload):
+                    errors.append("Files not specified.")
+                    error = True
+                if location and upload:
+                    errors.append("Location and upload provided - rejecting")
+                    error = True
                 try:
-                    location = addon['location']
                     package_overrides = _get_package_overrides(addon)
                 except Exception, err:
                     errors.append(err)
-                else:
+                    error = True
+                if not error:
                     rebuild.delay(
-                        location, sdk_source_dir, hashtag,
+                        location, upload, sdk_source_dir, hashtag,
                         package_overrides=package_overrides,
                         filename=filename, pingback=pingback,
                         post=post)
                     counter = counter + 1
-            response['status'] = 'success'
 
     if errors:
-        log.error("[%s] Errors reported when rebuilding:" % hashtag)
+        log.error("Errors reported when rebuilding")
         response['status'] = 'some failures'
         response['errors'] = ''
         for e in errors:
             response['errors'] = "%s%s\n" % (response['errors'], e)
-            log.error("    [%s] Error: %s" % (hashtag, e))
+            log.error("Error: %s" % e)
 
     response['addons'] = counter
     uuid = request.POST.get('uuid', 'no uuid')

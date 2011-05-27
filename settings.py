@@ -304,7 +304,7 @@ djcelery.setup_loader()
 CELERY_ALWAYS_EAGER = True
 
 CELERY_ROUTES = {
-    'repackage.tasks.low_download_and_rebuild': {'queue': 'builder_bulk'},
+    'repackage.tasks.low_rebuild': {'queue': 'builder_bulk'},
 }
 
 ENGAGE_ROBOTS = False
