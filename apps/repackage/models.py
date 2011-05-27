@@ -118,7 +118,7 @@ class Repackage(object):
 
         def extract(f, name):
             # extract only package files
-            if  name not in f:
+            if name not in f or resource_dir_prefix not in f:
                 return
             # get current package name from directory name (f)
             current_package_name = '-'.join(f.split(
