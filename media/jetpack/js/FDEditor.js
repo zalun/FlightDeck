@@ -60,6 +60,7 @@ var FDEditor = new Class({
         this.current.active = true;
         if (!this.current.isLoaded()) {
             this.spinner.show();
+			this.setContent('', true);
 			this.current.addVolatileEvent('loadcontent', function(content) {
                 //if item == this.current still
                 if (item == this.current) {
@@ -165,10 +166,14 @@ var FDEditor = new Class({
 		return this.element.value;
 	},
 
-	setContent: function(value) {
-        this.element.set('value', value);
-        this.fireEvent('setContent', value);
+	setContent: function(value, quiet) {
+        this._setContent(value);
+        if (!quiet) this.fireEvent('setContent', value);
 		return this;
+	},
+	
+	_setContent: function(value) {
+		this.element.set('value', value);
 	},
 
     isChanged: function() {

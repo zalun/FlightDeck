@@ -101,10 +101,8 @@
             return value;
         },
 
-        setContent: function(value){
+        _setContent: function(value){
             this.editor.getSession().setValue(value);
-            this.fireEvent('setContent', value);
-            return this;
         },
 
         getUndoRedoStack: function() {
