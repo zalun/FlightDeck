@@ -47,6 +47,9 @@
         initialize: function(wrapper, options) {
             this.previous(wrapper, options);
             this.editor = ace.edit(this.element);
+			this.spinner = new Spinner(this.element.getElement('.ace_scroller'), {
+				maskBorder: false
+			});
 			var that = this;
 			
 			['blur', 'focus'].each(function(ev) {
