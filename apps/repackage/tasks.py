@@ -16,23 +16,27 @@ from repackage.models import Repackage
 log = commonware.log.getLogger('f.repackage.tasks')
 
 @task(rate_limit='5/m')
-def low_download_and_rebuild(*args, **kwargs):
+def low_download_and_rebuild(location, sdk_source_dir, hashtag,
+        package_overrides={}, filename=None, pingback=None, post=None):
     """A wrapper for :meth:`download_and_rebuild` needed to create
     different route in celery for low priority rebuilds
     https://bugzilla.mozilla.org/show_bug.cgi?id=656978
     """
     log.info("Starting low priority package rebuild...")
-    return download_and_rebuild(*args, **kwargs)
+    return download_and_rebuild(location, sdk_source_dir, hashtag,
+        package_overrides, filename, pingback, post)
 
 
 @task(rate_limit='30/m')
-def high_download_and_rebuild(*args, **kwargs):
+def high_download_and_rebuild(location, sdk_source_dir, hashtag,
+        package_overrides={}, filename=None, pingback=None, post=None):
     """A wrapper for :meth:`download_and_rebuild` needed to create
     different route in celery for high priority rebuilds
     https://bugzilla.mozilla.org/show_bug.cgi?id=656978
     """
     log.info("Starting high priority package rebuild...")
-    return download_and_rebuild(*args, **kwargs)
+    return download_and_rebuild(location, sdk_source_dir, hashtag,
+        package_overrides, filename, pingback, post)
 
 
 def download_and_rebuild(location, sdk_source_dir, hashtag,

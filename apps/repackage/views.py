@@ -87,6 +87,8 @@ def rebuild(request):
 
     if location:
         hashtag = get_random_string(10)
+        log.debug('[%s] Single rebuild started for location (%s)' % (
+            hashtag, location) )
         filename = request.POST.get('filename', None)
 
         try:
