@@ -105,7 +105,7 @@ def rebuild(request):
         try:
             package_overrides = _get_package_overrides(request.POST)
         except BadManifestFieldException, err:
-            errors.append(str(err))
+            errors.append('[%s] %s' % (hashtag, str(err)))
         else:
             rebuild.delay(
                     location, upload, sdk_source_dir, hashtag,
@@ -118,8 +118,7 @@ def rebuild(request):
         try:
             addons = simplejson.loads(addons)
         except Exception, err:
-            log.error(str(err))
-            errors.append(str(err))
+            errors.append('[%s] %s' % (hashtag, str(err)))
         else:
             for addon in addons:
                 error = False
@@ -131,15 +130,16 @@ def rebuild(request):
                 if upload_name:
                     upload = request.FILES.get(upload_name, None)
                 if not (location or upload):
-                    errors.append("Files not specified.")
+                    errors.append("[%s] Files not specified." % hashtag)
                     error = True
                 if location and upload:
-                    errors.append("Location and upload provided - rejecting")
+                    errors.append(("[%s] Location and upload provided. "
+                        "Rejecting") % hashtag)
                     error = True
                 try:
                     package_overrides = _get_package_overrides(addon)
                 except Exception, err:
-                    errors.append(err)
+                    errors.append('[%s] %s' % (hashtag, str(err)))
                     error = True
                 if not error:
                     rebuild.delay(

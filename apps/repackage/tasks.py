@@ -68,7 +68,7 @@ def rebuild(location, upload, sdk_source_dir, hashtag,
             filename = '.'.join(upload.name.split('.')[0:-1])
 
     else:
-        log.warning()
+        log.error("[%s] No location or upload provided" % hashtag)
         raise ValueError("No location or upload provided")
 
     response = rep.rebuild(sdk_source_dir, hashtag, package_overrides)
