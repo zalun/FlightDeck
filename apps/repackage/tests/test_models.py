@@ -5,11 +5,12 @@ repackage.tests.test_models
 import os
 import commonware
 
-from mock import Mock
+#from mock import Mock
 from nose.tools import eq_
 from utils.test import TestCase
 
 from django.conf import settings
+from django.http import Http404
 
 from base.templatetags.base_helpers import hashtag
 from repackage.models import Repackage
@@ -21,11 +22,12 @@ class RepackageTest(TestCase):
 
     def setUp(self):
         self.hashtag = hashtag()
-        self.xpi_file_prefix = "file://%s" % os.path.join(
-                settings.ROOT, 'apps/xpi/tests/sample_addons/')
+        self.file_prefix = os.path.join(settings.ROOT,
+                'apps/xpi/tests/sample_addons/')
+        self.xpi_file_prefix = "file://%s" % self.file_prefix
         self.sample_addons = [
                 "sample_add-on-1.0b3.xpi",
-                "sample_add-on-1.0b4.xpi" ]
+                "sample_add-on-1.0b4.xpi"]
         self.sdk_source_dir = os.path.join(
                 settings.ROOT, 'lib/addon-sdk-1.0b5')
 
@@ -42,6 +44,12 @@ class RepackageTest(TestCase):
             rep.download(os.path.join(self.xpi_file_prefix, sample))
             response = rep.rebuild(self.sdk_source_dir, self.hashtag)
             assert not response[1]
+
+    def test_not_existing_location(self):
+        rep = Repackage()
+        self.assertRaises(Http404,
+                rep.download,
+                'http://builder.addons.mozilla.org/wrong_file.xpi')
 
     def test_forcing_version(self):
         for sample in self.sample_addons:

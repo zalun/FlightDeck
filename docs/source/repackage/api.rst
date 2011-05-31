@@ -14,7 +14,8 @@ Rebuild an addon from FTP
 Fields:
 -------
 
-One of the ``location`` or ``addons`` fields must be present
+One of the ``location``,``upload`` or ``addons`` fields must be present.
+``location`` and ``upload`` can't be provided together.
 
 **priority**
    force the priority of the task 
@@ -24,6 +25,9 @@ One of the ``location`` or ``addons`` fields must be present
 
 **location**
    URL for the ``XPI`` file to download
+
+**upload**
+   ``XPI`` file uploading
 
 **addons**
    JSON string - a table of dicts containing addons data.
@@ -41,11 +45,12 @@ One of the ``location`` or ``addons`` fields must be present
 tests, main** (optional)
    Force ``package.json`` fields.
 
-Examples of data definition in Python:
+Examples of data creation for POST:
+-----------------------------------
 
 .. code-block:: python
 
-   # single addon rebuild
+   # single addon rebuild with download
    post = {'addon': file_.version.addon_id,
            'file_id': file_.id,
            'priority': priority,
@@ -57,7 +62,19 @@ Examples of data definition in Python:
 
 .. code-block:: python
 
-   # bulk rebuild
+   # single addon rebuild with upload
+   post = {'addon': file_.version.addon_id,
+           'file_id': file_.id,
+           'priority': priority,
+           'secret': settings.BUILDER_SECRET_KEY,
+           'upload': file_.file, 
+           'uuid': data['uuid'],
+           'pingback': reverse('files.builder-pingback'),
+           'version': 'force_version'}
+
+.. code-block:: python
+
+   # bulk rebuild with download
    addons = [{'location': f.get_url_path(None, 'builder'),
               'addon': f.version.addon_id,
               'file_id': f.id,
@@ -68,6 +85,25 @@ Examples of data definition in Python:
            'uuid': data['uuid'],
            'pingback': reverse('files.builder-pingback'),
            'addons': simplejson.dumps(addons)}
+
+.. code-block:: python
+
+   # bulk rebuild with upload
+   addons = []
+   files = {}
+   for f in addon_files:
+       addons.append({'upload': 'upload_%s' % f.filename,
+              'addon': f.version.addon_id,
+              'file_id': f.id,
+              'version': '%s.rebuild' % f.version})
+       files['upload_%s' % f.filename] = f.file
+
+   post = {'priority': priority,
+           'secret': settings.BUILDER_SECRET_KEY,
+           'uuid': data['uuid'],
+           'pingback': reverse('files.builder-pingback'),
+           'addons': simplejson.dumps(addons)}
+   post.extend(files)
 
 
 Returns
@@ -91,13 +127,8 @@ pingback URL. Whole request will also be send back.
    urlified request.POST used for initial request
 
 
-API send and return
+API response
 ###################
-
-Send
-----
-
-
 
 Response
 --------
