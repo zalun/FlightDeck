@@ -79,7 +79,7 @@ def rebuild(location, upload, sdk_source_dir, hashtag,
             'id': rep.manifest['id'],
             'secret': settings.BUILDER_SECRET_KEY,
             'result': 'success' if not response[1] else 'failure',
-            'msg': response[1] if response[1] else response[0],
+            'msg': response[1] or response[0],
             'location': reverse('jp_download_xpi', args=[hashtag, filename])}
         if post:
             data['request'] = post
