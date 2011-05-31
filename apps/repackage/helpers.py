@@ -7,13 +7,13 @@ import rdflib
 
 from django.conf import settings
 
+
 class Extractor(object):
     """Extracts manifest from ``install.rdf``
     modified ``Extractor`` class from ``zamboni/apps/versions/compare.py``
     """
-
     manifest = u'urn:mozilla:install-manifest'
-    ADDON_EXTENSION ='2'
+    ADDON_EXTENSION = '2'
 
     def __init__(self, install_rdf):
         self.rdf = rdflib.Graph().parse(install_rdf)

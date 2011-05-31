@@ -14,9 +14,6 @@ from utils.test import TestCase
 from django.conf import settings
 from django.core.urlresolvers import reverse
 
-#from base.templatetags.base_helpers import hashtag
-from jetpack.models import SDK
-#from repackage.models import Repackage
 from repackage import tasks
 
 log = commonware.log.getLogger('f.repackage')
@@ -28,6 +25,7 @@ def _del_xpi(hashtag):
     if os.path.isfile(target_xpi):
         os.remove(target_xpi)
 
+
 class RepackageViewsTest(TestCase):
     fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']
 
@@ -37,9 +35,7 @@ class RepackageViewsTest(TestCase):
                 settings.ROOT, 'apps/xpi/tests/sample_addons/')
         self.sample_addons = [
                 "sample_add-on-1.0b3.xpi",
-                "sample_add-on-1.0b4.xpi" ]
-        sdk_source_dir = os.path.join(
-                settings.ROOT, 'lib/addon-sdk-1.0b5')
+                "sample_add-on-1.0b4.xpi"]
         self.rebuild_url = reverse('repackage_rebuild')
 
     def test_repackage_bad_request(self):
@@ -133,4 +129,3 @@ class RepackageViewsTest(TestCase):
         content = simplejson.loads(response.content)
         eq_(content['status'], 'success')
         eq_(tasks.low_rebuild.delay.call_count, 2)
-

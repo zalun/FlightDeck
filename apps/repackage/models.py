@@ -11,11 +11,11 @@ import zipfile
 
 import commonware.log
 
-from django.conf import settings
+#from django.conf import settings
 from django.http import Http404
 from django.template.defaultfilters import slugify
 
-from base.models import BaseModel
+#from base.models import BaseModel
 from xpi import xpi_utils
 
 from repackage.helpers import Extractor
@@ -42,12 +42,14 @@ class Repackage(object):
         try:
             xpi_remote_file = urllib.urlopen(location)
         except IOError, err:
-            log.warning("(%s)\n(%s)" % (location, str(err)))
+            log.warning("Downloading XPI (%s) for rebuild failed\n(%s)" %
+                    (location, str(err)))
             raise
         else:
             # this check is needed as urlopen behaves different for
             # URLs starting with file:// (we use it in tests)
-            if hasattr(xpi_remote_file, 'getcode') and xpi_remote_file.getcode():
+            if (hasattr(xpi_remote_file, 'getcode')
+                    and xpi_remote_file.getcode()):
                 if xpi_remote_file.getcode() == 404:
                     log.warning("URL does not exist (%s)" % location)
                     raise Http404
@@ -83,7 +85,8 @@ class Repackage(object):
     #    # browse packages for other libs
     #    sdk_dependencies = ['addon-kit', 'api-utils']
     #    package_name = self.manifest['name']
-    #    resource_dir_prefix = "resources/%s-" % self.manifest['id'].split('@')[0].lower()
+    #    resource_dir_prefix = "resources/%s-" %
+    #       self.manifest['id'].split('@')[0].lower()
     #    # help lists to collect dependencies
     #    exporting = []
     #    dependencies = []
@@ -126,7 +129,6 @@ class Repackage(object):
     #    # XXX: Link Libs with Addon
     #    return addon
 
-
     def rebuild(self, sdk_source_dir, hashtag, package_overrides={}):
         """Drive the rebuild process
 
@@ -155,7 +157,8 @@ class Repackage(object):
         # extract data provided in install.rdf
         install_rdf = self.xpi_zip.open('install.rdf')
         extracted = Extractor(install_rdf)
-        self.manifest = extracted.read_manifest(package_overrides=package_overrides)
+        self.manifest = extracted.read_manifest(
+                package_overrides=package_overrides)
         # get data provided by harness-options.json
         ho_json = self.xpi_zip.open('harness-options.json')
         self.harness_options = simplejson.loads(ho_json.read())
@@ -188,7 +191,8 @@ class Repackage(object):
                 shutil.copy(s_d, sdk_dir)
         sdk_dependencies = ['addon-kit', 'api-utils']
         package_name = self.manifest['name']
-        resource_dir_prefix = "resources/%s-" % self.manifest['id'].split('@')[0].lower()
+        resource_dir_prefix = "resources/%s-" % (
+                self.manifest['id'].split('@')[0].lower())
         # help lists to collect dependencies
         exporting = []
         dependencies = []
@@ -255,7 +259,9 @@ class Repackage(object):
         self.manifest['dependencies'].extend(dependencies)
 
         # create add-on's package.json
-        with open(os.path.join(sdk_dir, 'packages', package_name, 'package.json'), 'w') as manifest:
+        with open(os.path.join(
+                sdk_dir, 'packages', package_name, 'package.json'),
+                'w') as manifest:
             manifest.write(simplejson.dumps(self.manifest))
         return sdk_dir
 

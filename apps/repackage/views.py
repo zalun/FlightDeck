@@ -7,8 +7,7 @@ import simplejson
 
 from django.conf import settings
 from django.http import (HttpResponse, HttpResponseBadRequest,
-        HttpResponseNotAllowed, HttpResponseForbidden)
-from django.views.decorators.cache import never_cache
+        HttpResponseForbidden)
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
@@ -20,9 +19,11 @@ from repackage import tasks
 
 log = commonware.log.getLogger('f.repackage')
 
+
 class BadManifestFieldException(exceptions.SimpleException):
     """Wrong value in one of the Manifest fields
     """
+
 
 def _get_package_overrides(container):
     version = container.get('version', None)
@@ -43,6 +44,7 @@ def _get_package_overrides(container):
         log.error("Wrong version format provided (%s)" % version)
         raise BadManifestFieldException("Wrong version format")
     return package_overrides
+
 
 def _get_latest_sdk_source_dir():
     # get latest SDK
@@ -94,9 +96,9 @@ def rebuild(request):
         hashtag = get_random_string(10)
         if location:
             log.debug('[%s] Single rebuild started for location (%s)' %
-                    (hashtag, location) )
+                    (hashtag, location))
         else:
-            log.debug ('[%s] Single rebuild started from upload' % hashtag)
+            log.debug('[%s] Single rebuild started from upload' % hashtag)
 
         filename = request.POST.get('filename', None)
 
@@ -119,7 +121,6 @@ def rebuild(request):
             log.error(str(err))
             errors.append(str(err))
         else:
-            log.debug(post)
             for addon in addons:
                 error = False
                 filename = addon.get('filename', None)
@@ -154,7 +155,7 @@ def rebuild(request):
         response['errors'] = ''
         for e in errors:
             response['errors'] = "%s%s\n" % (response['errors'], e)
-            log.error("Error: %s" % e)
+            log.error("    Error: %s" % e)
 
     response['addons'] = counter
     uuid = request.POST.get('uuid', 'no uuid')

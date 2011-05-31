@@ -26,7 +26,7 @@ class RepackageTaskTest(TestCase):
                 settings.ROOT, 'apps/xpi/tests/sample_addons/')
         self.sample_addons = [
                 "sample_add-on-1.0b3",
-                "sample_add-on-1.0b4" ]
+                "sample_add-on-1.0b4"]
         self.sdk_source_dir = os.path.join(
                 settings.ROOT, 'lib/addon-sdk-1.0b5')
         self.hashtag = hashtag()
@@ -49,7 +49,7 @@ class RepackageTaskTest(TestCase):
         urllib.urlopen = Mock(return_value=open(os.path.join(
                 settings.ROOT, 'apps/xpi/tests/sample_addons/',
                 '%s.xpi' % self.sample_addons[0])))
-        rep_response = rebuild(
+        rebuild(
                 os.path.join(
                     self.xpi_file_prefix, '%s.xpi' % self.sample_addons[0]),
                 None,
@@ -68,4 +68,3 @@ class RepackageTaskTest(TestCase):
         eq_(desired_response['secret'], params['secret'][0])
         eq_(desired_response['location'], params['location'][0])
         eq_(desired_response['result'], params['result'][0])
-

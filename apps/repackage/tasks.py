@@ -1,6 +1,5 @@
 import commonware.log
 import os.path
-import simplejson
 import urllib
 
 from urlparse import urlparse
@@ -9,11 +8,10 @@ from celery.decorators import task
 from django.conf import settings
 from django.core.urlresolvers import reverse
 
-from xpi import xpi_utils
-
 from repackage.models import Repackage
 
 log = commonware.log.getLogger('f.repackage.tasks')
+
 
 @task(rate_limit='5/m')
 def low_rebuild(*args, **kwargs):
@@ -22,7 +20,7 @@ def low_rebuild(*args, **kwargs):
     https://bugzilla.mozilla.org/show_bug.cgi?id=656978
     """
     log.info("Starting low priority package rebuild...")
-    return download_and_rebuild(*args, **kwargs)
+    return rebuild(*args, **kwargs)
 
 
 @task(rate_limit='30/m')
@@ -32,7 +30,7 @@ def high_rebuild(*args, **kwargs):
     https://bugzilla.mozilla.org/show_bug.cgi?id=656978
     """
     log.info("Starting high priority package rebuild...")
-    return download_and_rebuild(*args, **kwargs)
+    return rebuild(*args, **kwargs)
 
 
 def rebuild(location, upload, sdk_source_dir, hashtag,
