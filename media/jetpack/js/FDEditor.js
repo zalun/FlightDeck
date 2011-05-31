@@ -29,6 +29,7 @@ var FDEditor = new Class({
             'class': 'UI_Editor_Area'
         });
         this.element.inject(wrapper);
+		this.spinner = new Spinner('editor-wrapper');
 		this.changed = false;
         // prepare change events
         this.boundWhenItemChanged = this.whenItemChanged.bind(this);
@@ -57,17 +58,21 @@ var FDEditor = new Class({
         // activate load and hook events
         this.current = item;
         this.current.active = true;
-        if (this.current.content == null) {
-            this.current.addVolatileEvent('loadcontent', function(content) {
+        if (!this.current.isLoaded()) {
+            this.spinner.show();
+			this.setContent('', true);
+			this.current.addVolatileEvent('loadcontent', function(content) {
                 //if item == this.current still
                 if (item == this.current) {
                     this.setContent(content);
+					this.spinner.hide();
                 }
                 //else another file has become active
             }.bind(this));
             this.current.loadContent();
         } else {
             this.setContent(this.current.content);
+			this.spinner.hide();
         }
         if (this.current.options.readonly) {
             this.setReadOnly();
@@ -110,7 +115,7 @@ var FDEditor = new Class({
     
     cleanChangeState: function(){
         Object.each(this.items, function(item){
-            item.changed = false;
+            item.setChanged(false);
             item.change_hooked = false;
             // refresh original content
             item.original_content = item.content;
@@ -141,7 +146,7 @@ var FDEditor = new Class({
 
     whenItemChanged: function() {
         if (!this.switching && this.getContent() != this.current.original_content) {
-            this.current.changed = true;
+            this.current.setChanged(true);
             this.fireEvent('change');
             $log('FD: DEBUG: changed, code is considered dirty and will remain'
                     +'be treated as such even if changes are reverted');
@@ -153,7 +158,7 @@ var FDEditor = new Class({
 			}
             this.unhookChange();
         } else if (!this.switching && this.current.changed) {
-            this.current.changed = false;
+            this.current.setChanged(false);
         }
     },
 
@@ -161,10 +166,14 @@ var FDEditor = new Class({
 		return this.element.value;
 	},
 
-	setContent: function(value) {
-        this.element.set('value', value);
-        this.fireEvent('setContent', value);
+	setContent: function(value, quiet) {
+        this._setContent(value);
+        if (!quiet) this.fireEvent('setContent', value);
 		return this;
+	},
+	
+	_setContent: function(value) {
+		this.element.set('value', value);
 	},
 
     isChanged: function() {

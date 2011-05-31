@@ -3,7 +3,7 @@ FlightDeck.Tab = new Class({
 	Implements: [Events, Options],
 	
 	options: {
-		tag: 'li',
+		tag: 'span',
 		title: 'Untitled',
 		inject: 'bottom',
 		closeable: true
@@ -16,20 +16,26 @@ FlightDeck.Tab = new Class({
 		
 		this.element = new Element(this.options.tag, {
 			'class': 'tab',
-			'text': this.options.title,
 			'styles': {
-				'display': 'inline',
-				'cursor': 'pointer'
+				'position': 'relative',
+				'display': 'inline-block',
+				'cursor': 'default'
 			}
 		}).store('tab:instance', this).inject(this.container, this.options.inject)
+        this.label = new Element('span.label', {
+            'text': this.options.title
+        }).inject(this.element);
 		
 		if (this.options.closeable) {
 			this.close = new Element('span', {
 				'class': 'tab-close',
 				'html': 'x',
 				'styles': {
+					'display': 'inline-block',
+					'height': 15,
+					'line-height': 14,
 					'margin-left': 4,
-					'text-align': 'right'
+					'cursor': 'pointer'
 				}
 			}).inject(this.element);
 		}
@@ -46,10 +52,7 @@ FlightDeck.Tab = new Class({
 	},
 
     setLabel: function(text) {
-        this.element.set('text', text);
-        if(this.close) {
-            this.element.grab(this.close);
-        }
+        this.label.set('text', text);
     },
 	
 	toElement: function() {
@@ -63,7 +66,7 @@ FlightDeck.TabBar = new Class({
 	Implements: [Events, Options],
 	
 	options: {
-		tag: 'ul',
+		tag: 'div',
 		inject: 'top',
 		scrollStart: 0,
 		arrows: {
@@ -74,7 +77,7 @@ FlightDeck.TabBar = new Class({
 			duration: 250,
 			transition: 'circ:out',
 			link: 'cancel',
-			wheelStops: false,
+			wheelStops: false
 		}
 	},
 	
@@ -93,25 +96,38 @@ FlightDeck.TabBar = new Class({
 			}
 		}).inject($(element), this.options.inject);
 		
+		//events: Down,Up,Enter,Leave
+		//targets: tab-close, everything else
 		Object.each({
-			'tabDown': ['mousedown', 'tab'],
-			'tabUp': ['mouseup', 'tab'],
-			'tabEnter': ['mouseenter', 'tab'],
-			'tabLeave': ['mouseleave', 'tab'],
+			'tabDown': ['mousedown'],
+			'tabUp': ['mouseup'],
+			'tabEnter': ['mouseenter'],
+			'tabLeave': ['mouseleave'],
 			'closeDown': ['mousedown', 'tab-close'],
 			'closeUp': ['mouseup', 'tab-close'],
 			'closeEnter': ['mouseenter', 'tab-close'],
-			'closeLeave': ['mouseleave', 'tab-close'],
-		}, function(val, key){
-			tabEvents[val[0] + ':relay(.' + val[1] + ')'] = function(e){
-				if(e.target.hasClass(val[1])) bar.fireEvent(key, [this, e]);
+			'closeLeave': ['mouseleave', 'tab-close']
+		}, function(val, eventName){
+			var evt = val[0],
+				cls = val[1] || 'tab';
+			//unless otherwise specified (like tab-close), events will bubble
+			//to the .tab element, and therefore still fire. This lets us
+			//add a .label element, and still fire events for the whole .tab.
+			tabEvents[evt + ':relay(.' + cls + ')'] = function(e){
+				if((cls == 'tab' && !e.target.hasClass('tab-close'))
+				   || e.target.hasClass(cls)) {
+					bar.fireEvent(eventName, [this, e]);
+				}
 			};
+			
+			
 		});
 		
 		this.tabs = new Element(this.options.tag, {
 			'class': 'tab-container',
 			'styles': {
-				'overflow': 'hidden'
+				'overflow': 'hidden',
+				'white-space': 'nowrap'
 			},
 			'events': tabEvents
 		}).addEvent('mousewheel', function(e){
@@ -119,10 +135,10 @@ FlightDeck.TabBar = new Class({
 		}).inject(this.element);
 		
 		this.scroll = new Fx.Scroll(this.tabs, this.options.fx)
-		.start(this.options.scrollStart, 0)
-		.addEvent('complete', function(){
-			this.passed = [];
-		});
+			.start(this.options.scrollStart, 0)
+			.addEvent('complete', function(){
+				this.passed = [];
+			});
 		
 		if(arrows) {
 			this.buildArrows();
@@ -188,6 +204,5 @@ FlightDeck.TabBar = new Class({
 	toElement: function() {
 		return this.tabs;
 	}
-	
 	
 });

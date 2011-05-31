@@ -157,7 +157,7 @@ class XPIBuildTest(TestCase):
                 self.addon.get_dir_name('%s/packages' % self.SDKDIR),
                 self.addon.name, self.hashtag)
         # assert no error output
-        assert not err
+        assert not err[1]
         # assert xpi was created
         self.failUnless(os.path.isfile(
             "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
@@ -177,7 +177,7 @@ class XPIBuildTest(TestCase):
                 self.addon.get_dir_name('%s/packages' % self.SDKDIR),
                 self.addon.name, self.hashtag)
         # assert no error output
-        assert not err
+        assert not err[1]
         # assert xpi was created
         self.failUnless(os.path.isfile(
             "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
@@ -201,7 +201,7 @@ class XPIBuildTest(TestCase):
                 self.addon.get_dir_name('%s/packages' % self.SDKDIR),
                 self.addon.name, self.hashtag)
         # assert no error output
-        assert not err
+        assert not err[1]
         # assert xpi was created
         self.failUnless(os.path.isfile(
             "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
@@ -218,7 +218,7 @@ class XPIBuildTest(TestCase):
                 self.addon.get_dir_name('%s/packages' % self.SDKDIR),
                 self.addon.name, self.hashtag)
         # assert no error output
-        assert not err
+        assert not err[1]
         # assert xpi was created
         self.failUnless(os.path.isfile(
             "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
@@ -251,21 +251,3 @@ class XPIBuildTest(TestCase):
 
         self.addonrev.build_xpi(hashtag=self.hashtag, rapid=True)
 
-    # mock self.sdk.get_source_dir()
-    def test_repackage(self):
-        sample_addons = [
-                # TODO: Investigate
-                # 1.0b1 and 1.0b2 are not working
-                # No such file or directory:
-                # '/tempSDK/packages/sample-add-on/package.json'
-                # "sample_add-on-1.0b1","sample_add-on-1.0b2",
-                "sample_add-on-1.0b3",
-                "sample_add-on-1.0b4" ]
-        sdk_source_dir = os.path.join(settings.ROOT, 'lib/addon-sdk-1.0b4')
-        for sample in sample_addons:
-            log.debug(sample)
-            hashtag = self.hashtag
-            rep = xpi_utils.Repackage(123, sample, sdk_source_dir, hashtag)
-            response = rep.build_xpi()
-            rep.destroy()
-            assert not response

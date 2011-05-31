@@ -2,15 +2,12 @@
 Views for the Jetpack application
 """
 import commonware.log
-import time
 import os
 import shutil
 import codecs
-import re
 import tempfile
 import urllib
 
-#from django.template.defaultfilters import slugify
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.views.static import serve
@@ -20,19 +17,15 @@ from django.http import HttpResponseRedirect, HttpResponse, \
                         HttpResponseNotAllowed, Http404  # , QueryDict
 from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
 from django.core.paginator import Paginator, EmptyPage, InvalidPage
 from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
 from django.db.models import Q, ObjectDoesNotExist
-from django.db import IntegrityError
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
 from django.template.defaultfilters import escape
 from django.conf import settings
 from django.utils import simplejson
 from django.forms.fields import URLField
-#from django.core.validators import URLValidator
 
 from base.shortcuts import get_object_with_related_or_404
 from utils import validator
@@ -43,6 +36,8 @@ from jetpack.package_helpers import get_package_revision, \
 from jetpack.models import Package, PackageRevision, Module, Attachment, SDK, \
                            EmptyDir
 from jetpack.errors import FilenameExistException, DependencyException
+
+from person.models import Profile
 
 log = commonware.log.getLogger('f.jetpack')
 
@@ -58,8 +53,12 @@ def package_browser(r, page_number=1, type_id=None, username=None):
 
     author = None
     if username:
-        author = get_object_or_404(User, username=username)
-        packages = packages.filter(author__username=username)
+        try:
+            profile = Profile.objects.get_user_by_username_or_nick(username)
+        except ObjectDoesNotExist:
+            raise Http404
+        author = profile.user
+        packages = packages.filter(author__pk=author.pk)
         template_suffix = '%s_user' % template_suffix
     if type_id:
         other_type = 'l' if type_id == 'a' else 'a'
@@ -68,6 +67,7 @@ def package_browser(r, page_number=1, type_id=None, username=None):
         template_suffix = '%s_%s' % (template_suffix,
                                      settings.PACKAGE_PLURAL_NAMES[type_id])
 
+    packages = packages.sort_recently_active()
     limit = r.GET.get('limit', settings.PACKAGES_PER_PAGE)
 
     try:
@@ -107,7 +107,6 @@ def package_view_or_edit(r, id_number, type_id, revision_number=None,
             raise Http404
 
     if not revision.package.active:
-        edit_available = False
         if not r.user.is_authenticated():
             raise Http404
         try:
@@ -209,10 +208,10 @@ def get_module(r, id_number, revision_number, filename):
         log_msg = 'No such module %s' % filename
         log.error(log_msg)
         raise Http404()
-    
+
     if not mod.can_view(r.user):
         log_msg = ("[security] Attempt to download private module (%s) by "
-                   "non-owner (%s)" % (pk, r.user))
+                   "non-owner (%s)" % (mod, r.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this module.')
     return HttpResponse(mod.get_json())
@@ -290,6 +289,7 @@ def package_activate(r, id_number):
                 {'package': package},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
+
 
 @login_required
 def package_delete(r, id_number):
@@ -543,7 +543,6 @@ def package_upload_attachment(r, id_number, type_id,
             'You are not the author of this %s' \
                 % escape(revision.package.get_type_name()))
 
-
     file = r.FILES.get('upload_attachment')
     filename = r.META.get('HTTP_X_FILE_NAME')
 
@@ -607,6 +606,7 @@ def package_upload_attachments(r, id_number, type_id,
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
+
 @require_POST
 @login_required
 def package_add_empty_attachment(r, id_number, type_id,
@@ -632,7 +632,8 @@ def package_add_empty_attachment(r, id_number, type_id,
         return HttpResponseServerError('Path not found.')
 
     try:
-        attachment = revision.attachment_create_by_filename(r.user, filename,'')
+        attachment = revision.attachment_create_by_filename(r.user,
+                filename, '')
     except ValidationError, e:
         return HttpResponseForbidden('Validation error.')
     except Exception, e:
@@ -643,6 +644,7 @@ def package_add_empty_attachment(r, id_number, type_id,
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
+
 @require_POST
 @login_required
 def revision_add_attachment(r, pk):
@@ -651,7 +653,7 @@ def revision_add_attachment(r, pk):
     revision = get_object_or_404(PackageRevision, pk=pk)
     if r.user.pk != revision.author.pk:
         log_msg = ("[security] Attempt to add attachment to package (%s) by "
-                   "non-owner (%s)" % (id_number, r.user))
+                   "non-owner (%s)" % (revision.package, r.user))
         log.warning(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' \
@@ -674,11 +676,11 @@ def revision_add_attachment(r, pk):
             return HttpResponseForbidden("Loading attachment failed<br/>"
                 "%s" % str(err))
         except Exception, err:
-            return HttpResponseForbidden(str(e))
+            return HttpResponseForbidden(str(err))
         att = urllib.urlopen(url)
         # validate filesize
         att_info = att.info()
-        if att_info.dict.has_key('content-length'):
+        if 'content-length' in att_info.dict.has_key:
             att_size = int(att_info.dict['content-length'])
             if att_size > settings.ATTACHMENT_MAX_FILESIZE:
                 log.debug('File (%s) is too big (%db)' % (url, att_size))
@@ -691,7 +693,8 @@ def revision_add_attachment(r, pk):
             log.debug('Downloaded file (%s) is too big' % url)
             return HttpResponseForbidden("Loading attachment failed<br/>"
                     "File is too big")
-        log.debug('Downloaded %d, max %d' % (len(content), settings.ATTACHMENT_MAX_FILESIZE))
+        log.debug('Downloaded %d, max %d' % (len(content),
+            settings.ATTACHMENT_MAX_FILESIZE))
         att.close()
     try:
         attachment = revision.attachment_create_by_filename(
@@ -705,7 +708,6 @@ def revision_add_attachment(r, pk):
                 {'revision': revision, 'attachment': attachment},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
-
 
 
 @require_POST
@@ -750,6 +752,7 @@ def package_rename_attachment(r, id_number, type_id, revision_number):
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
+
 @require_POST
 @login_required
 def package_rmdir(r, pk, target, path):
@@ -767,6 +770,7 @@ def package_rmdir(r, pk, target, path):
     return render_to_response('%s_rmdir.json' % target, {
         'revision': revision, 'path': path},
         context_instance=RequestContext(r), mimetype='application/json')
+
 
 @require_POST
 @login_required
@@ -817,6 +821,7 @@ def download_attachment(r, uid):
     response['Content-Disposition'] = 'filename=%s.%s' % (
             attachment.filename, attachment.ext)
     return response
+
 
 @require_POST
 @login_required
@@ -971,7 +976,7 @@ def upload_xpi(request):
     except KeyError:
         log.warning('No file "xpi" posted')
         return HttpResponseForbidden('No xpi supplied.')
-    
+
     temp_dir = tempfile.mkdtemp()
     path = os.path.join(temp_dir, xpi.name)
     xpi_file = codecs.open(path, mode='wb+')
@@ -1074,6 +1079,7 @@ def package_remove_library(r, id_number, type_id, revision_number):
                 context_instance=RequestContext(r),
                 mimetype='application/json')
 
+
 @require_POST
 @login_required
 def package_update_library(r, id_number, type_id, revision_number):
@@ -1090,7 +1096,8 @@ def package_update_library(r, id_number, type_id, revision_number):
     lib_id_number = r.POST.get('id_number')
     lib_revision = r.POST.get('revision')
 
-    library = get_object_or_404(PackageRevision, pk=lib_revision, package__id_number=lib_id_number)
+    library = get_object_or_404(PackageRevision, pk=lib_revision,
+            package__id_number=lib_id_number)
 
     try:
         revision.dependency_update(library)
@@ -1102,6 +1109,7 @@ def package_update_library(r, id_number, type_id, revision_number):
                  'lib_revision': library},
                 context_instance=RequestContext(r),
                 mimetype='application/json')
+
 
 @login_required
 def package_latest_dependencies(r, id_number, type_id, revision_number):
@@ -1129,12 +1137,14 @@ def get_revisions_list_html(r, id_number, revision_number=None):
         },
         context_instance=RequestContext(r))
 
+
 @never_cache
 def get_latest_revision_number(request, package_id):
     """ returns the latest revision number for given package """
     package = get_object_or_404(Package, id_number=package_id)
     return HttpResponse(simplejson.dumps({
         'revision_number': package.latest.revision_number}))
+
 
 @never_cache
 def get_revision_modules_list(request, pk):
@@ -1143,6 +1153,7 @@ def get_revision_modules_list(request, pk):
     revision = get_object_or_404(PackageRevision, pk=pk)
     return HttpResponse(simplejson.dumps(revision.get_module_names()),
                         mimetype="application/json")
+
 
 @never_cache
 def get_revision_conflicting_modules_list(request, pk):

@@ -5,6 +5,7 @@ var Sidebar = new Class({
 	options: {
 		file_selected_class: 'UI_File_Selected',
 		file_normal_class: 'UI_File_Normal',
+        file_modified_class: 'UI_File_Modified',
 		file_listing_class: 'tree',
 		editable: false
 	},
@@ -247,6 +248,16 @@ var Sidebar = new Class({
                 that.setSelectedFile(file);
             }
         });
+
+        
+        // file.onChange should add an asterisk to the tree branch
+        // file.onReset should remove the asterisk
+        file.addEvent('change', function() {
+            element.addClass(that.options.file_modified_class);
+        });
+        file.addEvent('reset', function() {
+            element.removeClass(that.options.file_modified_class);
+        });
 		
 		//check all of element's parents for Folders, destroy them
 		this.silentlyRemoveFolders(element);
@@ -289,29 +300,33 @@ var Sidebar = new Class({
 	
 	getBranchFromFile: function(file) {
 		var branch,
-			title;
+			title,
+            tree;
 		
 		if(file instanceof Library) {
 			title = file.getID();
+            tree = 'data';
 		} else if (file instanceof Folder) {
 			title = file.options.name;
+            tree = file.options.root_dir == Folder.ROOT_DIR_LIB
+                ? 'lib' : 'data';
 		} else if (file instanceof Module 
                 || file instanceof Attachment) {
 			title = file.options.filename + '.' + file.options.type;
-			
+            tree = file instanceof Module ? 'lib' : 'data';
 		} else {
             return null; //throw Error? this is a bad case!
         }
 		
-		$(this).getElements('.tree li[path="{title}"]'.substitute({title:title})).some(function(el) {
-			if(el.retrieve('file') == file) {
-				branch = el;
-				return true;
-			}
-		});
-		
+        branch = this.getBranchFromPath(title, tree);	
 		return branch;
 	},
+
+    getBranchFromPath: function(path, treeName) { 
+		var tree = this.trees[treeName];
+        if (!tree) return null;
+        return $(tree).getElement('li[path="{p}"]'.substitute({p:path}));
+    },
 	
 	setSelectedFile: function(el) {
 		var options = this.options;

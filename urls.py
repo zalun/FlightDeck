@@ -21,11 +21,10 @@ urls.extend([
     url(r'^media/(?P<path>.*)$', static.serve,
         {'document_root': settings.MEDIA_ROOT}, name='media'),
 
-    # API Browser
+    # XPI build
     (r'^xpi/', include('xpi.urls')),
 
-    # API Browser
-    (r'^api/', include('api.urls')),
+    # /docs are an Apache rewrite
 
     (r'^tutorial/', include('tutorial.urls')),
 
@@ -33,6 +32,9 @@ urls.extend([
 
     # Search
     (r'^search/', include('search.urls')),
+
+    #  Repackage
+    (r'^repackage/', include('repackage.urls')),
 
     # Jetpack
     (r'', include('jetpack.urls')),

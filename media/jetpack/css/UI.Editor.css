@@ -44,7 +44,6 @@ body
 
 		#editor-tabs .tab
 		{
-			float: left;
 			height: 23px;
 			line-height: 23px;
 			margin: 6px 6px 0 0;
@@ -69,7 +68,6 @@ body
 			{
 				border-color: #777 !important;				
 				background: -moz-linear-gradient(top, #bbb, #ccc) !important;
-				font-weight: bold;
 				text-shadow: 0 1px 0 #eee !important;
 				color: #222 !important;
 				cursor: default !important;
@@ -85,6 +83,15 @@ body
 			color:#fff;
 			border-radius:10px;
 		}
+
+        #editor-tabs .tab.modified .label {
+            font-style:italic;
+        }
+
+            #editor-tabs .tab.modified .label:after {
+                content:'*';
+            }
+		
 
 .ma-container strong { 
 	font-weight: bold;

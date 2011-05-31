@@ -298,7 +298,53 @@ var FlightDeck = new Class({
  */
 
 Spinner = Class.refactor(Spinner, {
-    options: { delay: 400 },
+    options: { 
+        delay: 400,
+        maskBorder: true
+    },
+    initialize: function(target, options) {
+        this.previous(target, options);
+    },
+    position: function() {
+        this.previous();
+        this.unmaskBorder();
+    },
+    unmaskBorder: function() {
+        $log('DEBUG: Spinner is unmaskingBorder');
+        //1. change height/width to not cover border
+        var el = this.element,
+            oldHeight = el.getStyle('height').toInt(),
+            oldWidth = el.getStyle('width').toInt(),
+            oldLeft = el.getStyle('left').toInt();
+            oldTop = el.getStyle('top').toInt();
+            computedSize = this.target.getComputedSize({
+                styles: ['padding']
+            });
+
+        el.setStyle('width', computedSize.totalWidth);
+        el.setStyle('height', computedSize.totalHeight);
+
+        //2. change top/left to not cover border
+        var newLeft = oldLeft + (oldWidth - computedSize.totalWidth) / 2,
+            newTop = oldTop + (oldHeight - computedSize.totalHeight) / 2;
+        el.setStyle('left', newLeft);
+        el.setStyle('top', newTop);
+        
+        //3. add border-radius if needed
+        var computed = document.defaultView.getComputedStyle(this.target, null);
+        var radiusProps = [
+            'border-bottom-left-radius',
+            'border-bottom-right-radius',
+            'border-top-left-radius',
+            'border-top-right-radius'
+        ];
+        radiusProps.forEach(function(prop) {
+            var value = computed.getPropertyValue(prop);
+            if (value) {
+                el.setStyle(prop, value);
+            }
+        });
+    }
 });
 
 /*

@@ -59,6 +59,8 @@ LOGGING = {
         'amqplib': {'handlers': ['null']},
         'celery': {'level': logging.ERROR},
         'nose.plugins.manager': {'level': logging.INFO},
+        'pyes': {'handlers': ['null']},
+        'rdflib': {'handlers': ['null']},
         'f.jetpack': {'level': logging.INFO},
     },
 }
@@ -126,7 +128,12 @@ PYTHON_EXEC = 'python'
 # amo defaults
 XPI_AMO_PREFIX = "ftp://ftp.mozilla.org/pub/mozilla.org/addons/"
 
+TEST_AMO_USERNAME = None
+TEST_AMO_PASSWORD = None
 AUTH_DATABASE = None
+AMO_SECRET_KEY = "notsecure"
+
+BUILDER_SECRET_KEY = 'notsecure'
 # set it in settings_local.py if AMO auth should be used
 #AUTH_DATABASE = {
 #    'NAME': 'db_name',
@@ -251,7 +258,7 @@ INSTALLED_APPS = [
     'amo',               # currently addons.mozilla.org authentication
     'jetpack',           # Jetpack functionality
     'xpi',               # XPI management
-    'api',               # API browser
+    'repackage',         # repackaging XPI
     'tutorial',          # Load tutorial templates
     'cronjobs',
 
@@ -294,6 +301,10 @@ djcelery.setup_loader()
 
 # Setting this to true will bypass celeryd and execute tasks in-process
 CELERY_ALWAYS_EAGER = True
+
+CELERY_ROUTES = {
+    'repackage.tasks.low_rebuild': {'queue': 'builder_bulk'},
+}
 
 ENGAGE_ROBOTS = False
 

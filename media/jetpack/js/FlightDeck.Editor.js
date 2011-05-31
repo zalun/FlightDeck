@@ -7,7 +7,7 @@ FlightDeck = Class.refactor(FlightDeck,{
 	initialize: function(options) {
 		this.setOptions(options);
 		this.sidebar = new Sidebar();
-		this.tabs = new FlightDeck.TabBar('editor-tabs', {
+		var tabs = this.tabs = new FlightDeck.TabBar('editor-tabs', {
 			arrows: false,
 			onTabDown: function(tab) {
 				if (!tab.hasClass('selected')) {
@@ -16,7 +16,9 @@ FlightDeck = Class.refactor(FlightDeck,{
 			},
 			onCloseDown: function(tabClose) {
 				var tabEl = tabClose.getParent('.tab');
-				var nextTab = tabEl.getPrevious('.tab.') || tabEl.getNext('.tab');
+				var nextTab = tabEl.hasClass('selected') ?
+					tabEl.getPrevious('.tab.') || tabEl.getNext('.tab') :
+					$(tabs).getElement('.tab.selected');
 				if(nextTab) {
 					var tab = tabEl.retrieve('tab:instance'),
 						that = this,
@@ -49,7 +51,7 @@ FlightDeck = Class.refactor(FlightDeck,{
 										//dumps content when it changes
 										setTimeout(function() {
 											file.content = file.original_content;
-											file.changed = false;
+											file.setChanged(false);
 											fd.edited--;
 											if(!fd.edited) {
 												fd.fireEvent('reset');

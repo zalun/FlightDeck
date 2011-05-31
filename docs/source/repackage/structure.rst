@@ -7,8 +7,10 @@ Structure
 .. note:: The **structure** defines the way in which the various features and functions of the site fit together. It defines the path user has to go to reach any page of the site from the other page
 
 
-Repackage is a **View** in the ``XPI`` **Application**.
+Repackage is an **Application**.
 
-It receives the id in AMO and ``XPI`` filename via GET.
+It contains several views and celery tasks needed to complete the goal.
 
-It will call the same xpi creation celery task as standard Builder.
+Repackage XPI build is different from Add-ons Builder XPI build only in
+the way it's preparing the packages. Instead of reading them from
+database/request it's unpacking received XPI.
