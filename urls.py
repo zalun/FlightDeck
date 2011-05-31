@@ -24,8 +24,7 @@ urls.extend([
     # XPI build
     (r'^xpi/', include('xpi.urls')),
 
-    # API Browser
-    (r'^api/', include('api.urls')),
+    # /docs are an Apache rewrite
 
     (r'^tutorial/', include('tutorial.urls')),
 
