@@ -80,7 +80,8 @@ def rebuild(location, upload, sdk_source_dir, hashtag,
             'secret': settings.AMO_SECRET_KEY,
             'result': 'success' if not response[1] else 'failure',
             'msg': response[1] or response[0],
-            'location': reverse('jp_download_xpi', args=[hashtag, filename])}
+            'location': "%s%s" % (settings.SITE_URL,
+                reverse('jp_download_xpi', args=[hashtag, filename]))}
         if post:
             data['request'] = post
         log.debug('[%s] Pingback: %s' % (hashtag, pingback))
