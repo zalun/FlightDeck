@@ -26,8 +26,7 @@ log = commonware.log.getLogger('f.repackage')
 class Repackage(object):
 
     def download(self, location):
-        """Downloads the XPI (from address build with
-        ``settings.XPI_AMO_PREFIX``, ``amo_id`` and ``amo_file``) and
+        """Downloads the XPI (from ``location``) and
         instantiates XPI in ``self.xpi_zip``
 
         This eventually will record statistics about build times
