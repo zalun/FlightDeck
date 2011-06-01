@@ -59,8 +59,9 @@ class RepackageTaskTest(TestCase):
         desired_response = {
                 'msg': 'Exporting extension to sample_add-on.xpi.',
                 'secret': settings.AMO_SECRET_KEY,
-                'location': reverse('jp_download_xpi', args=[
-                        self.hashtag, self.sample_addons[0]]),
+                'location': '%s%s' % (settings.SITE_URL,
+                    reverse('jp_download_xpi', args=[
+                        self.hashtag, self.sample_addons[0]])),
                 'post': None,
                 'id': 'jid0-S9EIBmWttfoZn92i5toIRoKXb1Y',
                 'result': 'success'}
