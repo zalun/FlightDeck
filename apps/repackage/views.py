@@ -80,7 +80,8 @@ def rebuild(request):
                 "Rejecting")
         return HttpResponseBadRequest('Please provide XPI files to rebuild')
 
-    sdk_source_dir = _get_latest_sdk_source_dir()
+    sdk_source_dir = (settings.REPACKAGE_SDK_SOURCE
+            or _get_latest_sdk_source_dir())
     pingback = request.POST.get('pingback', None)
     priority = request.POST.get('priority', None)
     post = request.POST.urlencode()
