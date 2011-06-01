@@ -58,7 +58,7 @@ class RepackageTaskTest(TestCase):
 
         desired_response = {
                 'msg': 'Exporting extension to sample_add-on.xpi.',
-                'secret': settings.BUILDER_SECRET_KEY,
+                'secret': settings.AMO_SECRET_KEY,
                 'location': reverse('jp_download_xpi', args=[
                         self.hashtag, self.sample_addons[0]]),
                 'post': None,
