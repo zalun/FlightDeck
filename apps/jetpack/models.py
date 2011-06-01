@@ -30,7 +30,6 @@ from elasticutils import es_required
 from pyes import djangoutils
 from pyes.exceptions import NotFoundException as PyesNotFoundException
 
-from api.helpers import export_docs
 from base.models import BaseModel
 from jetpack.errors import (SelfDependencyException, FilenameExistException,
                             UpdateDeniedException, SingletonCopyException,
@@ -1771,78 +1770,6 @@ class SDK(BaseModel):
         # db and editable on the web)
         return self.version < '1.0b1'
 
-    def import_docs(self, tar_filename="addon-sdk-docs.tgz", export=True):
-        from api.models import DocPage
-        """import docs from addon-sdk-docs.tgz """
-        tar_path = os.path.join(self.get_source_dir(), tar_filename)
-        sdk_dir = self.get_source_dir()
-        if export:
-            if os.path.isfile(tar_path):
-                raise SimpleException(
-                        "%s does exist. Have you forgotten to remove it?" %
-                        tar_path)
-            export_docs(sdk_dir)
-        if not os.path.isfile(tar_path):
-            raise SimpleException(
-                    "%s does not exist. It should be here?" %
-                    tar_path)
-        if not tarfile.is_tarfile(tar_path):
-            raise SimpleException("%s is not a tar file" % tar_path)
-        # import data
-        tar_file = tarfile.open(tar_path)
-
-        for member in tar_file.getmembers():
-            if 'addon-sdk-docs/packages/' in member.name:
-                # filter package description
-                if 'README.md' in member.name:
-                    """ consider using description for packages """
-                    member_path = member.name.split('/README.md')[0]
-                    member_path = member_path.split(
-                            'addon-sdk-docs/packages/')[1]
-                    member_file = tar_file.extractfile(member)
-                    try:
-                        docpage = DocPage.objects.get(sdk=self,
-                                                      path=member_path)
-                    except ObjectDoesNotExist:
-                        docpage = DocPage(sdk=self, path=member_path)
-                    docpage.html = '<h1>%s</h1>%s' % (
-                            member_path,
-                            markdown.markdown(member_file.read()))
-                    docpage.json = ''
-                    docpage.save()
-                    member_file.close()
-                # filter module description
-                if ('/docs/' in member.name and '.md' in member.name
-                    and '.md.' not in member.name):
-                    # strip down to the member_path
-                    member_path = member.name.split('.md')[0]
-                    member_path = ''.join(member_path.split('/docs'))
-                    member_path = member_path.split(
-                            'addon-sdk-docs/packages/')[1]
-                    # extract member_html and member_json
-                    try:
-                        member_html = tar_file.getmember(member.name + '.div')
-                    except KeyError:
-                        member_html = tar_file.getmember(
-                                member.name + '.div.html')
-                    member_html_file = tar_file.extractfile(member_html)
-                    member_json = tar_file.getmember(member.name + '.json')
-                    member_json_file = tar_file.extractfile(member_json)
-                    # create or load docs
-                    try:
-                        docpage = DocPage.objects.get(sdk=self,
-                                                      path=member_path)
-                    except ObjectDoesNotExist:
-                        docpage = DocPage(sdk=self, path=member_path)
-                    docpage.html = member_html_file.read()
-                    docpage.json = member_json_file.read()
-                    docpage.save()
-                    member_html_file.close()
-                    member_json_file.close()
-
-        tar_file.close()
-        # remove docs file
-        os.remove(tar_path)
 
 
 def _get_next_id_number():

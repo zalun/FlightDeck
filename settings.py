@@ -259,7 +259,6 @@ INSTALLED_APPS = [
     'jetpack',           # Jetpack functionality
     'xpi',               # XPI management
     'repackage',         # repackaging XPI
-    'api',               # API browser
     'tutorial',          # Load tutorial templates
     'cronjobs',
 

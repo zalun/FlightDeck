@@ -259,7 +259,6 @@ def update_SDK(sdk_dir_name):
         kit_lib=kit_revision if kit_manifest else None,
         dir=sdk_dir_name
     )
-    sdk.import_docs()
 
 
 def create_SDK(sdk_dir_name='jetpack-sdk'):
@@ -296,4 +295,3 @@ def create_SDK(sdk_dir_name='jetpack-sdk'):
         kit_lib=kit_revision if kit_manifest else None,
         dir=sdk_dir_name
     )
-    sdk.import_docs()
