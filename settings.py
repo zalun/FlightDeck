@@ -132,6 +132,8 @@ TEST_AMO_USERNAME = None
 TEST_AMO_PASSWORD = None
 AUTH_DATABASE = None
 AMO_SECRET_KEY = "notsecure"
+# add directory to desired SDK else latest imported SDK will be used
+REPACKAGE_SDK_SOURCE = None
 
 BUILDER_SECRET_KEY = 'notsecure'
 # set it in settings_local.py if AMO auth should be used
