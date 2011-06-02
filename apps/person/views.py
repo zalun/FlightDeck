@@ -5,6 +5,7 @@ from django.core.paginator import Paginator
 from django.db.models import ObjectDoesNotExist
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
+from django.http import Http404
 
 from person.models import Profile
 

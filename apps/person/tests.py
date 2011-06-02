@@ -37,3 +37,7 @@ class ProfileTest(TestCase):
         x_url = reverse('person_public_profile', args=['xxx'])
         with_dash_url = reverse('person_public_profile', args=['abc-cde'])
         eq_(with_dash_url, x_url.replace('xxx', 'abc-cde'))
+    
+    def test_fake_profile(self):
+        resp = self.client.get(reverse('person_public_profile', args=['xxx']))
+        eq_(404, resp.status_code)
