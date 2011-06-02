@@ -5,7 +5,10 @@ repackage.helpers
 
 import rdflib
 
+import commonware.log
 from django.conf import settings
+
+log = commonware.log.getLogger('f.repackage')
 
 
 class Extractor(object):
@@ -29,7 +32,7 @@ class Extractor(object):
         """
         data = {
             # since SDK 1.0b5 id has no longer be synced with public key
-            'id': self.find('id').split('@jetpack')[0],
+            'id': self.find('id').split('@')[0],
             'type': self.find('type') or self.ADDON_EXTENSION,
             'fullName': self.find('name'),
             'version': self.find('version'),
