@@ -139,7 +139,7 @@ var Package = new Class({
 		new Request.JSON({
 			url: this.options.copy_url,
             useSpinner: true,
-            spinnerTarget: this.options.copy_el.getElement('a'),
+            spinnerTarget: this.copy_el.getElement('a'),
             spinnerOptions: {
                 img: {
                     'class': 'spinner-img spinner-16'
@@ -1487,7 +1487,7 @@ Package.Edit = new Class({
 			url: this.options.save_url,
 			data: this.data,
             useSpinner: true,
-            spinnerTarget: this.options.save_el.getElement('a'),
+            spinnerTarget: $(this.options.save_el).getElement('a'),
             spinnerOptions: {
                 img: {
                     'class': 'spinner-img spinner-16'
