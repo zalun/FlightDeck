@@ -858,6 +858,11 @@ Package.Edit = new Class({
 					url: this.options.switch_sdk_url,
                     useSpinner: true,
                     spinnerTarget: 'core_library_lib',
+					spinnerOptions: {
+						img: {
+							'class': 'spinner-img spinner-16'
+						}
+					},
 					data: {'id': $('jetpack_core_sdk_version').get('value')},
 					onSuccess: function(response) {
 						// set the redirect data to view_url of the new revision
@@ -1014,6 +1019,11 @@ Package.Edit = new Class({
 			data: data,
             useSpinner: true,
             spinnerTarget: 'attachments',
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				that.registerRevision(response);
@@ -1050,6 +1060,11 @@ Package.Edit = new Class({
 			url: that.options.rename_attachment_url,
             useSpinner: true,
             spinnerTarget: spinnerEl,
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			data: {
 				uid: uid,
 				new_filename: filename,
@@ -1089,6 +1104,11 @@ Package.Edit = new Class({
 			url: self.options.remove_attachment_url,
             useSpinner: true,
             spinnerTarget: fd.sidebar.getBranchFromFile(attachment),
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			data: {uid: attachment.options.uid},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
@@ -1105,6 +1125,11 @@ Package.Edit = new Class({
 			url: this.options.add_module_url,
             useSpinner: true,
             spinnerTarget: 'modules',
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			data: {'filename': filename},
 			onSuccess: function(response) {
 				// set the redirect data to view_url of the new revision
@@ -1136,6 +1161,11 @@ Package.Edit = new Class({
 			url: this.options.rename_module_url,
             useSpinner: true,
             spinnerTarget: el,
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			data: {
 				old_filename: oldName,
 				new_filename: newName
@@ -1167,6 +1197,11 @@ Package.Edit = new Class({
 			url: this.options.remove_module_url,
             useSpinner: true,
             spinnerTarget: el,
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			data: module.options,
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
@@ -1187,6 +1222,11 @@ Package.Edit = new Class({
 			},
             useSpinner: true,
             spinnerTarget: el,
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
@@ -1209,6 +1249,11 @@ Package.Edit = new Class({
 			data: {filename: path+'/'},
             useSpinner: true,
             spinnerTarget: el,
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
@@ -1235,6 +1280,11 @@ Package.Edit = new Class({
 			},
             useSpinner: true,
             spinnerTarget: el,
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
@@ -1257,6 +1307,11 @@ Package.Edit = new Class({
 			},
             useSpinner: true,
             spinnerTarget: fd.sidebar.getBranchFromFile(folder),
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
@@ -1273,6 +1328,11 @@ Package.Edit = new Class({
 				data: {'id_number': library_id},
                 useSpinner: true,
                 spinnerTarget: 'plugins',
+				spinnerOptions: {
+					img: {
+						'class': 'spinner-img spinner-16'
+					}
+				},
 				onSuccess: function(response) {
 					// set the redirect data to view_url of the new revision
 					fd.setURIRedirect(response.view_url);
@@ -1303,6 +1363,11 @@ Package.Edit = new Class({
 			},
 			useSpinner: true,
 			spinerTarget: 'plugins',
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
@@ -1357,6 +1422,11 @@ Package.Edit = new Class({
 			data: {'id_number': lib.options.id_number},
             useSpinner: true,
             spinnerTarget: fd.sidebar.getBranchFromFile(lib),
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
