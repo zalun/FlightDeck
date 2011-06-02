@@ -1064,11 +1064,11 @@ Package.Edit = new Class({
                     fd.message.alert(response.message_title, response.message);
                 }
 				
-				// destroy old attachment, since renaming creates a 
-				// whole new one anyways. then it has the updated uid,
-				// and we dont get weird extra files created
 				var attachment = that.attachments[uid];
-                
+                if (!attachment) {
+					$log("WARN: Attachment (" + uid + ") couldn't be found in fd.item");
+					return;
+				}
 				attachment.reassign({
 					append: true,
 					active: false,
