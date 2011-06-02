@@ -1487,7 +1487,7 @@ Package.Edit = new Class({
 			url: this.options.save_url,
 			data: this.data,
             useSpinner: true,
-            spinnerTarget: $(this.options.save_el).getElement('a'),
+            spinnerTarget: $(this.options.save_el),
             spinnerOptions: {
                 img: {
                     'class': 'spinner-img spinner-16'
