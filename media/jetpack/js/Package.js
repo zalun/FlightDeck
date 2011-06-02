@@ -1044,10 +1044,8 @@ Package.Edit = new Class({
 			filename = filename.getFileName();
 		}
 		
-		var spinnerEl = fd.sidebar.getBranchFromPath(newName, 'data');
-		console.log(att, spinnerEl);
-
-
+		var spinnerEl = fd.sidebar.getBranchFromFile(newName, 'data');
+		
 		new Request.JSON({
 			url: that.options.rename_attachment_url,
             useSpinner: true,
