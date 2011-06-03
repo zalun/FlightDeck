@@ -1,5 +1,11 @@
-from django.test import TestCase
+"""
+person.urls
+-----------
+"""
 from django.contrib.auth.models import User
+from django.core.urlresolvers import reverse
+from django.test import TestCase
+from nose.tools import eq_
 
 from person.models import Profile
 
@@ -26,3 +32,12 @@ class ProfileTest(TestCase):
 
     def test_get_fullname(self):
         self.assertEqual(self.user.get_profile().get_fullname(), 'John Doe')
+
+    def test_public_profile_url(self):
+        x_url = reverse('person_public_profile', args=['xxx'])
+        with_dash_url = reverse('person_public_profile', args=['abc-cde'])
+        eq_(with_dash_url, x_url.replace('xxx', 'abc-cde'))
+    
+    def test_fake_profile(self):
+        resp = self.client.get(reverse('person_public_profile', args=['xxx']))
+        eq_(404, resp.status_code)

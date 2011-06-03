@@ -23,6 +23,13 @@ FileTree = new Class({
 		//onDeleteBranch: function(li, span){}
 	},
 	
+	initialize: function(element, options) {
+		this.addEvent('change', function() {
+			this.setFullPath(this.current);
+		}, true);
+		this.parent(element, options);
+	},
+	
 	attach: function(){
 		this.parent();
 		var that = this;
@@ -41,6 +48,7 @@ FileTree = new Class({
 				if(e.key == 'enter') that.renameBranchEnd($(e.target).getParent('li'));
 			}
 		});
+		
 		return this;
 	},
 	
@@ -285,6 +293,12 @@ FileTree = new Class({
 			name = this.getFullPath(parentEl) + '/' + name;
 		}
 		return name;
+	},
+	
+	setFullPath: function(branch, path) {
+		if (!path) path = this.getFullPath(branch);
+		branch.set('path', path);
+		return branch;
 	},
 	
 	toElement: function() {

@@ -5,6 +5,7 @@ from django.core.paginator import Paginator
 from django.db.models import ObjectDoesNotExist
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
+from django.http import Http404
 
 from person.models import Profile
 
@@ -18,8 +19,8 @@ def public_profile(r, username):
     except ObjectDoesNotExist:
         raise Http404
     person = profile.user
-    addons = person.packages_originated.addons()
-    libraries = person.packages_originated.libraries()
+    addons = person.packages_originated.addons().active()
+    libraries = person.packages_originated.libraries().active()
     # if owner of the profile and not specially wanted to see it - redirect
     # to dashboard
     return render_to_response("profile.html", {
@@ -32,8 +33,8 @@ def public_profile(r, username):
 
 
 def get_packages(person):
-    addons = person.packages_originated.addons()
-    libraries = person.packages_originated.libraries()
+    addons = person.packages_originated.addons().active()
+    libraries = person.packages_originated.libraries().active()
     disabled_addons = person.packages_originated.disabled().filter(type='a')
     disabled_libraries = person.packages_originated.disabled().filter(type='l')
     return addons, libraries, disabled_addons, disabled_libraries

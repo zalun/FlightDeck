@@ -2,6 +2,8 @@ from django.conf.urls.defaults import url, patterns
 from django.contrib.auth.views import login, logout
 from forms import AuthenticationForm
 
+from nose.tools import eq_
+
 
 urlpatterns = patterns('person.views',
     url(r'^signin/$', login,
@@ -33,6 +35,6 @@ urlpatterns = patterns('person.views',
         'dashboard_browser', {'type': 'l'}, name='person_libraries_page'),
 
     # public profile
-    url(r'^(?P<username>\w+)/$', 'public_profile',
+    url(r'^(?P<username>[-\w]+)/$', 'public_profile',
         name='person_public_profile'),
 )

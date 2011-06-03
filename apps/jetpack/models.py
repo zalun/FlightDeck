@@ -1875,10 +1875,12 @@ def manage_empty_lib_dirs(instance, action, **kwargs):
 
             if not instance.modules.filter(
                     filename__startswith=dirname).count():
+                options = {'revisions__package': instance.package_id,
+                           'name': dirname, 'root_dir': 'l'}
                 try:
-                    emptydir = EmptyDir.objects.get(
-                        revisions__package=instance.package_id, name=dirname,
-                        root_dir='l')
+                    emptydir = EmptyDir.objects.get(**options)
+                except EmptyDir.MultipleObjectsReturned:
+                    emptydir = EmptyDir.objects.filter(**options)[0]
                 except EmptyDir.DoesNotExist:
                     emptydir = EmptyDir(name=dirname, root_dir='l',
                                         author=instance.author)
@@ -1917,10 +1919,12 @@ def manage_empty_data_dirs(instance, action, **kwargs):
 
             if not instance.attachments.filter(
                     filename__startswith=dirname).count():
+                options = {'revisions__package': instance.package_id,
+                           'name': dirname, 'root_dir': 'd'}
                 try:
-                    emptydir = EmptyDir.objects.get(
-                        revisions__package=instance.package_id, name=dirname,
-                        root_dir='d')
+                    emptydir = EmptyDir.objects.get(**options)
+                except EmptyDir.MultipleObjectsReturned:
+                    emptydir = EmptyDir.objects.filter(**options)[0]
                 except EmptyDir.DoesNotExist:
                     emptydir = EmptyDir(name=dirname, root_dir='d',
                                         author=instance.author)
