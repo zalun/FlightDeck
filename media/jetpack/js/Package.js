@@ -252,7 +252,7 @@ var Package = new Class({
 			if (this.options.modules[0]) {
 				var mod = this.modules[this.options.modules[0].filename];
 				fd.sidebar.setSelectedFile(mod)
-				this.editor.switchTo(mod);
+				mod.switchTo();
 			} 
 		}
 	},
