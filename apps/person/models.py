@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.db import models
 
+from amo.helpers import get_amo_cursor
 from person.managers import ProfileManager
 
 class Limit(models.Model):
@@ -44,3 +45,33 @@ class Profile(models.Model):
 
     def get_libraries_url(self):
         return reverse('jp_browser_user_libraries', args=[self.get_nickname()])
+
+    def update_from_AMO(self, data=None):
+        if not data:
+            auth_cursor = get_amo_cursor()
+            columns = ('id', 'email', 'username', 'display_name', 'email' ,
+                       'homepage')
+
+            SQL = ('SELECT %s FROM %s WHERE username=%s') % (
+                    ','.join(columns), settings.AUTH_DATABASE['TABLE'],
+                    self.nickname)
+            auth_cursor.execute(SQ)
+            data = auth_cursor.fetchone()
+            data = {}
+            for i in range(len(data)):
+                data[columns[i]] = data[i]
+
+        if 'display_name' in data:
+            if data['display_name']:
+                names = data['display_name'].split(' ')
+                self.user.firstname = names[0]
+                if len(names) > 1:
+                    self.user.lastname = names[-1]
+                self.user.save()
+
+        if 'username' in data:
+            self.nickname = data['username']
+        if 'homepage' in data:
+            self.homepage = data['homepage']
+
+        self.save()
