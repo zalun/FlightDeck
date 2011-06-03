@@ -103,6 +103,8 @@
 
         _setContent: function(value){
             this.editor.getSession().setValue(value);
+			var cursor = this.current.cursorPos || { row: 0, column: 0 };
+			this.editor.selection.moveCursorTo(cursor.row, cursor.column);
         },
 
         getUndoRedoStack: function() {
@@ -130,11 +132,7 @@
             // load undo buffers
             if (this.current.undo_manager) {
                 this.setUndoRedoStack(this.current.undo_manager);
-            }
-			var cursor = this.current.cursorPos;
-			if (cursor) {
-				this.editor.selection.moveCursorTo(cursor.row, cursor.column);
-			}
+            }			
         },
 
         setSyntax: function(kind){
