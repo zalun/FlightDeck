@@ -15,7 +15,17 @@ class ProfileManager(models.Manager):
     " manager for Person object "
 
     def get_user_by_username_or_nick(self, username):
+        # for local users
         by_username = Q(user__username=username)
+        # for AMO users
         by_nick = Q(nickname=username)
-        return self.get(by_nick | by_username)
+
+        try:
+            return self.get(by_nick | by_username)
+        except MultipleObjectsReturned:
+            profiles = self.filter(by_nick | by_username)
+            log.error("User (%s) has multiple profiles. AMO uids: (%s)" %
+                    (username, ', '.join([p.user.username for p in profiles])))
+            raise
+
 
