@@ -305,7 +305,7 @@ var Sidebar = new Class({
 		
 		if(file instanceof Library) {
 			title = file.getID();
-            tree = 'data';
+            tree = 'plugins';
 		} else if (file instanceof Folder) {
 			title = file.options.name;
             tree = file.options.root_dir == Folder.ROOT_DIR_LIB
