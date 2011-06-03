@@ -3,6 +3,7 @@ Managers for the Profile models
 """
 import commonware
 
+from django.core.exceptions import MultipleObjectsReturned
 from django.db import models
 from django.db.models import Q
 
