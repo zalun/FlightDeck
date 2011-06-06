@@ -27,8 +27,8 @@ class BadManifestFieldException(exceptions.SimpleException):
 
 def _get_package_overrides(container, sdk_version=None):
     version = container.get('version', None)
-    if version and sdk_version and '{sdk_version}' in version:
-        version = version.replace('{sdk_version}', sdk_version)
+    if version and sdk_version:
+        version = version.format(sdk_version=sdk_version)
 
     package_overrides = {
         'version': version,
