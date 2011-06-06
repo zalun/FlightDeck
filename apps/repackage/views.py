@@ -25,8 +25,11 @@ class BadManifestFieldException(exceptions.SimpleException):
     """
 
 
-def _get_package_overrides(container):
+def _get_package_overrides(container, sdk_version=None):
     version = container.get('version', None)
+    if version and sdk_version:
+        version = version.format(sdk_version=sdk_version)
+
     package_overrides = {
         'version': version,
         'type': container.get('type', None),
@@ -82,6 +85,15 @@ def rebuild(request):
 
     sdk_source_dir = (settings.REPACKAGE_SDK_SOURCE
             or _get_latest_sdk_source_dir())
+    sdk_manifest = '%s/packages/%s/package.json' % (sdk_source_dir, 'addon-kit')
+    try:
+        handle = open(sdk_manifest)
+    except Exception, err:
+        log.critical("Problems loading SDK manifest\n%s" % str(err))
+        raise
+    else:
+        sdk_version = simplejson.loads(handle.read())['version']
+        handle.close()
     pingback = request.POST.get('pingback', None)
     priority = request.POST.get('priority', None)
     post = request.POST.urlencode()
@@ -104,7 +116,8 @@ def rebuild(request):
         filename = request.POST.get('filename', None)
 
         try:
-            package_overrides = _get_package_overrides(request.POST)
+            package_overrides = _get_package_overrides(request.POST,
+                                                       sdk_version)
         except BadManifestFieldException, err:
             errors.append('[%s] %s' % (hashtag, str(err)))
         else:
@@ -138,7 +151,8 @@ def rebuild(request):
                         "Rejecting") % hashtag)
                     error = True
                 try:
-                    package_overrides = _get_package_overrides(addon)
+                    package_overrides = _get_package_overrides(addon,
+                                                               sdk_version)
                 except Exception, err:
                     errors.append('[%s] %s' % (hashtag, str(err)))
                     error = True
