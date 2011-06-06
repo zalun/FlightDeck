@@ -2,7 +2,7 @@ from django.core.urlresolvers import reverse
 from django.shortcuts import render_to_response, redirect
 from django.template import RequestContext
 
-from elasticutils import get_es
+from elasticutils import S, get_es
 
 from jetpack.models import Package
 from utils.helpers import alphanum_space
@@ -12,18 +12,10 @@ def render(request, template, data={}):
     return render_to_response(template, data, RequestContext(request))
 
 
-def _get_facets(results):
-    facets = results['facets']
-    type_facets = dict(((z['term'], z['count']) for z in
-                         facets['type']['terms']))
-    return type_facets.get('addon', 0), type_facets.get('library', 0)
-
-
-def _get_packages(results):
-    hits = results['hits']
+def _get_packages(hits):
     results = {}
     for type_ in ('a', 'l'):
-        ids = [r['_source']['id'] for r in hits['hits']
+        ids = [r['_source']['id'] for r in hits
                if r['_source']['type'] == type_]
         results[type_] = Package.objects.filter(pk__in=ids)
     return results['a'], results['l']
@@ -33,48 +25,36 @@ term_facet = lambda f: {'terms': dict(field=f, size=10)}
 
 
 def _query(searchq, type_=None, user=None, filter_by_user=False):
-    if searchq:
-        es = get_es()
-        facets = dict(type=term_facet('_type'))
-        if user and user.is_authenticated():
-            facet = term_facet('author')
-            facet['terms']['script'] = 'term == %d ? true : false' % user.id
-            facets['author'] = facet
+    q = S(searchq).facet('_type')
 
-        query = dict(query=dict(query_string=dict(query=searchq)),
-                     facets=facets, size=50)
+    if type_ in ('addon', 'library'):
+        q = q.filter(_type=type_)
 
-        if type_ in ('addon', 'library'):
-            query['filter'] = {'term': {'_type': type_}}
+    if user and user.is_authenticated():
+        q.facet('author', script='term == %d ? true : false' % user.id)
 
-        # Can filter by user or type, not both.
-        if filter_by_user:
-            query['filter'] = {'term': {'author': user.id}}
+    # Can filter by user or type, not both.
+    if filter_by_user:
+        q.filter(author=user.id)
 
-        r = es.search(query, 'flightdeck')
-        addon_total, library_total = _get_facets(r)
-        addons, libraries = _get_packages(r)
+    q.execute(perpage=50)
+    addon_total = q.get_facet('_type').get('addon', 0)
+    library_total = q.get_facet('_type').get('library', 0)
+    addons, libraries = _get_packages(q.get_results())
 
-        data = dict(addon_total=addon_total, library_total=library_total,
-                    addons=addons, libraries=libraries,
-                    total=r['hits']['total'], q=searchq)
+    data = dict(addon_total=addon_total, library_total=library_total,
+                addons=addons, libraries=libraries, total=q.total, q=searchq)
 
-        if user and user.is_authenticated():
-            data['my_total'] = 0
-            facets = r['facets']['author']['terms']
-            if facets:
-                data['my_total'] = facets[0]['count']
-
-    else:
-        data = {}
-
+    if user and user.is_authenticated():
+        facet =  q.get_facet('author')
+        data['my_total'] = facet.values()[0] if facet else 0
     return data
 
 
 def results(request):
     """This aggregates the first results from add-ons and libraries."""
     q = alphanum_space(request.GET.get('q', ''))
-    
+
     if q:
         data = _query(q, user=request.user)
         return render(request, 'results.html', data)
