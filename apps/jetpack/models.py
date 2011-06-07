@@ -768,7 +768,7 @@ class PackageRevision(BaseModel):
         add dependency (existing Library - PackageVersion)
         """
         # a PackageRevision has to depend on the LibraryRevision only
-        if dep.package.type != 'l':
+        if not dep.package.is_library():
             raise TypeError('Dependency has to be a Library')
 
         # a LibraryRevision can't depend on another LibraryRevision
@@ -803,8 +803,9 @@ class PackageRevision(BaseModel):
             if (existing.id != adding.id and
                 existing.package.name == adding.package.name):
                 raise DependencyException(
-                    'Your %s already depends on a library with that name' % (
-                        existing.package.get_type_name(),))
+                    'Your %s already depends on a library named "%s"' % (
+                        self.package.get_type_name(),
+                        adding.package.name))
             for lib in existing.dependencies.all():
                 check_conflicts_if_added(lib, adding)
         
@@ -815,6 +816,10 @@ class PackageRevision(BaseModel):
             for lib in adding.dependencies.all():
                 check_adding_all_dependencies(existing, lib)
         
+        if self.dependencies.filter(package=dep.package_id).count():
+            raise DependencyException(
+                    'Your %s already depends on a library with that name' % (
+                        self.package.get_type_name(),))
         check_adding_all_dependencies(self, dep)
 
     def dependency_update(self, dep, save=True):
