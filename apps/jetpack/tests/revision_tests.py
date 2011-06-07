@@ -149,11 +149,36 @@ class PackageRevisionTest(TestCase):
         self.assertEqual(0, lib.dependencies.all().count())
 
     def test_adding_library_twice(self):
-        " Check recurrent dependency (one level only) "
+        " Check recurrent dependency (one level deep) "
         lib = self.library.latest
         addon = self.addon.latest
         addon.dependency_add(lib)
         self.assertRaises(DependencyException, addon.dependency_add, lib)
+    
+    
+    def test_adding_library_naming_conflict(self):
+        " Check recurrent dependency (all levels) "
+        john_lib = self.library
+        john_lib2 = Package(author=self.author, type='l')
+        john_lib2.save()
+        
+        jan = User.objects.get(username='jan')
+        jan_lib = Package(author=jan, type='l')
+        jan_lib.save()
+        jan_conflict = Package(author=jan, type='l', full_name=john_lib.full_name)
+        jan_conflict.save()
+        
+        john_lib.latest.dependency_add(jan_lib.latest)
+        
+        addon = self.addon.latest
+        addon.dependency_add(john_lib.latest)
+        addon.dependency_add(jan_lib.latest)
+        
+        self.assertRaises(DependencyException, addon.dependency_add, jan_conflict.latest)
+        
+        
+        john_lib2.latest.dependency_add(jan_conflict.latest)
+        self.assertRaises(DependencyException, addon.dependency_add, john_lib2.latest)
 
     def test_adding_library_self(self):
         " Check recurrent dependency (one level only) "
@@ -285,20 +310,6 @@ class PackageRevisionTest(TestCase):
             author=self.author
         )
         self.assertRaises(FilenameExistException, first.attachment_add, att)
-
-    def test_assigning_lib_with_the_same_name(self):
-        user2 = User.objects.get(username='jan')
-        lib2 = Package.objects.create(
-                type='l',
-                name=self.library.name,
-                full_name=self.library.full_name,
-                author=user2)
-        self.addon.latest.dependency_add(self.library.latest)
-        self.addon.latest.dependency_add(lib2.latest)
-        eq_(self.addon.latest.dependencies.all().count(), 2)
-        self.addon.latest.build_xpi(hashtag=self.hashtag, rapid=True)
-        log.debug(self.xpi_file)
-        assert os.path.exists(self.xpi_file)
 
     """
     Althought not supported on view and front-en, there is no harm in these two
