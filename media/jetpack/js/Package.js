@@ -1147,8 +1147,6 @@ Package.Edit = new Class({
 					get_url: response.get_url
 				});
 				this.modules[response.filename] = mod;
-				
-				this.checkModuleConflicts();
 			}.bind(this)
 		}).send();
 	},
@@ -1185,8 +1183,6 @@ Package.Edit = new Class({
 				// change the id of the element
 				$(modId).set('id', mod.getID());
 				delete this.modules[oldName];
-				
-				this.checkModuleConflicts();
 			}.bind(this)
 		}).send();
 	},
@@ -1346,7 +1342,6 @@ Package.Edit = new Class({
 						view_url: response.library_url,
 						revision_number: response.library_revision_number
 					});
-					this.checkModuleConflicts();
 				}.bind(this)
 			}).send();
 		} else {
@@ -1375,13 +1370,12 @@ Package.Edit = new Class({
 				lib.setOptions({
 					view_url: response.library_url
 				});
-				this.checkModuleConflicts();
 				Function.from(callback)(response);
 			}.bind(this)
 		}).send();
 	},
 
-    checkDependencies: function() {
+    checkDependenciesVersions: function() {
         var that = this;
         new Request.JSON({
             method: 'get',
@@ -1402,8 +1396,8 @@ Package.Edit = new Class({
 		var that = this;
 		function setCheckInterval() {
 			unsetCheckInterval();
-			that.checkDependencies();
-			that.checkDependenciesInterval = that.checkDependencies.periodical(60000, that);
+			that.checkDependenciesVersions();
+			that.checkDependenciesInterval = that.checkDependenciesVersions.periodical(60000, that);
 		}
 		
 		function unsetCheckInterval() {
@@ -1435,27 +1429,6 @@ Package.Edit = new Class({
 				this.updateFullModulesList();
 			}.bind(this)
 		}).send();
-	},
-	
-	checkModuleConflicts: function() {
-		new Request.JSON({
-			method: 'get',
-			url: this.options.conflicting_modules_list_url,
-			onSuccess: function(response) {
-				this.alertModuleConflicts(response);
-			}.bind(this)
-		}).send();
-		this.updateFullModulesList();
-	},
-	
-	alertModuleConflicts: function(conflicts) {
-		var parts = [];
-		Object.each(conflicts, function(modules, pack) {
-			parts.push(pack + ': ' + modules.join(', '));
-		});
-		if (parts.length) {
-			fd.error.alert("Module Conflicts found",parts.join('<br />'));
-		}
 	},
 
 	/*

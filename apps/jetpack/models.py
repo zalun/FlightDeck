@@ -779,17 +779,43 @@ class PackageRevision(BaseModel):
 
         # dependency have to be unique in the PackageRevision
         # currently, the SDK can't compile with libraries with same "name"
-        if self.dependencies.filter(
-                package__name=dep.package.name,
-                author=dep.package.author).count() > 0:
-            raise DependencyException(
-                'Your %s already depends on a library with that name' % (
-                    self.package.get_type_name(),))
+        self.compare_dependency_conflicts(dep)
         self.add_commit_message('dependency (%s) added' % dep.package.name)
         if save:
             # save as new version
             self.save()
         return self.dependencies.add(dep)
+    
+    def compare_dependency_conflicts(self, dep):
+        """
+        check if adding a dependency will cause a naming conflict as per the
+        SDK 1.0. raises a DependencyException.
+        
+        Example:
+        
+        self = 'A' -> 'B' -> 'C'
+        dep = 'D' -> 'E' -> 'F' -> 'C'
+        
+        raises DependencyException for 'C'.
+        """
+        def check_conflicts_if_added(existing, adding):
+            # check self.name, and then repeat for all self.dependencies
+            if (existing.id != adding.id and
+                existing.package.name == adding.package.name):
+                raise DependencyException(
+                    'Your %s already depends on a library with that name' % (
+                        existing.package.get_type_name(),))
+            for lib in existing.dependencies.all():
+                check_conflicts_if_added(lib, adding)
+        
+        
+        def check_adding_all_dependencies(existing, adding):
+            check_conflicts_if_added(existing, adding)
+            
+            for lib in adding.dependencies.all():
+                check_adding_all_dependencies(existing, lib)
+        
+        check_adding_all_dependencies(self, dep)
 
     def dependency_update(self, dep, save=True):
         " create new version with dependency version updated "
