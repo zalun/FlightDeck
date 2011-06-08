@@ -791,36 +791,42 @@ class PackageRevision(BaseModel):
         check if adding a dependency will cause a naming conflict as per the
         SDK 1.0. raises a DependencyException.
         
+        :param: as_upgrade (Boolean) - if the passed `dep` should be compared
+            for doing an upgade.
+        
         Example:
-        
-        self = 'A' -> 'B' -> 'C'
-        dep = 'D' -> 'E' -> 'F' -> 'C'
-        
-        raises DependencyException for 'C'.
+            self = 'A' -> 'B' -> 'C'
+            dep = 'D' -> 'E' -> 'F' -> 'C'
+            raises DependencyException for 'C'.
         """
-        def check_conflicts_if_added(existing, adding):
+        def check_conflicts_if_added(existing, adding, first_level=False):
+            """
+            :param: first_level (Boolean) - conflicts are more strict at the
+                first level
+            """
+            
+            is_self = existing == self
+            
             # as an upgrade, don't compare the upgraded revision to the old
             # revision of the same package
-            if as_upgrade and existing.package_id == dep.package_id:
+            if as_upgrade and first_level and existing.package_id == dep.package_id:
                 return
             
             # same id is fine, we will only include same id
             # once when building the xpi.
-            if (existing.id != adding.id and
+            if ((first_level or existing.id != adding.id) and
                 existing.package.name == adding.package.name):
                 raise DependencyException(
                     'Your %s already depends on a library named "%s"' % (
                         self.package.get_type_name(),
                         adding.package.name))
             for lib in existing.dependencies.all():
-                check_conflicts_if_added(lib, adding)
+                check_conflicts_if_added(lib, adding, is_self)
         
         
         def check_adding_all_dependencies(existing, adding):
             check_conflicts_if_added(existing, adding)
             
-            # as an upgrade, we don't need to compare the same package with
-            # itself
             for lib in adding.dependencies.all():
                 check_adding_all_dependencies(existing, lib)
         
