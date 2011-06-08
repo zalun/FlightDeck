@@ -66,17 +66,17 @@ class PackageTest(TestCase):
         eq_(package.full_name, 'Gordon')
 
     def test_library_creation_with_nickname(self):
-	profile = self.author.get_profile()
-	profile.nickname = 'Samuel'
-	profile.save()
+        profile = self.author.get_profile()
+        profile.nickname = 'Samuel'
+        profile.save()
 
-	package = Package(
-	    author=self.author,
-	    type='l'
-	)
-	package.save()
+        package = Package(
+            author=self.author,
+            type='l'
+        )
+        package.save()
 
-	eq_(package.full_name, 'Samuel-lib')
+        eq_(package.full_name, 'Samuel-lib')
 
     def test_package_sanitization(self):
         bad_text = 'Te$t"><script src="google.com"></script>!#'
