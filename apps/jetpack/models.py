@@ -1268,7 +1268,7 @@ class Package(BaseModel):
         if self.author.get_profile():
             username = self.author.get_profile().nickname or username
 
-        name = settings.DEFAULT_PACKAGE_FULLNAME.get(self.type, username)
+        name = username + settings.DEFAULT_PACKAGE_SUFFIX.get(self.type, '')
         self.full_name = _get_full_name(name, self.author.username, self.type)
 
     def update_name(self):
