@@ -11,6 +11,6 @@ Repackage is an **Application**.
 
 It contains several views and celery tasks needed to complete the goal.
 
-Repackage XPI build is different from Add-ons Builder XPI build only in
+Repackage XPI build is different from Add-on Builder XPI build only in
 the way it's preparing the packages. Instead of reading them from
 database/request it's unpacking received XPI.
