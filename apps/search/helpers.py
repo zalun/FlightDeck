@@ -10,7 +10,21 @@ def query(searchq, type_=None, user=None, filter_by_user=False, page=1,
     get_packages = lambda x: Package.objects.filter(
             pk__in=(z['_id'] for z in x['hits']['hits']))
 
-    q = S(searchq, result_transform=get_packages).facet('_type')
+    # This is a filtered query, that says we want to do a query, but not have
+    # to deal with version_text='initial'
+    fq = dict(
+            filtered=dict(
+                query=dict(
+                    query_string=dict(query=searchq)
+                    ),
+                filter={
+                    'not': dict(filter=dict(
+                        term=dict(version_text='initial')
+                        ))
+                    }
+                )
+            )
+    q = S(fq, result_transform=get_packages).facet('_type')
 
     filters = {}
     if type_ in ('addon', 'library'):
@@ -21,9 +35,9 @@ def query(searchq, type_=None, user=None, filter_by_user=False, page=1,
 
     if filter_by_user:
         filters['author'] = user.id
-    
+
     q = q.filter(**filters)
-    
+
     pager = Paginator(q, per_page=limit).page(page)
     facet_type = q.get_facet('_type')
     data = dict(pager=pager, total=q.total,
