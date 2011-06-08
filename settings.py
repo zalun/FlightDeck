@@ -105,8 +105,6 @@ PACKAGE_SINGULAR_NAMES = {
     'l': 'library',
     'a': 'addon'
 }
-DEFAULT_PACKAGE_FULLNAME = {
-}
 DEFAULT_PACKAGE_SUFFIX = {
     'l': '-lib'
 }
