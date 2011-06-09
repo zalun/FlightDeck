@@ -1,13 +1,13 @@
 {
     {% include "json/_edit_urls.json" %}
     "message_title": "Library updated",
-	"message": "Library \"{{ library.full_name }}\" now at version {{ lib_revision.get_version_name }}",
+	"message": "Library \"{{ lib_revision.full_name }}\" now at version {{ lib_revision.get_version_name }}",
     "id_number": "{{ library.id_number }}",
     "library_revision_number": "{{ lib_revision.revision_number }}",
     "version_name": "{{ lib_revision.version_name }}",
-    "full_name": "{{ library.full_name }}",
+    "full_name": "{{ lib_revision.full_name }}",
     "library_url": "{{ lib_revision.get_absolute_url }}",
-    "library_name": "{{ library.name }}",
+    "library_name": "{{ lib_revision.name }}",
     "id_number": "{{ library.id_number }}"
 }
 

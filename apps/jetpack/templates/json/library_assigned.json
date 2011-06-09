@@ -1,11 +1,11 @@
 {
     {% include "json/_edit_urls.json" %}
-    "message": "Library \"{{ library.full_name }}\" assigned",
+    "message": "Library \"{{ lib_revision.full_name }}\" assigned",
     "library_revision_number": "{{ lib_revision.revision_number }}",
     "library_version_name": "{{ lib_revision.version_name }}",
-    "library_full_name": "{{ library.full_name }}",
+    "library_full_name": "{{ lib_revision.full_name }}",
     "library_url": "{{ lib_revision_url }}",
-    "library_name": "{{ library.name }}",
+    "library_name": "{{ lib_revision.name }}",
     "library_id_number": "{{ library.id_number }}"
 }
 

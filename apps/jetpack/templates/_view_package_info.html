@@ -1,5 +1,5 @@
 <div id="display-package-info">
-	<h3>{{ revision.package.get_type_name }}: {{ revision.package.full_name }}</h3>
+	<h3>{{ revision.package.get_type_name }}: {{ revision.full_name }}</h3>
 	<div class="UI_Modal_Section">
 		<p><strong>Author</strong>
 			<a href="{% url person_public_profile revision.package.author.username %}">

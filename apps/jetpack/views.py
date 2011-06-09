@@ -19,6 +19,7 @@ from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator, EmptyPage, InvalidPage
 from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
+from django.db import IntegrityError
 from django.db.models import Q, ObjectDoesNotExist
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
@@ -34,7 +35,7 @@ from utils.helpers import pathify
 from jetpack.package_helpers import get_package_revision, \
         create_package_from_xpi
 from jetpack.models import Package, PackageRevision, Module, Attachment, SDK, \
-                           EmptyDir
+                           EmptyDir, make_name
 from jetpack.errors import FilenameExistException, DependencyException
 
 from person.models import Profile
@@ -850,28 +851,28 @@ def package_save(r, id_number, type_id, revision_number=None,
     version_name = r.POST.get('version_name', False)
 
     # validate package_full_name and version_name
-    if package_full_name and not validator.is_valid(
-        'alphanum_plus_space', package_full_name):
-        return HttpResponseNotAllowed(escape(
-            validator.get_validation_message('alphanum_plus_space')))
 
     if version_name and not validator.is_valid(
         'alphanum_plus', version_name):
         return HttpResponseNotAllowed(escape(
             validator.get_validation_message('alphanum_plus')))
 
+    # here we're checking if the *current* full_name is different than the
+    # revision's full_name
     if package_full_name and package_full_name != revision.package.full_name:
-        revision.package.full_name = package_full_name
-        # in FlightDeck, libraries can have the same name, by different authors
         try:
-            Package.objects.get(author=revision.package.author,
-                                name=revision.package.make_name())
+            revision.set_full_name(package_full_name)
+        except ValidationError:
+            return HttpResponseNotAllowed(escape(
+                validator.get_validation_message('alphanum_plus_space')))
+        except IntegrityError:
             return HttpResponseForbidden(
                 'You already have a %s with that name' % escape(
                     revision.package.get_type_name())
                 )
-        except Package.DoesNotExist:
+        else:
             save_package = True
+            save_revision = True
             response_data['full_name'] = package_full_name
 
     package_description = r.POST.get('package_description', False)
