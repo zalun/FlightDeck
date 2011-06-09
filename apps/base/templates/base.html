@@ -64,7 +64,7 @@
 		</script>
 		<style>.hidden { display: none; }</style>
 	</head>
-	<body id="{{ page }}">
+	<body{% if page %} id="{{ page }}"{% endif %}>
 		{# mesages system http://docs.djangoproject.com/en/dev/ref/contrib/messages/#adding-a-message #}
 		{% if messages %}
 		    {% for message in messages %}
