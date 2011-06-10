@@ -4,7 +4,6 @@ from django.shortcuts import render_to_response, redirect
 from django.template import RequestContext
 
 from jetpack.models import Package
-from utils.helpers import alphanum_space
 from helpers import query
 
 def render(request, template, data={}):
@@ -16,7 +15,7 @@ term_facet = lambda f: {'terms': dict(field=f, size=10)}
 
 def results(request):
     """This aggregates the first results from add-ons and libraries."""
-    q = alphanum_space(request.GET.get('q', ''))
+    q = request.GET.get('q', '')
 
     if q:
         addons = query(q, user=request.user, type_='addon', limit=5)
@@ -33,7 +32,7 @@ def results(request):
 def search_by_type(request, type_):
     """This is a search into either addons or libraries."""
     page = request.GET.get('page', 1)
-    q = alphanum_space(request.GET.get('q', ''))
+    q = (request.GET.get('q', ''))
     try:
         data = query(q, type_, user=request.user, page=page)
     except EmptyPage:
@@ -46,16 +45,16 @@ def me(request):
     if not request.user.is_authenticated():
         return redirect(reverse('search.results') + '?' +
                         request.META['QUERY_STRING'])
-    q = alphanum_space(request.GET.get('q', ''))
-    data = query(q, user=request.user, filter_by_user=True)
-    data.update(q=q)
+    q = (request.GET.get('q', ''))
+    data = _query(q, user=request.user, filter_by_user=True)
     return render(request, 'aggregate.html', data)
+
 
 def me_by_type(request, type_):
     if not request.user.is_authenticated():
         return redirect(reverse('search.results') + '?' +
                         request.META['QUERY_STRING'])
-    q = alphanum_space(request.GET.get('q', ''))
+    q = request.GET.get('q', '')
     data = query(q, type_, user=request.user, filter_by_user=True)
     data.update(q=q, type=type_)
     return render(request, 'results.html', data)

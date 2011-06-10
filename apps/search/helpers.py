@@ -15,7 +15,7 @@ def query(searchq, type_=None, user=None, filter_by_user=False, page=1,
     fq = dict(
             filtered=dict(
                 query=dict(
-                    query_string=dict(query=searchq)
+                    text=dict(_all=searchq)
                     ),
                 filter={
                     'not': dict(filter=dict(
@@ -24,6 +24,7 @@ def query(searchq, type_=None, user=None, filter_by_user=False, page=1,
                     }
                 )
             )
+
     q = S(fq, result_transform=get_packages).facet('_type')
 
     filters = {}
