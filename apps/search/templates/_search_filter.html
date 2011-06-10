@@ -5,11 +5,11 @@
         <strong>({{ total }})</strong>
     </li>
     <li>
-        <a href="{% url search 'addon' %}?q={{ q }}">Addons</a>
+        <a href="{% url search_by_type 'addon' %}?q={{ q }}">Addons</a>
         <strong>({{ addon_total }})</strong>
     </li>
     <li>
-        <a href="{% url search 'library' %}?q={{ q }}">Libraries</a>
+        <a href="{% url search_by_type 'library' %}?q={{ q }}">Libraries</a>
         <strong>({{ library_total }})</strong>
     </li>
 </ul>
