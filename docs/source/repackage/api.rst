@@ -45,8 +45,8 @@ One of the ``location``,``upload`` or ``addons`` fields must be present.
 tests, main** (optional)
    Force ``package.json`` fields. If ``version`` field contains a
    ``{sdk_version}`` string it will get replaced with SDK version used
-   to repackage. Specifically ``"version": "0.1-sdk-{sdk_version}"`` will 
-   be replaced with ``"version": "0.1-sdk-1.0b5"``.
+   to repackage. Specifically ``"version": "0.1.sdk.{sdk_version}"`` will 
+   be replaced with ``"version": "0.1.sdk.1.0b5"``.
    
 
 Examples of data creation for POST:
