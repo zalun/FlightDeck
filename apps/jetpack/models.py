@@ -883,28 +883,45 @@ class PackageRevision(BaseModel):
             self.save()
         return self.dependencies.add(dep)
 
-    def compare_dependency_conflicts(self, dep):
+    def compare_dependency_conflicts(self, dep, as_upgrade=False):
         """
         check if adding a dependency will cause a naming conflict as per the
         SDK 1.0. raises a DependencyException.
 
+        :param: as_upgrade (Boolean) - if the passed `dep` should be compared
+            for doing an upgade.
+
         Example:
-
-        self = 'A' -> 'B' -> 'C'
-        dep = 'D' -> 'E' -> 'F' -> 'C'
-
-        raises DependencyException for 'C'.
+            self = 'A' -> 'B' -> 'C'
+            dep = 'D' -> 'E' -> 'F' -> 'C'
+            raises DependencyException for 'C'.
         """
-        def check_conflicts_if_added(existing, adding):
-            # check self.name, and then repeat for all self.dependencies
-            if (existing.id != adding.id and
-                existing.name == adding.name):
+        def check_conflicts_if_added(existing, adding, first_level=False):
+            """
+            :param: first_level (Boolean) - conflicts are more strict at the
+                first level
+            """
+
+            is_self = existing == self
+            is_dep = adding == dep
+
+            # as an upgrade, don't compare the upgraded revision to the old
+            # revision of the same package
+            if as_upgrade and first_level and existing.package_id == dep.package_id:
+                return
+
+            # same id is fine, we will only include same id
+            # once when building the xpi.
+            same_name = existing.package.name == adding.package.name
+            same_revision = existing.id == adding.id
+
+            if (same_name and (not same_revision or first_level)):
                 raise DependencyException(
                     'Your %s already depends on a library named "%s"' % (
                         self.package.get_type_name(),
                         adding.name))
             for lib in existing.dependencies.all():
-                check_conflicts_if_added(lib, adding)
+                check_conflicts_if_added(lib, adding, is_self and is_dep)
 
 
         def check_adding_all_dependencies(existing, adding):
@@ -913,7 +930,8 @@ class PackageRevision(BaseModel):
             for lib in adding.dependencies.all():
                 check_adding_all_dependencies(existing, lib)
 
-        if self.dependencies.filter(package=dep.package_id).count():
+        if not as_upgrade and self.dependencies.filter(
+            package__name=dep.package.name).count():
             raise DependencyException(
                     'Your %s already depends on a library with that name' % (
                         self.package.get_type_name(),))
@@ -932,6 +950,7 @@ class PackageRevision(BaseModel):
                                       % dep.full_name)
 
         else:
+            self.compare_dependency_conflicts(dep, as_upgrade=True)
             self.add_commit_message(
                     'dependency (%s) updated' % dep.name)
             if save:
@@ -965,9 +984,14 @@ class PackageRevision(BaseModel):
         " check all dependencies for a newer version "
         out_of_date = []
         for current_revision in self.dependencies.select_related('package'):
-            latest_revision = current_revision.package.revisions.order_by('-pk')[0]
+            latest_revision = current_revision.package.latest
             if current_revision != latest_revision:
-                out_of_date.append(latest_revision)
+                try:
+                    self.compare_dependency_conflicts(latest_revision, as_upgrade=True)
+                except DependencyException:
+                    pass # dont offer the update, it has conflicts
+                else:
+                    out_of_date.append(latest_revision)
         return out_of_date
 
     def get_dependencies_list_json(self):

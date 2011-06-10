@@ -195,7 +195,7 @@ var Package = new Class({
 			fd.whenAddonInstalled(function() {
 				fd.message.alert(
 					'Add-on Builder Helper',
-					'Now that you have installed the Add-ons Builder Helper, loading the add-on into your browser for testing...'
+					'Now that you have installed the Add-on Builder Helper, loading the add-on into your browser for testing...'
 				);
 				this.testAddon();
 			}.bind(this));

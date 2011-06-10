@@ -84,7 +84,7 @@ def prepare_download(r, id_number, revision_number=None):
     hashtag = r.POST.get('hashtag')
     if not hashtag:
         return HttpResponseForbidden('Add-on Builder has been updated!'
-                'We have updated this part of the pplication, please '
+                'We have updated this part of the application. Please '
                 'empty your cache and reload to get changes.')
     if not validator.is_valid('alphanum', hashtag):
         log.warning('[security] Wrong hashtag provided')

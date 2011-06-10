@@ -82,7 +82,7 @@ var FlightDeck = new Class({
 
     whenXpiInstalled: function(name) {
         this.parseTestButtons();
-        this.message.alert('Add-ons Builder', 'Add-on installed');
+        this.message.alert('Add-on Builder', 'Add-on installed');
         $log('FD: INFO: Add-on installed');
     },
 
@@ -91,7 +91,7 @@ var FlightDeck = new Class({
 
     whenXpiUninstalled: function() {
         this.parseTestButtons();
-        this.message.alert('Add-ons Builder', 'Add-on uninstalled');
+        this.message.alert('Add-on Builder', 'Add-on uninstalled');
     },
 
     /*
@@ -224,8 +224,8 @@ var FlightDeck = new Class({
                             } else {
                                 if (result) $log(result);
                                 this.warning.alert(
-                                    'Add-ons Builder',
-                                    'Wrong response from Add-ons Helper. Please <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=573778">let us know</a>'
+                                    'Add-on Builder',
+                                    'Wrong response from Add-on Builder Helper. Please <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=573778">let us know</a>'
                                 );
                             }
                         }
@@ -271,8 +271,8 @@ var FlightDeck = new Class({
     alertIfNoAddOn: function(callback, text, title) {
         if (this.isAddonInstalled()) return true;
         text = [text,
-                "To test this add-on, please install the <a id='install_addon_helper' href='{addons_helper}'>Add-ons Builder Helper add-on</a>".substitute(settings)].pick();
-        title = [title, "Install Add-ons Builder Helper"].pick();
+                "To test this add-on, please install the <a id='install_addon_helper' href='{addons_helper}'>Add-on Builder Helper add-on</a>".substitute(settings)].pick();
+        title = [title, "Install Add-on Builder Helper"].pick();
         fd.warning.alert(title, text);
         return false;
     },
@@ -471,7 +471,7 @@ window.addEvent('load', function() {
         window.mozFlightDeck.whenMessaged(function(data) {
             // This gets called when one of our extensions has been installed
             // successfully, or failed somehow.
-            fd.message.alert('Add-ons Builder', 'Add-on {msg}'.substitute(data));
+            fd.message.alert('Add-on Builder', 'Add-on {msg}'.substitute(data));
             // log to console result of isInstalled command
             $log('sending isInstalled to window.mozFlightDeck');
             $log(fd.isXpiInstalled());

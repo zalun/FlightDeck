@@ -79,7 +79,7 @@ def results(request):
         data = _query(q, user=request.user)
         return render(request, 'results.html', data)
     else:
-        return render(request, 'blank.html')
+        return render(request, 'blank.html', {'page': 'search'})
 
 
 def search(request, type_):
