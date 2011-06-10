@@ -663,8 +663,11 @@ var Sidebar = new Class({
 	promptPluginUpdate: function(li) {
 		var that = this,
 			file = li.retrieve('file');
-		fd.item.updateLibrary(file, function() {
+		fd.item.updateLibrary(file, function(response) {
 			that.removePluginUpdate(file);
+            // XXX: Somehow here rename the item
+            // $log(li);
+            // $log(response);
 		});
 	},
 	

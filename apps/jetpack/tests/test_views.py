@@ -222,3 +222,19 @@ class TestEditing(TestCase):
         r = self.client.get(
                 reverse('jp_revisions_list_html', args=[addon.id_number]))
         assert 'test_filename' in r.content
+
+    def test_package_name_change(self):
+        author = User.objects.get(username='jan')
+        author.set_password('secure')
+        author.save()
+        addon1 = Package(author=author, type='a')
+        addon1.save()
+        rev1 = addon1.latest
+        self.client.login(username=author.username, password='secure')
+        response = self.client.post(addon1.latest.get_save_url(), {
+            'full_name': 'FULL NAME'})
+        eq_(response.status_code, 200)
+        addon2 = Package.objects.get(pk=addon1.pk)
+        eq_(len(addon2.revisions.all()), 2)
+        eq_(addon2.full_name, addon2.latest.full_name)
+        assert rev1.name != addon2.latest.name

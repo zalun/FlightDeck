@@ -4,7 +4,7 @@
         "id_number": "{{ revision.package.id_number }}",
         "version_name": "{{ revision.version_name }}",
         "revision": "{{ revision.pk }}",
-        "full_name": "{{ revision.package.full_name }}"
+        "full_name": "{{ revision.full_name }}"
     }{% if not forloop.last %} , {% endif %}
 {% endfor %}
 ]
