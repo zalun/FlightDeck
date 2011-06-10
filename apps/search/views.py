@@ -21,7 +21,6 @@ def results(request):
     if q:
         addons = query(q, user=request.user, type_='addon', limit=5)
         libs = query(q, user=request.user, type_='library', limit=5)
-        #total = addons['my_total'] + libs['my_total']
         addons.update(q=q,
                 addons=addons['pager'].object_list,
                 libraries=libs['pager'].object_list
