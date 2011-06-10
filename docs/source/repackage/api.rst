@@ -4,9 +4,6 @@
 API
 ===
 
-Rebuild an addon from FTP
-#########################
-
 **URL:** ``/repackage/rebuild/``
 
 **method:** POST
