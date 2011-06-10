@@ -1,6 +1,7 @@
 from copy import deepcopy
 from test_utils import TestCase
 
+from django.contrib.auth.models import User
 from django.conf import settings
 
 from jetpack.models import Package
@@ -32,6 +33,13 @@ class ManifestsTest(TestCase):
 
     def test_minimal_manifest(self):
         " test if self.manifest is created for the clean addon "
+        author = User.objects.get(username='john')
+        author.username='123'
+        profile = author.get_profile()
+        profile.nickname = 'john'
+        author.save()
+        profile.save()
+
         first = self.addon.latest
 
         manifest = deepcopy(self.manifest)
