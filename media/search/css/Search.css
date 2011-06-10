@@ -148,3 +148,7 @@ body {
         #SearchResults .package:hover .UI_Actions {
             opacity:1;
         }
+
+#SearchResults .UI_Pagination {
+    margin-top:40px;
+}

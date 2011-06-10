@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}{% if q %}{{q}} - {% endif %}Search - {% endblock %}
+
+{% block head %}
+	<link rel="stylesheet" type="text/css" href="/media/search/css/Search.css" />
+	<script src="/media/jetpack/js/FlightDeck.Browser.js"></script>
+{% endblock %}
+{% block app_body %}
+    {% include "_search_form.html" %}
+{% endblock %}
+{% block app_sidebar %}
+    {% include "_search_filter.html" %}
+{% endblock %}
+{% block app_content %}
+	<section id="SearchResults">
+	{% if addons %}
+		<h2 class="UI_Heading">Addon Results ({{ addon_total }})</h2>
+		{% for package in addons %}
+			{% include "_package_result.html" %}
+		{% endfor %}
+	{% endif %}
+	{% if libraries %}
+		<h2 class="UI_Heading">Library Results ({{ library_total }})</h2>
+		{% for package in libraries %}
+			{% include "_package_result.html" %}
+		{% endfor %}
+	{% endif %}
+	
+	{% if not addons and not libraries %}
+		<p>No results were found for the term "{{q}}".</p>
+	{% endif %}
+	</section>
+{% endblock %}
