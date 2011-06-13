@@ -1461,6 +1461,58 @@ Package.Edit = new Class({
 				this.savenow = true;
 			}.bind(this));
 		}
+
+		$('UI_ActivateLink').getElement('a').addEvent('click', function() {
+			el = this;
+			if (el.hasClass('inactive')) return false;
+			el.store('spinner', new Spinner(el.getParent('li')).show());
+			new Request.JSON({
+				url: el.get('href'),
+				onSuccess: function(response) {
+					el.retrieve('spinner').destroy();
+					fd.message.alert(response.message_title, response.message);
+					fd.fireEvent('activate_' + response.package_type);
+					el.addClass('inactive').getParent('li').addClass('pressed');
+					el.getParent('li').getNext('li.UI_Disable').removeClass('pressed').getElement('a').removeClass('inactive');
+				}.bind(el)
+			}).send();
+			return false;
+		});
+
+		$('UI_DisableLink').getElement('a').addEvent('click', function() {
+			el = this;
+			if (el.hasClass('inactive')) return false;
+			el.store('spinner', new Spinner(el.getParent('li')).show());
+			new Request.JSON({
+				url: el.get('href'),
+				onSuccess: function(response) {
+					el.retrieve('spinner').destroy();
+					fd.message.alert(response.message_title, response.message);
+					$('activate').addEvent('click', function() {
+						ac = $('UI_ActivateLink').getElement('a');
+						if (ac) {
+							ac.store('spinner', new Spinner(ac.getParent('li')).show());
+							new Request.JSON({
+								url: this.get('href'),
+								onSuccess: function(response) {
+									ac.retrieve('spinner').destroy();
+									fd.message.alert(response.message_title, response.message);
+									fd.fireEvent('activate_' + response.package_type);
+									ac.addClass('inactive').getParent('li').addClass('pressed');
+									ac.getParent('li').getNext('li.UI_Disable').removeClass('pressed').getElement('a').removeClass('inactive');
+								}.bind(this)
+							}).send();
+						}
+						return false;
+					})
+					fd.fireEvent('disable_' + response.package_type);
+					el.addClass('inactive').getParent('li').addClass('pressed');
+					el.getParent('li').getPrevious('li.UI_Activate').removeClass('pressed').getElement('a').removeClass('inactive');
+				}.bind(el)
+			}).send();
+			return false;
+		});
+
 		this.validator = new Form.Validator.Inline('package-info_form');
 		self = this;
 		$$('#package-info_form input[type=submit]').each(function(el) {

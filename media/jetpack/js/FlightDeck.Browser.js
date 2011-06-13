@@ -42,7 +42,7 @@
     };
 
     var browser_disable_item = function(el) {
-        if (el.get('href')) el.addEvent('click', function(e){
+        if (el.get('href') && !el.hasClass('inactive')) el.addEvent('click', function(e){
             if (e) e.stop();
             this.store('spinner', 
                 new Spinner(this.getParent('li.UI_Item')).show());
@@ -67,10 +67,13 @@
                 }
             }).send();
         });
+        else el.addEvent('click', function(e) {
+            return false;
+        });
     };
 
     var browser_activate_item = function(el) {
-        if (el.get('href')) el.addEvent('click', function(e){
+        if (el.get('href') && !el.hasClass('inactive')) el.addEvent('click', function(e){
             if (e) e.stop();
             this.store('spinner', 
                 new Spinner(this.getParent('li.UI_Item')).show());
@@ -83,6 +86,9 @@
                     fd.fireEvent('activate_' + response.package_type);
                 }.bind(this)
             }).send();
+        });
+        else el.addEvent('click', function(e) {
+            return false;
         });
     };
 

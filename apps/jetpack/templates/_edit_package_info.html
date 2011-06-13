@@ -9,6 +9,9 @@
 			<label for="package_description">{{ revision.package.get_type_name|capfirst }} description</label>
 			<textarea id="package_description" name="package_description" rows="8" cols="40">{{ revision.package.description }}</textarea>
 		</p>
+		<ul class="UI_Actions">
+			{% include "_package_privacy_toggle.html" %}
+		</ul>
 	</fieldset>
 	<div class="UI_Modal_Actions">
 		<ul>
