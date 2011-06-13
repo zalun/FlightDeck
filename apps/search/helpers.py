@@ -12,11 +12,10 @@ def query(searchq, type_=None, user=None, filter_by_user=False, page=1,
 
     # This is a filtered query, that says we want to do a query, but not have
     # to deal with version_text='initial'
+    query = dict(text=dict(_all=searchq)) if searchq else dict(match_all={})
     fq = dict(
             filtered=dict(
-                query=dict(
-                    text=dict(_all=searchq)
-                    ),
+                query=query,
                 filter={
                     'not': dict(filter=dict(
                         term=dict(version_text='initial')
