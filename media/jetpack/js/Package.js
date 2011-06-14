@@ -1440,6 +1440,63 @@ Package.Edit = new Class({
 	},
 
 	/*
+	 * Method: makePublic
+	 * activate a package
+	 */
+	makePublic: function(e) {
+		e.stop();
+		this.savenow = false;
+		var activateButton = $('UI_ActivateLink');
+		if (activateButton.getElement('a').hasClass('inactive')) return false;
+		new Request.JSON({
+			url: activateButton.getElement('a').get('href'),
+			useSpinner: true,
+			spinnerTarget: activateButton,
+			spinnerOptions: {
+				img: {
+					class: 'spinner-img spinner-16'
+				},
+				markBorder: false
+			},
+			onSuccess: function(response) {
+				fd.message.alert(response.message_title, response.message);
+				fd.fireEvent('activate_' + response.package_type);
+				activateButton.addClass('pressed').getElement('a').addClass('inactive');
+				$('UI_DisableLink').removeClass('pressed').getElement('a').removeClass('inactive');
+			}.bind(this)
+		}).send();
+	},
+
+	/*
+	 * Method: makePrivate
+	 * deactivate a package
+	 */
+	makePrivate: function(e) {
+		e.stop();
+		this.savenow = false;
+		var deactivateButton = $('UI_DisableLink');
+		if (deactivateButton.getElement('a').hasClass('inactive')) return false;
+		new Request.JSON({
+			url: deactivateButton.getElement('a').get('href'),
+			useSpinner: true,
+			spinnerTarget: deactivateButton,
+			spinnerOptions: {
+				img: {
+					class: 'spinner-img spinner-16'
+				},
+				markBorder: false
+			},
+			onSuccess: function(response) {
+				fd.message.alert(response.message_title, response.message);
+				fd.fireEvent('disable_' + response.package_type);
+				$('activate').addEvent('click', this.makePublic.bind(this));
+				deactivateButton.addClass('pressed').getElement('a').addClass('inactive');
+				$('UI_ActivateLink').removeClass('pressed').getElement('a').removeClass('inactive');
+			}.bind(this)
+		}).send();
+	},
+
+	/*
 	 * Method: editInfo
 	 * display the EditInfoModalWindow
 	 */
@@ -1462,56 +1519,8 @@ Package.Edit = new Class({
 			}.bind(this));
 		}
 
-		$('UI_ActivateLink').getElement('a').addEvent('click', function() {
-			el = this;
-			if (el.hasClass('inactive')) return false;
-			el.store('spinner', new Spinner(el.getParent('li')).show());
-			new Request.JSON({
-				url: el.get('href'),
-				onSuccess: function(response) {
-					el.retrieve('spinner').destroy();
-					fd.message.alert(response.message_title, response.message);
-					fd.fireEvent('activate_' + response.package_type);
-					el.addClass('inactive').getParent('li').addClass('pressed');
-					el.getParent('li').getNext('li.UI_Disable').removeClass('pressed').getElement('a').removeClass('inactive');
-				}.bind(el)
-			}).send();
-			return false;
-		});
-
-		$('UI_DisableLink').getElement('a').addEvent('click', function() {
-			el = this;
-			if (el.hasClass('inactive')) return false;
-			el.store('spinner', new Spinner(el.getParent('li')).show());
-			new Request.JSON({
-				url: el.get('href'),
-				onSuccess: function(response) {
-					el.retrieve('spinner').destroy();
-					fd.message.alert(response.message_title, response.message);
-					$('activate').addEvent('click', function() {
-						ac = $('UI_ActivateLink').getElement('a');
-						if (ac) {
-							ac.store('spinner', new Spinner(ac.getParent('li')).show());
-							new Request.JSON({
-								url: this.get('href'),
-								onSuccess: function(response) {
-									ac.retrieve('spinner').destroy();
-									fd.message.alert(response.message_title, response.message);
-									fd.fireEvent('activate_' + response.package_type);
-									ac.addClass('inactive').getParent('li').addClass('pressed');
-									ac.getParent('li').getNext('li.UI_Disable').removeClass('pressed').getElement('a').removeClass('inactive');
-								}.bind(this)
-							}).send();
-						}
-						return false;
-					})
-					fd.fireEvent('disable_' + response.package_type);
-					el.addClass('inactive').getParent('li').addClass('pressed');
-					el.getParent('li').getPrevious('li.UI_Activate').removeClass('pressed').getElement('a').removeClass('inactive');
-				}.bind(el)
-			}).send();
-			return false;
-		});
+		$('UI_ActivateLink').getElement('a').addEvent('click', this.makePublic.bind(this));
+		$('UI_DisableLink').getElement('a').addEvent('click', this.makePrivate.bind(this));
 
 		this.validator = new Form.Validator.Inline('package-info_form');
 		self = this;
