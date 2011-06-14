@@ -2,6 +2,7 @@
 repackage.tests.test_tasks
 --------------------------
 """
+import commonware
 import os
 import urllib
 import urlparse
@@ -16,6 +17,8 @@ from utils.test import TestCase
 from base.templatetags.base_helpers import hashtag
 from repackage.tasks import rebuild
 
+log = commonware.log.getLogger('f.repackage')
+
 
 class RepackageTaskTest(TestCase):
 
@@ -26,9 +29,10 @@ class RepackageTaskTest(TestCase):
                 settings.ROOT, 'apps/xpi/tests/sample_addons/')
         self.sample_addons = [
                 "sample_add-on-1.0b3",
-                "sample_add-on-1.0b4"]
-        self.sdk_source_dir = os.path.join(
-                settings.ROOT, 'lib/addon-sdk-1.0b5')
+                "sample_add-on-1.0b4",
+                "sample_add-on-1.0rc2.xpi"]
+        self.sdk_source_dir = settings.REPACKAGE_SDK_SOURCE or os.path.join(
+                settings.ROOT, 'lib/addon-sdk-1.0rc2')
         self.hashtag = hashtag()
 
     def tearDown(self):

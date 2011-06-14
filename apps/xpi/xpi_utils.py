@@ -67,7 +67,7 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
         log.critical("Failed to build xpi: %s.  Command(%s)" % (
                      str(err), cfx))
         raise
-    if response[1] and not force_guid:
+    if response[1]:
         log.critical("Failed to build xpi.\nError: %s" % response[1])
         return response
 
