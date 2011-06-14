@@ -113,7 +113,7 @@ var FlightDeck = new Class({
         var installed = (this.isAddonInstalled()) ? this.isXpiInstalled() : false;
         if (installed) {
             $$('.{try_in_browser_class} a'.substitute(this.options)).each(function(test_button){
-                if (installed && installed.installedID == test_button.get('rel')) {
+                if (installed && installed.installedID == test_button.get('data-jetpackid')) {
                     test_button.getParent('li').addClass('pressed');
                 } else {
                     test_button.getParent('li').removeClass('pressed');

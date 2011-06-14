@@ -23,7 +23,7 @@
             }.bind(this);
             if (fd.alertIfNoAddOn()) {
                 if (el.getParent('li').hasClass('pressed')) {
-                    fd.uninstallXPI(el.get('rel'));
+                    fd.uninstallXPI(el.get('data-jetpackid'));
                 } else {
                     testThisXpi();
                 }
