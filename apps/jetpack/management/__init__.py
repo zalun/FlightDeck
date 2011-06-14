@@ -257,7 +257,7 @@ def update_SDK(sdk_dir_name):
     )
 
 
-def create_SDK(sdk_dir_name='jetpack-sdk'):
+def create_SDK(sdk_dir_name='addon-sdk'):
     " create first jetpack-core revision "
     print "creating core"
 

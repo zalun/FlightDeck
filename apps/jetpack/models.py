@@ -341,14 +341,11 @@ class PackageRevision(BaseModel):
 
     def get_dependencies_list(self, sdk=None):
         " returns a list of dependencies names extended by default core "
-        if self.package.is_addon() and self.sdk.kit_lib:
+        # XXX: breaking possibility to build jetpack SDK 0.6
+        if self.package.is_addon():
             deps = ['addon-kit']
         else:
-            if sdk and sdk.kit_lib:
-                deps = ['api-utils']
-            else:
-            # jetpack-core or api-utils
-                deps = ['jetpack-core']
+            deps = ['api-utils']
         deps.extend(["%s-%s" % (dep.name, dep.package.id_number) \
                      for dep in self.dependencies.all()])
         return deps
@@ -393,7 +390,7 @@ class PackageRevision(BaseModel):
 
         return manifest
 
-    def get_manifest_json(self, sdk=sdk, **kwargs):
+    def get_manifest_json(self, sdk=None, **kwargs):
         " returns manifest as JSOIN object "
         return simplejson.dumps(self.get_manifest(sdk=sdk, **kwargs))
 
