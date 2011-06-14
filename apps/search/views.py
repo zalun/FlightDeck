@@ -46,7 +46,7 @@ def me(request):
         return redirect(reverse('search.results') + '?' +
                         request.META['QUERY_STRING'])
     q = (request.GET.get('q', ''))
-    data = _query(q, user=request.user, filter_by_user=True)
+    data = query(q, user=request.user, filter_by_user=True)
     return render(request, 'aggregate.html', data)
 
 
