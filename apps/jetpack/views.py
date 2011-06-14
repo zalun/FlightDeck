@@ -681,7 +681,7 @@ def revision_add_attachment(r, pk):
         att = urllib.urlopen(url)
         # validate filesize
         att_info = att.info()
-        if 'content-length' in att_info.dict.has_key:
+        if att_info.dict.has_key('content-length'):
             att_size = int(att_info.dict['content-length'])
             if att_size > settings.ATTACHMENT_MAX_FILESIZE:
                 log.debug('File (%s) is too big (%db)' % (url, att_size))
