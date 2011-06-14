@@ -79,7 +79,7 @@
 					</ul> <!-- /UI_Browser -->
 
 					<ul class="UI_SeeMore">
-						<li><a title="Browse More Add-ons" href="{% url jp_browser_addons %}">Browse More Add-ons</a></li>
+						<li><a title="Browse More Add-ons" href="{% url search_by_type 'addon' %}">Browse More Add-ons</a></li>
 					</ul> <!-- /UI_SeeMore -->
 				{% endif %}
 			</div> <!-- /UI_LE_Col -->
@@ -95,7 +95,7 @@
 					</ul> <!-- /UI_Browser -->
 
 					<ul class="UI_SeeMore">
-						<li><a title="Browse More Libraries" href="{% url jp_browser_libraries %}">Browse More Libraries</a></li>
+						<li><a title="Browse More Libraries" href="{% url search_by_type 'library' %}">Browse More Libraries</a></li>
 					</ul> <!-- /UI_SeeMore -->
 				{% endif %}
 			</div> <!-- /UI_LE_Col -->
