@@ -1,6 +1,6 @@
 [
     {
-        "pk": 4,
+        "pk": 204,
         "model": "jetpack.package",
         "fields": {
             "public_key": "public-jid0-xizozk5ctqqwvnvd7gcc3mq6s7ggcqlswlheza54xgbr4e2q5kremwfepxuzxgta7d5v5xj6hutgsfw6enslfkoxwenmhddftpgltpy",
@@ -18,7 +18,7 @@
             "full_name": "Test Addon",
             "active": true,
             "version_name": "initial",
-            "latest": 5,
+            "latest": 205,
             "type": "a",
             "created_at": "2010-09-27 12:39:38",
             "public_permission": 1,
@@ -26,7 +26,7 @@
         }
     },
     {
-        "pk": 3,
+        "pk": 203,
         "model": "jetpack.package",
         "fields": {
             "public_key": null,
@@ -44,7 +44,7 @@
             "full_name": "Test Library",
             "active": true,
             "version_name": "initial",
-            "latest": 4,
+            "latest": 204,
             "type": "l",
             "created_at": "2010-09-27 12:34:25",
             "public_permission": 1,
@@ -52,7 +52,7 @@
         }
     },
     {
-        "pk": 2,
+        "pk": 202,
         "model": "jetpack.package",
         "fields": {
             "public_key": "public-jid0-32qi6jsjaz3wjae7amarsik5q7jk3m6hkotls6dsokydl3z7xr5tlhj3htxv4crsjpcelr5oozekycxlvqbvi3ck4nc465g2yhqdxvq",
@@ -70,7 +70,7 @@
             "full_name": "Test Addon",
             "active": true,
             "version_name": "initial",
-            "latest": 2,
+            "latest": 202,
             "type": "a",
             "created_at": "2010-09-27 12:33:43",
             "public_permission": 1,
@@ -78,7 +78,7 @@
         }
     },
     {
-        "pk": 4,
+        "pk": 204,
         "model": "jetpack.packagerevision",
         "fields": {
             "origin": 3,
@@ -87,7 +87,7 @@
             "full_name": "Test Library",
             "author": 3,
             "created_at": "2010-09-27 12:35:27",
-            "package": 3,
+            "package": 203,
             "module_main": "main",
             "revision_number": 1,
             "dependencies": [],
@@ -97,14 +97,14 @@
         }
     },
     {
-        "pk": 2,
+        "pk": 202,
         "model": "jetpack.packagerevision",
         "fields": {
             "origin": null,
             "contributors": "",
             "author": 3,
             "created_at": "2010-09-27 12:33:43",
-            "package": 2,
+            "package": 202,
             "name": "test-addon",
             "full_name": "Test Addon",
             "module_main": "main",
@@ -116,14 +116,14 @@
         }
     },
     {
-        "pk": 3,
+        "pk": 203,
         "model": "jetpack.packagerevision",
         "fields": {
             "origin": null,
             "contributors": "",
             "author": 3,
             "created_at": "2010-09-27 12:34:25",
-            "package": 3,
+            "package": 203,
             "full_name": "Test Library",
             "name": "test-library",
             "module_main": "main",
@@ -135,14 +135,14 @@
         }
     },
     {
-        "pk": 5,
+        "pk": 205,
         "model": "jetpack.packagerevision",
         "fields": {
             "origin": null,
             "contributors": "",
             "author": 4,
             "created_at": "2010-09-27 12:39:39",
-            "package": 4,
+            "package": 204,
             "name": "test-addon",
             "full_name": "Test Addon",
             "module_main": "main",
@@ -154,48 +154,39 @@
         }
     },
     {
-        "pk": 34,
+        "pk": 234,
         "model": "jetpack.module",
         "fields": {
             "code": "// This is an active module of the My Add-on Add-on\nexports.main = function() {};",
             "revisions": [
-                2
+                202
             ],
             "author": 3,
             "filename": "main"
         }
     },
     {
-        "pk": 36,
+        "pk": 236,
         "model": "jetpack.module",
         "fields": {
             "code": "// This is an active module of the My Add-on Add-on\nexports.main = function() {};",
             "revisions": [
-                5
+                205
             ],
             "author": 4,
             "filename": "main"
         }
     },
     {
-        "pk": 35,
+        "pk": 235,
         "model": "jetpack.module",
         "fields": {
             "code": "// test.js - Test Library's module\n// author: John Doe",
             "revisions": [
-                4
+                204
             ],
             "author": 3,
             "filename": "test"
-        }
-    },
-    {
-        "pk": 1,
-        "model": "jetpack.sdk",
-        "fields": {
-            "version": "1.0",
-            "core_lib": 1,
-            "dir": "addon-sdk-1.0rc2"
         }
     }
 ]

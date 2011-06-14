@@ -129,7 +129,7 @@ class PackageTest(TestCase):
         Package(author=self.author, type='l').save()
 
         self.assertEqual(Package.objects.addons().count(), 2)
-        self.assertEqual(Package.objects.libraries().count(), 2)
+        self.assertEqual(Package.objects.libraries().count(), 3)
 
     def test_manager_sort_recently_active(self):
         p1 = Package(author=self.author, type='a')
@@ -265,23 +265,23 @@ class PackageTest(TestCase):
 
         out_of_date = addon.latest.get_outdated_dependency_versions()
         eq_(len(out_of_date), 1)
-    
+
     def test_outdated_dependencies_with_conflicts(self):
         addon = Package.objects.create(author=self.author, type='a')
         lib = Package.objects.create(author=self.author, type='l')
         addon.latest.dependency_add(lib.latest)
-        
+
         jan = User.objects.get(username='jan')
         jan_lib = Package(author=jan, type='l', full_name='janjanjan')
         jan_lib.save()
         dupe_lib = Package(author=jan, type='l', full_name=lib.full_name)
         dupe_lib.save()
-        
+
         addon.latest.dependency_add(jan_lib.latest)
-        
+
         jan_lib.latest.dependency_add(dupe_lib.latest)
         out_of_date = addon.latest.get_outdated_dependency_versions()
-        
+
         eq_(len(out_of_date), 0)
 
     def test_update_dependency_version(self):

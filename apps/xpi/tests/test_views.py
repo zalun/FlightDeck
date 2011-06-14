@@ -62,7 +62,7 @@ class TestViews(TestCase):
         eq_(response.content, 'test')
 
     def test_hashtag(self):
-        revision = PackageRevision.objects.get(pk=5)
+        revision = PackageRevision.objects.get(pk=205)
         uri = reverse('jp_addon_revision_test',
             args=[revision.package.id_number, revision.revision_number])
         response = self.client.post(uri, {'hashtag': 'abc/123'})
