@@ -51,7 +51,7 @@ def _get_package_overrides(container, sdk_version=None):
 
 def _get_latest_sdk_source_dir():
     # get latest SDK
-    sdk = SDK.objects.all()[0]
+    sdk = SDK.objects.latest('pk')
     # if (when?) choosing POST['sdk_dir'] will be possible
     # sdk = SDK.objects.get(dir=sdk_dir) if sdk_dir else SDK.objects.all()[0]
     return sdk.get_source_dir()

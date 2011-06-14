@@ -454,9 +454,9 @@
         "pk": 1,
         "model": "jetpack.sdk",
         "fields": {
-            "version": "0.6",
+            "version": "1.0",
             "core_lib": 1,
-            "dir": "jetpack-sdk"
+            "dir": "addon-sdk-1.0rc2"
         }
     }
 ]
