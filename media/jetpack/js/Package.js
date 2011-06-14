@@ -1456,7 +1456,7 @@ Package.Edit = new Class({
 				img: {
 					class: 'spinner-img spinner-16'
 				},
-				markBorder: false
+				maskBorder: false
 			},
 			onSuccess: function(response) {
 				fd.message.alert(response.message_title, response.message);
@@ -1484,7 +1484,7 @@ Package.Edit = new Class({
 				img: {
 					class: 'spinner-img spinner-16'
 				},
-				markBorder: false
+				maskBorder: false
 			},
 			onSuccess: function(response) {
 				fd.message.alert(response.message_title, response.message);
