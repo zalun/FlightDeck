@@ -8,7 +8,7 @@ from celery.decorators import task
 from django.conf import settings
 from django.core.urlresolvers import reverse
 
-from repackage.models import Repackage
+from repackage.helpers import Repackage
 
 log = commonware.log.getLogger('f.repackage.tasks')
 

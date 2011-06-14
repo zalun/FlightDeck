@@ -19,9 +19,6 @@ from repackage import tasks
 log = commonware.log.getLogger('f.repackage')
 
 
-settings.REPACKAGE_SDK_SOURCE = os.path.join(settings.ROOT, 'lib/addon-sdk-1.0b5')
-
-
 def _del_xpi(hashtag):
     target_xpi = os.path.join(
             settings.XPI_TARGETDIR, hashtag, '.xpi')
@@ -38,7 +35,8 @@ class RepackageViewsTest(TestCase):
                 settings.ROOT, 'apps/xpi/tests/sample_addons/')
         self.sample_addons = [
                 "sample_add-on-1.0b3.xpi",
-                "sample_add-on-1.0b4.xpi"]
+                "sample_add-on-1.0b4.xpi",
+                "sample_add-on-1.0rc2.xpi"]
         self.rebuild_url = reverse('repackage_rebuild')
 
     def test_repackage_bad_request(self):
@@ -142,4 +140,4 @@ class RepackageViewsTest(TestCase):
                 'version': 'test-sdk-{sdk_version}',
                 'secret': settings.AMO_SECRET_KEY})
         task_args = tasks.low_rebuild.delay.call_args
-        eq_(task_args[1]['package_overrides']['version'], 'test-sdk-1.0b5')
+        eq_(task_args[1]['package_overrides']['version'], 'test-sdk-1.0')
