@@ -187,7 +187,7 @@ var Package = new Class({
 				el = $(this.options.test_el);
 			}
 			if (el.getParent('li').hasClass('pressed')) {
-				fd.uninstallXPI(el.get('rel'));
+				fd.uninstallXPI(el.get('data-jetpackid'));
 			} else {
 				this.installAddon();
 			}
