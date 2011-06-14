@@ -47,6 +47,7 @@ def me(request):
                         request.META['QUERY_STRING'])
     q = (request.GET.get('q', ''))
     data = query(q, user=request.user, filter_by_user=True)
+    data.update(q=q)
     return render(request, 'aggregate.html', data)
 
 
