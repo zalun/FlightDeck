@@ -4,8 +4,11 @@ repackage.tests.test_tasks
 """
 import commonware
 import os
+import simplejson
+import tempfile
 import urllib
 import urlparse
+import zipfile
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -34,12 +37,14 @@ class RepackageTaskTest(TestCase):
         self.sdk_source_dir = settings.REPACKAGE_SDK_SOURCE or os.path.join(
                 settings.ROOT, 'lib/addon-sdk-1.0rc2')
         self.hashtag = hashtag()
+        self.target_basename = os.path.join(
+                settings.XPI_TARGETDIR, self.hashtag)
 
     def tearDown(self):
-        target_xpi = os.path.join(
-                settings.XPI_TARGETDIR, self.hashtag, '.xpi')
-        if os.path.isfile(target_xpi):
-            os.remove(target_xpi)
+        if os.path.exists('%s.xpi' % self.target_basename):
+            os.remove('%s.xpi' % self.target_basename)
+        if os.path.exists('%s.json' % self.target_basename):
+            os.remove('%s.json' % self.target_basename)
 
     def test_download_and_rebuild(self):
         rep_response = rebuild(
@@ -48,6 +53,17 @@ class RepackageTaskTest(TestCase):
                 None,
                 self.sdk_source_dir, self.hashtag)
         assert not rep_response[1]
+
+    def test_download_and_failed_rebuild(self):
+        with tempfile.NamedTemporaryFile() as bad_xpi:
+            self.assertRaises(zipfile.BadZipfile,
+                    rebuild,
+                    bad_xpi.name, None, self.sdk_source_dir, self.hashtag)
+        assert os.path.exists('%s.json' % self.target_basename)
+        with open('%s.json' % self.target_basename) as response:
+            response_json = simplejson.loads(response.read())
+            eq_(response_json['status'], 'error')
+            assert 'not a zip file' in response_json['message']
 
     def test_pingback(self):
         urllib.urlopen = Mock(return_value=open(os.path.join(

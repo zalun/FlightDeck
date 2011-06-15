@@ -102,7 +102,7 @@ class Repackage(object):
         :returns: None
         """
 
-        log.info("Retrieving file to rebuild from (%s)" % location)
+        log.info("Downloading file to rebuild from (%s)" % location)
         try:
             xpi_remote_file = urllib.urlopen(location)
         except IOError, err:
