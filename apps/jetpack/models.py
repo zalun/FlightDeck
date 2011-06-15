@@ -1082,7 +1082,8 @@ class PackageRevision(BaseModel):
 
         return self.sdk.kit_lib if self.sdk.kit_lib else self.sdk.core_lib
 
-    def build_xpi(self, modules=[], attachments=[], hashtag=None, rapid=False):
+    def build_xpi(self, modules=[], attachments=[], hashtag=None, rapid=False,
+            tstart=None):
         """
         prepare and build XPI for test only (unsaved modules)
 
@@ -1102,6 +1103,9 @@ class PackageRevision(BaseModel):
             log.error("Attempt to build add-on (%s) but it's missing a "
                       "hashtag.  Failing." % self.get_version_name())
             raise IntegrityError("Hashtag is required to create an xpi.")
+
+        if not tstart:
+            tstart = time.time()
 
         # XXX: this should be a tempfile directory
         sdk_dir = self.get_sdk_dir(hashtag)
@@ -1144,9 +1148,9 @@ class PackageRevision(BaseModel):
         #self.export_attachments(
         #    '%s/%s' % (package_dir, self.get_data_dir()))
         self.export_dependencies(packages_dir, sdk=self.sdk)
-        args = [sdk_dir, self.get_dir_name(packages_dir),
-                self.name, hashtag]
-        return xpi_utils.build(*args)
+        args = []
+        return xpi_utils.build(sdk_dir, self.get_dir_name(packages_dir),
+                self.name, hashtag, tstart=tstart)
 
     def export_keys(self, sdk_dir):
         """Export private and public keys to file."""
