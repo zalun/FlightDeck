@@ -1,13 +1,13 @@
 from django.conf import settings
 from django.contrib.auth.models import User
 
-import test_utils
-from elasticutils import get_es
+
 from nose import SkipTest
 from nose.tools import eq_
 from pyes import StringQuery, FieldQuery, FieldParameter
 
 from jetpack.models import Package
+from search.tests import ESTestCase
 
 
 def create_addon(name):
@@ -22,28 +22,6 @@ def create_package(name, type):
     u = User.objects.get(username='john')
     return Package.objects.create(full_name=name, author=u, type=type)
 
-
-# TODO: liberate - this can go in either test_utils or a separate library.
-class ESTestCase(test_utils.TestCase):
-    """
-    ESTestCase turns ElasticSearch on, shuts it down at the end of the tests.
-    """
-    @classmethod
-    def setUpClass(cls):
-        if not hasattr(settings, 'ES_BIN'):
-            raise SkipTest
-        cls.old_ES_DISABLED = settings.ES_DISABLED
-        settings.__dict__['ES_DISABLED'] = False
-
-        cls.es = get_es()
-        cls.es.delete_index_if_exists(settings.ES_INDEX)
-
-    def tearDown(self):
-        self.es.delete_index_if_exists(settings.ES_INDEX)
-
-    @classmethod
-    def tearDownClass(cls):
-        settings.__dict__['ES_DISABLED'] = cls.old_ES_DISABLED
 
 
 class TestSearch(ESTestCase):
