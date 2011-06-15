@@ -7,7 +7,7 @@ import rdflib
 import shutil
 import simplejson
 import tempfile
-import urllib
+import urllib2
 import zipfile
 
 import commonware.log
@@ -104,7 +104,8 @@ class Repackage(object):
 
         log.info("Retrieving file to rebuild from (%s)" % location)
         try:
-            xpi_remote_file = urllib.urlopen(location)
+            xpi_remote_file = urllib2.urlopen(location,
+                    timeout=settings.URLOPEN_TIMEOUT)
         except IOError, err:
             log.warning("Downloading XPI (%s) for rebuild failed\n(%s)" %
                     (location, str(err)))

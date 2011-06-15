@@ -2,15 +2,15 @@
 repackage.tests.test_models
 ---------------------------
 """
-import os
 import commonware
+import os
+import urllib2
 
 #from mock import Mock
 from nose.tools import eq_
 from utils.test import TestCase
 
 from django.conf import settings
-from django.http import Http404
 
 from base.templatetags.base_helpers import hashtag
 from repackage.helpers import Repackage
@@ -48,7 +48,7 @@ class RepackageTest(TestCase):
 
     def test_not_existing_location(self):
         rep = Repackage()
-        self.assertRaises(Http404,
+        self.assertRaises(urllib2.HTTPError,
                 rep.download,
                 'http://builder.addons.mozilla.org/wrong_file.xpi')
 

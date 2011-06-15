@@ -6,7 +6,7 @@ import os
 import shutil
 import codecs
 import tempfile
-import urllib
+import urllib2
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -35,7 +35,7 @@ from utils.helpers import pathify
 from jetpack.package_helpers import get_package_revision, \
         create_package_from_xpi
 from jetpack.models import Package, PackageRevision, Module, Attachment, SDK, \
-                           EmptyDir, make_name
+                           EmptyDir
 from jetpack.errors import FilenameExistException, DependencyException
 
 from person.models import Profile
@@ -678,10 +678,10 @@ def revision_add_attachment(r, pk):
                 "%s" % str(err))
         except Exception, err:
             return HttpResponseForbidden(str(err))
-        att = urllib.urlopen(url)
+        att = urllib2.urlopen(url, timeout=settings.URLOPEN_TIMEOUT)
         # validate filesize
         att_info = att.info()
-        if att_info.dict.has_key('content-length'):
+        if 'content-length' in att_info.dict:
             att_size = int(att_info.dict['content-length'])
             if att_size > settings.ATTACHMENT_MAX_FILESIZE:
                 log.debug('File (%s) is too big (%db)' % (url, att_size))
