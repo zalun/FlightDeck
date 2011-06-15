@@ -260,8 +260,7 @@ def package_disable(r, id_number):
             'You are not the author of this %s' % escape(
                 package.get_type_name()))
 
-    package.active = False
-    package.save()
+    package.disable()
 
     return render_to_response("json/package_disabled.json",
                 {'package': package},
@@ -283,8 +282,7 @@ def package_activate(r, id_number):
             'You are not the author of this %s' % escape(
                 package.get_type_name()))
 
-    package.active = True
-    package.save()
+    package.enable()
 
     return render_to_response("json/package_activated.json",
                 {'package': package},

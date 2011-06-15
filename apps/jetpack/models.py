@@ -1422,9 +1422,13 @@ class Package(BaseModel):
         super(PackageRevision, new_p.latest).save()
         return new_p
 
+    def enable(self):
+        """Mark package as public."""
+        self.active = True
+        self.save()
+    
     def disable(self):
-        """Set active tp False
-        """
+        """Mark package as private"""
         self.active = False
         self.save()
 

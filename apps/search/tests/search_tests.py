@@ -45,6 +45,29 @@ class TestSearch(ESTestCase):
         es.refresh()
         r = es.search(query=StringQuery('zool'))
         eq_(r['hits']['total'], 0, "We shouldn't get any hits.")
+    
+    def test_index_removed_private_addon(self):
+        """
+        When an addon is marked private, it should be removed from the index.
+        """
+        a = self.test_index()
+        a.disable()
+        es = self.es
+        es.refresh()
+        r = es.search(query=StringQuery('zool'))
+        eq_(r['hits']['total'], 0, "We shouldn't get any hits.")
+    
+    def test_index_removed_limbo_deleted_library(self):
+        """
+        If package in limbo deleted=True state, should not be in index.
+        """
+        a = self.test_index()
+        a.deleted = True
+        a.save()
+        es = self.es
+        es.refresh()
+        r = es.search(query=StringQuery('zool'))
+        eq_(r['hits']['total'], 0, "We shouldn't get any hits.")
 
     def test_index_dependencies(self):
         """
