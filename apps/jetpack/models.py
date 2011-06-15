@@ -1525,7 +1525,8 @@ class Package(BaseModel):
 
     @es_required
     def refresh_index(self, es, bulk=False):
-        if not self.active:  # Don't index active things, and remove them.
+        # Don't index private/deleted things, and remove them.
+        if not self.active or self.deleted:  
             return self.remove_from_index(bulk=bulk)
 
         data = djangoutils.get_values(self)
