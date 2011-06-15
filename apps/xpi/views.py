@@ -1,6 +1,7 @@
 import os
 import commonware.log
 import codecs
+import simplejson
 
 from django.views.static import serve
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseServerError, HttpResponseNotFound
@@ -67,14 +68,18 @@ def get_test(r, hashtag):
     except Exception, err:
         if os.path.exists('%s.json' % base):
             with open('%s.json' % base) as error_file:
-                error_json = simplejson.loads(error_file)
-                if error_json['status'] == 'error':
-                    log.warning('Error creating xpi (%s)'
-                            ']error_json['message'] )
-                    raise HttpResponseNotFound(error_json['message'])
+                error_json = simplejson.loads(error_file.read())
+            os.remove(error_file)
+            if error_json['status'] == 'error':
+                log.warning('Error creating xpi (%s)'
+                        % error_json['message'] )
+                return HttpResponseNotFound(error_json['message'])
 
         log.debug('Add-on not yet created: %s' % str(err))
         return HttpResponse('')
+    # Clean up
+    if os.path.exists('%s.json' % base):
+        os.remove('%s.json' % base)
     log.info('Downloading Add-on: %s' % hashtag)
     return HttpResponse(xpi, mimetype=mimetype)
 

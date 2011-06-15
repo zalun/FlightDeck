@@ -59,7 +59,7 @@ def rebuild(location, upload, sdk_source_dir, hashtag,
         try:
             rep.download(location)
         except Exception, err:
-            info_write(info_path, 'error', str(err))
+            info_write(info_path, 'error', str(err), hashtag)
             log.warning("%s: Error in downloading xpi (%s)\n%s" % (hashtag,
                 location, str(err)))
             raise
@@ -73,7 +73,7 @@ def rebuild(location, upload, sdk_source_dir, hashtag,
         try:
             rep.retrieve(upload)
         except Exception, err:
-            info_write(info_path, 'error', str(err))
+            info_write(info_path, 'error', str(err), hashtag)
             log.warning("%s: Error in retrieving xpi (%s)\n%s" % (hashtag,
                 upload, str(err)))
             raise
@@ -88,7 +88,7 @@ def rebuild(location, upload, sdk_source_dir, hashtag,
     try:
         response = rep.rebuild(sdk_source_dir, hashtag, package_overrides)
     except Exception, err:
-        info_write(info_path, 'error', str(err))
+        info_write(info_path, 'error', str(err), hashtag)
         log.warning("%s: Error in rebuilding xpi (%s)" % (hashtag, str(err)))
         raise
     log.debug('[%s] Response from rebuild: %s' % (hashtag, str(response)))
