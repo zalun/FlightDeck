@@ -15,7 +15,7 @@
 {% block app_content %}
 	<section id="SearchResults">
 	{% if addons %}
-		<h2 class="UI_Heading">Addon Results ({{ addon_total }})</h2>
+		<h2 class="UI_Heading">Add-on Results ({{ addon_total }})</h2>
 		{% for package in addons %}
 			{% include "_package_result.html" %}
 		{% endfor %}
