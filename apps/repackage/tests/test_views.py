@@ -6,6 +6,7 @@ repackage.tests.test_views
 import commonware
 import os
 import simplejson
+import tempfile
 
 from mock import Mock
 from nose.tools import eq_
@@ -60,10 +61,8 @@ class RepackageViewsTest(TestCase):
                     self.xpi_file_prefix, self.sample_addons[1]),
                 }]),
             'version': 'invalid string'})
-        log.debug(response.content)
         eq_(response.status_code, 200)
-        log.debug(response.content)
-        # invalid secret key
+        eq_(simplejson.loads(response.content)['status'], 'some failures')
 
     def test_repackage_with_download(self):
         tasks.low_rebuild.delay = Mock(return_value=None)

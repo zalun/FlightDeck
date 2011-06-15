@@ -1,3 +1,59 @@
+
+/*
+ * Default onFailure in all Requests
+ */
+
+Request = Class.refactor(Request, {
+    options: {
+        headers: {
+            "X-CSRFToken": Cookie.read('csrftoken')
+        },
+        onFailure: function(xhr) {
+            if (this.options.addOnFailure) {
+              this.options.addOnFailure();
+            }
+			if (xhr.status != 0 && xhr.responseText) {
+				fd.error.alert(
+					'Error {status}'.substitute(xhr),
+					'{statusText}<br/>{responseText}'.substitute(xhr)
+					);
+			}
+        }
+    },
+  // overloading processScripts to *not* execute JS responses
+    processScripts: function(text){
+        if (this.options.evalResponse) return Browser.exec(text);
+        return text.stripScripts(this.options.evalScripts);
+    },
+});
+
+XPIRequest = new Class({
+    Extends: Request,
+    options: {
+        onFailure: function(xhr) {
+            this.cancel_callback();
+            if (xhr.status == 404) {
+                // XPI failed to produce, display an error with message
+                fd.error.alert('XPI not build', xhr.responseText);
+            } else {
+                if (this.options.addOnFailure) {
+                  this.options.addOnFailure();
+                }
+                if (xhr.status != 0 && xhr.responseText) {
+                    fd.error.alert(
+                        'Error {status}'.substitute(xhr),
+                        '{statusText}<br/>{responseText}'.substitute(xhr)
+                        );
+                }
+            }
+        }
+    },
+    initialize: function(cancel_callback, options) {
+        this.cancel_callback = cancel_callback,
+        this.parent(options);
+    }
+});
+
 // Add volatile events to Element, Window and Events
 // from http://jsfiddle.net/ZVbWP/
 Events.implement({
@@ -205,20 +261,26 @@ var FlightDeck = new Class({
                 test_request.request_number++;
                 url = '/xpi/test/'+hashtag+'/';
                 $log('FD: installing from ' + url);
-                test_request.install_xpi_request = new Request({
+                var cancel_callback = function() {
+                    clearInterval(test_request.install_ID);
+                    test_request.spinner.destroy();
+                }
+                test_request.install_xpi_request = new XPIRequest(
+                    cancel_callback, {
                     method: 'get',
                     url: url,
                     headers: {'Content-Type': 'text/plain; charset=x-user-defined'},
                     onSuccess: function(responseText) {
                         if (responseText || test_request.request_number > 50) {
-                            clearInterval(test_request.install_ID);
-                            test_request.spinner.destroy();
+                            cancel_callback();
                         }
                         if (responseText) {
                             if (fd.item) {
 								this.fireEvent('xpi_downloaded', hashtag);
 							}
-                            var result = window.mozFlightDeck.send({cmd: "install", contents: responseText});
+                            var result = window.mozFlightDeck.send({
+                                cmd: "install", contents: responseText
+                            });
                             if (result && result.success) {
                                 this.fireEvent('xpi_installed', '');
                             } else {
@@ -345,34 +407,6 @@ Spinner = Class.refactor(Spinner, {
             }
         });
     }
-});
-
-/*
- * Default onFailure in all Requests
- */
-
-Request = Class.refactor(Request, {
-    options: {
-        headers: {
-            "X-CSRFToken": Cookie.read('csrftoken')
-        },
-        onFailure: function(xhr) {
-            if (this.options.addOnFailure) {
-              this.options.addOnFailure();
-            }
-			if (xhr.status != 0 && xhr.responseText) {
-				fd.error.alert(
-					'Error {status}'.substitute(xhr),
-					'{statusText}<br/>{responseText}'.substitute(xhr)
-					);
-			}
-        }
-    },
-  // overloading processScripts to *not* execute JS responses
-    processScripts: function(text){
-        if (this.options.evalResponse) return Browser.exec(text);
-        return text.stripScripts(this.options.evalScripts);
-    },
 });
 
 

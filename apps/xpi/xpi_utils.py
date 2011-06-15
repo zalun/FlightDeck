@@ -23,6 +23,16 @@ from django.utils.translation import ugettext as _
 log = commonware.log.getLogger('f.xpi_utils')
 
 
+def info_write(path, status, message, hashtag=None):
+    data = {
+        'status': status,
+        'message': str(message)}
+    if hashtag:
+        data['hashtag'] = hashtag
+    with open(path, 'w') as info:
+        info.write(simplejson.dumps(data))
+
+
 def sdk_copy(sdk_source, sdk_dir=None):
     log.debug("Copying SDK from (%s) to (%s)" % (sdk_source, sdk_dir))
     shutil.copytree(sdk_source, sdk_dir)
@@ -55,6 +65,9 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
 
     log.debug(cfx)
 
+    info_targetfilename = "%s.json" % hashtag
+    info_targetpath = os.path.join(settings.XPI_TARGETDIR, info_targetfilename)
+
     env = dict(PATH='%s/bin:%s' % (sdk_dir, os.environ['PATH']),
                VIRTUAL_ENV=sdk_dir,
                CUDDLEFISH_ROOT=sdk_dir,
@@ -64,16 +77,17 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
                                    stderr=subprocess.PIPE, env=env)
         response = process.communicate()
     except subprocess.CalledProcessError, err:
+        info_write(info_targetpath, 'error', str(err), hashtag)
         log.critical("Failed to build xpi: %s.  Command(%s)" % (
                      str(err), cfx))
         raise
     if response[1]:
+        info_write(info_targetpath, 'error', response[1], hashtag)
         log.critical("Failed to build xpi.\nError: %s" % response[1])
         return response
 
-    xpi_path = os.path.join(package_dir, "%s.xpi" % filename)
-
     # move the XPI created to the XPI_TARGETDIR
+    xpi_path = os.path.join(package_dir, "%s.xpi" % filename)
     xpi_targetfilename = "%s.xpi" % hashtag
     xpi_targetpath = os.path.join(settings.XPI_TARGETDIR, xpi_targetfilename)
     shutil.copy(xpi_path, xpi_targetpath)
@@ -86,6 +100,8 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
 
     log.info('[xpi:%s] Created xpi: %s (time: %0.3fms)' % (
         hashtag, xpi_targetpath, ((t2 - t1) * 1000)))
+
+    info_write(info_targetpath, 'success', response[0], hashtag)
 
     return response
 

@@ -3,6 +3,7 @@ import os
 import shutil
 import simplejson
 import commonware
+import tempfile
 
 from mock import Mock
 from nose.tools import eq_
@@ -46,6 +47,8 @@ class XPIBuildTest(TestCase):
         self.createCore()
         settings.XPI_AMO_PREFIX = "file://%s" % os.path.join(
                 settings.ROOT, 'apps/xpi/tests/sample_addons/')
+        self.target_basename = os.path.join(
+                settings.XPI_TARGETDIR, self.hashtag)
 
     def tearDown(self):
         self.deleteCore()
@@ -53,6 +56,10 @@ class XPIBuildTest(TestCase):
             shutil.rmtree(self.SDKDIR)
         if os.path.exists(self.attachment_file_name):
             os.remove(self.attachment_file_name)
+        if os.path.exists('%s.xpi' % self.target_basename):
+            os.remove('%s.xpi' % self.target_basename)
+        if os.path.exists('%s.json' % self.target_basename):
+            os.remove('%s.json' % self.target_basename)
 
     def makeSDKDir(self):
         if self.SDKDIR and os.path.isdir(self.SDKDIR):
@@ -159,8 +166,8 @@ class XPIBuildTest(TestCase):
         # assert no error output
         assert not err[1]
         # assert xpi was created
-        self.failUnless(os.path.isfile(
-            "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
+        assert os.path.isfile('%s.xpi' % self.target_basename)
+        assert os.path.isfile('%s.json' % self.target_basename)
 
     def test_addon_with_other_modules(self):
         " addon has now more modules "
@@ -179,8 +186,8 @@ class XPIBuildTest(TestCase):
         # assert no error output
         assert not err[1]
         # assert xpi was created
-        self.failUnless(os.path.isfile(
-            "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
+        assert os.path.isfile('%s.xpi' % self.target_basename)
+        assert os.path.isfile('%s.json' % self.target_basename)
 
     def test_xpi_with_empty_dependency(self):
         " empty lib is created "
@@ -203,8 +210,8 @@ class XPIBuildTest(TestCase):
         # assert no error output
         assert not err[1]
         # assert xpi was created
-        self.failUnless(os.path.isfile(
-            "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
+        assert os.path.isfile('%s.xpi' % self.target_basename)
+        assert os.path.isfile('%s.json' % self.target_basename)
 
     def test_xpi_with_dependency(self):
         " addon has one dependency with a file "
@@ -220,8 +227,8 @@ class XPIBuildTest(TestCase):
         # assert no error output
         assert not err[1]
         # assert xpi was created
-        self.failUnless(os.path.isfile(
-            "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
+        assert os.path.isfile('%s.xpi' % self.target_basename)
+        assert os.path.isfile('%s.json' % self.target_basename)
 
     def test_module_with_utf(self):
 
@@ -250,4 +257,3 @@ class XPIBuildTest(TestCase):
         self.addonrev.dependency_add(self.librev)
 
         self.addonrev.build_xpi(hashtag=self.hashtag, rapid=True)
-

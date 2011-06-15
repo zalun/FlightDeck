@@ -98,9 +98,9 @@ def rebuild(request):
     priority = request.POST.get('priority', None)
     post = request.POST.urlencode()
     if priority and priority == 'high':
-        rebuild = tasks.high_rebuild
+        rebuild_task = tasks.high_rebuild
     else:
-        rebuild = tasks.low_rebuild
+        rebuild_task = tasks.low_rebuild
     response = {'status': 'success'}
     errors = []
     counter = 0
@@ -121,7 +121,7 @@ def rebuild(request):
         except BadManifestFieldException, err:
             errors.append('[%s] %s' % (hashtag, str(err)))
         else:
-            rebuild.delay(
+            rebuild_task.delay(
                     location, upload, sdk_source_dir, hashtag,
                     package_overrides=package_overrides,
                     filename=filename, pingback=pingback,
@@ -157,7 +157,7 @@ def rebuild(request):
                     errors.append('[%s] %s' % (hashtag, str(err)))
                     error = True
                 if not error:
-                    rebuild.delay(
+                    rebuild_task.delay(
                         location, upload, sdk_source_dir, hashtag,
                         package_overrides=package_overrides,
                         filename=filename, pingback=pingback,
