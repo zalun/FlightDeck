@@ -517,8 +517,10 @@ def package_switch_sdk(r, id_number, revision_number):
 
     sdk_id = r.POST.get('id', None)
     sdk = SDK.objects.get(id=sdk_id)
+    old_sdk = revision.sdk
+    log.info('Addon %s (%s) switched from Add-on Kit version %s to %s' % (revision.package.full_name, revision.package.id_number, old_sdk.version, sdk.version))
     revision.sdk = sdk
-    revision.add_commit_message('switched to Add-on Kit %s' % sdk.version)
+    revision.add_commit_message('Switched to Add-on Kit %s' % sdk.version)
     revision.save()
 
     return render_to_response("json/sdk_switched.json",
