@@ -56,7 +56,7 @@ class RepackageTaskTest(TestCase):
 
     def test_download_and_failed_rebuild(self):
         with tempfile.NamedTemporaryFile() as bad_xpi:
-            self.assertRaises(zipfile.BadZipfile,
+            self.assertRaises(Exception,
                     rebuild,
                     'file://%s' % bad_xpi.name, None, self.sdk_source_dir,
                     self.hashtag)
