@@ -4,7 +4,7 @@ repackage.tests.test_tasks
 """
 import commonware
 import os
-import urllib
+import urllib2
 import urlparse
 
 from django.conf import settings
@@ -50,7 +50,7 @@ class RepackageTaskTest(TestCase):
         assert not rep_response[1]
 
     def test_pingback(self):
-        urllib.urlopen = Mock(return_value=open(os.path.join(
+        urllib2.urlopen = Mock(return_value=open(os.path.join(
                 settings.ROOT, 'apps/xpi/tests/sample_addons/',
                 '%s.xpi' % self.sample_addons[0])))
         rebuild(
@@ -69,7 +69,7 @@ class RepackageTaskTest(TestCase):
                 'post': None,
                 'id': 'jid0-S9EIBmWttfoZn92i5toIRoKXb1Y',
                 'result': 'success'}
-        params = urlparse.parse_qs(urllib.urlopen.call_args[1]['data'])
+        params = urlparse.parse_qs(urllib2.urlopen.call_args[1]['data'])
         eq_(desired_response['secret'], params['secret'][0])
         eq_(desired_response['location'], params['location'][0])
         eq_(desired_response['result'], params['result'][0])

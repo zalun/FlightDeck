@@ -1,6 +1,7 @@
 import commonware.log
 import os.path
 import urllib
+import urllib2
 
 from urlparse import urlparse
 
@@ -85,6 +86,7 @@ def rebuild(location, upload, sdk_source_dir, hashtag,
         if post:
             data['request'] = post
         log.debug('[%s] Pingback: %s' % (hashtag, pingback))
-        urllib.urlopen(pingback, data=urllib.urlencode(data))
+        urllib2.urlopen(pingback, data=urllib.urlencode(data),
+                timeout=settings.URLOPEN_TIMEOUT)
     log.info("[%s] Finished package rebuild." % hashtag)
     return response

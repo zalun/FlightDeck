@@ -140,6 +140,8 @@ BUILDER_SECRET_KEY = 'notsecure'
 DOMAIN = "builder.addons.mozilla.org"
 SITE_URL = "https://%s" % DOMAIN
 
+URLOPEN_TIMEOUT = 60  # default timeout for urllib2.urlopen
+
 # set it in settings_local.py if AMO auth should be used
 #AUTH_DATABASE = {
 #    'NAME': 'db_name',
