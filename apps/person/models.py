@@ -56,7 +56,7 @@ class Profile(models.Model):
             SQL = ('SELECT %s FROM %s WHERE username=%s') % (
                     ','.join(columns), settings.AUTH_DATABASE['TABLE'],
                     self.nickname)
-            auth_cursor.execute(SQ)
+            auth_cursor.execute(SQL)
             data = auth_cursor.fetchone()
             data = {}
             for i in range(len(data)):
