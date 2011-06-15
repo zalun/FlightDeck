@@ -61,10 +61,10 @@ class RepackageTaskTest(TestCase):
                     'file://%s' % bad_xpi.name, None, self.sdk_source_dir,
                     self.hashtag)
         assert os.path.exists('%s.json' % self.target_basename)
+        response_json = {}
         with open('%s.json' % self.target_basename) as response:
             response_json = simplejson.loads(response.read())
-            eq_(response_json['status'], 'error')
-            assert 'not a zip file' in response_json['message']
+        eq_(response_json['status'], 'error')
 
     def test_pingback(self):
         urllib2.urlopen = Mock(return_value=open(os.path.join(
