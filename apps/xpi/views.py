@@ -69,7 +69,7 @@ def get_test(r, hashtag):
         if os.path.exists('%s.json' % base):
             with open('%s.json' % base) as error_file:
                 error_json = simplejson.loads(error_file.read())
-            os.remove(error_file)
+            os.remove('%s.json' % base)
             if error_json['status'] == 'error':
                 log.warning('Error creating xpi (%s)'
                         % error_json['message'] )
