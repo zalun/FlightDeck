@@ -1863,7 +1863,7 @@ class SDK(BaseModel):
     def is_deprecated(self):
         # TODO: This should be in the settings file as a config var (or in the
         # db and editable on the web)
-        return self.version < '1.0b1'
+        return self.version < '1.0'
 
 
 
