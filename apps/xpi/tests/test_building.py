@@ -1,9 +1,10 @@
 # coding=utf-8
+import commonware
 import os
 import shutil
 import simplejson
-import commonware
 import tempfile
+import time
 
 from mock import Mock
 from nose.tools import eq_
@@ -155,6 +156,7 @@ class XPIBuildTest(TestCase):
 
     def test_minimal_xpi_creation(self):
         " xpi build from an addon straight after creation "
+        tstart = time.time()
         xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
@@ -162,7 +164,7 @@ class XPIBuildTest(TestCase):
         err = xpi_utils.build(
                 self.SDKDIR,
                 self.addon.latest.get_dir_name('%s/packages' % self.SDKDIR),
-                self.addon.name, self.hashtag)
+                self.addon.name, self.hashtag, tstart=tstart)
         # assert no error output
         assert not err[1]
         # assert xpi was created
@@ -175,6 +177,7 @@ class XPIBuildTest(TestCase):
             filename='test_filename',
             author=self.author
         )
+        tstart = time.time()
         xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
@@ -182,7 +185,7 @@ class XPIBuildTest(TestCase):
         err = xpi_utils.build(
                 self.SDKDIR,
                 self.addon.latest.get_dir_name('%s/packages' % self.SDKDIR),
-                self.addon.name, self.hashtag)
+                self.addon.name, self.hashtag, tstart=tstart)
         # assert no error output
         assert not err[1]
         # assert xpi was created
@@ -199,6 +202,7 @@ class XPIBuildTest(TestCase):
         librev = PackageRevision.objects.filter(
             package__id_number=lib.id_number)[0]
         self.addonrev.dependency_add(librev)
+        tstart = time.time()
         xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
@@ -206,7 +210,7 @@ class XPIBuildTest(TestCase):
         err = xpi_utils.build(
                 self.SDKDIR,
                 self.addon.latest.get_dir_name('%s/packages' % self.SDKDIR),
-                self.addon.name, self.hashtag)
+                self.addon.name, self.hashtag, tstart=tstart)
         # assert no error output
         assert not err[1]
         # assert xpi was created
@@ -216,6 +220,7 @@ class XPIBuildTest(TestCase):
     def test_xpi_with_dependency(self):
         " addon has one dependency with a file "
         self.addonrev.dependency_add(self.librev)
+        tstart = time.time()
         xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
@@ -223,7 +228,7 @@ class XPIBuildTest(TestCase):
         err = xpi_utils.build(
                 self.SDKDIR,
                 self.addon.latest.get_dir_name('%s/packages' % self.SDKDIR),
-                self.addon.name, self.hashtag)
+                self.addon.name, self.hashtag, tstart=tstart)
         # assert no error output
         assert not err[1]
         # assert xpi was created

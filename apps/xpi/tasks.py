@@ -1,4 +1,5 @@
 import commonware.log
+import time
 
 from celery.decorators import task
 
@@ -12,7 +13,8 @@ log = commonware.log.getLogger('f.celery')
 @task(rate_limit='30/m')
 def xpi_build(sdk_dir, package_dir, filename, hashtag):
     log.info('[1@%s] Building XPI: %s' % (xpi_build.rate_limit, filename))
-    xpi_utils.build(sdk_dir, package_dir, filename, hashtag)
+    xpi_utils.build(sdk_dir, package_dir, filename, hashtag,
+            tstart=time.time())
 
 @task(rate_limit='30/m')
 def xpi_build_from_model(rev_pk, mod_codes={}, att_codes={}, hashtag=None):
@@ -21,6 +23,7 @@ def xpi_build_from_model(rev_pk, mod_codes={}, att_codes={}, hashtag=None):
     if not hashtag:
         log.critical("No hashtag provided")
         return
+    tstart = time.time()
     revision = PackageRevision.objects.get(pk=rev_pk)
     # prepare changed modules and attachments
     modules = []
@@ -36,4 +39,5 @@ def xpi_build_from_model(rev_pk, mod_codes={}, att_codes={}, hashtag=None):
     revision.build_xpi(
             modules=modules,
             attachments=attachments,
-            hashtag=hashtag)
+            hashtag=hashtag,
+            tstart=tstart)

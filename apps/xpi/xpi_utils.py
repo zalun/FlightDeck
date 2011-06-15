@@ -97,9 +97,11 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
     ret.extend(response)
 
     t2 = time.time()
+    build_time = '%dms' % ((t2 - t1) * 1000)
+    preparation_time = '%dms'% ((t1 - tstart) * 1000) if tstart else "n.d."
 
-    log.info('[xpi:%s] Created xpi: %s (time: %0.3fms)' % (
-        hashtag, xpi_targetpath, ((t2 - t1) * 1000)))
+    log.info('[xpi:%s] Created xpi: %s (build time: %s) (prep time: %s)' % (
+        hashtag, xpi_targetpath, build_time, preparation_time))
 
     info_write(info_targetpath, 'success', response[0], hashtag)
 
