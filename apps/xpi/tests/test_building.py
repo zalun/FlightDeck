@@ -38,7 +38,7 @@ class XPIBuildTest(TestCase):
             author=self.author
         )
         self.librev.module_add(mod)
-        self.SDKDIR = self.addon.latest.get_sdk_dir(self.hashtag)
+        self.SDKDIR = tempfile.mkdtemp()
         self.attachment_file_name = os.path.join(
                 settings.UPLOAD_DIR, 'test_filename.txt')
         handle = open(self.attachment_file_name, 'w')
@@ -63,9 +63,6 @@ class XPIBuildTest(TestCase):
             os.remove('%s.json' % self.target_basename)
 
     def makeSDKDir(self):
-        if self.SDKDIR and os.path.isdir(self.SDKDIR):
-            shutil.rmtree(self.SDKDIR)
-        os.mkdir(self.SDKDIR)
         os.mkdir('%s/packages' % self.SDKDIR)
 
     def test_package_dir_generation(self):
@@ -260,5 +257,4 @@ class XPIBuildTest(TestCase):
         self.librev.dependency_add(packrev)
         self.addonrev.dependency_add(packrev)
         self.addonrev.dependency_add(self.librev)
-
         self.addonrev.build_xpi(hashtag=self.hashtag, rapid=True)
