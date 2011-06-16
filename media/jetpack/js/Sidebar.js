@@ -514,7 +514,6 @@ var Sidebar = new Class({
                 + '<input type="text" name="external_attachment" id="external_attachment" placeholder="http:// (URI of an Attachment to download)"/></p>',
 			ok: 'Create Attachment',
 			id: 'new_attachment_button',
-			focus: false, //dont auto focus since first option is to Upload
 			callback: function() {
 				var uploadInput = $('upload_attachment'),
 					createInput = $('new_attachment'),
