@@ -175,7 +175,7 @@ def rebuild(request):
     response['addons'] = counter
     uuid = request.POST.get('uuid', 'no uuid')
 
-    log.info("%d addon(s) will be created, %d error(s), uuid: %s" %
+    log.info("%d addon(s) will be created, %d syntax errors, uuid: %s" %
             (counter, len(errors), uuid))
 
     return HttpResponse(simplejson.dumps(response),
