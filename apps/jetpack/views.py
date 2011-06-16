@@ -260,8 +260,7 @@ def package_disable(r, id_number):
             'You are not the author of this %s' % escape(
                 package.get_type_name()))
 
-    package.active = False
-    package.save()
+    package.disable()
 
     return render_to_response("json/package_disabled.json",
                 {'package': package},
@@ -283,8 +282,7 @@ def package_activate(r, id_number):
             'You are not the author of this %s' % escape(
                 package.get_type_name()))
 
-    package.active = True
-    package.save()
+    package.enable()
 
     return render_to_response("json/package_activated.json",
                 {'package': package},
@@ -517,7 +515,10 @@ def package_switch_sdk(r, id_number, revision_number):
 
     sdk_id = r.POST.get('id', None)
     sdk = SDK.objects.get(id=sdk_id)
+    old_sdk = revision.sdk
+    log.info('Addon %s (%s) switched from Add-on Kit version %s to %s' % (revision.package.full_name, revision.package.id_number, old_sdk.version, sdk.version))
     revision.sdk = sdk
+    revision.add_commit_message('Switched to Add-on Kit %s' % sdk.version)
     revision.save()
 
     return render_to_response("json/sdk_switched.json",

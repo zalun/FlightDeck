@@ -8,6 +8,7 @@ html, body, #wrapper, #app-content, #editor-wrapper, div.CodeMirror-wrapping
 
 body
 {
+	background: #fff url(../img/sidebar-bg.png) 0 0 repeat-y;
 	overflow: hidden;
 }
 

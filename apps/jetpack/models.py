@@ -1422,9 +1422,13 @@ class Package(BaseModel):
         super(PackageRevision, new_p.latest).save()
         return new_p
 
+    def enable(self):
+        """Mark package as public."""
+        self.active = True
+        self.save()
+    
     def disable(self):
-        """Set active tp False
-        """
+        """Mark package as private"""
         self.active = False
         self.save()
 
@@ -1525,7 +1529,8 @@ class Package(BaseModel):
 
     @es_required
     def refresh_index(self, es, bulk=False):
-        if not self.active:  # Don't index active things, and remove them.
+        # Don't index private/deleted things, and remove them.
+        if not self.active or self.deleted:  
             return self.remove_from_index(bulk=bulk)
 
         data = djangoutils.get_values(self)

@@ -222,10 +222,16 @@ class PackageTest(TestCase):
     def test_disable(self):
         addon = Package.objects.create(author=self.author, type='a')
         # disabling addon
-        addon.active = False
-        addon.save()
+        addon.disable()
         eq_(Package.objects.active().filter(type='a').count(), 0)
         eq_(Package.objects.active(viewer=self.author).filter(type='a').count(), 1)
+        return addon
+    
+    def test_enable(self):
+        addon = self.test_disable()
+        
+        addon.enable()
+        eq_(Package.objects.active().filter(type='a').count(), 1)
 
     def test_delete(self):
         addon = Package.objects.create(author=self.author, type='a')
