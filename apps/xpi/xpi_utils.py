@@ -86,15 +86,17 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
         response = process.communicate()
     except subprocess.CalledProcessError, err:
         info_write(info_targetpath, 'error', str(err), hashtag)
-        log.critical("Failed to build xpi: %s.  Command(%s)" % (
-                     str(err), cfx))
+        log.critical("[xpi:%s] Failed to build xpi: %s.  Command(%s)" % (
+                     hashtag, str(err), cfx))
         raise
     if response[1]:
         info_write(info_targetpath, 'error', response[1], hashtag)
-        log.critical("Failed to build xpi.\nError: %s" % response[1])
+        log.critical("[xpi:%s] Failed to build xpi." % hashtag)
         return response
 
-    # move the XPI created to the XPI_TARGETDIR
+    t2 = time.time()
+
+    # XPI: move the XPI created to the XPI_TARGETDIR (local to NFS)
     xpi_path = os.path.join(package_dir, "%s.xpi" % filename)
     xpi_targetfilename = "%s.xpi" % hashtag
     xpi_targetpath = os.path.join(settings.XPI_TARGETDIR, xpi_targetfilename)
@@ -104,12 +106,14 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
     ret = [xpi_targetfilename]
     ret.extend(response)
 
-    t2 = time.time()
+    t3 = time.time()
+    copy_xpi_time = '%dms' % ((t3 - t2) * 1000)
     build_time = '%dms' % ((t2 - t1) * 1000)
     preparation_time = '%dms'% ((t1 - tstart) * 1000) if tstart else "n.d."
 
-    log.info('[xpi:%s] Created xpi: %s (build time: %s) (prep time: %s)' % (
-        hashtag, xpi_targetpath, build_time, preparation_time))
+    log.info(('[xpi:%s] Created xpi: %s (prep time: %s) (build time: %s) '
+            '(copy xpi time: %s)') % (
+        hashtag, xpi_targetpath, preparation_time, build_time, copy_xpi_time))
 
     info_write(info_targetpath, 'success', response[0], hashtag)
 
