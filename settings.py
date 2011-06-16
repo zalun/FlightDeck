@@ -61,7 +61,6 @@ LOGGING = {
         'nose.plugins.manager': {'level': logging.INFO},
         'pyes': {'handlers': ['null']},
         'rdflib': {'handlers': ['null']},
-        'f.jetpack': {'level': logging.INFO},
     },
 }
 
