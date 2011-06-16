@@ -92,6 +92,8 @@ var Package = new Class({
         fd.addEvent('xpi_downloaded', function() {
            this.generateHashtag(); 
         }.bind(this));
+		
+		this.setupButtonTooltips();
 	},
 
 	/*
@@ -230,6 +232,13 @@ var Package = new Class({
 	
 	generateHashtag: function() {
 		this.options.hashtag = fd.generateHashtag(this.options.id_number);
+	},
+	
+	setupButtonTooltips: function() {
+		this.tips = new FloatingTips('.UI_Editor_Menu .UI_Editor_Menu_Button', {
+			position: 'top',
+			balloon: true
+		});
 	},
 
 	instantiate_modules: function() {
@@ -1154,7 +1163,6 @@ Package.Edit = new Class({
 	renameModule: function(oldName, newName) {
 		newName = newName.replace(/\..*$/, '');
         var el = fd.sidebar.getBranchFromPath(newName+'.js', 'lib');
-		console.log(newName+'.js', el);
 		new Request.JSON({
 			url: this.options.rename_module_url,
             useSpinner: true,
