@@ -33,9 +33,17 @@ def info_write(path, status, message, hashtag=None):
         info.write(simplejson.dumps(data))
 
 
-def sdk_copy(sdk_source, sdk_dir=None):
+def sdk_copy(sdk_source, sdk_dir):
     log.debug("Copying SDK from (%s) to (%s)" % (sdk_source, sdk_dir))
-    shutil.copytree(sdk_source, sdk_dir)
+    if os.path.isdir(sdk_dir):
+        for d in os.listdir(sdk_source):
+            s_d = os.path.join(sdk_source, d)
+            if os.path.isdir(s_d):
+                shutil.copytree(s_d, os.path.join(sdk_dir, d))
+            else:
+                shutil.copy(s_d, sdk_dir)
+    else:
+        shutil.copytree(sdk_source, sdk_dir)
 
 
 def build(sdk_dir, package_dir, filename, hashtag, tstart=None):

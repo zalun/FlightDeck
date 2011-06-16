@@ -4,6 +4,7 @@ import shutil
 import time
 import commonware
 import tarfile
+import tempfile
 import markdown
 import hashlib
 import codecs
@@ -1107,25 +1108,26 @@ class PackageRevision(BaseModel):
         if not tstart:
             tstart = time.time()
 
-        # XXX: this should be a tempfile directory
-        sdk_dir = self.get_sdk_dir(hashtag)
+        # sdk_dir = self.get_sdk_dir(hashtag)
+        sdk_dir = tempfile.mkdtemp()
         sdk_source = self.sdk.get_source_dir()
 
-        # This SDK is always different! - working on unsaved data
-        if os.path.isdir(sdk_dir):
-            log.info("Attempt to build add-on (%s) using hashtag (%s) but the"
-                     "file already exists.  Removing existing file. (%s)" %
-                     (self.get_version_name(), hashtag, sdk_dir))
-            shutil.rmtree(sdk_dir)
-
+        # XPI: Copy files from NFS to local temp dir
         xpi_utils.sdk_copy(sdk_source, sdk_dir)
+        t1 = time.time()
+        log.debug("[xpi:%s] SDK copied (time %dms)" %
+                (hashtag, ((t1 - tstart) * 1000)))
+
+        # TODO: check if it's still needed
         self.export_keys(sdk_dir)
 
         packages_dir = os.path.join(sdk_dir, 'packages')
         package_dir = self.make_dir(packages_dir)
+        # XPI: create manifest (from memory to local)
         self.export_manifest(package_dir)
 
-        # instead of export modules
+        # export modules with ability to use edited code (from modules var)
+        # XPI: memory/database to local
         lib_dir = os.path.join(package_dir, self.get_lib_dir())
         for mod in self.modules.all():
             mod_edited = False
@@ -1135,7 +1137,12 @@ class PackageRevision(BaseModel):
                     e_mod.export_code(lib_dir)
             if not mod_edited:
                 mod.export_code(lib_dir)
+        t2 = time.time()
+        log.debug("[xpi:%s] modules exported (time %dms)" %
+                (hashtag, ((t2 - t1) * 1000)))
 
+        # export atts with ability to use edited code (from attachments var)
+        # XPI: memory/database/NFS to local
         data_dir = os.path.join(package_dir, self.get_data_dir())
         for att in self.attachments.all():
             att_edited = False
@@ -1145,10 +1152,17 @@ class PackageRevision(BaseModel):
                     e_att.export_code(data_dir)
             if not att_edited:
                 att.export_file(data_dir)
+        t3 = time.time()
+        log.debug("[xpi:%s] attachments exported (time %dms)" %
+                (hashtag, ((t3 - t2) * 1000)))
         #self.export_attachments(
         #    '%s/%s' % (package_dir, self.get_data_dir()))
+        # XPI: copying to local from memory/db/files
         self.export_dependencies(packages_dir, sdk=self.sdk)
-        args = []
+        t4 = time.time()
+        log.debug("[xpi:%s] dependencies exported (time %dms)" %
+                (hashtag, ((t4 - t3) * 1000)))
+        # XPI: building locally and copying to NFS
         return xpi_utils.build(sdk_dir, self.get_dir_name(packages_dir),
                 self.name, hashtag, tstart=tstart)
 
@@ -1426,7 +1440,7 @@ class Package(BaseModel):
         """Mark package as public."""
         self.active = True
         self.save()
-    
+
     def disable(self):
         """Mark package as private"""
         self.active = False
@@ -1530,7 +1544,7 @@ class Package(BaseModel):
     @es_required
     def refresh_index(self, es, bulk=False):
         # Don't index private/deleted things, and remove them.
-        if not self.active or self.deleted:  
+        if not self.active or self.deleted:
             return self.remove_from_index(bulk=bulk)
 
         data = djangoutils.get_values(self)

@@ -11,12 +11,6 @@ log = commonware.log.getLogger('f.celery')
 
 
 @task(rate_limit='30/m')
-def xpi_build(sdk_dir, package_dir, filename, hashtag):
-    log.info('[1@%s] Building XPI: %s' % (xpi_build.rate_limit, filename))
-    xpi_utils.build(sdk_dir, package_dir, filename, hashtag,
-            tstart=time.time())
-
-@task(rate_limit='30/m')
 def xpi_build_from_model(rev_pk, mod_codes={}, att_codes={}, hashtag=None):
     """ Get object and build xpi
     """
