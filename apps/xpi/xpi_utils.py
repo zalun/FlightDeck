@@ -86,12 +86,12 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
         response = process.communicate()
     except subprocess.CalledProcessError, err:
         info_write(info_targetpath, 'error', str(err), hashtag)
-        log.critical("Failed to build xpi: %s.  Command(%s)" % (
-                     str(err), cfx))
+        log.critical("[xpi:%s] Failed to build xpi: %s.  Command(%s)" % (
+                     hashtag, str(err), cfx))
         raise
     if response[1]:
         info_write(info_targetpath, 'error', response[1], hashtag)
-        log.critical("Failed to build xpi.\nError: %s" % response[1])
+        log.critical("[xpi:%s] Failed to build xpi." % hashtag)
         return response
 
     t2 = time.time()
