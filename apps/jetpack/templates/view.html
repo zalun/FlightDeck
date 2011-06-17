@@ -54,13 +54,11 @@
 				
 			</ul>
 		</section>
-		{% with revision.attachments.all as attachments %}{% if attachments %}
 		<section id="attachments">
 			<ul id="DataTree" class="tree collapse">
 				
 			</ul>
 		</section>
-		{% endif %}{% endwith %}
 		{% if libraries or revision.package.is_addon %}
 		<section id="libraries">
 			<ul id="PluginsTree" class="tree collapse">

@@ -47,6 +47,12 @@
 	<li class="UI_Editor_Menu_Separator"></li>
 {% endblock %}
 
+{% block app_content_menu_error_console %}
+<li id="error-console" title="Error Console" class="UI_Editor_Menu_Button Icon_logs">
+  <a href="#"><span></span></a>
+</li>
+{% endblock %}
+
 
 {% block editor_wrapper %}
 	{% with revision.get_main_module as module %}
