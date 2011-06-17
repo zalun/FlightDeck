@@ -496,12 +496,30 @@ class PackageRevision(BaseModel):
         if force_save:
             super(PackageRevision, self).save()
 
-    def save(self, **kwargs):
+    def delete(self, purge=False, *args, **kwargs):
+        """Allowing to purge the PackageRevision
+
+        :param: purge (bool) delete modules and attachments as well,
+                use with care
+        """
+        if purge:
+            log.info("Purging PackageRevision %s" % self)
+            # delete modules
+            for mod in self.modules.all():
+                mod.delete()
+            self.modules.clear()
+            # delete delete attachments
+            for att in self.attachments.all():
+                att.delete()
+            self.attachments.clear()
+        super(PackageRevision, self).delete(*args, **kwargs)
+
+    def save(self, create_new_revision=True, **kwargs):
         """
         overloading save is needed to prevent from updating the same revision
         use super(PackageRevision, self).save(**kwargs) if needed
         """
-        if self.id:
+        if self.id and create_new_revision:
             # create new revision
             return self.save_new_revision(**kwargs)
         return super(PackageRevision, self).save(**kwargs)
@@ -1446,7 +1464,7 @@ class Package(BaseModel):
         self.active = False
         self.save()
 
-    def delete(self):
+    def delete(self, *args, **kwargs):
         """Remove from the system if possible, otherwise mark as deleted
         Unhook from copies if needed and perform database delete
         """
@@ -1888,6 +1906,20 @@ class SDK(BaseModel):
         # db and editable on the web)
         return self.version < '1.0'
 
+    def delete(self, purge=True, *args, **kwargs):
+        """Override delete method to allow purging
+
+        :param: purge (bool) purge ``core_lib`` and ``data_lib`` as well
+        """
+        if purge:
+            log.info("Purging PackageRevision %s" % self)
+            # delete core_lib
+            if self.core_lib:
+                self.core_lib.delete(purge=True)
+            # delete kit_lib
+            if self.kit_lib:
+                self.kit_lib.delete(purge=True)
+        super(SDK, self).delete(*args, **kwargs)
 
 
 def _get_next_id_number():
