@@ -48,7 +48,7 @@ var Sidebar = new Class({
 		};
 		
 		// Tree and Collapse initilizations
-		var trees = this.trees = {};
+		var trees = this.trees;
 		var topBranchOptions = {
 			add: this.options.editable,
 			edit: false,
@@ -68,7 +68,7 @@ var Sidebar = new Class({
 			}
 		};
 		
-		if($('LibTree')) {
+		if($('LibTree') && !trees.lib) {
 			trees.lib = new FileTree('LibTree', Object.merge({
 			    id_prefix: 'l'
 			}, treeOptions));
@@ -82,7 +82,7 @@ var Sidebar = new Class({
 			trees.lib.collapse.prepare();
 		}
 		
-		if($('DataTree')) {
+		if($('DataTree') && !trees.data) {
 			trees.data = new FileTree('DataTree', Object.merge({
 			    id_prefix: 'd'
 			},treeOptions));
@@ -96,7 +96,7 @@ var Sidebar = new Class({
 			trees.data.collapse.prepare();
 		}
 			
-		if($('PluginsTree')) {	
+		if($('PluginsTree') && !trees.plugins) {	
 			trees.plugins = new FileTree('PluginsTree', Object.merge({}, treeOptions, { actions: {
 				add: false,
 				edit: false,
