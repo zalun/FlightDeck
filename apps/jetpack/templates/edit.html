@@ -108,9 +108,7 @@
                 <a href="#"><span></span></a>
 				</li>
 			{% endif %}
-			<li id="error-console" title="Error Console" class="UI_Editor_Menu_Button Icon_logs">
-            <a href="#"><span></span></a>
-			</li>
+			{% block app_content_menu_error_console %}{% endblock %}
 			{% include "_editor_app_menu_items.html" %}
 		</ul>
 	</div> <!-- /editor-menu-wrapper -->
