@@ -498,6 +498,9 @@ class PackageRevision(BaseModel):
 
     def delete(self, purge=False, *args, **kwargs):
         """Allowing to purge the PackageRevision
+
+        :param: purge (bool) delete modules and attachments as well,
+                use with care
         """
         if purge:
             log.info("Purging PackageRevision %s" % self)
@@ -1464,9 +1467,6 @@ class Package(BaseModel):
     def delete(self, *args, **kwargs):
         """Remove from the system if possible, otherwise mark as deleted
         Unhook from copies if needed and perform database delete
-
-        :param: purge (bool) don't bother with checking if anything does
-                depend on this object - delete anyway (used in SDK removal)
         """
         for rev_mutation in PackageRevision.objects.filter(
                 origin__package=self):
@@ -1907,6 +1907,10 @@ class SDK(BaseModel):
         return self.version < '1.0'
 
     def delete(self, purge=True, *args, **kwargs):
+        """Override delete method to allow purging
+
+        :param: purge (bool) purge ``core_lib`` and ``data_lib`` as well
+        """
         if purge:
             log.info("Purging PackageRevision %s" % self)
             # delete core_lib
