@@ -42,53 +42,61 @@
     };
 
     var browser_disable_item = function(el) {
-        if (el.get('href') && !el.hasClass('inactive')) el.addEvent('click', function(e){
+        el.addEvent('click', function(e){
             if (e) e.stop();
-            this.store('spinner', 
-                new Spinner(this.getParent('li.UI_Item')).show());
-            new Request.JSON({
-                url: el.get('href'),
-                onSuccess: function(response) {
-                    el.retrieve('spinner').destroy();
-                    el.getParent('li.UI_Item').destroy();
-                    fd.message.alert(response.message_title, response.message);
-                    fd.fireEvent('deactivate_' + response.package_type);
-                    if ($('activate')) {
-                        $('activate').addEvent('click', function(e2){
-                            e2.stop();
-                            new Request.JSON({
-                                url: this.get('href'),
-                                onSuccess: function(response) {
-                                    window.location.reload();
-                                }
-                            }).send();
-                        });
+            if (el.get('href') && !el.hasClass('inactive')) {
+                new Request.JSON({
+                    url: el.get('href'),
+                    useSpinner: true,
+                    spinnerTarget: this.getParent('li.UI_Item'),
+                    spinnerOptions: {
+                        img: {
+                            class: 'spinner-img spinner-16'
+                        },
+                        maskBorder: false
+                    },
+                    onSuccess: function(response) {
+                        el.getParent('li.UI_Item').destroy();
+                        fd.message.alert(response.message_title, response.message);
+                        fd.fireEvent('deactivate_' + response.package_type);
+                        if ($('activate')) {
+                            $('activate').addEvent('click', function(e2){
+                                e2.stop();
+                                new Request.JSON({
+                                    url: this.get('href'),
+                                    onSuccess: function(response) {
+                                        window.location.reload();
+                                    }
+                                }).send();
+                            });
+                        }
                     }
-                }
-            }).send();
-        });
-        else el.addEvent('click', function(e) {
-            return false;
+                }).send();
+            }
         });
     };
 
     var browser_activate_item = function(el) {
-        if (el.get('href') && !el.hasClass('inactive')) el.addEvent('click', function(e){
+        el.addEvent('click', function(e){
             if (e) e.stop();
-            this.store('spinner', 
-                new Spinner(this.getParent('li.UI_Item')).show());
-            new Request.JSON({
-                url: this.get('href'),
-                onSuccess: function(response) {
-                    el.retrieve('spinner').destroy();
-                    this.getParent('li.UI_Item').destroy();
-                    fd.message.alert(response.message_title, response.message);
-                    fd.fireEvent('activate_' + response.package_type);
-                }.bind(this)
-            }).send();
-        });
-        else el.addEvent('click', function(e) {
-            return false;
+            if (el.get('href') && !el.hasClass('inactive')) {
+                new Request.JSON({
+                    url: this.get('href'),
+                    useSpinner: true,
+                    spinnerTarget: this.getParent('li.UI_Item'),
+                    spinnerOptions: {
+                        img: {
+                            class: 'spinner-img spinner-16'
+                        },
+                        maskBorder: false
+                    },
+                    onSuccess: function(response) {
+                        this.getParent('li.UI_Item').destroy();
+                        fd.message.alert(response.message_title, response.message);
+                        fd.fireEvent('activate_' + response.package_type);
+                    }.bind(this)
+                }).send();
+            }
         });
     };
 
