@@ -1463,7 +1463,7 @@ Package.Edit = new Class({
 				fd.fireEvent('activate_' + response.package_type);
 				activateButton.addClass('pressed').getElement('a').addClass('inactive');
 				$('UI_DisableLink').removeClass('pressed').getElement('a').removeClass('inactive');
-			}.bind(this)
+			}
 		}).send();
 	},
 
