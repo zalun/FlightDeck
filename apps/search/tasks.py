@@ -2,10 +2,15 @@ from celeryutils import task
 
 from jetpack.models import Package
 from elasticutils import get_es
+import commonware.log
 
+log = commonware.log.getLogger('f.search.tasks')
 
 @task
 def index_all(pks, **kw):
+    ids_str = ','.join(map(str, pks))
+    log.debug('ES starting bulk action for packages: [%s]' % ids_str)
+    
     for package in Package.objects.filter(pk__in=pks):
         package.refresh_index(bulk=True)
     
@@ -15,4 +20,6 @@ def index_all(pks, **kw):
         raise
     except Exception, e:
         log.error('ES failed bulk action (%s), package ids: [%s]'
-                  % (e, ','.join(map(str, pks))))
+                  % (e, ids_str))
+    else:
+        log.debug('ES finished bulk action for packages: [%s]' % ids_str)
