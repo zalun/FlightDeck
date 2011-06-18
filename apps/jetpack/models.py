@@ -1574,6 +1574,7 @@ class Package(BaseModel):
             pass
 
         try:
+            es.timeout = 60
             es.index(data, settings.ES_INDEX, self.get_type_name(), self.id,
                  bulk=bulk, querystring_args=dict(timeout='1m'))
         except Exception, e:
