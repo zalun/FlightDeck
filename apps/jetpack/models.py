@@ -1559,7 +1559,7 @@ class Package(BaseModel):
         if self.version_name:
             self.version_name = alphanum_plus(self.version_name)
 
-    @es_required
+    #@es_required
     def refresh_index(self, es, bulk=False):
         # Don't index private/deleted things, and remove them.
         if not self.active or self.deleted:
@@ -1573,11 +1573,6 @@ class Package(BaseModel):
         except PackageRevision.DoesNotExist:
             pass
         
-        #testing stuffz
-        from pyes import ES
-        es = ES(settings.ES_HOSTS,
-            default_indexes=[settings.ES_INDEX], timeout=60, bulk_size=100)
-
         try:
             es.index(data, settings.ES_INDEX, self.get_type_name(), self.id,
                  bulk=bulk)
