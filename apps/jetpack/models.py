@@ -1575,7 +1575,7 @@ class Package(BaseModel):
 
         try:
             es.index(data, settings.ES_INDEX, self.get_type_name(), self.id,
-                 bulk=bulk)
+                 bulk=bulk, querystring_args=dict(timeout='1m'))
         except Exception, e:
             log.error("ElasticSearch errored for addon (%s): %s" % (self, e))
         else:
