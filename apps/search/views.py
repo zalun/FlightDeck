@@ -13,20 +13,23 @@ def render(request, template, data={}):
 term_facet = lambda f: {'terms': dict(field=f, size=10)}
 
 
-def results(request):
+def search_home(request):
+    q = request.GET.get('q', '')
+    if q:
+        return redirect('%s?q=%s' % (reverse(combined), q))
+    return render(request, 'blank.html', {'page': 'search'})
+
+def combined(request):
     """This aggregates the first results from add-ons and libraries."""
     q = request.GET.get('q', '')
 
-    if q:
-        addons = query(q, user=request.user, type_='addon', limit=5)
-        libs = query(q, user=request.user, type_='library', limit=5)
-        addons.update(q=q,
-                addons=addons['pager'].object_list,
-                libraries=libs['pager'].object_list
-                )
-        return render(request, 'aggregate.html', addons)
-    else:
-        return render(request, 'blank.html', {'page': 'search'})
+    addons = query(q, user=request.user, type_='addon', limit=5)
+    libs = query(q, user=request.user, type_='library', limit=5)
+    addons.update(q=q,
+            addons=addons['pager'].object_list,
+            libraries=libs['pager'].object_list
+            )
+    return render(request, 'aggregate.html', addons)
 
 
 def search_by_type(request, type_):

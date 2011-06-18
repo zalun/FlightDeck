@@ -1,7 +1,9 @@
 from django.conf.urls.defaults import url, patterns
 
 urlpatterns = patterns('search.views',
-    url(r'^$', 'results', name='search.results'),
+    url(r'^$', 'search_home', name='search'),
+    
+    url(r'^combined/$', 'combined', name='search.combined'),
     
     url(r'^(?P<type_>addon|library)/$', 'search_by_type',
         name='search_by_type'),
