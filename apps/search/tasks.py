@@ -8,5 +8,5 @@ from elasticutils import get_es
 def index_all(pks, **kw):
     for package in Package.objects.filter(pk__in=pks):
         package.refresh_index(bulk=True)
-
-    get_es().refresh()
+    
+    get_es().flush_bulk(forced=True)
