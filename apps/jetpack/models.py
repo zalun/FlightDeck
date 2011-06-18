@@ -1572,9 +1572,13 @@ class Package(BaseModel):
                 data['dependencies'] = [dep.package.id for dep in deps]
         except PackageRevision.DoesNotExist:
             pass
+        
+        #testing stuffz
+        from pyes import ES
+        es = ES(['http://node10.generic.metrics.sjc1.mozilla.com:9200'],
+            default_indexes=[settings.ES_INDEX], timeout=60, bulk_size=100)
 
         try:
-            es.timeout = 60
             es.index(data, settings.ES_INDEX, self.get_type_name(), self.id,
                  bulk=bulk, querystring_args=dict(timeout='1m'))
         except Exception, e:
