@@ -1559,7 +1559,7 @@ class Package(BaseModel):
         if self.version_name:
             self.version_name = alphanum_plus(self.version_name)
 
-    #@es_required
+    @es_required
     def refresh_index(self, es, bulk=False):
         # Don't index private/deleted things, and remove them.
         if not self.active or self.deleted:
@@ -1579,7 +1579,8 @@ class Package(BaseModel):
         except Exception, e:
             log.error("ElasticSearch errored for addon (%s): %s" % (self, e))
         else:
-            log.debug('Package %d added to search index.' % self.id)
+            if not bulk:
+                log.debug('Package %d added to search index.' % self.id)
 
     def get_author_nickname(self):
         return self.author.get_profile().get_nickname()
@@ -1594,12 +1595,14 @@ class Package(BaseModel):
             es.delete(settings.ES_INDEX, self.get_type_name(), self.id,
                  bulk=bulk)
         except PyesNotFoundException:
-            pass
+            log.debug('Package %d tried to remove from index but was not found.'
+                      % self.id)
         except Exception, e:
             log.error("ElasticSearch error removing addon (%s): %s" %
                       (self, e))
         else:
-            log.debug('Package %d removed from search index.' % self.id)
+            if not bulk:
+                log.debug('Package %d removed from search index.' % self.id)
 
 
 class Module(BaseModel):
