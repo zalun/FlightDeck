@@ -8,7 +8,7 @@ def query(searchq, type_=None, user=None, filter_by_user=False, page=1,
            limit=20):
 
     get_packages = lambda x: Package.objects.manual_order(
-            [z['_id'] for z in x['hits']['hits']])
+            [z['_id'] for z in x['hits']['hits']]).active(viewer=user)
 
     # This is a filtered query, that says we want to do a query, but not have
     # to deal with version_text='initial'
