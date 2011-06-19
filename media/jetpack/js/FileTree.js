@@ -44,6 +44,10 @@ FileTree = new Class({
 				
 				
 			},
+			'click:relay(span)': function(e){
+				var li = e.target.getParent('li');
+				that.toggleBranch(li);
+			},
 			'keypress:relay(span)': function(e){
 				if(e.key == 'enter') that.renameBranchEnd($(e.target).getParent('li'));
 			}
@@ -76,6 +80,12 @@ FileTree = new Class({
 		this.parent(el, event);
 		if (this.clone) {
 			this.clone.setStyle('display', null); //default snap is already 6px
+		}
+	},
+	
+	toggleBranch: function(branch) {
+		if (branch && this.collapse) {
+			this.collapse.toggle(branch);
 		}
 	},
 	
