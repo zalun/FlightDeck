@@ -561,6 +561,14 @@ class PackageRevision(BaseModel):
             self.add_commit_message('package copied', force_save=True)
         return save_return
 
+    def force_sdk(self, sdk):
+        """Changes SDK without creating new revision
+        """
+        self.sdk = sdk
+        self.add_commit_message(
+                'Automatic Add-on SDK upgrade to version (%s)' % sdk.version,
+                force_save=True)
+
     def get_next_revision_number(self):
         """
         find latest revision_number for the self.package and self.user
