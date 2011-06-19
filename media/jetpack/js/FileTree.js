@@ -46,7 +46,9 @@ FileTree = new Class({
 			},
 			'click:relay(span)': function(e){
 				var li = e.target.getParent('li');
-				that.toggleBranch(li);
+				if (li.get('rel') == 'directory') {
+					that.toggleBranch(li);
+				}
 			},
 			'keypress:relay(span)': function(e){
 				if(e.key == 'enter') that.renameBranchEnd($(e.target).getParent('li'));
