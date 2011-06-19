@@ -528,6 +528,8 @@ class PackageRevision(BaseModel):
         " save self as new revision with link to the origin. "
         origin = deepcopy(self)
         if package:
+            self.full_name = package.full_name
+            self.name = package.name
             self.package = package
             self.author = package.author
         # reset instance - force saving a new one
@@ -1572,7 +1574,7 @@ class Package(BaseModel):
                 data['dependencies'] = [dep.package.id for dep in deps]
         except PackageRevision.DoesNotExist:
             pass
-        
+
         try:
             es.index(data, settings.ES_INDEX, self.get_type_name(), self.id,
                  bulk=bulk)
