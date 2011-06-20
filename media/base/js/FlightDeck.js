@@ -14,8 +14,8 @@ Request = Class.refactor(Request, {
             }
 			if (xhr.status != 0 && xhr.responseText) {
 				fd.error.alert(
-					'Error {status}'.substitute(xhr),
-					'{statusText}<br/>{responseText}'.substitute(xhr)
+					'{statusText}'.substitute(xhr),
+					'{responseText}'.substitute(xhr)
 					);
 			}
         }
@@ -41,7 +41,7 @@ XPIRequest = new Class({
                 }
                 if (xhr.status != 0 && xhr.responseText) {
                     fd.error.alert(
-                        'Error {statusText}'.substitute(xhr),
+                        '{statusText}'.substitute(xhr),
                         '{responseText}'.substitute(xhr)
                         );
                 }
