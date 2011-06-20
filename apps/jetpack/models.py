@@ -417,6 +417,10 @@ class PackageRevision(BaseModel):
                 'Every Add-on needs to be linked with an executable Module')
         return main[0]
 
+    def get_jid(self):
+        return self.package.get_jid()
+
+
     def get_version_name(self):
         """Returns version name with revision number if needed."""
 
@@ -1514,6 +1518,13 @@ class Package(BaseModel):
             return self.save()
         log.info("Package (%s) deleted" % self)
         return super(Package, self).delete()
+
+    def get_jid(self):
+        jid = self.jid
+        if '@' in jid:
+            return jid
+        else:
+            return jid + '@jetpack'
 
     def create_revision_from_xpi(self, packed, manifest, author, jid,
             new_revision=False):
