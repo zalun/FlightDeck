@@ -9,7 +9,7 @@ from nose.tools import eq_
 from django.contrib.auth.models import User
 from django.conf import settings
 
-from jetpack.models import Package, PackageRevision, Module, Attachment
+from jetpack.models import Package, PackageRevision, Module, Attachment, SDK
 from jetpack.errors import SelfDependencyException, FilenameExistException, \
         DependencyException
 from base.templatetags.base_helpers import hashtag
@@ -38,6 +38,8 @@ class PackageRevisionTest(TestCase):
         revisions = PackageRevision.objects.filter(package__pk=addon.pk)
         eq_(1, revisions.count())
         revision = revisions[0]
+        eq_(revision.full_name, addon.full_name)
+        eq_(revision.name, addon.name)
         eq_(revision.author.username, addon.author.username)
         eq_(revision.revision_number, 0)
         eq_(revision.pk, addon.latest.pk)
@@ -327,8 +329,43 @@ class PackageRevisionTest(TestCase):
         )
         self.assertRaises(FilenameExistException, first.attachment_add, att)
 
+    def test_force_sdk(self):
+        addon = Package.objects.create(
+            full_name="Other Package",
+            author=self.author,
+            type='a')
+        oldsdk = addon.latest.sdk
+
+        mozuser = User.objects.get(username='4757633')
+        version='testsdk'
+        kit_lib = PackageRevision.objects.create(
+                author=mozuser,
+                package=oldsdk.kit_lib.package,
+                revision_number=oldsdk.kit_lib.revision_number + 1,
+                version_name=version)
+        core_lib = PackageRevision.objects.create(
+                author=mozuser,
+                package=oldsdk.core_lib.package,
+                revision_number=oldsdk.core_lib.revision_number + 1,
+                version_name=version)
+        sdk = SDK.objects.create(
+                version=version,
+                kit_lib=kit_lib,
+                core_lib=core_lib,
+                dir='somefakedir')
+
+        addon.latest.force_sdk(sdk)
+        eq_(len(addon.revisions.all()), 1)
+        eq_(addon.latest.sdk.version, version)
+        eq_(addon.latest.commit_message,
+                'Automatic Add-on SDK upgrade to version (%s)' % sdk.version)
+        addon.latest.force_sdk(oldsdk)
+        eq_(len(addon.revisions.all()), 1)
+        eq_(addon.latest.commit_message.count('SDK'), 2)
+
     """
-    Althought not supported on view and front-en, there is no harm in these two
+    Althought not supported on view and front-end,
+    there is no harm in these two
 
     def test_adding_module_which_was_added_to_other_package_before(self):
         " ""
@@ -366,3 +403,4 @@ class PackageRevisionTest(TestCase):
         first.attachment_add(att)
         self.assertRaises(AddingAttachmentDenied, rev.attachment_add, att)
     """
+
