@@ -1130,12 +1130,17 @@ def get_revisions_list_html(r, id_number, revision_number=None):
     package = get_object_with_related_or_404(Package, id_number=id_number)
     revisions = package.revisions.all()
     if revision_number:
+        current = package.revisions.get(revision_number=revision_number)
+    else:
+        current = None
+    if revision_number:
         revision_number = int(revision_number)
     return render_to_response(
         '_package_revisions_list.html', {
             'package': package,
             'revisions': revisions,
-            'revision_number': revision_number
+            'revision_number': revision_number,
+            'current': current
         },
         context_instance=RequestContext(r))
 
