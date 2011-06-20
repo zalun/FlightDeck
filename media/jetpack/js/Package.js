@@ -92,6 +92,8 @@ var Package = new Class({
         fd.addEvent('xpi_downloaded', function() {
            this.generateHashtag(); 
         }.bind(this));
+		
+		this.setupButtonTooltips();
 	},
 
 	/*
@@ -187,7 +189,7 @@ var Package = new Class({
 				el = $(this.options.test_el);
 			}
 			if (el.getParent('li').hasClass('pressed')) {
-				fd.uninstallXPI(el.get('rel'));
+				fd.uninstallXPI(el.get('data-jetpackid'));
 			} else {
 				this.installAddon();
 			}
@@ -195,7 +197,7 @@ var Package = new Class({
 			fd.whenAddonInstalled(function() {
 				fd.message.alert(
 					'Add-on Builder Helper',
-					'Now that you have installed the Add-ons Builder Helper, loading the add-on into your browser for testing...'
+					'Now that you have installed the Add-on Builder Helper, loading the add-on into your browser for testing...'
 				);
 				this.testAddon();
 			}.bind(this));
@@ -231,6 +233,13 @@ var Package = new Class({
 	generateHashtag: function() {
 		this.options.hashtag = fd.generateHashtag(this.options.id_number);
 	},
+	
+	setupButtonTooltips: function() {
+		this.tips = new FloatingTips('.UI_Editor_Menu .UI_Editor_Menu_Button', {
+			position: 'top',
+			balloon: true
+		});
+	},
 
 	instantiate_modules: function() {
 		// iterate by modules and instantiate Module
@@ -252,7 +261,7 @@ var Package = new Class({
 			if (this.options.modules[0]) {
 				var mod = this.modules[this.options.modules[0].filename];
 				fd.sidebar.setSelectedFile(mod)
-				this.editor.switchTo(mod);
+				mod.switchTo();
 			} 
 		}
 	},
@@ -797,8 +806,6 @@ Package.Edit = new Class({
 		package_info_form_elements: ['full_name', 'package_description']
 	},
 	
-	_modules_list: {},
-
 	initialize: function(options) {
 		this.setOptions(options);
         if (this.isAddon()) {
@@ -813,7 +820,6 @@ Package.Edit = new Class({
 		//	'url': settings.library_autocomplete_url
 		//});
 		
-		this.updateFullModulesList();
 	},
 
 	assignActions: function() {
@@ -858,6 +864,11 @@ Package.Edit = new Class({
 					url: this.options.switch_sdk_url,
                     useSpinner: true,
                     spinnerTarget: 'core_library_lib',
+					spinnerOptions: {
+						img: {
+							'class': 'spinner-img spinner-16'
+						}
+					},
 					data: {'id': $('jetpack_core_sdk_version').get('value')},
 					onSuccess: function(response) {
 						// set the redirect data to view_url of the new revision
@@ -917,17 +928,6 @@ Package.Edit = new Class({
         }
 	},
 	
-	updateFullModulesList: function() {
-		new Request.JSON({
-			method: 'get',
-			url: this.options.all_modules_list_url,
-			onSuccess: function(response) {
-				this._modules_list = response;
-			}.bind(this)
-		}).send();
-	},
-
-
     uploadAttachment: function(files, renameAfterLoad) {
 		var self = this;
         var spinner = new Spinner($('attachments')).show();
@@ -1014,6 +1014,11 @@ Package.Edit = new Class({
 			data: data,
             useSpinner: true,
             spinnerTarget: 'attachments',
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				that.registerRevision(response);
@@ -1044,14 +1049,17 @@ Package.Edit = new Class({
 			filename = filename.getFileName();
 		}
 		
-		var spinnerEl = fd.sidebar.getBranchFromPath(newName, 'data');
-		console.log(att, spinnerEl);
-
-
+		var spinnerEl = fd.sidebar.getBranchFromFile(newName, 'data');
+		
 		new Request.JSON({
 			url: that.options.rename_attachment_url,
             useSpinner: true,
             spinnerTarget: spinnerEl,
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			data: {
 				uid: uid,
 				new_filename: filename,
@@ -1091,6 +1099,11 @@ Package.Edit = new Class({
 			url: self.options.remove_attachment_url,
             useSpinner: true,
             spinnerTarget: fd.sidebar.getBranchFromFile(attachment),
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			data: {uid: attachment.options.uid},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
@@ -1107,6 +1120,11 @@ Package.Edit = new Class({
 			url: this.options.add_module_url,
             useSpinner: true,
             spinnerTarget: 'modules',
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			data: {'filename': filename},
 			onSuccess: function(response) {
 				// set the redirect data to view_url of the new revision
@@ -1124,8 +1142,6 @@ Package.Edit = new Class({
 					get_url: response.get_url
 				});
 				this.modules[response.filename] = mod;
-				
-				this.checkModuleConflicts();
 			}.bind(this)
 		}).send();
 	},
@@ -1133,11 +1149,15 @@ Package.Edit = new Class({
 	renameModule: function(oldName, newName) {
 		newName = newName.replace(/\..*$/, '');
         var el = fd.sidebar.getBranchFromPath(newName+'.js', 'lib');
-		console.log(newName+'.js', el);
 		new Request.JSON({
 			url: this.options.rename_module_url,
             useSpinner: true,
             spinnerTarget: el,
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			data: {
 				old_filename: oldName,
 				new_filename: newName
@@ -1157,8 +1177,6 @@ Package.Edit = new Class({
 				// change the id of the element
 				$(modId).set('id', mod.getID());
 				delete this.modules[oldName];
-				
-				this.checkModuleConflicts();
 			}.bind(this)
 		}).send();
 	},
@@ -1169,6 +1187,11 @@ Package.Edit = new Class({
 			url: this.options.remove_module_url,
             useSpinner: true,
             spinnerTarget: el,
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			data: module.options,
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
@@ -1189,6 +1212,11 @@ Package.Edit = new Class({
 			},
             useSpinner: true,
             spinnerTarget: el,
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
@@ -1211,6 +1239,11 @@ Package.Edit = new Class({
 			data: {filename: path+'/'},
             useSpinner: true,
             spinnerTarget: el,
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
@@ -1237,6 +1270,11 @@ Package.Edit = new Class({
 			},
             useSpinner: true,
             spinnerTarget: el,
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
@@ -1259,6 +1297,11 @@ Package.Edit = new Class({
 			},
             useSpinner: true,
             spinnerTarget: fd.sidebar.getBranchFromFile(folder),
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
@@ -1275,6 +1318,11 @@ Package.Edit = new Class({
 				data: {'id_number': library_id},
                 useSpinner: true,
                 spinnerTarget: 'plugins',
+				spinnerOptions: {
+					img: {
+						'class': 'spinner-img spinner-16'
+					}
+				},
 				onSuccess: function(response) {
 					// set the redirect data to view_url of the new revision
 					fd.setURIRedirect(response.view_url);
@@ -1288,7 +1336,6 @@ Package.Edit = new Class({
 						view_url: response.library_url,
 						revision_number: response.library_revision_number
 					});
-					this.checkModuleConflicts();
 				}.bind(this)
 			}).send();
 		} else {
@@ -1304,7 +1351,12 @@ Package.Edit = new Class({
 				'revision': lib.retrieveNewVersion().revision
 			},
 			useSpinner: true,
-			spinerTarget: 'plugins',
+			spinnerTarget: 'libraries',
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
@@ -1312,13 +1364,12 @@ Package.Edit = new Class({
 				lib.setOptions({
 					view_url: response.library_url
 				});
-				this.checkModuleConflicts();
 				Function.from(callback)(response);
 			}.bind(this)
 		}).send();
 	},
 
-    checkDependencies: function() {
+    checkDependenciesVersions: function() {
         var that = this;
         new Request.JSON({
             method: 'get',
@@ -1339,8 +1390,8 @@ Package.Edit = new Class({
 		var that = this;
 		function setCheckInterval() {
 			unsetCheckInterval();
-			that.checkDependencies();
-			that.checkDependenciesInterval = that.checkDependencies.periodical(60000, that);
+			that.checkDependenciesVersions();
+			that.checkDependenciesInterval = that.checkDependenciesVersions.periodical(60000, that);
 		}
 		
 		function unsetCheckInterval() {
@@ -1359,35 +1410,18 @@ Package.Edit = new Class({
 			data: {'id_number': lib.options.id_number},
             useSpinner: true,
             spinnerTarget: fd.sidebar.getBranchFromFile(lib),
+			spinnerOptions: {
+				img: {
+					'class': 'spinner-img spinner-16'
+				}
+			},
 			onSuccess: function(response) {
 				fd.setURIRedirect(response.view_url);
 				this.registerRevision(response);
 				fd.message.alert(response.message_title, response.message);
 				lib.destroy();
-				this.updateFullModulesList();
 			}.bind(this)
 		}).send();
-	},
-	
-	checkModuleConflicts: function() {
-		new Request.JSON({
-			method: 'get',
-			url: this.options.conflicting_modules_list_url,
-			onSuccess: function(response) {
-				this.alertModuleConflicts(response);
-			}.bind(this)
-		}).send();
-		this.updateFullModulesList();
-	},
-	
-	alertModuleConflicts: function(conflicts) {
-		var parts = [];
-		Object.each(conflicts, function(modules, pack) {
-			parts.push(pack + ': ' + modules.join(', '));
-		});
-		if (parts.length) {
-			fd.error.alert("Module Conflicts found",parts.join('<br />'));
-		}
 	},
 
 	/*

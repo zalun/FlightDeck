@@ -48,7 +48,7 @@ var Sidebar = new Class({
 		};
 		
 		// Tree and Collapse initilizations
-		var trees = this.trees = {};
+		var trees = this.trees;
 		var topBranchOptions = {
 			add: this.options.editable,
 			edit: false,
@@ -68,7 +68,7 @@ var Sidebar = new Class({
 			}
 		};
 		
-		if($('LibTree')) {
+		if($('LibTree') && !trees.lib) {
 			trees.lib = new FileTree('LibTree', Object.merge({
 			    id_prefix: 'l'
 			}, treeOptions));
@@ -82,7 +82,7 @@ var Sidebar = new Class({
 			trees.lib.collapse.prepare();
 		}
 		
-		if($('DataTree')) {
+		if($('DataTree') && !trees.data) {
 			trees.data = new FileTree('DataTree', Object.merge({
 			    id_prefix: 'd'
 			},treeOptions));
@@ -96,7 +96,7 @@ var Sidebar = new Class({
 			trees.data.collapse.prepare();
 		}
 			
-		if($('PluginsTree')) {	
+		if($('PluginsTree') && !trees.plugins) {	
 			trees.plugins = new FileTree('PluginsTree', Object.merge({}, treeOptions, { actions: {
 				add: false,
 				edit: false,
@@ -305,7 +305,7 @@ var Sidebar = new Class({
 		
 		if(file instanceof Library) {
 			title = file.getID();
-            tree = 'data';
+            tree = 'plugins';
 		} else if (file instanceof Folder) {
 			title = file.options.name;
             tree = file.options.root_dir == Folder.ROOT_DIR_LIB
@@ -374,7 +374,7 @@ var Sidebar = new Class({
 	promptRemoval: function(file, fileType) {
 		var title = 'Are you sure you want to remove "{name}"?',
 		    titleOpts = {};
-		
+
 		if (fileType != null) {
 		    titleOpts.name = file + " and all its files";
 		} else {
@@ -382,6 +382,8 @@ var Sidebar = new Class({
                 titleOpts.name = file.options.filename + "." + file.options.type;
             } else if (file.options.full_name) {
                 titleOpts.name = file.options.full_name;
+            } else if (file.getFullName) {
+                titleOpts.name = "empty folder " + file.getFullName();
             }
 		}
 		
@@ -514,7 +516,6 @@ var Sidebar = new Class({
                 + '<input type="text" name="external_attachment" id="external_attachment" placeholder="http:// (URI of an Attachment to download)"/></p>',
 			ok: 'Create Attachment',
 			id: 'new_attachment_button',
-			focus: false, //dont auto focus since first option is to Upload
 			callback: function() {
 				var uploadInput = $('upload_attachment'),
 					createInput = $('new_attachment'),
@@ -663,8 +664,11 @@ var Sidebar = new Class({
 	promptPluginUpdate: function(li) {
 		var that = this,
 			file = li.retrieve('file');
-		fd.item.updateLibrary(file, function() {
+		fd.item.updateLibrary(file, function(response) {
 			that.removePluginUpdate(file);
+            // XXX: Somehow here rename the item
+            // $log(li);
+            // $log(response);
 		});
 	},
 	

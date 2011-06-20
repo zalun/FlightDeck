@@ -6,6 +6,7 @@ repackage.tests.test_views
 import commonware
 import os
 import simplejson
+import tempfile
 
 from mock import Mock
 from nose.tools import eq_
@@ -35,7 +36,8 @@ class RepackageViewsTest(TestCase):
                 settings.ROOT, 'apps/xpi/tests/sample_addons/')
         self.sample_addons = [
                 "sample_add-on-1.0b3.xpi",
-                "sample_add-on-1.0b4.xpi"]
+                "sample_add-on-1.0b4.xpi",
+                "sample_add-on-1.0rc2.xpi"]
         self.rebuild_url = reverse('repackage_rebuild')
 
     def test_repackage_bad_request(self):
@@ -59,10 +61,8 @@ class RepackageViewsTest(TestCase):
                     self.xpi_file_prefix, self.sample_addons[1]),
                 }]),
             'version': 'invalid string'})
-        log.debug(response.content)
         eq_(response.status_code, 200)
-        log.debug(response.content)
-        # invalid secret key
+        eq_(simplejson.loads(response.content)['status'], 'some failures')
 
     def test_repackage_with_download(self):
         tasks.low_rebuild.delay = Mock(return_value=None)
@@ -129,3 +129,14 @@ class RepackageViewsTest(TestCase):
         content = simplejson.loads(response.content)
         eq_(content['status'], 'success')
         eq_(tasks.low_rebuild.delay.call_count, 2)
+
+    def test_repackage_with_sdk_version_suffix(self):
+        file_pre = os.path.join(settings.ROOT, 'apps/xpi/tests/sample_addons/')
+        tasks.low_rebuild.delay = Mock(return_value=None)
+        with open(os.path.join(file_pre, self.sample_addons[1])) as f:
+            response = self.client.post(self.rebuild_url, {
+                'upload': f,
+                'version': 'test-sdk-{sdk_version}',
+                'secret': settings.AMO_SECRET_KEY})
+        task_args = tasks.low_rebuild.delay.call_args
+        eq_(task_args[1]['package_overrides']['version'], 'test-sdk-1.0')

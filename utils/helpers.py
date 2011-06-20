@@ -10,9 +10,6 @@ def alphanum(text):
     " Strips all characters except alphanumerics. "
     return re.sub('[^a-zA-Z0-9]+', '', text.strip())
 
-def alphanum_space(text):
-    " Strips all characters except alphanumerics. "
-    return re.sub('[^a-zA-Z0-9\s]+', '', text.strip())
 
 def alphanum_plus(text):
     return re.sub('[^a-zA-Z0-9\s\.,_\-\*&%\$#@:\(\)!]+', '', text.strip())
@@ -24,6 +21,6 @@ def pathify(path):
         cleaned = cleaned[1:]
     if cleaned[-1] == '/':
         cleaned = cleaned[:-1]
-    
+
     cleaned = re.sub('\/{2,}', '/', cleaned)
     return cleaned

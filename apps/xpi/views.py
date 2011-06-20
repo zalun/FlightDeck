@@ -1,21 +1,21 @@
 import os
 import commonware.log
 import codecs
+import simplejson
 
 from django.views.static import serve
-from django.http import HttpResponse, HttpResponseForbidden, HttpResponseServerError
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseServerError, HttpResponseNotFound
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 from django.conf import settings
 
 from base.shortcuts import get_object_with_related_or_404
+from jetpack.models import PackageRevision, SDK
 from utils import validator
 from utils.helpers import get_random_string
 from xpi import xpi_utils
-
-from jetpack import tasks
-from jetpack.models import PackageRevision, SDK
+from xpi import tasks
 
 
 log = commonware.log.getLogger('f.xpi')
@@ -61,13 +61,25 @@ def get_test(r, hashtag):
     if not validator.is_valid('alphanum', hashtag):
         log.warning('[security] Wrong hashtag provided')
         return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
-    path = os.path.join(settings.XPI_TARGETDIR, '%s.xpi' % hashtag)
+    base = os.path.join(settings.XPI_TARGETDIR, hashtag)
     mimetype = 'text/plain; charset=x-user-defined'
     try:
-        xpi = codecs.open(path, mode='rb').read()
+        xpi = codecs.open('%s.xpi' % base, mode='rb').read()
     except Exception, err:
+        if os.path.exists('%s.json' % base):
+            with open('%s.json' % base) as error_file:
+                error_json = simplejson.loads(error_file.read())
+            os.remove('%s.json' % base)
+            if error_json['status'] == 'error':
+                log.warning('Error creating xpi (%s)'
+                        % error_json['message'] )
+                return HttpResponseNotFound(error_json['message'])
+
         log.debug('Add-on not yet created: %s' % str(err))
         return HttpResponse('')
+    # Clean up
+    if os.path.exists('%s.json' % base):
+        os.remove('%s.json' % base)
     log.info('Downloading Add-on: %s' % hashtag)
     return HttpResponse(xpi, mimetype=mimetype)
 
@@ -84,7 +96,7 @@ def prepare_download(r, id_number, revision_number=None):
     hashtag = r.POST.get('hashtag')
     if not hashtag:
         return HttpResponseForbidden('Add-on Builder has been updated!'
-                'We have updated this part of the pplication, please '
+                'We have updated this part of the application. Please '
                 'empty your cache and reload to get changes.')
     if not validator.is_valid('alphanum', hashtag):
         log.warning('[security] Wrong hashtag provided')

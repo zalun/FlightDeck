@@ -6,7 +6,7 @@ import os
 import shutil
 import codecs
 import tempfile
-import urllib
+import urllib2
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -19,6 +19,7 @@ from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator, EmptyPage, InvalidPage
 from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
+from django.db import IntegrityError
 from django.db.models import Q, ObjectDoesNotExist
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
@@ -259,8 +260,7 @@ def package_disable(r, id_number):
             'You are not the author of this %s' % escape(
                 package.get_type_name()))
 
-    package.active = False
-    package.save()
+    package.disable()
 
     return render_to_response("json/package_disabled.json",
                 {'package': package},
@@ -282,8 +282,7 @@ def package_activate(r, id_number):
             'You are not the author of this %s' % escape(
                 package.get_type_name()))
 
-    package.active = True
-    package.save()
+    package.enable()
 
     return render_to_response("json/package_activated.json",
                 {'package': package},
@@ -516,7 +515,10 @@ def package_switch_sdk(r, id_number, revision_number):
 
     sdk_id = r.POST.get('id', None)
     sdk = SDK.objects.get(id=sdk_id)
+    old_sdk = revision.sdk
+    log.info('Addon %s (%s) switched from Add-on Kit version %s to %s' % (revision.package.full_name, revision.package.id_number, old_sdk.version, sdk.version))
     revision.sdk = sdk
+    revision.add_commit_message('Switched to Add-on Kit %s' % sdk.version)
     revision.save()
 
     return render_to_response("json/sdk_switched.json",
@@ -677,10 +679,10 @@ def revision_add_attachment(r, pk):
                 "%s" % str(err))
         except Exception, err:
             return HttpResponseForbidden(str(err))
-        att = urllib.urlopen(url)
+        att = urllib2.urlopen(url, timeout=settings.URLOPEN_TIMEOUT)
         # validate filesize
         att_info = att.info()
-        if 'content-length' in att_info.dict.has_key:
+        if 'content-length' in att_info.dict:
             att_size = int(att_info.dict['content-length'])
             if att_size > settings.ATTACHMENT_MAX_FILESIZE:
                 log.debug('File (%s) is too big (%db)' % (url, att_size))
@@ -850,28 +852,28 @@ def package_save(r, id_number, type_id, revision_number=None,
     version_name = r.POST.get('version_name', False)
 
     # validate package_full_name and version_name
-    if package_full_name and not validator.is_valid(
-        'alphanum_plus_space', package_full_name):
-        return HttpResponseNotAllowed(escape(
-            validator.get_validation_message('alphanum_plus_space')))
 
     if version_name and not validator.is_valid(
         'alphanum_plus', version_name):
         return HttpResponseNotAllowed(escape(
             validator.get_validation_message('alphanum_plus')))
 
+    # here we're checking if the *current* full_name is different than the
+    # revision's full_name
     if package_full_name and package_full_name != revision.package.full_name:
-        revision.package.full_name = package_full_name
-        # in FlightDeck, libraries can have the same name, by different authors
         try:
-            Package.objects.get(author=revision.package.author,
-                                name=revision.package.make_name())
+            revision.set_full_name(package_full_name)
+        except ValidationError:
+            return HttpResponseNotAllowed(escape(
+                validator.get_validation_message('alphanum_plus_space')))
+        except IntegrityError:
             return HttpResponseForbidden(
                 'You already have a %s with that name' % escape(
                     revision.package.get_type_name())
                 )
-        except Package.DoesNotExist:
+        else:
             save_package = True
+            save_revision = True
             response_data['full_name'] = package_full_name
 
     package_description = r.POST.get('package_description', False)
@@ -1128,12 +1130,17 @@ def get_revisions_list_html(r, id_number, revision_number=None):
     package = get_object_with_related_or_404(Package, id_number=id_number)
     revisions = package.revisions.all()
     if revision_number:
+        current = package.revisions.get(revision_number=revision_number)
+    else:
+        current = None
+    if revision_number:
         revision_number = int(revision_number)
     return render_to_response(
         '_package_revisions_list.html', {
             'package': package,
             'revisions': revisions,
-            'revision_number': revision_number
+            'revision_number': revision_number,
+            'current': current
         },
         context_instance=RequestContext(r))
 

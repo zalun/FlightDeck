@@ -1,3 +1,59 @@
+
+/*
+ * Default onFailure in all Requests
+ */
+
+Request = Class.refactor(Request, {
+    options: {
+        headers: {
+            "X-CSRFToken": Cookie.read('csrftoken')
+        },
+        onFailure: function(xhr) {
+            if (this.options.addOnFailure) {
+              this.options.addOnFailure();
+            }
+			if (xhr.status != 0 && xhr.responseText) {
+				fd.error.alert(
+					'Error {status}'.substitute(xhr),
+					'{statusText}<br/>{responseText}'.substitute(xhr)
+					);
+			}
+        }
+    },
+  // overloading processScripts to *not* execute JS responses
+    processScripts: function(text){
+        if (this.options.evalResponse) return Browser.exec(text);
+        return text.stripScripts(this.options.evalScripts);
+    },
+});
+
+XPIRequest = new Class({
+    Extends: Request,
+    options: {
+        onFailure: function(xhr) {
+            this.cancel_callback();
+            if (xhr.status == 404) {
+                // XPI failed to produce, display an error with message
+                fd.error.alert('XPI not build', xhr.responseText);
+            } else {
+                if (this.options.addOnFailure) {
+                  this.options.addOnFailure();
+                }
+                if (xhr.status != 0 && xhr.responseText) {
+                    fd.error.alert(
+                        'Error {status}'.substitute(xhr),
+                        '{statusText}<br/>{responseText}'.substitute(xhr)
+                        );
+                }
+            }
+        }
+    },
+    initialize: function(cancel_callback, options) {
+        this.cancel_callback = cancel_callback,
+        this.parent(options);
+    }
+});
+
 // Add volatile events to Element, Window and Events
 // from http://jsfiddle.net/ZVbWP/
 Events.implement({
@@ -82,7 +138,7 @@ var FlightDeck = new Class({
 
     whenXpiInstalled: function(name) {
         this.parseTestButtons();
-        this.message.alert('Add-ons Builder', 'Add-on installed');
+        this.message.alert('Add-on Builder', 'Add-on installed');
         $log('FD: INFO: Add-on installed');
     },
 
@@ -91,7 +147,7 @@ var FlightDeck = new Class({
 
     whenXpiUninstalled: function() {
         this.parseTestButtons();
-        this.message.alert('Add-ons Builder', 'Add-on uninstalled');
+        this.message.alert('Add-on Builder', 'Add-on uninstalled');
     },
 
     /*
@@ -113,7 +169,7 @@ var FlightDeck = new Class({
         var installed = (this.isAddonInstalled()) ? this.isXpiInstalled() : false;
         if (installed) {
             $$('.{try_in_browser_class} a'.substitute(this.options)).each(function(test_button){
-                if (installed && installed.installedID == test_button.get('rel')) {
+                if (installed && installed.installedID == test_button.get('data-jetpackid')) {
                     test_button.getParent('li').addClass('pressed');
                 } else {
                     test_button.getParent('li').removeClass('pressed');
@@ -205,27 +261,33 @@ var FlightDeck = new Class({
                 test_request.request_number++;
                 url = '/xpi/test/'+hashtag+'/';
                 $log('FD: installing from ' + url);
-                test_request.install_xpi_request = new Request({
+                var cancel_callback = function() {
+                    clearInterval(test_request.install_ID);
+                    test_request.spinner.destroy();
+                }
+                test_request.install_xpi_request = new XPIRequest(
+                    cancel_callback, {
                     method: 'get',
                     url: url,
                     headers: {'Content-Type': 'text/plain; charset=x-user-defined'},
                     onSuccess: function(responseText) {
                         if (responseText || test_request.request_number > 50) {
-                            clearInterval(test_request.install_ID);
-                            test_request.spinner.destroy();
+                            cancel_callback();
                         }
                         if (responseText) {
                             if (fd.item) {
 								this.fireEvent('xpi_downloaded', hashtag);
 							}
-                            var result = window.mozFlightDeck.send({cmd: "install", contents: responseText});
+                            var result = window.mozFlightDeck.send({
+                                cmd: "install", contents: responseText
+                            });
                             if (result && result.success) {
                                 this.fireEvent('xpi_installed', '');
                             } else {
                                 if (result) $log(result);
                                 this.warning.alert(
-                                    'Add-ons Builder',
-                                    'Wrong response from Add-ons Helper. Please <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=573778">let us know</a>'
+                                    'Add-on Builder',
+                                    'Wrong response from Add-on Builder Helper. Please <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=573778">let us know</a>'
                                 );
                             }
                         }
@@ -271,8 +333,8 @@ var FlightDeck = new Class({
     alertIfNoAddOn: function(callback, text, title) {
         if (this.isAddonInstalled()) return true;
         text = [text,
-                "To test this add-on, please install the <a id='install_addon_helper' href='{addons_helper}'>Add-ons Builder Helper add-on</a>".substitute(settings)].pick();
-        title = [title, "Install Add-ons Builder Helper"].pick();
+                "To test this add-on, please install the <a id='install_addon_helper' href='{addons_helper}'>Add-on Builder Helper add-on</a>".substitute(settings)].pick();
+        title = [title, "Install Add-on Builder Helper"].pick();
         fd.warning.alert(title, text);
         return false;
     },
@@ -345,34 +407,6 @@ Spinner = Class.refactor(Spinner, {
             }
         });
     }
-});
-
-/*
- * Default onFailure in all Requests
- */
-
-Request = Class.refactor(Request, {
-    options: {
-        headers: {
-            "X-CSRFToken": Cookie.read('csrftoken')
-        },
-        onFailure: function(xhr) {
-            if (this.options.addOnFailure) {
-              this.options.addOnFailure();
-            }
-			if (xhr.status != 0 && xhr.responseText) {
-				fd.error.alert(
-					'Error {status}'.substitute(xhr),
-					'{statusText}<br/>{responseText}'.substitute(xhr)
-					);
-			}
-        }
-    },
-  // overloading processScripts to *not* execute JS responses
-    processScripts: function(text){
-        if (this.options.evalResponse) return Browser.exec(text);
-        return text.stripScripts(this.options.evalScripts);
-    },
 });
 
 
@@ -471,7 +505,7 @@ window.addEvent('load', function() {
         window.mozFlightDeck.whenMessaged(function(data) {
             // This gets called when one of our extensions has been installed
             // successfully, or failed somehow.
-            fd.message.alert('Add-ons Builder', 'Add-on {msg}'.substitute(data));
+            fd.message.alert('Add-on Builder', 'Add-on {msg}'.substitute(data));
             // log to console result of isInstalled command
             $log('sending isInstalled to window.mozFlightDeck');
             $log(fd.isXpiInstalled());

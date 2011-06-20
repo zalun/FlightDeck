@@ -23,9 +23,27 @@ from django.utils.translation import ugettext as _
 log = commonware.log.getLogger('f.xpi_utils')
 
 
-def sdk_copy(sdk_source, sdk_dir=None):
+def info_write(path, status, message, hashtag=None):
+    data = {
+        'status': status,
+        'message': str(message)}
+    if hashtag:
+        data['hashtag'] = hashtag
+    with open(path, 'w') as info:
+        info.write(simplejson.dumps(data))
+
+
+def sdk_copy(sdk_source, sdk_dir):
     log.debug("Copying SDK from (%s) to (%s)" % (sdk_source, sdk_dir))
-    shutil.copytree(sdk_source, sdk_dir)
+    if os.path.isdir(sdk_dir):
+        for d in os.listdir(sdk_source):
+            s_d = os.path.join(sdk_source, d)
+            if os.path.isdir(s_d):
+                shutil.copytree(s_d, os.path.join(sdk_dir, d))
+            else:
+                shutil.copy(s_d, sdk_dir)
+    else:
+        shutil.copytree(sdk_source, sdk_dir)
 
 
 def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
@@ -55,6 +73,9 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
 
     log.debug(cfx)
 
+    info_targetfilename = "%s.json" % hashtag
+    info_targetpath = os.path.join(settings.XPI_TARGETDIR, info_targetfilename)
+
     env = dict(PATH='%s/bin:%s' % (sdk_dir, os.environ['PATH']),
                VIRTUAL_ENV=sdk_dir,
                CUDDLEFISH_ROOT=sdk_dir,
@@ -64,16 +85,19 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
                                    stderr=subprocess.PIPE, env=env)
         response = process.communicate()
     except subprocess.CalledProcessError, err:
-        log.critical("Failed to build xpi: %s.  Command(%s)" % (
-                     str(err), cfx))
+        info_write(info_targetpath, 'error', str(err), hashtag)
+        log.critical("[xpi:%s] Failed to build xpi: %s.  Command(%s)" % (
+                     hashtag, str(err), cfx))
         raise
-    if response[1] and not force_guid:
-        log.critical("Failed to build xpi.\nError: %s" % response[1])
+    if response[1]:
+        info_write(info_targetpath, 'error', response[1], hashtag)
+        log.critical("[xpi:%s] Failed to build xpi." % hashtag)
         return response
 
-    xpi_path = os.path.join(package_dir, "%s.xpi" % filename)
+    t2 = time.time()
 
-    # move the XPI created to the XPI_TARGETDIR
+    # XPI: move the XPI created to the XPI_TARGETDIR (local to NFS)
+    xpi_path = os.path.join(package_dir, "%s.xpi" % filename)
     xpi_targetfilename = "%s.xpi" % hashtag
     xpi_targetpath = os.path.join(settings.XPI_TARGETDIR, xpi_targetfilename)
     shutil.copy(xpi_path, xpi_targetpath)
@@ -82,10 +106,16 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
     ret = [xpi_targetfilename]
     ret.extend(response)
 
-    t2 = time.time()
+    t3 = time.time()
+    copy_xpi_time = '%dms' % ((t3 - t2) * 1000)
+    build_time = '%dms' % ((t2 - t1) * 1000)
+    preparation_time = '%dms'% ((t1 - tstart) * 1000) if tstart else "n.d."
 
-    log.info('[xpi:%s] Created xpi: %s (time: %0.3fms)' % (
-        hashtag, xpi_targetpath, ((t2 - t1) * 1000)))
+    log.info(('[xpi:%s] Created xpi: %s (prep time: %s) (build time: %s) '
+            '(copy xpi time: %s)') % (
+        hashtag, xpi_targetpath, preparation_time, build_time, copy_xpi_time))
+
+    info_write(info_targetpath, 'success', response[0], hashtag)
 
     return response
 

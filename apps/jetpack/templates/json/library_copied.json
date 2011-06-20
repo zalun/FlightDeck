@@ -1,5 +1,5 @@
 {
 	{% include "json/_edit_urls.json" %}
-	"message": "Library \"{{ revision.package.full_name }}\" copied"
+	"message": "Library \"{{ revision.full_name }}\" copied"
 }
 

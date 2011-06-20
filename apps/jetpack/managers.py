@@ -15,7 +15,7 @@ log = commonware.log.getLogger('f.jetpack.managers')
 class PackageManager(QuerySetManager):
     " manager for Package object "
 
-    class QuerySet(models.query.QuerySet):
+    class QuerySet(QuerySetManager.QuerySet):
 
         def active(self, viewer=None):
             " filter out inactive packages "

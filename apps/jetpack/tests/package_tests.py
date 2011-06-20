@@ -65,6 +65,19 @@ class PackageTest(TestCase):
 
         eq_(package.full_name, 'Gordon')
 
+    def test_library_creation_with_nickname(self):
+        profile = self.author.get_profile()
+        profile.nickname = 'Samuel'
+        profile.save()
+
+        package = Package(
+            author=self.author,
+            type='l'
+        )
+        package.save()
+
+        eq_(package.full_name, 'Samuel-lib')
+
     def test_package_sanitization(self):
         bad_text = 'Te$t"><script src="google.com"></script>!#'
         good_text = 'Te$tscript srcgoogle.comscript!#'
@@ -116,7 +129,7 @@ class PackageTest(TestCase):
         Package(author=self.author, type='l').save()
 
         self.assertEqual(Package.objects.addons().count(), 2)
-        self.assertEqual(Package.objects.libraries().count(), 2)
+        self.assertEqual(Package.objects.libraries().count(), 3)
 
     def test_manager_sort_recently_active(self):
         p1 = Package(author=self.author, type='a')
@@ -209,10 +222,16 @@ class PackageTest(TestCase):
     def test_disable(self):
         addon = Package.objects.create(author=self.author, type='a')
         # disabling addon
-        addon.active = False
-        addon.save()
+        addon.disable()
         eq_(Package.objects.active().filter(type='a').count(), 0)
         eq_(Package.objects.active(viewer=self.author).filter(type='a').count(), 1)
+        return addon
+    
+    def test_enable(self):
+        addon = self.test_disable()
+        
+        addon.enable()
+        eq_(Package.objects.active().filter(type='a').count(), 1)
 
     def test_delete(self):
         addon = Package.objects.create(author=self.author, type='a')
@@ -252,6 +271,24 @@ class PackageTest(TestCase):
 
         out_of_date = addon.latest.get_outdated_dependency_versions()
         eq_(len(out_of_date), 1)
+
+    def test_outdated_dependencies_with_conflicts(self):
+        addon = Package.objects.create(author=self.author, type='a')
+        lib = Package.objects.create(author=self.author, type='l')
+        addon.latest.dependency_add(lib.latest)
+
+        jan = User.objects.get(username='jan')
+        jan_lib = Package(author=jan, type='l', full_name='janjanjan')
+        jan_lib.save()
+        dupe_lib = Package(author=jan, type='l', full_name=lib.full_name)
+        dupe_lib.save()
+
+        addon.latest.dependency_add(jan_lib.latest)
+
+        jan_lib.latest.dependency_add(dupe_lib.latest)
+        out_of_date = addon.latest.get_outdated_dependency_versions()
+
+        eq_(len(out_of_date), 0)
 
     def test_update_dependency_version(self):
         addon = Package.objects.create(author=self.author, type='a')

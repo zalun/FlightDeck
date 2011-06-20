@@ -12,7 +12,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 path = lambda *a: os.path.join(ROOT, *a)
 
 # Set the project version
-PROJECT_VERSION = "1.0a5"
+PROJECT_VERSION = "0.9.6a"
 
 # TODO: This should be handled by prod in a settings_local.  By default, we
 # shouldn't be in prod mode
@@ -61,7 +61,6 @@ LOGGING = {
         'nose.plugins.manager': {'level': logging.INFO},
         'pyes': {'handlers': ['null']},
         'rdflib': {'handlers': ['null']},
-        'f.jetpack': {'level': logging.INFO},
     },
 }
 
@@ -105,8 +104,8 @@ PACKAGE_SINGULAR_NAMES = {
     'l': 'library',
     'a': 'addon'
 }
-DEFAULT_PACKAGE_FULLNAME = {
-    'l': 'My Library'
+DEFAULT_PACKAGE_SUFFIX = {
+    'l': '-lib'
 }
 HOMEPAGE_PACKAGES_NUMBER = 3
 
@@ -128,6 +127,7 @@ PYTHON_EXEC = 'python'
 # amo defaults
 XPI_AMO_PREFIX = "ftp://ftp.mozilla.org/pub/mozilla.org/addons/"
 
+TEST_SDK = 'addon-sdk-1.0rc2'
 TEST_AMO_USERNAME = None
 TEST_AMO_PASSWORD = None
 AUTH_DATABASE = None
@@ -138,6 +138,8 @@ REPACKAGE_SDK_SOURCE = None
 BUILDER_SECRET_KEY = 'notsecure'
 DOMAIN = "builder.addons.mozilla.org"
 SITE_URL = "https://%s" % DOMAIN
+
+URLOPEN_TIMEOUT = 4  # default timeout for urllib2.urlopen (seconds)
 
 # set it in settings_local.py if AMO auth should be used
 #AUTH_DATABASE = {

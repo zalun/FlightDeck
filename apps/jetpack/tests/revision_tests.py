@@ -9,7 +9,7 @@ from nose.tools import eq_
 from django.contrib.auth.models import User
 from django.conf import settings
 
-from jetpack.models import Package, PackageRevision, Module, Attachment
+from jetpack.models import Package, PackageRevision, Module, Attachment, SDK
 from jetpack.errors import SelfDependencyException, FilenameExistException, \
         DependencyException
 from base.templatetags.base_helpers import hashtag
@@ -36,12 +36,30 @@ class PackageRevisionTest(TestCase):
         addon = Package(author=self.author, type='a')
         addon.save()
         revisions = PackageRevision.objects.filter(package__pk=addon.pk)
-        self.assertEqual(1, revisions.count())
+        eq_(1, revisions.count())
         revision = revisions[0]
-        self.assertEqual(revision.author.username, addon.author.username)
-        self.assertEqual(revision.revision_number, 0)
-        self.assertEqual(revision.pk, addon.latest.pk)
-        self.assertEqual(revision.pk, addon.version.pk)
+        eq_(revision.full_name, addon.full_name)
+        eq_(revision.name, addon.name)
+        eq_(revision.author.username, addon.author.username)
+        eq_(revision.revision_number, 0)
+        eq_(revision.pk, addon.latest.pk)
+        eq_(revision.pk, addon.version.pk)
+        eq_(revision.name, addon.name)
+
+    def test_name_change(self):
+        addon = Package(author=self.author, type='a')
+        addon.save()
+        revisionA = PackageRevision.objects.filter(package__pk=addon.pk)[0]
+        addon.latest.set_full_name("TEST NAME CHANGE")
+        addon.save()
+        addon.latest.save()
+        revisionB = PackageRevision.objects.filter(package__pk=addon.pk)[0]
+        log.debug(revisionB.name)
+        log.debug(addon.name)
+        eq_(revisionB.name, addon.name)
+        assert revisionA.pk != revisionB.pk
+        assert revisionA.name != revisionB.name
+        eq_(len(addon.revisions.all()), 2)
 
     def test_save(self):
         # system should create new revision on save
@@ -51,11 +69,11 @@ class PackageRevisionTest(TestCase):
         first = revisions[0]
         first.save()
         revisions = PackageRevision.objects.filter(package__name=addon.name)
-        self.assertEqual(2, revisions.count())
+        eq_(2, revisions.count())
 
         # first is not the same package anymore and it does not have
         # the version_name parameter
-        self.assertEqual(None, first.version_name)
+        eq_(None, first.version_name)
 
         # "old" addon doesn't know about the changes
         self.assertNotEqual(addon.latest.revision_number,
@@ -65,7 +83,7 @@ class PackageRevisionTest(TestCase):
         addon = first.package
 
         # first is the latest
-        self.assertEqual(addon.latest.revision_number,
+        eq_(addon.latest.revision_number,
                          first.revision_number)
         self.assertNotEqual(addon.version.revision_number,
                             addon.latest.revision_number)
@@ -78,13 +96,13 @@ class PackageRevisionTest(TestCase):
         first.set_version('test')
 
         # setting version does not make new revision
-        self.assertEqual(first.id, old_id)
+        eq_(first.id, old_id)
 
         # setting version sets it for revision, package
         # and assigns revision to package
-        self.assertEqual(first.version_name, 'test')
-        self.assertEqual(first.package.version_name, 'test')
-        self.assertEqual(first.package.version.pk, first.pk)
+        eq_(first.version_name, 'test')
+        eq_(first.package.version_name, 'test')
+        eq_(first.package.version.pk, first.pk)
 
     def test_adding_and_removing_dependency(self):
         revisions = PackageRevision.objects.filter(package__pk=self.addon.pk)
@@ -97,14 +115,14 @@ class PackageRevisionTest(TestCase):
         revisions = PackageRevision.objects.filter(package__pk=self.addon.pk)
 
         # revisions number increased
-        self.assertEqual(count + 1, revisions.count())
+        eq_(count + 1, revisions.count())
 
         first = revisions[1]
         second = revisions[0]
 
         # only the second revision has the dependencies
-        self.assertEqual(0, first.dependencies.count())
-        self.assertEqual(1, second.dependencies.count())
+        eq_(0, first.dependencies.count())
+        eq_(1, second.dependencies.count())
 
         # remove the dependency
         second.dependency_remove(lib)
@@ -115,9 +133,9 @@ class PackageRevisionTest(TestCase):
         third = revisions[0]
 
         # only the second revision has the dependencies
-        self.assertEqual(0, first.dependencies.count())
-        self.assertEqual(1, second.dependencies.count())
-        self.assertEqual(0, third.dependencies.count())
+        eq_(0, first.dependencies.count())
+        eq_(1, second.dependencies.count())
+        eq_(0, third.dependencies.count())
 
     def test_save_with_dependency(self):
         # system should copy on save with all dependencies
@@ -136,24 +154,49 @@ class PackageRevisionTest(TestCase):
         first = revisions[1]
         second = revisions[0]
         # both revisions have the same dependencies
-        self.assertEqual(first.dependencies.count(),
+        eq_(first.dependencies.count(),
                          second.dependencies.count())
-        self.assertEqual(first.dependencies.all()[0].pk, lib.pk)
-        self.assertEqual(second.dependencies.all()[0].pk, lib.pk)
+        eq_(first.dependencies.all()[0].pk, lib.pk)
+        eq_(second.dependencies.all()[0].pk, lib.pk)
 
     def test_adding_addon_as_dependency(self):
         " Add-on can't be a dependency "
         lib = PackageRevision.objects.filter(package__pk=self.library.pk)[0]
         addon = PackageRevision.objects.filter(package__pk=self.addon.pk)[0]
         self.assertRaises(TypeError, lib.dependency_add, addon)
-        self.assertEqual(0, lib.dependencies.all().count())
+        eq_(0, lib.dependencies.all().count())
 
     def test_adding_library_twice(self):
-        " Check recurrent dependency (one level only) "
+        " Check recurrent dependency (one level deep) "
         lib = self.library.latest
         addon = self.addon.latest
         addon.dependency_add(lib)
         self.assertRaises(DependencyException, addon.dependency_add, lib)
+
+
+    def test_adding_library_naming_conflict(self):
+        " Check recurrent dependency (all levels) "
+        john_lib = self.library
+        john_lib2 = Package(author=self.author, type='l')
+        john_lib2.save()
+
+        jan = User.objects.get(username='jan')
+        jan_lib = Package(author=jan, type='l')
+        jan_lib.save()
+        jan_conflict = Package(author=jan, type='l', full_name=john_lib.full_name)
+        jan_conflict.save()
+
+        john_lib.latest.dependency_add(jan_lib.latest)
+
+        addon = self.addon.latest
+        addon.dependency_add(john_lib.latest)
+        addon.dependency_add(jan_lib.latest)
+
+        self.assertRaises(DependencyException, addon.dependency_add, jan_conflict.latest)
+
+
+        john_lib2.latest.dependency_add(jan_conflict.latest)
+        self.assertRaises(DependencyException, addon.dependency_add, john_lib2.latest)
 
     def test_adding_library_self(self):
         " Check recurrent dependency (one level only) "
@@ -186,8 +229,8 @@ class PackageRevisionTest(TestCase):
         second = revisions[0]
 
         # all add-ons have a default modules created
-        self.assertEqual(1, first.modules.count())
-        self.assertEqual(2, second.modules.count())
+        eq_(1, first.modules.count())
+        eq_(2, second.modules.count())
 
     def test_adding_attachment(self):
         " Test if attachment is added properly "
@@ -239,14 +282,14 @@ class PackageRevisionTest(TestCase):
         first.update(mod)
 
         # create new revision on module update
-        self.assertEqual(3, addon.revisions.count())
-        self.assertEqual(2, Module.objects.filter(
+        eq_(3, addon.revisions.count())
+        eq_(2, Module.objects.filter(
             filename='test_filename').count())
 
         first = addon.revisions.all()[1]
         last = addon.revisions.all()[0]
 
-        self.assertEqual(2, last.modules.count())
+        eq_(2, last.modules.count())
 
     def test_adding_module_with_existing_filename(self):
         " filename is unique in package "
@@ -286,22 +329,43 @@ class PackageRevisionTest(TestCase):
         )
         self.assertRaises(FilenameExistException, first.attachment_add, att)
 
-    def test_assigning_lib_with_the_same_name(self):
-        user2 = User.objects.get(username='jan')
-        lib2 = Package.objects.create(
-                type='l',
-                name=self.library.name,
-                full_name=self.library.full_name,
-                author=user2)
-        self.addon.latest.dependency_add(self.library.latest)
-        self.addon.latest.dependency_add(lib2.latest)
-        eq_(self.addon.latest.dependencies.all().count(), 2)
-        self.addon.latest.build_xpi(hashtag=self.hashtag, rapid=True)
-        log.debug(self.xpi_file)
-        assert os.path.exists(self.xpi_file)
+    def test_force_sdk(self):
+        addon = Package.objects.create(
+            full_name="Other Package",
+            author=self.author,
+            type='a')
+        oldsdk = addon.latest.sdk
+
+        mozuser = User.objects.get(username='4757633')
+        version='testsdk'
+        kit_lib = PackageRevision.objects.create(
+                author=mozuser,
+                package=oldsdk.kit_lib.package,
+                revision_number=oldsdk.kit_lib.revision_number + 1,
+                version_name=version)
+        core_lib = PackageRevision.objects.create(
+                author=mozuser,
+                package=oldsdk.core_lib.package,
+                revision_number=oldsdk.core_lib.revision_number + 1,
+                version_name=version)
+        sdk = SDK.objects.create(
+                version=version,
+                kit_lib=kit_lib,
+                core_lib=core_lib,
+                dir='somefakedir')
+
+        addon.latest.force_sdk(sdk)
+        eq_(len(addon.revisions.all()), 1)
+        eq_(addon.latest.sdk.version, version)
+        eq_(addon.latest.commit_message,
+                'Automatic Add-on SDK upgrade to version (%s)' % sdk.version)
+        addon.latest.force_sdk(oldsdk)
+        eq_(len(addon.revisions.all()), 1)
+        eq_(addon.latest.commit_message.count('SDK'), 2)
 
     """
-    Althought not supported on view and front-en, there is no harm in these two
+    Althought not supported on view and front-end,
+    there is no harm in these two
 
     def test_adding_module_which_was_added_to_other_package_before(self):
         " ""
@@ -339,3 +403,4 @@ class PackageRevisionTest(TestCase):
         first.attachment_add(att)
         self.assertRaises(AddingAttachmentDenied, rev.attachment_add, att)
     """
+

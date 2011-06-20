@@ -1,30 +1,6 @@
-[submodule "lib/jetpack-sdk-0.8"]
-	path = lib/jetpack-sdk-0.8
-	url = git://github.com/mozillalabs/jetpack-sdk.git
-[submodule "lib/addon-sdk-0.9"]
-	path = lib/addon-sdk-0.9
-	url = git://github.com/mozilla/addon-sdk.git
-[submodule "lib/addon-sdk-1.0b1"]
-	path = lib/addon-sdk-1.0b1
-	url = git://github.com/mozilla/addon-sdk
-[submodule "lib/addon-sdk-1.0b2"]
-	path = lib/addon-sdk-1.0b2
-	url = git://github.com/mozilla/addon-sdk.git
-[submodule "lib/addon-sdk-1.0b3"]
-	path = lib/addon-sdk-1.0b3
-	url = git://github.com/mozilla/addon-sdk.git
 [submodule "vendor"]
 	path = vendor
 	url = git://github.com/mozilla/FlightDeck-lib.git
-[submodule "lib/addon-sdk-1.0b4rc1"]
-	path = lib/addon-sdk-1.0b4rc1
-	url = git://github.com/mozilla/addon-sdk.git
-[submodule "lib/addon-sdk-1.0b4rc3"]
-	path = lib/addon-sdk-1.0b4rc3
-	url = git://github.com/mozilla/addon-sdk.git
-[submodule "lib/addon-sdk-1.0b4"]
-	path = lib/addon-sdk-1.0b4
-	url = git://github.com/mozilla/addon-sdk.git
-[submodule "lib/addon-sdk-1.0b5"]
-	path = lib/addon-sdk-1.0b5
+[submodule "lib/addon-sdk-1.0rc2"]
+	path = lib/addon-sdk-1.0rc2
 	url = git://github.com/mozilla/addon-sdk.git

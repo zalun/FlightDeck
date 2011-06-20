@@ -1,5 +1,5 @@
 <div class="UI_middleWrapper centerSection">
-	<h1 id="flightdeck-logo"><a title="Mozilla Labs &minus; Add-ons Builder" href="{% url home %}">Mozilla Labs &minus; Add-ons Builder</a></h1>
+	<h1 id="flightdeck-logo"><a title="Mozilla Labs &minus; Add-on Builder" href="{% url home %}">Mozilla Labs &minus; Add-on Builder</a></h1>
 	<a id="brand" title="Mozilla" href="http://www.mozilla.com/en-US/">Mozilla</a>	
 	<nav>
 		<ul>
@@ -14,7 +14,7 @@
 				</div>
 			</li>
 			<li {% ifequal page "search" %}class="active"{% endifequal %}>
-				<span><a title="Search" href="{% url search.results %}">Search</a></span>
+				<span><a title="Search" href="{% url search %}">Search</a></span>
 			</li>
 			{#<li {% ifequal page "packages" %}class="active"{% endifequal %}><span><a title="Package Browser" href="{% url jp_browser_addons %}">Package Browser</a></span></li>#}
 			<li><span><a title="Documentation" href="/docs/" target="new">Documentation</a></span></li>

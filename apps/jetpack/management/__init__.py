@@ -1,4 +1,5 @@
 " Predefined for all Jetpack commands "
+import commonware.log
 import os
 import simplejson
 import shutil
@@ -10,6 +11,8 @@ from django.conf import settings
 from jetpack.models import Package, PackageRevision, SDK
 from person.models import Profile
 from utils.exceptions import SimpleException
+
+log = commonware.log.getLogger('f.importsdk')
 
 
 ALLOWED_CORE_NAMES = {
@@ -94,65 +97,58 @@ def add_core_modules(sdk_source, core_revision, core_author,
         core_name):
     " add all provided core modules to core_revision "
 
-    core_lib_dir = '%s/packages/%s/lib' % (sdk_source, core_name)
-    core_modules = os.listdir(core_lib_dir)
-    # @TODO: it should be recurrent
-    for module_file in core_modules:
-        try:
-            module_path = '%s/%s' % (core_lib_dir, module_file)
-            module_name = os.path.splitext(module_file)[0]
-            if os.path.isdir(module_path):
-                submodules = os.listdir(module_path)
-                for submodule_file in submodules:
-                    submodule_name = '%s/%s' % (module_name,
-                            os.path.splitext(submodule_file)[0])
-                    submodule_path = '%s/%s/%s' % (
-                            core_lib_dir, module_name, submodule_file)
+    def add_module_dir(core_lib_dir, subdirectory=''):
+        core_modules = os.listdir(os.path.join(core_lib_dir, subdirectory))
+        for module_file in core_modules:
+            try:
+                module_path = '%s/%s%s' % (core_lib_dir, subdirectory, module_file)
+                module_name = "%s%s" % (subdirectory, os.path.splitext(module_file)[0])
+                if os.path.isdir(module_path):
+                    add_module_dir(core_lib_dir, "%s/" % module_name)
+                else:
                     core_revision.module_create(
-                            save=False,
-                            filename=submodule_name,
-                            code=_get_code(submodule_path),
-                            author=core_author
-                            )
-            else:
-                core_revision.module_create(
-                    save=False,
-                    filename=module_name,
-                    code=_get_code(module_path),
-                    author=core_author
-                )
-        except Exception, err:
-            print ("Warning: There was a problem with importing module "
-                   "from file %s/%s\n%s") % (core_lib_dir, module_file, err)
+                        save=False,
+                        filename=module_name,
+                        code=_get_code(module_path),
+                        author=core_author
+                    )
+                    #log.debug("module added %s" % module_name)
+            except Exception, err:
+                print ("Warning: There was a problem with importing module "
+                       "from file %s/%s\n%s") % (core_lib_dir, module_file, err)
+
+    add_module_dir('%s/packages/%s/lib' % (sdk_source, core_name))
 
 
 def add_core_attachments(sdk_source, sdk_name, core_revision, core_author,
         core_name):
     " add attachements to the core_revision "
 
-    core_data_dir = '%s/packages/%s/data' % (sdk_source, core_name)
-    core_attachments = os.listdir(core_data_dir)
-    # @TODO: make it recurrent
-    if len(core_attachments) > 0:
-        path_dir = os.path.join(sdk_name, core_name)
-        upload_dir = os.path.join(settings.UPLOAD_DIR, path_dir)
-        if not os.path.isdir(upload_dir):
-            shutil.copytree(core_data_dir, upload_dir)
-    for att_file in core_attachments:
-        try:
-            att_path = '%s/%s' % (core_data_dir, att_file)
-            att_name, att_ext = os.path.splitext(att_file)
-            att_ext = att_ext[1:]
-            upload_path = '%s/%s.%s' % (path_dir, att_name, att_ext)
+    def add_attachments_dir(core_data_dir, subdirectory=''):
+        core_attachments = os.listdir(core_data_dir)
+        # create upload directory
+        if len(core_attachments) > 0:
+            path_dir = os.path.join(sdk_name, core_name)
+            upload_dir = os.path.join(settings.UPLOAD_DIR, path_dir, subdirectory)
+            if not os.path.isdir(upload_dir):
+                shutil.copytree(core_data_dir, upload_dir)
+        for att_file in core_attachments:
+            try:
+                att_path = '%s/%s%s' % (core_data_dir, subdirectory, att_file)
+                att_name, att_ext = os.path.splitext(att_file)
+                att_name = '%s%s' % (subdirectory, att_name)
+                att_ext = att_ext[1:]
+                upload_path = '%s/%s.%s' % (path_dir, att_name, att_ext)
 
-            core_revision.attachment_create(
-                    filename=att_name,
-                    ext=att_ext,
-                    path=upload_path,
-                    author=core_author)
-        except Exception, err:
-            print ("Warning: Importing module failed: %s\n%s" %
-                    (att_path, str(err)))
+                core_revision.attachment_create(
+                        filename=att_name,
+                        ext=att_ext,
+                        path=upload_path,
+                        author=core_author)
+            except Exception, err:
+                print ("Warning: Importing module failed: %s\n%s" %
+                        (att_path, str(err)))
+    add_attachments_dir('%s/packages/%s/data' % (sdk_source, core_name))
 
 
 def check_SDK_dir(sdk_dir_name):
@@ -261,7 +257,7 @@ def update_SDK(sdk_dir_name):
     )
 
 
-def create_SDK(sdk_dir_name='jetpack-sdk'):
+def create_SDK(sdk_dir_name='addon-sdk'):
     " create first jetpack-core revision "
     print "creating core"
 

@@ -160,17 +160,17 @@ class TestModules(TestCase):
         assert 'index' in conflicts['test']
         assert conflicts.has_key('test2')
         assert 'index' in conflicts['test2']
-    
+
     def test_private_modules(self):
         revision = self.add_one()
         revision.package.active = False
         revision.package.save()
-        
+
         mod = revision.modules.all()[0]
         url = reverse('jp_module', args=[mod.pk])
         res = self.client.get(url)
         eq_(res.status_code, 200)
-        
+
         self.client.logout()
         res = self.client.get(url)
         eq_(res.status_code, 403)

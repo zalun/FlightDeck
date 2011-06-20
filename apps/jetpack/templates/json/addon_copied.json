@@ -1,5 +1,5 @@
 {
 	{% include "json/_edit_urls.json" %}
-	"message": "Add-on \"{{ revision.package.full_name }}\" copied"
+	"message": "Add-on \"{{ revision.full_name }}\" copied"
 }
 

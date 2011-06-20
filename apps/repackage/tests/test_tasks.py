@@ -2,9 +2,13 @@
 repackage.tests.test_tasks
 --------------------------
 """
+import commonware
 import os
-import urllib
+import simplejson
+import tempfile
+import urllib2
 import urlparse
+import zipfile
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -16,6 +20,8 @@ from utils.test import TestCase
 from base.templatetags.base_helpers import hashtag
 from repackage.tasks import rebuild
 
+log = commonware.log.getLogger('f.repackage')
+
 
 class RepackageTaskTest(TestCase):
 
@@ -26,16 +32,19 @@ class RepackageTaskTest(TestCase):
                 settings.ROOT, 'apps/xpi/tests/sample_addons/')
         self.sample_addons = [
                 "sample_add-on-1.0b3",
-                "sample_add-on-1.0b4"]
-        self.sdk_source_dir = os.path.join(
-                settings.ROOT, 'lib/addon-sdk-1.0b5')
+                "sample_add-on-1.0b4",
+                "sample_add-on-1.0rc2.xpi"]
+        self.sdk_source_dir = settings.REPACKAGE_SDK_SOURCE or os.path.join(
+                settings.ROOT, 'lib/addon-sdk-1.0rc2')
         self.hashtag = hashtag()
+        self.target_basename = os.path.join(
+                settings.XPI_TARGETDIR, self.hashtag)
 
     def tearDown(self):
-        target_xpi = os.path.join(
-                settings.XPI_TARGETDIR, self.hashtag, '.xpi')
-        if os.path.isfile(target_xpi):
-            os.remove(target_xpi)
+        if os.path.exists('%s.xpi' % self.target_basename):
+            os.remove('%s.xpi' % self.target_basename)
+        if os.path.exists('%s.json' % self.target_basename):
+            os.remove('%s.json' % self.target_basename)
 
     def test_download_and_rebuild(self):
         rep_response = rebuild(
@@ -45,8 +54,20 @@ class RepackageTaskTest(TestCase):
                 self.sdk_source_dir, self.hashtag)
         assert not rep_response[1]
 
+    def test_download_and_failed_rebuild(self):
+        with tempfile.NamedTemporaryFile() as bad_xpi:
+            self.assertRaises(Exception,
+                    rebuild,
+                    'file://%s' % bad_xpi.name, None, self.sdk_source_dir,
+                    self.hashtag)
+        assert os.path.exists('%s.json' % self.target_basename)
+        response_json = {}
+        with open('%s.json' % self.target_basename) as response:
+            response_json = simplejson.loads(response.read())
+        eq_(response_json['status'], 'error')
+
     def test_pingback(self):
-        urllib.urlopen = Mock(return_value=open(os.path.join(
+        urllib2.urlopen = Mock(return_value=open(os.path.join(
                 settings.ROOT, 'apps/xpi/tests/sample_addons/',
                 '%s.xpi' % self.sample_addons[0])))
         rebuild(
@@ -65,7 +86,7 @@ class RepackageTaskTest(TestCase):
                 'post': None,
                 'id': 'jid0-S9EIBmWttfoZn92i5toIRoKXb1Y',
                 'result': 'success'}
-        params = urlparse.parse_qs(urllib.urlopen.call_args[1]['data'])
+        params = urlparse.parse_qs(urllib2.urlopen.call_args[1]['data'])
         eq_(desired_response['secret'], params['secret'][0])
         eq_(desired_response['location'], params['location'][0])
         eq_(desired_response['result'], params['result'][0])

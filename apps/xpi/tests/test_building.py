@@ -1,8 +1,10 @@
 # coding=utf-8
+import commonware
 import os
 import shutil
 import simplejson
-import commonware
+import tempfile
+import time
 
 from mock import Mock
 from nose.tools import eq_
@@ -36,7 +38,7 @@ class XPIBuildTest(TestCase):
             author=self.author
         )
         self.librev.module_add(mod)
-        self.SDKDIR = self.addon.latest.get_sdk_dir(self.hashtag)
+        self.SDKDIR = tempfile.mkdtemp()
         self.attachment_file_name = os.path.join(
                 settings.UPLOAD_DIR, 'test_filename.txt')
         handle = open(self.attachment_file_name, 'w')
@@ -46,6 +48,8 @@ class XPIBuildTest(TestCase):
         self.createCore()
         settings.XPI_AMO_PREFIX = "file://%s" % os.path.join(
                 settings.ROOT, 'apps/xpi/tests/sample_addons/')
+        self.target_basename = os.path.join(
+                settings.XPI_TARGETDIR, self.hashtag)
 
     def tearDown(self):
         self.deleteCore()
@@ -53,37 +57,38 @@ class XPIBuildTest(TestCase):
             shutil.rmtree(self.SDKDIR)
         if os.path.exists(self.attachment_file_name):
             os.remove(self.attachment_file_name)
+        if os.path.exists('%s.xpi' % self.target_basename):
+            os.remove('%s.xpi' % self.target_basename)
+        if os.path.exists('%s.json' % self.target_basename):
+            os.remove('%s.json' % self.target_basename)
 
     def makeSDKDir(self):
-        if self.SDKDIR and os.path.isdir(self.SDKDIR):
-            shutil.rmtree(self.SDKDIR)
-        os.mkdir(self.SDKDIR)
         os.mkdir('%s/packages' % self.SDKDIR)
 
     def test_package_dir_generation(self):
         " test if all package dirs are created properly "
         self.makeSDKDir()
-        package_dir = self.library.make_dir('%s/packages' % self.SDKDIR)
+        package_dir = self.library.latest.make_dir('%s/packages' % self.SDKDIR)
         self.failUnless(os.path.isdir(package_dir))
         self.failUnless(os.path.isdir(
-            '%s/%s' % (package_dir, self.library.get_lib_dir())))
+            '%s/%s' % (package_dir, self.library.latest.get_lib_dir())))
 
     def test_save_modules(self):
         " test if module is saved "
         self.makeSDKDir()
-        package_dir = self.library.make_dir('%s/packages' % self.SDKDIR)
+        package_dir = self.library.latest.make_dir('%s/packages' % self.SDKDIR)
         self.librev.export_modules(
-            '%s/%s' % (package_dir, self.library.get_lib_dir()))
+            '%s/%s' % (package_dir, self.library.latest.get_lib_dir()))
 
         self.failUnless(os.path.isfile('%s/%s/%s.js' % (
                             package_dir,
-                            self.library.get_lib_dir(),
+                            self.library.latest.get_lib_dir(),
                             'test_module')))
 
     def test_manifest_file_creation(self):
         " test if manifest is created properly "
         self.makeSDKDir()
-        package_dir = self.library.make_dir('%s/packages' % self.SDKDIR)
+        package_dir = self.library.latest.make_dir('%s/packages' % self.SDKDIR)
         self.librev.export_manifest(package_dir)
         self.failUnless(os.path.isfile('%s/package.json' % package_dir))
         handle = open('%s/package.json' % package_dir)
@@ -95,33 +100,33 @@ class XPIBuildTest(TestCase):
         " test if all the files are in place "
         self.makeSDKDir()
         self.librev.export_files_with_dependencies('%s/packages' % self.SDKDIR)
-        package_dir = self.librev.package.get_dir_name('%s/packages' % self.SDKDIR)
+        package_dir = self.librev.get_dir_name('%s/packages' % self.SDKDIR)
         self.failUnless(os.path.isdir(package_dir))
         self.failUnless(os.path.isdir(
-            '%s/%s' % (package_dir, self.library.get_lib_dir())))
+            '%s/%s' % (package_dir, self.library.latest.get_lib_dir())))
         self.failUnless(os.path.isfile('%s/package.json' % package_dir))
         self.failUnless(os.path.isfile('%s/%s/%s.js' % (
                             package_dir,
-                            self.library.get_lib_dir(),
+                            self.library.latest.get_lib_dir(),
                             'test_module')))
 
     def test_addon_export_with_dependency(self):
         " test if lib and main.js are properly exported "
         self.makeSDKDir()
-        addon_dir = self.addon.get_dir_name('%s/packages' % self.SDKDIR)
-        lib_dir = self.library.get_dir_name('%s/packages' % self.SDKDIR)
+        addon_dir = self.addon.latest.get_dir_name('%s/packages' % self.SDKDIR)
+        lib_dir = self.library.latest.get_dir_name('%s/packages' % self.SDKDIR)
 
         self.addonrev.dependency_add(self.librev)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
         self.failUnless(os.path.isdir(
-            '%s/%s' % (addon_dir, self.addon.get_lib_dir())))
+            '%s/%s' % (addon_dir, self.addon.latest.get_lib_dir())))
         self.failUnless(os.path.isdir(
-            '%s/%s' % (lib_dir, self.library.get_lib_dir())))
+            '%s/%s' % (lib_dir, self.library.latest.get_lib_dir())))
         self.failUnless(os.path.isfile(
             '%s/%s/%s.js' % (
                 addon_dir,
-                self.addon.get_lib_dir(),
+                self.addon.latest.get_lib_dir(),
                 self.addonrev.module_main)))
 
     def test_addon_export_with_attachment(self):
@@ -148,19 +153,20 @@ class XPIBuildTest(TestCase):
 
     def test_minimal_xpi_creation(self):
         " xpi build from an addon straight after creation "
+        tstart = time.time()
         xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
         err = xpi_utils.build(
                 self.SDKDIR,
-                self.addon.get_dir_name('%s/packages' % self.SDKDIR),
-                self.addon.name, self.hashtag)
+                self.addon.latest.get_dir_name('%s/packages' % self.SDKDIR),
+                self.addon.name, self.hashtag, tstart=tstart)
         # assert no error output
         assert not err[1]
         # assert xpi was created
-        self.failUnless(os.path.isfile(
-            "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
+        assert os.path.isfile('%s.xpi' % self.target_basename)
+        assert os.path.isfile('%s.json' % self.target_basename)
 
     def test_addon_with_other_modules(self):
         " addon has now more modules "
@@ -168,19 +174,20 @@ class XPIBuildTest(TestCase):
             filename='test_filename',
             author=self.author
         )
+        tstart = time.time()
         xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
         err = xpi_utils.build(
                 self.SDKDIR,
-                self.addon.get_dir_name('%s/packages' % self.SDKDIR),
-                self.addon.name, self.hashtag)
+                self.addon.latest.get_dir_name('%s/packages' % self.SDKDIR),
+                self.addon.name, self.hashtag, tstart=tstart)
         # assert no error output
         assert not err[1]
         # assert xpi was created
-        self.failUnless(os.path.isfile(
-            "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
+        assert os.path.isfile('%s.xpi' % self.target_basename)
+        assert os.path.isfile('%s.json' % self.target_basename)
 
     def test_xpi_with_empty_dependency(self):
         " empty lib is created "
@@ -192,36 +199,38 @@ class XPIBuildTest(TestCase):
         librev = PackageRevision.objects.filter(
             package__id_number=lib.id_number)[0]
         self.addonrev.dependency_add(librev)
+        tstart = time.time()
         xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
         err = xpi_utils.build(
                 self.SDKDIR,
-                self.addon.get_dir_name('%s/packages' % self.SDKDIR),
-                self.addon.name, self.hashtag)
+                self.addon.latest.get_dir_name('%s/packages' % self.SDKDIR),
+                self.addon.name, self.hashtag, tstart=tstart)
         # assert no error output
         assert not err[1]
         # assert xpi was created
-        self.failUnless(os.path.isfile(
-            "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
+        assert os.path.isfile('%s.xpi' % self.target_basename)
+        assert os.path.isfile('%s.json' % self.target_basename)
 
     def test_xpi_with_dependency(self):
         " addon has one dependency with a file "
         self.addonrev.dependency_add(self.librev)
+        tstart = time.time()
         xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
         self.addonrev.export_keys(self.SDKDIR)
         self.addonrev.export_files_with_dependencies(
             '%s/packages' % self.SDKDIR)
         err = xpi_utils.build(
                 self.SDKDIR,
-                self.addon.get_dir_name('%s/packages' % self.SDKDIR),
-                self.addon.name, self.hashtag)
+                self.addon.latest.get_dir_name('%s/packages' % self.SDKDIR),
+                self.addon.name, self.hashtag, tstart=tstart)
         # assert no error output
         assert not err[1]
         # assert xpi was created
-        self.failUnless(os.path.isfile(
-            "%s.xpi" % os.path.join(settings.XPI_TARGETDIR, self.hashtag)))
+        assert os.path.isfile('%s.xpi' % self.target_basename)
+        assert os.path.isfile('%s.json' % self.target_basename)
 
     def test_module_with_utf(self):
 
@@ -232,22 +241,20 @@ class XPIBuildTest(TestCase):
         )
         self.library.latest.module_add(mod)
         self.makeSDKDir()
-        package_dir = self.library.make_dir('%s/packages' % self.SDKDIR)
+        package_dir = self.library.latest.make_dir('%s/packages' % self.SDKDIR)
         self.librev.export_modules(
-            '%s/%s' % (package_dir, self.library.get_lib_dir()))
+            '%s/%s' % (package_dir, self.library.latest.get_lib_dir()))
 
         self.failUnless(os.path.isfile('%s/%s/%s.js' % (
                             package_dir,
-                            self.library.get_lib_dir(),
+                            self.library.latest.get_lib_dir(),
                             'test_module')))
 
     def test_package_included_multiple_times(self):
         """ If separate dependencies require the same library, it shouldn't error """
-        pack = Package.objects.create(name='another-test-lib', type='l', author=self.author)
+        pack = Package.objects.create(type='l', author=self.author)
         packrev = pack.latest
         self.librev.dependency_add(packrev)
         self.addonrev.dependency_add(packrev)
         self.addonrev.dependency_add(self.librev)
-
         self.addonrev.build_xpi(hashtag=self.hashtag, rapid=True)
-

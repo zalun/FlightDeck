@@ -23,7 +23,7 @@
             }.bind(this);
             if (fd.alertIfNoAddOn()) {
                 if (el.getParent('li').hasClass('pressed')) {
-                    fd.uninstallXPI(el.get('rel'));
+                    fd.uninstallXPI(el.get('data-jetpackid'));
                 } else {
                     testThisXpi();
                 }
@@ -31,7 +31,7 @@
                 fd.whenAddonInstalled(function() {
                     fd.message.alert(
                         'Add-on Builder Helper', 
-                        'Now that you have installed the Add-ons Builder '
+                        'Now that you have installed the Add-on Builder '
                         + 'Helper, loading the add-on into your browser for '
                         + 'testing...'
                     );

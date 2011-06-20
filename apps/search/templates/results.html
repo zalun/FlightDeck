@@ -13,22 +13,41 @@
     {% include "_search_filter.html" %}
 {% endblock %}
 {% block app_content %}
-	<section id="SearchResults">
-	{% if addons %}
-		<h2 class="UI_Heading">Addon Results ({{ addon_total }})</h2>
-		{% for package in addons %}
+<section id="SearchResults">
+{% if pager %}
+    {% if type == 'addon' %}
+      <h2 class="UI_Heading">Add-on Results ({{ addon_total }})</h2>
+    {% else %}
+		  <h2 class="UI_Heading">Library Results ({{ library_total }})</h2>
+    {% endif %}
+
+    {% for package in pager.object_list %}
 			{% include "_package_result.html" %}
-		{% endfor %}
+	{% empty %}
+		<p>No results were found for the term "{{ q }}".</p>
+	{% endfor %}
+
+	{% if pager.has_other_pages %}
+    <ul class="UI_Pagination">
+			{% if pager.has_previous %}
+				<li class="UI_Pagin_Action prev">
+					<span></span>
+					<a href="?q={{q}}&page={{pager.previous_page_number}}">
+						Previous
+					</a>
+				</li>
+			{% endif %}
+			<li class='current'>{{ pager.number }}</li>
+			{% if pager.has_next %}
+				<li class="UI_Pagin_Action next">
+					<a href="?q={{q}}&page={{pager.next_page_number}}">
+						Next
+					</a>
+					<span></span>
+				</li>
+			{% endif %}
+		</ul>
 	{% endif %}
-	{% if libraries %}
-		<h2 class="UI_Heading">Library Results ({{ library_total }})</h2>
-		{% for package in libraries %}
-			{% include "_package_result.html" %}
-		{% endfor %}
-	{% endif %}
-	
-	{% if not addons and not libraries %}
-		<p>No results were found for the term "{{q}}".</p>
-	{% endif %}
-	</section>
+{% endif %}
+</section>
 {% endblock %}

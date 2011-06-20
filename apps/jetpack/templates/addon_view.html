@@ -26,12 +26,12 @@
   {% if revision.sdk %}
     <li class="UI_File_Normal Core_library"
 	  id="core_library_lib"
-	  title="{{ revision.get_sdk_revision.package.full_name }}"
-      data-id-number="{{ revision.get_sdk_revision.package.name }}">
+	  title="{{ revision.get_sdk_revision.full_name }}"
+      data-id-number="{{ revision.get_sdk_revision.name }}">
       <a class="expand" href="#"></a>
 	  <div class="holder">
 		<a href="{{ revision.get_sdk_revision.get_absolute_url }}" target="_blank">
-		  <span class="label">{{ revision.get_sdk_revision.package.full_name }}</span>
+		  <span class="label">{{ revision.get_sdk_revision.full_name }}</span>
 		</a>
 		<span class="icon"></span>
 	  </div>
@@ -41,7 +41,7 @@
 
 {% block app_content_menu_items %}
 	<li id="try_in_browser" class="UI_Editor_Menu_Button Icon_try XPI_test">
-    <a title="Test" href="{{ revision.get_test_xpi_url }}" rel="{{ revision.package.jid }}"><span></span></a>
+    <a title="Test" href="{{ revision.get_test_xpi_url }}" data-jetpackid="{{ revision.package.jid }}"><span></span></a>
 	</li>
 	<li id="download" class="UI_Editor_Menu_Button Icon_download">
     <a target="_new" title="Download" href="{{ revision.get_download_xpi_url }}"><span></span></a>

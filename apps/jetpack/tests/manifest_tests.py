@@ -1,24 +1,29 @@
+import commonware
+
 from copy import deepcopy
 from test_utils import TestCase
 
+from django.contrib.auth.models import User
 from django.conf import settings
 
 from jetpack.models import Package
+
+log = commonware.log.getLogger('f.test')
 
 
 class ManifestsTest(TestCase):
     " tests strictly about manifest creation "
 
-    fixtures = ['mozilla', 'core_lib', 'users', 'packages']
+    fixtures = ['mozilla', 'core_sdk', 'users', 'packages']
 
     manifest = {
-        'fullName': 'Test Addon',
-        'name': 'test-addon',
-        'description': '',
-        'author': 'john',
+        'fullName': u'Test Addon',
+        'name': u'test-addon',
+        'description': u'',
+        'author': u'john',
         'version': settings.INITIAL_VERSION_NAME,
-        'dependencies': ['jetpack-core'],
-        'license': '',
+        'dependencies': ['addon-kit'],
+        'license': u'',
         'url': '',
         'main': 'main',
         'contributors': [],
@@ -32,6 +37,13 @@ class ManifestsTest(TestCase):
 
     def test_minimal_manifest(self):
         " test if self.manifest is created for the clean addon "
+        author = User.objects.get(username='john')
+        author.username='123'
+        profile = author.get_profile()
+        profile.nickname = 'john'
+        author.save()
+        profile.save()
+
         first = self.addon.latest
 
         manifest = deepcopy(self.manifest)

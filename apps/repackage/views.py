@@ -25,8 +25,11 @@ class BadManifestFieldException(exceptions.SimpleException):
     """
 
 
-def _get_package_overrides(container):
+def _get_package_overrides(container, sdk_version=None):
     version = container.get('version', None)
+    if version and sdk_version:
+        version = version.format(sdk_version=sdk_version)
+
     package_overrides = {
         'version': version,
         'type': container.get('type', None),
@@ -48,7 +51,7 @@ def _get_package_overrides(container):
 
 def _get_latest_sdk_source_dir():
     # get latest SDK
-    sdk = SDK.objects.all()[0]
+    sdk = SDK.objects.latest('pk')
     # if (when?) choosing POST['sdk_dir'] will be possible
     # sdk = SDK.objects.get(dir=sdk_dir) if sdk_dir else SDK.objects.all()[0]
     return sdk.get_source_dir()
@@ -82,13 +85,22 @@ def rebuild(request):
 
     sdk_source_dir = (settings.REPACKAGE_SDK_SOURCE
             or _get_latest_sdk_source_dir())
+    sdk_manifest = '%s/packages/%s/package.json' % (sdk_source_dir, 'addon-kit')
+    try:
+        handle = open(sdk_manifest)
+    except Exception, err:
+        log.critical("Problems loading SDK manifest\n%s" % str(err))
+        raise
+    else:
+        sdk_version = simplejson.loads(handle.read())['version']
+        handle.close()
     pingback = request.POST.get('pingback', None)
     priority = request.POST.get('priority', None)
     post = request.POST.urlencode()
     if priority and priority == 'high':
-        rebuild = tasks.high_rebuild
+        rebuild_task = tasks.high_rebuild
     else:
-        rebuild = tasks.low_rebuild
+        rebuild_task = tasks.low_rebuild
     response = {'status': 'success'}
     errors = []
     counter = 0
@@ -104,11 +116,12 @@ def rebuild(request):
         filename = request.POST.get('filename', None)
 
         try:
-            package_overrides = _get_package_overrides(request.POST)
+            package_overrides = _get_package_overrides(request.POST,
+                                                       sdk_version)
         except BadManifestFieldException, err:
             errors.append('[%s] %s' % (hashtag, str(err)))
         else:
-            rebuild.delay(
+            rebuild_task.delay(
                     location, upload, sdk_source_dir, hashtag,
                     package_overrides=package_overrides,
                     filename=filename, pingback=pingback,
@@ -138,12 +151,13 @@ def rebuild(request):
                         "Rejecting") % hashtag)
                     error = True
                 try:
-                    package_overrides = _get_package_overrides(addon)
+                    package_overrides = _get_package_overrides(addon,
+                                                               sdk_version)
                 except Exception, err:
                     errors.append('[%s] %s' % (hashtag, str(err)))
                     error = True
                 if not error:
-                    rebuild.delay(
+                    rebuild_task.delay(
                         location, upload, sdk_source_dir, hashtag,
                         package_overrides=package_overrides,
                         filename=filename, pingback=pingback,
@@ -161,7 +175,7 @@ def rebuild(request):
     response['addons'] = counter
     uuid = request.POST.get('uuid', 'no uuid')
 
-    log.info("%d addon(s) will be created, %d error(s), uuid: %s" %
+    log.info("%d addon(s) will be created, %d syntax errors, uuid: %s" %
             (counter, len(errors), uuid))
 
     return HttpResponse(simplejson.dumps(response),

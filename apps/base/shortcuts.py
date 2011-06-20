@@ -1,6 +1,10 @@
+import commonware.log
+
 from django.db.models.manager import Manager
 from django.shortcuts import _get_queryset
 from django.http import Http404
+
+log = commonware.log.getLogger('f.base')
 
 
 def get_object_or_create(klass, *args, **kwargs):
@@ -27,9 +31,14 @@ def get_object_with_related_or_404(klass, *args, **kwargs):
     than one object is found.
     """
     queryset = _get_queryset(klass).select_related()
+
     try:
         return queryset.get(*args, **kwargs)
     except queryset.model.DoesNotExist:
-        raise Http404(
-            'No %s matches the given query.' % queryset.model._meta.object_name
-        )
+        pass
+    except Exception, err:
+        log.error("Getting %s failed (%s)" % (
+            queryset.model._meta.object_name, str(err)))
+
+    raise Http404(
+        'No %s matches the given query.' % queryset.model._meta.object_name)

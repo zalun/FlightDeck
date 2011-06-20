@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.utils.encoding import smart_str
 from django.conf import settings
 
+from amo.helpers import get_amo_cursor
 from person.models import Profile
 
 DEFAULT_AMO_PASSWORD = 'saved in AMO'
@@ -72,8 +73,8 @@ class AMOAuthentication:
         except Profile.DoesNotExist:
             profile = Profile(user=user)
 
-        # update profile and return User instance
-        return update_profile(user, profile, self.user_data)
+        profile.update_from_AMO(self.user_data)
+        return user
 
     def get_user(self, user_id):
         try:
@@ -82,22 +83,12 @@ class AMOAuthentication:
             return None
 
     def auth_db_authenticate(self, username, password):
-        " authenticate email/password pair in MAO database "
-        import MySQLdb
+        " authenticate email/password pair in AMO database "
+
         columns = ('id', 'email', 'username', 'display_name', 'password',
                    'homepage')
+        auth_cursor = get_amo_cursor()
 
-        #try:
-        auth_conn = MySQLdb.connect(
-            host=settings.AUTH_DATABASE['HOST'],
-            user=settings.AUTH_DATABASE['USER'],
-            passwd=settings.AUTH_DATABASE['PASSWORD'],
-            db=settings.AUTH_DATABASE['NAME']
-        )
-        #except Exception, err:
-        #    log.critical("Authentication database connection failure: %s"
-        #            % str(err))
-        auth_cursor = auth_conn.cursor()
         SQL = ('SELECT %s FROM %s WHERE email=%%s') % (
                 ','.join(columns), settings.AUTH_DATABASE['TABLE'])
         auth_cursor.execute(SQL, username)
@@ -123,23 +114,6 @@ class AMOAuthentication:
         return username
 
 
-def update_profile(user, profile, data):
-    if 'display_name' in data:
-        if data['display_name']:
-            names = data['display_name'].split(' ')
-            user.firstname = names[0]
-            if len(names) > 1:
-                user.lastname = names[-1]
-            user.save()
-
-    if 'username' in data:
-        profile.nickname = data['username']
-    if 'homepage' in data:
-        profile.homepage = data['homepage']
-
-    profile.save()
-
-    return user
 
 
 def get_hexdigest(algorithm, salt, raw_password):

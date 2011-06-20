@@ -19,8 +19,8 @@
 	<script src="/media/lib/meio/Meio.Autocomplete.HTML-1.3.js"></script>
 	<script src="/media/base/js/FlightDeck.Autocomplete.js"></script>
 	<script src="/media/jetpack/js/Package.js"></script>
-	<script src="/media/lib/sendFile.js"></script>
 	<script src="/media/lib/tree.js"></script>
+	<script src="/media/lib/FloatingTips.js"></script>
 	<script src="/media/jetpack/js/FileTree.js"></script>
 	
 {% endblock %}
@@ -108,9 +108,7 @@
                 <a href="#"><span></span></a>
 				</li>
 			{% endif %}
-			<li id="error-console" title="Error Console" class="UI_Editor_Menu_Button Icon_logs">
-            <a href="#"><span></span></a>
-			</li>
+			{% block app_content_menu_error_console %}{% endblock %}
 			{% include "_editor_app_menu_items.html" %}
 		</ul>
 	</div> <!-- /editor-menu-wrapper -->

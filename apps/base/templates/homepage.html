@@ -58,8 +58,8 @@
                 </ul>
                 <h3 class="second">Explore</h3>
                 <ul>
-                    <li><a href="{% url jp_browser_addons %}">Public Add-ons</a></li>
-                    <li><a href="{% url jp_browser_libraries %}">Third-Party Libraries</a></li>
+                    <li><a href="{% url search_by_type 'addon' %}">Public Add-ons</a></li>
+                    <li><a href="{% url search_by_type 'library' %}">Third-Party Libraries</a></li>
                 </ul>
 			</div>
         </div>
@@ -79,7 +79,7 @@
 					</ul> <!-- /UI_Browser -->
 
 					<ul class="UI_SeeMore">
-						<li><a title="Browse More Add-ons" href="{% url jp_browser_addons %}">Browse More Add-ons</a></li>
+						<li><a title="Browse More Add-ons" href="{% url search_by_type 'addon' %}">Browse More Add-ons</a></li>
 					</ul> <!-- /UI_SeeMore -->
 				{% endif %}
 			</div> <!-- /UI_LE_Col -->
@@ -95,7 +95,7 @@
 					</ul> <!-- /UI_Browser -->
 
 					<ul class="UI_SeeMore">
-						<li><a title="Browse More Libraries" href="{% url jp_browser_libraries %}">Browse More Libraries</a></li>
+						<li><a title="Browse More Libraries" href="{% url search_by_type 'library' %}">Browse More Libraries</a></li>
 					</ul> <!-- /UI_SeeMore -->
 				{% endif %}
 			</div> <!-- /UI_LE_Col -->
@@ -108,7 +108,7 @@
 						<p>Prefer the command-line? Want to work locally?</p>
 
 						<ul>
-							<li class="UI_Mini_Button"><a id="getSdk" title="Download Add-ons Builder SDK" href="https://ftp.mozilla.org/pub/mozilla.org/labs/jetpack/jetpack-sdk-latest.zip"><span>Download Add-ons Builder SDK</span></a></li>
+							<li class="UI_Mini_Button"><a id="getSdk" title="Download Add-on Builder SDK" href="https://ftp.mozilla.org/pub/mozilla.org/labs/jetpack/jetpack-sdk-latest.zip"><span>Download Add-on Builder SDK</span></a></li>
 							<li class="moreInfo"><a title="More Info" href="/docs/">More Info</a></li>
 						</ul>
 					</div>

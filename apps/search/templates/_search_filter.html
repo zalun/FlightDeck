@@ -1,15 +1,15 @@
 <h2 class="UI_Heading">Narrow Search</h2>
 <ul class="UI_Action_List">
     <li>
-        <a href="{% url search.results %}?q={{ q }}">Combined</a>
+        <a href="{% url search.combined %}?q={{ q }}">Combined</a>
         <strong>({{ total }})</strong>
     </li>
     <li>
-        <a href="{% url search 'addon' %}?q={{ q }}">Addons</a>
+        <a href="{% url search_by_type 'addon' %}?q={{ q }}">Add-ons</a>
         <strong>({{ addon_total }})</strong>
     </li>
     <li>
-        <a href="{% url search 'library' %}?q={{ q }}">Libraries</a>
+        <a href="{% url search_by_type 'library' %}?q={{ q }}">Libraries</a>
         <strong>({{ library_total }})</strong>
     </li>
 </ul>

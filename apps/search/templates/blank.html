@@ -9,10 +9,10 @@
 
 {% block app_content %}
 	<section id="BlankSearch">
-		<form method="get" action="{% url search.results %}" id="BlankSearchForm">
+		<form method="get" action="{% url search.combined %}" id="BlankSearchForm">
 			<fieldset>
 				<label>
-					<h2>Enter your search terms:</h2>
+					<span>Enter your search terms:</span>
 					<input type="search" name="q" id="q" />
 				</label>
 			</fieldset>

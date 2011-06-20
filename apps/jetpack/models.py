@@ -4,13 +4,14 @@ import shutil
 import time
 import commonware
 import tarfile
+import tempfile
 import markdown
 import hashlib
 import codecs
 
 from copy import deepcopy
 
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 
 from django.db.models.signals import (pre_save, post_delete, post_save,
                                       m2m_changed)
@@ -35,12 +36,33 @@ from jetpack.errors import (SelfDependencyException, FilenameExistException,
                             UpdateDeniedException, SingletonCopyException,
                             DependencyException, AttachmentWriteException)
 from jetpack.managers import PackageManager
+from utils import validator
 from utils.exceptions import SimpleException
 from utils.helpers import pathify, alphanum, alphanum_plus
 from utils.os_utils import make_path
 from xpi import xpi_utils
 
 log = commonware.log.getLogger('f.jetpack')
+
+def make_name(value=None):
+    " wrap for slugify "
+    return slugify(value)
+
+def _get_full_name(full_name, username, type_id, i=0):
+    """
+    increment until there is no package with the full_name
+    """
+    new_full_name = full_name
+    if i > 0:
+        new_full_name = "%s (%d)" % (full_name, i)
+    packages = Package.objects.filter(author__username=username,
+                                      full_name=new_full_name,
+                                      type=type_id)
+    if packages.count() == 0:
+        return new_full_name
+
+    i = i + 1
+    return _get_full_name(full_name, username, type_id, i)
 
 
 PERMISSION_CHOICES = (
@@ -60,36 +82,41 @@ class PackageRevision(BaseModel):
     contains data which may be changed and rolled back
     """
     package = models.ForeignKey('Package', related_name='revisions')
-    # public version name
-    # this is a tag used to mark important revisions
+    #: public version name
+    #: this is a tag used to mark important revisions
     version_name = models.CharField(max_length=250, blank=True, null=True,
                                     default=settings.INITIAL_VERSION_NAME)
-    # this makes the revision unique across the same package/user
+    #: name of the Package
+    full_name = models.CharField(max_length=255, blank=True)
+    #: name in revision is used for dependencies, and packages dir creation
+    #: it should be also used in front-end
+    name = models.CharField(max_length=250)
+    #: this makes the revision unique across the same package/user
     revision_number = models.IntegerField(blank=True, default=0)
-    # commit message
+    #: commit message
     message = models.TextField(blank=True)
-    # autmagical message
+    #: autmagical message
     commit_message = models.TextField(blank=True, null=True)
 
-    # Libraries on which current package depends
+    #: Libraries on which current package depends
     dependencies = models.ManyToManyField('self', blank=True, null=True,
                                             symmetrical=False)
 
-    # from which revision this mutation was originated
+    #: from which revision this mutation was originated
     origin = models.ForeignKey('PackageRevision', related_name='mutations',
                                 blank=True, null=True)
 
-    # person who owns this revision
+    #: person who owns this revision
     author = models.ForeignKey(User, related_name='package_revisions')
 
     created_at = models.DateTimeField(auto_now_add=True)
 
     contributors = models.CharField(max_length=255, blank=True, default='')
 
-    # main for the Manifest
+    #: main for the Manifest
     module_main = models.CharField(max_length=100, blank=True, default='main')
 
-    # SDK which should be used to create the XPI
+    #: SDK which should be used to create the XPI
     sdk = models.ForeignKey('SDK', blank=True, null=True)
 
     class Meta:
@@ -101,9 +128,80 @@ class PackageRevision(BaseModel):
         version = 'v. %s ' % self.version_name if self.version_name else ''
         return '%s - %s %sr. %d by %s' % (
                             settings.PACKAGE_SINGULAR_NAMES[self.package.type],
-                            self.package.full_name, version,
+                            self.full_name, version,
                             self.revision_number, self.author.get_profile()
                             )
+    # NAME and FULL_NAME in Revision #############
+
+    def set_full_name(self, value):
+        """Sets the full name of the package
+
+        :param: value (string) new full name of the package
+
+        :raises: IntegrityError if Package with tht name already exists
+        """
+        if not validator.is_valid('alphanum_plus_space', value):
+            raise ValidationError
+        try:
+            # in FlightDeck, libraries can have the same name,
+            # by different authors
+            Package.objects.get(author=revision.package.author,
+                                name=make_name(package_full_name))
+        except:
+            self.full_name = value
+            self.package.full_name = value
+            self.add_commit_message("Package name changed to \"%s\"" %
+                    self.full_name)
+        else:
+            raise IntegrityError
+
+    def get_dir_name(self, packages_dir):
+        return os.path.join(packages_dir, self.name + '-' + self.package.id_number)
+
+    def make_dir(self, packages_dir):
+        """
+        create package directories inside packages
+        return package directory name
+        """
+        package_dir = self.get_dir_name(packages_dir)
+        if not os.path.isdir(package_dir):
+            os.mkdir(package_dir)
+        else:
+            return False
+
+        os.mkdir('%s/%s' % (package_dir, self.get_lib_dir()))
+        if not os.path.isdir('%s/%s' % (package_dir, self.get_data_dir())):
+            os.mkdir('%s/%s' % (package_dir, self.get_data_dir()))
+        return package_dir
+
+    def get_lib_dir(self):
+        " returns the name of the lib directory in SDK default - packages "
+        return self.package.lib_dir or settings.JETPACK_LIB_DIR
+
+    def get_data_dir(self):
+        " returns the name of the data directory in SDK default - data "
+        # it stays as method as it could be saved in instance in the future
+        # TODO: YAGNI!
+        return settings.JETPACK_DATA_DIR
+
+    def default_full_name(self):
+        self.full_name = self.package.full_name
+
+    def default_name(self):
+        self.name = self.package.name
+
+    def update_name(self, force=False):
+        self.name = make_name(self.full_name)
+        if self.pk and self.pk != self.package.latest:
+            return
+        if self.package.name != self.name:
+            log.debug('Package name changed from (%s) to (%s)' % (
+                self.package.name, self.name))
+            self.package.name = self.name
+        if force:
+            super(Package, self).save()
+
+    # URLS #############
 
     def get_absolute_url(self):
         " returns URL to view the package revision "
@@ -244,15 +342,12 @@ class PackageRevision(BaseModel):
 
     def get_dependencies_list(self, sdk=None):
         " returns a list of dependencies names extended by default core "
-        if self.package.is_addon() and self.sdk.kit_lib:
+        # XXX: breaking possibility to build jetpack SDK 0.6
+        if self.package.is_addon():
             deps = ['addon-kit']
         else:
-            if sdk and sdk.kit_lib:
-                deps = ['api-utils']
-            else:
-            # jetpack-core or api-utils
-                deps = ['jetpack-core']
-        deps.extend(["%s-%s" % (dep.package.name, dep.package.id_number) \
+            deps = ['api-utils']
+        deps.extend(["%s-%s" % (dep.name, dep.package.id_number) \
                      for dep in self.dependencies.all()])
         return deps
 
@@ -273,15 +368,15 @@ class PackageRevision(BaseModel):
         if test_in_browser:
             version = "%s - test" % version
 
-        name = self.package.name
+        name = self.name
         if not self.package.is_addon():
             name = "%s-%s" % (name, self.package.id_number)
 
         manifest = {
-            'fullName': self.package.full_name,
+            'fullName': self.full_name,
             'name': name,
             'description': self.get_full_description(),
-            'author': self.package.author.username,
+            'author': self.package.author.get_profile().get_nickname(),
             'id': self.package.jid if self.package.is_addon() \
                     else self.package.id_number,
             'version': version,
@@ -289,14 +384,14 @@ class PackageRevision(BaseModel):
             'license': self.package.license,
             'url': str(self.package.url),
             'contributors': self.get_contributors_list(),
-            'lib': self.package.get_lib_dir()
+            'lib': self.get_lib_dir()
         }
         if self.package.is_addon():
             manifest['main'] = self.module_main
 
         return manifest
 
-    def get_manifest_json(self, sdk=sdk, **kwargs):
+    def get_manifest_json(self, sdk=None, **kwargs):
         " returns manifest as JSOIN object "
         return simplejson.dumps(self.get_manifest(sdk=sdk, **kwargs))
 
@@ -336,7 +431,7 @@ class PackageRevision(BaseModel):
         """Return all used module names
         """
         module_names = {
-                self.package.name: [mod.filename for mod in self.modules.all()]}
+                self.name: [mod.filename for mod in self.modules.all()]}
         for dep in self.dependencies.all():
             module_names.update(dep.get_module_names())
         return module_names
@@ -401,12 +496,30 @@ class PackageRevision(BaseModel):
         if force_save:
             super(PackageRevision, self).save()
 
-    def save(self, **kwargs):
+    def delete(self, purge=False, *args, **kwargs):
+        """Allowing to purge the PackageRevision
+
+        :param: purge (bool) delete modules and attachments as well,
+                use with care
+        """
+        if purge:
+            log.info("Purging PackageRevision %s" % self)
+            # delete modules
+            for mod in self.modules.all():
+                mod.delete()
+            self.modules.clear()
+            # delete delete attachments
+            for att in self.attachments.all():
+                att.delete()
+            self.attachments.clear()
+        super(PackageRevision, self).delete(*args, **kwargs)
+
+    def save(self, create_new_revision=True, **kwargs):
         """
         overloading save is needed to prevent from updating the same revision
         use super(PackageRevision, self).save(**kwargs) if needed
         """
-        if self.id:
+        if self.id and create_new_revision:
             # create new revision
             return self.save_new_revision(**kwargs)
         return super(PackageRevision, self).save(**kwargs)
@@ -415,6 +528,8 @@ class PackageRevision(BaseModel):
         " save self as new revision with link to the origin. "
         origin = deepcopy(self)
         if package:
+            self.full_name = package.full_name
+            self.name = package.name
             self.package = package
             self.author = package.author
         # reset instance - force saving a new one
@@ -445,6 +560,14 @@ class PackageRevision(BaseModel):
             self.set_version('copy')
             self.add_commit_message('package copied', force_save=True)
         return save_return
+
+    def force_sdk(self, sdk):
+        """Changes SDK without creating new revision
+        """
+        self.sdk = sdk
+        self.add_commit_message(
+                'Automatic Add-on SDK upgrade to version (%s)' % sdk.version,
+                force_save=True)
 
     def get_next_revision_number(self):
         """
@@ -768,7 +891,7 @@ class PackageRevision(BaseModel):
         add dependency (existing Library - PackageVersion)
         """
         # a PackageRevision has to depend on the LibraryRevision only
-        if dep.package.type != 'l':
+        if not dep.package.is_library():
             raise TypeError('Dependency has to be a Library')
 
         # a LibraryRevision can't depend on another LibraryRevision
@@ -779,17 +902,66 @@ class PackageRevision(BaseModel):
 
         # dependency have to be unique in the PackageRevision
         # currently, the SDK can't compile with libraries with same "name"
-        if self.dependencies.filter(
-                package__name=dep.package.name,
-                author=dep.package.author).count() > 0:
-            raise DependencyException(
-                'Your %s already depends on a library with that name' % (
-                    self.package.get_type_name(),))
-        self.add_commit_message('dependency (%s) added' % dep.package.name)
+        self.compare_dependency_conflicts(dep)
+        self.add_commit_message('dependency (%s) added' % dep.name)
         if save:
             # save as new version
             self.save()
         return self.dependencies.add(dep)
+
+    def compare_dependency_conflicts(self, dep, as_upgrade=False):
+        """
+        check if adding a dependency will cause a naming conflict as per the
+        SDK 1.0. raises a DependencyException.
+
+        :param: as_upgrade (Boolean) - if the passed `dep` should be compared
+            for doing an upgade.
+
+        Example:
+            self = 'A' -> 'B' -> 'C'
+            dep = 'D' -> 'E' -> 'F' -> 'C'
+            raises DependencyException for 'C'.
+        """
+        def check_conflicts_if_added(existing, adding, first_level=False):
+            """
+            :param: first_level (Boolean) - conflicts are more strict at the
+                first level
+            """
+
+            is_self = existing == self
+            is_dep = adding == dep
+
+            # as an upgrade, don't compare the upgraded revision to the old
+            # revision of the same package
+            if as_upgrade and first_level and existing.package_id == dep.package_id:
+                return
+
+            # same id is fine, we will only include same id
+            # once when building the xpi.
+            same_name = existing.package.name == adding.package.name
+            same_revision = existing.id == adding.id
+
+            if (same_name and (not same_revision or first_level)):
+                raise DependencyException(
+                    'Your %s already depends on a library named "%s"' % (
+                        self.package.get_type_name(),
+                        adding.name))
+            for lib in existing.dependencies.all():
+                check_conflicts_if_added(lib, adding, is_self and is_dep)
+
+
+        def check_adding_all_dependencies(existing, adding):
+            check_conflicts_if_added(existing, adding)
+
+            for lib in adding.dependencies.all():
+                check_adding_all_dependencies(existing, lib)
+
+        if not as_upgrade and self.dependencies.filter(
+            package__name=dep.package.name).count():
+            raise DependencyException(
+                    'Your %s already depends on a library with that name' % (
+                        self.package.get_type_name(),))
+        check_adding_all_dependencies(self, dep)
 
     def dependency_update(self, dep, save=True):
         " create new version with dependency version updated "
@@ -797,15 +969,16 @@ class PackageRevision(BaseModel):
             old_version = self.dependencies.get(package=dep.package_id)
         except PackageRevision.DoesNotExist:
             raise DependencyException('This %s does not depend on "%s".'
-                        % (self.package.get_type_name(), dep.package.full_name))
+                        % (self.package.get_type_name(), dep.full_name))
 
         if old_version == dep:
             raise DependencyException('"%s" is already up-to-date.'
-                                      % dep.package.full_name)
+                                      % dep.full_name)
 
         else:
+            self.compare_dependency_conflicts(dep, as_upgrade=True)
             self.add_commit_message(
-                    'dependency (%s) updated' % dep.package.name)
+                    'dependency (%s) updated' % dep.name)
             if save:
                 self.save()
             self.dependencies.remove(old_version)
@@ -815,7 +988,7 @@ class PackageRevision(BaseModel):
         " copy to new revision, remove dependency "
         if self.dependencies.filter(pk=dep.pk).count() > 0:
             self.add_commit_message(
-                    'dependency (%s) removed' % dep.package.name)
+                    'dependency (%s) removed' % dep.name)
             # save as new version
             self.save()
             return self.dependencies.remove(dep)
@@ -837,15 +1010,20 @@ class PackageRevision(BaseModel):
         " check all dependencies for a newer version "
         out_of_date = []
         for current_revision in self.dependencies.select_related('package'):
-            latest_revision = current_revision.package.revisions.order_by('-pk')[0]
+            latest_revision = current_revision.package.latest
             if current_revision != latest_revision:
-                out_of_date.append(latest_revision)
+                try:
+                    self.compare_dependency_conflicts(latest_revision, as_upgrade=True)
+                except DependencyException:
+                    pass # dont offer the update, it has conflicts
+                else:
+                    out_of_date.append(latest_revision)
         return out_of_date
 
     def get_dependencies_list_json(self):
         " returns dependencies list as JSON object "
         d_list = [{
-                'full_name': escape(d.package.full_name),
+                'full_name': escape(d.full_name),
                 'id_number': d.package.id_number,
                 'view_url': d.get_absolute_url()
                 } for d in self.dependencies.all()
@@ -906,7 +1084,7 @@ class PackageRevision(BaseModel):
 
     def get_dependencies_tree(self):
         " returns libraries "
-        _lib_dict = lambda lib: {'path': lib.package.full_name,
+        _lib_dict = lambda lib: {'path': lib.full_name,
                                  'url': lib.get_absolute_url()}
 
         libs = [_lib_dict(self.get_sdk_revision())] \
@@ -933,7 +1111,8 @@ class PackageRevision(BaseModel):
 
         return self.sdk.kit_lib if self.sdk.kit_lib else self.sdk.core_lib
 
-    def build_xpi(self, modules=[], attachments=[], hashtag=None, rapid=False):
+    def build_xpi(self, modules=[], attachments=[], hashtag=None, rapid=False,
+            tstart=None):
         """
         prepare and build XPI for test only (unsaved modules)
 
@@ -954,26 +1133,30 @@ class PackageRevision(BaseModel):
                       "hashtag.  Failing." % self.get_version_name())
             raise IntegrityError("Hashtag is required to create an xpi.")
 
-        # XXX: this should be a tempfile directory
-        sdk_dir = self.get_sdk_dir(hashtag)
+        if not tstart:
+            tstart = time.time()
+
+        # sdk_dir = self.get_sdk_dir(hashtag)
+        sdk_dir = tempfile.mkdtemp()
         sdk_source = self.sdk.get_source_dir()
 
-        # This SDK is always different! - working on unsaved data
-        if os.path.isdir(sdk_dir):
-            log.info("Attempt to build add-on (%s) using hashtag (%s) but the"
-                     "file already exists.  Removing existing file. (%s)" %
-                     (self.get_version_name(), hashtag, sdk_dir))
-            shutil.rmtree(sdk_dir)
-
+        # XPI: Copy files from NFS to local temp dir
         xpi_utils.sdk_copy(sdk_source, sdk_dir)
+        t1 = time.time()
+        log.debug("[xpi:%s] SDK copied (time %dms)" %
+                (hashtag, ((t1 - tstart) * 1000)))
+
+        # TODO: check if it's still needed
         self.export_keys(sdk_dir)
 
         packages_dir = os.path.join(sdk_dir, 'packages')
-        package_dir = self.package.make_dir(packages_dir)
+        package_dir = self.make_dir(packages_dir)
+        # XPI: create manifest (from memory to local)
         self.export_manifest(package_dir)
 
-        # instead of export modules
-        lib_dir = os.path.join(package_dir, self.package.get_lib_dir())
+        # export modules with ability to use edited code (from modules var)
+        # XPI: memory/database to local
+        lib_dir = os.path.join(package_dir, self.get_lib_dir())
         for mod in self.modules.all():
             mod_edited = False
             for e_mod in modules:
@@ -982,8 +1165,13 @@ class PackageRevision(BaseModel):
                     e_mod.export_code(lib_dir)
             if not mod_edited:
                 mod.export_code(lib_dir)
+        t2 = time.time()
+        log.debug("[xpi:%s] modules exported (time %dms)" %
+                (hashtag, ((t2 - t1) * 1000)))
 
-        data_dir = os.path.join(package_dir, self.package.get_data_dir())
+        # export atts with ability to use edited code (from attachments var)
+        # XPI: memory/database/NFS to local
+        data_dir = os.path.join(package_dir, self.get_data_dir())
         for att in self.attachments.all():
             att_edited = False
             for e_att in attachments:
@@ -992,12 +1180,19 @@ class PackageRevision(BaseModel):
                     e_att.export_code(data_dir)
             if not att_edited:
                 att.export_file(data_dir)
+        t3 = time.time()
+        log.debug("[xpi:%s] attachments exported (time %dms)" %
+                (hashtag, ((t3 - t2) * 1000)))
         #self.export_attachments(
-        #    '%s/%s' % (package_dir, self.package.get_data_dir()))
+        #    '%s/%s' % (package_dir, self.get_data_dir()))
+        # XPI: copying to local from memory/db/files
         self.export_dependencies(packages_dir, sdk=self.sdk)
-        args = [sdk_dir, self.package.get_dir_name(packages_dir),
-                self.package.name, hashtag]
-        return xpi_utils.build(*args)
+        t4 = time.time()
+        log.debug("[xpi:%s] dependencies exported (time %dms)" %
+                (hashtag, ((t4 - t3) * 1000)))
+        # XPI: building locally and copying to NFS
+        return xpi_utils.build(sdk_dir, self.get_dir_name(packages_dir),
+                self.name, hashtag, tstart=tstart)
 
     def export_keys(self, sdk_dir):
         """Export private and public keys to file."""
@@ -1033,14 +1228,14 @@ class PackageRevision(BaseModel):
 
     def export_files(self, packages_dir, sdk=None):
         """Calls all export functions - creates all packages files."""
-        package_dir = self.package.make_dir(packages_dir)
+        package_dir = self.make_dir(packages_dir)
         if not package_dir:
             return
         self.export_manifest(package_dir, sdk=sdk)
         self.export_modules(
-            os.path.join(package_dir, self.package.get_lib_dir()))
+            os.path.join(package_dir, self.get_lib_dir()))
         self.export_attachments(
-            os.path.join(package_dir, self.package.get_data_dir()))
+            os.path.join(package_dir, self.get_data_dir()))
 
     def export_files_with_dependencies(self, packages_dir, sdk=None):
         """Export dependency packages."""
@@ -1191,21 +1386,15 @@ class Package(BaseModel):
         " return name of the type (add-on / library) "
         return settings.PACKAGE_SINGULAR_NAMES[self.type]
 
-    def get_lib_dir(self):
-        " returns the name of the lib directory in SDK default - packages "
-        return self.lib_dir or settings.JETPACK_LIB_DIR
-
-    def get_data_dir(self):
-        " returns the name of the data directory in SDK default - data "
-        # it stays as method as it could be saved in instance in the future
-        # TODO: YAGNI!
-        return settings.JETPACK_DATA_DIR
-
     def default_id_number(self):
         self.id_number = _get_next_id_number()
 
     def default_full_name(self):
         self.set_full_name()
+
+    def default_name(self):
+        self.name = make_name(self.full_name)
+
 
     def set_full_name(self):
         """
@@ -1217,41 +1406,12 @@ class Package(BaseModel):
         if self.full_name:
             return
 
-        def _get_full_name(full_name, username, type_id, i=0):
-            """
-            increment until there is no package with the full_name
-            """
-            new_full_name = full_name
-            if i > 0:
-                new_full_name = "%s (%d)" % (full_name, i)
-            packages = Package.objects.filter(author__username=username,
-                                              full_name=new_full_name,
-                                              type=type_id)
-            if packages.count() == 0:
-                return new_full_name
-
-            i = i + 1
-            return _get_full_name(full_name, username, type_id, i)
-
         username = self.author.username
         if self.author.get_profile():
             username = self.author.get_profile().nickname or username
 
-        name = settings.DEFAULT_PACKAGE_FULLNAME.get(self.type, username)
+        name = username + settings.DEFAULT_PACKAGE_SUFFIX.get(self.type, '')
         self.full_name = _get_full_name(name, self.author.username, self.type)
-
-    def update_name(self):
-        self.set_name()
-
-    def set_name(self):
-        " set's the name from full_name "
-        self.name = self.make_name()
-
-    def make_name(self, value=None):
-        " wrap for slugify - this function was changed before "
-        if not value:
-            value = self.full_name
-        return slugify(value)
 
     def generate_key(self):
         """
@@ -1267,25 +1427,6 @@ class Package(BaseModel):
         self.private_key = sk_text
         self.public_key = vk_text
 
-    def get_dir_name(self, packages_dir):
-        return os.path.join(packages_dir, self.name + '-' + self.id_number)
-
-    def make_dir(self, packages_dir):
-        """
-        create package directories inside packages
-        return package directory name
-        """
-        package_dir = self.get_dir_name(packages_dir)
-        if not os.path.isdir(package_dir):
-            os.mkdir(package_dir)
-        else:
-            return False
-
-        os.mkdir('%s/%s' % (package_dir, self.get_lib_dir()))
-        if not os.path.isdir('%s/%s' % (package_dir, self.get_data_dir())):
-            os.mkdir('%s/%s' % (package_dir, self.get_data_dir()))
-        return package_dir
-
     def get_copied_full_name(self, basic_name=None, iteration=1):
         """
         Add "Copy of" before the full name if package is copied
@@ -1295,7 +1436,7 @@ class Package(BaseModel):
             full_name = full_name.split('(copy')[0]
         new_name = '%s (copy %d)' % (full_name, iteration)
         try:
-            Package.objects.get(name=self.make_name(new_name))
+            Package.objects.get(name=make_name(new_name))
         except ObjectDoesNotExist:
             return new_name
         return self.get_copied_full_name(
@@ -1323,13 +1464,17 @@ class Package(BaseModel):
         super(PackageRevision, new_p.latest).save()
         return new_p
 
+    def enable(self):
+        """Mark package as public."""
+        self.active = True
+        self.save()
+
     def disable(self):
-        """Set active tp False
-        """
+        """Mark package as private"""
         self.active = False
         self.save()
 
-    def delete(self):
+    def delete(self, *args, **kwargs):
         """Remove from the system if possible, otherwise mark as deleted
         Unhook from copies if needed and perform database delete
         """
@@ -1426,7 +1571,8 @@ class Package(BaseModel):
 
     @es_required
     def refresh_index(self, es, bulk=False):
-        if not self.active:  # Don't index active things, and remove them.
+        # Don't index private/deleted things, and remove them.
+        if not self.active or self.deleted:
             return self.remove_from_index(bulk=bulk)
 
         data = djangoutils.get_values(self)
@@ -1443,7 +1589,8 @@ class Package(BaseModel):
         except Exception, e:
             log.error("ElasticSearch errored for addon (%s): %s" % (self, e))
         else:
-            log.debug('Package %d added to search index.' % self.id)
+            if not bulk:
+                log.debug('Package %d added to search index.' % self.id)
 
     def get_author_nickname(self):
         return self.author.get_profile().get_nickname()
@@ -1458,12 +1605,14 @@ class Package(BaseModel):
             es.delete(settings.ES_INDEX, self.get_type_name(), self.id,
                  bulk=bulk)
         except PyesNotFoundException:
-            pass
+            log.debug('Package %d tried to remove from index but was not found.'
+                      % self.id)
         except Exception, e:
             log.error("ElasticSearch error removing addon (%s): %s" %
                       (self, e))
         else:
-            log.debug('Package %d removed from search index.' % self.id)
+            if not bulk:
+                log.debug('Package %d removed from search index.' % self.id)
 
 
 class Module(BaseModel):
@@ -1768,8 +1917,22 @@ class SDK(BaseModel):
     def is_deprecated(self):
         # TODO: This should be in the settings file as a config var (or in the
         # db and editable on the web)
-        return self.version < '1.0b1'
+        return self.version < '1.0'
 
+    def delete(self, purge=True, *args, **kwargs):
+        """Override delete method to allow purging
+
+        :param: purge (bool) purge ``core_lib`` and ``data_lib`` as well
+        """
+        if purge:
+            log.info("Purging PackageRevision %s" % self)
+            # delete core_lib
+            if self.core_lib:
+                self.core_lib.delete(purge=True)
+            # delete kit_lib
+            if self.kit_lib:
+                self.kit_lib.delete(purge=True)
+        super(SDK, self).delete(*args, **kwargs)
 
 
 def _get_next_id_number():
@@ -1820,8 +1983,8 @@ def save_first_revision(instance, **kwargs):
 
     revision = PackageRevision(
         package=instance,
-        author=instance.author
-    )
+        author=instance.author)
+
     if instance.is_addon():
         sdks = SDK.objects.all()
         if len(sdks):

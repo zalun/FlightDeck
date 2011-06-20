@@ -160,10 +160,14 @@ FlightDeck = Class.refactor(FlightDeck,{
 		textboxes = $(display).getElements('input[type="text"]');
 		
 		if (data.focus && textboxes.length) {
-			setTimeout(function() {
-				textboxes[0].focus();
-			}, 5);
+			display.addEvent('onDisplay', function() {
+				setTimeout(function() {
+					$log(uid, 'focus', textboxes[0]);
+					textboxes[0].focus();
+				}, 5);
+			});
 		}
+		
 		
 		return display;
 	}
