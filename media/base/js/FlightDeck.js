@@ -41,8 +41,8 @@ XPIRequest = new Class({
                 }
                 if (xhr.status != 0 && xhr.responseText) {
                     fd.error.alert(
-                        'Error {status}'.substitute(xhr),
-                        '{statusText}<br/>{responseText}'.substitute(xhr)
+                        'Error {statusText}'.substitute(xhr),
+                        '{responseText}'.substitute(xhr)
                         );
                 }
             }
