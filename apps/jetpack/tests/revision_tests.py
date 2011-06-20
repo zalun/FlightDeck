@@ -38,6 +38,8 @@ class PackageRevisionTest(TestCase):
         revisions = PackageRevision.objects.filter(package__pk=addon.pk)
         eq_(1, revisions.count())
         revision = revisions[0]
+        eq_(revision.full_name, addon.full_name)
+        eq_(revision.name, addon.name)
         eq_(revision.author.username, addon.author.username)
         eq_(revision.revision_number, 0)
         eq_(revision.pk, addon.latest.pk)
@@ -334,7 +336,7 @@ class PackageRevisionTest(TestCase):
             type='a')
         oldsdk = addon.latest.sdk
 
-        mozuser = User.objects.get(username='mozilla')
+        mozuser = User.objects.get(username='4757633')
         version='testsdk'
         kit_lib = PackageRevision.objects.create(
                 author=mozuser,
@@ -360,7 +362,6 @@ class PackageRevisionTest(TestCase):
         addon.latest.force_sdk(oldsdk)
         eq_(len(addon.revisions.all()), 1)
         eq_(addon.latest.commit_message.count('SDK'), 2)
-
 
     """
     Althought not supported on view and front-end,
