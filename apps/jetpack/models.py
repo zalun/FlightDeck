@@ -419,11 +419,8 @@ class PackageRevision(BaseModel):
         return main[0]
 
     def get_jid(self):
-        jid = self.package.jid
-        if jid.find('@') == -1:
-            return jid + '@jetpack'
-        else:
-            return jid
+        return self.package.get_jid()
+
 
     def get_version_name(self):
         """Returns version name with revision number if needed."""
@@ -1521,10 +1518,10 @@ class Package(BaseModel):
 
     def get_jid(self):
         jid = self.jid
-        if jid.find('@') == -1:
-            return jid + '@jetpack'
-        else:
+        if '@' in jid:
             return jid
+        else:
+            return jid + '@jetpack'
 
     def create_revision_from_xpi(self, packed, manifest, author, jid,
             new_revision=False):
