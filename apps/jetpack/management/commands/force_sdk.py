@@ -70,7 +70,7 @@ class Command(BaseCommand):
                     serr = str(err)
                     if serr not in failed_revisions:
                         failed_revisions[serr] = []
-                    failed_revisions[serr].append(revision.pk)
+                    failed_revisions[serr].append(revision.get_absolute_url())
 
         self.stdout.write("%d Revisions switched to SDK %s\n" % (
             len(revisions), target_version))
@@ -78,7 +78,9 @@ class Command(BaseCommand):
         if failed_revisions:
             self.stderr.write("There were errors\n")
             for serr, revs in failed_revisions.items():
-                self.stderr.write(serr + "\n" + revs + "\n")
+                self.stderr.write("\n" + serr + "\n")
+                for rev in revs:
+                    self.stderr.write(rev + "\n")
 
         if kwargs.get('purge', False):
             if failed_revisions:
