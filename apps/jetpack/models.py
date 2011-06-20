@@ -197,7 +197,6 @@ class PackageRevision(BaseModel):
             if not self.package.full_name:
                 # fixing package
                 log.debug('Full name not set for Package %d' % self.package.pk)
-                self.package.set_full_name()
                 self.package.save()
             self.full_name = self.package.full_name
 
@@ -1347,7 +1346,11 @@ class Package(BaseModel):
         if not self.full_name:
             log.warning('Full name was empty %d' % self.pk)
             self.set_full_name()
-            super(Package, self).save()
+
+    def update_name(self):
+        if not self.full_name:
+            self.set_full_name()
+        self.name = make_name(self.full_name)
 
 
     def __unicode__(self):

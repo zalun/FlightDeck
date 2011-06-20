@@ -18,7 +18,7 @@ log = commonware.log.getLogger('f.test')
 
 
 class PackageRevisionTest(TestCase):
-    fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']
+    fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages', 'old_packages']
 
     def setUp(self):
         self.author = User.objects.get(username='john')
@@ -362,6 +362,16 @@ class PackageRevisionTest(TestCase):
         addon.latest.force_sdk(oldsdk)
         eq_(len(addon.revisions.all()), 1)
         eq_(addon.latest.commit_message.count('SDK'), 2)
+
+    def test_fix_old_packages(self):
+        old_rev = PackageRevision.objects.get(pk=401)
+        assert not old_rev.full_name
+        old_rev.force_sdk(self.addon.latest.sdk)
+        old_package = Package.objects.get(pk=401)
+        assert old_rev.full_name
+        assert old_rev.name
+        assert old_package.full_name
+        assert old_package.name
 
     """
     Althought not supported on view and front-end,
