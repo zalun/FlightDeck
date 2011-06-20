@@ -1,0 +1,38 @@
+[
+    {
+        "pk": 401,
+        "model": "jetpack.package",
+        "fields": {
+            "name": "",
+            "author": 4,
+            "id_number": "1000401",
+            "lib_dir": null,
+            "jid": "abc",
+            "version": 401,
+            "full_name": "",
+            "version_name": null,
+            "type": "a",
+            "public_permission": 1,
+            "description": "",
+            "latest": 401
+        }
+    },
+    {
+        "pk": 401,
+        "model": "jetpack.packagerevision",
+        "fields": {
+            "origin": null,
+            "contributors": "",
+            "name": "",
+            "full_name": "",
+            "author": 4,
+            "package": 401,
+            "module_main": "main",
+            "revision_number": 1,
+            "dependencies": [],
+            "version_name": null,
+            "message": "",
+            "sdk": null
+        }
+    }
+]
