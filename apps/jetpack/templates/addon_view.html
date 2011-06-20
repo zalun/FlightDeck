@@ -41,7 +41,7 @@
 
 {% block app_content_menu_items %}
 	<li id="try_in_browser" class="UI_Editor_Menu_Button Icon_try XPI_test">
-    <a title="Test" href="{{ revision.get_test_xpi_url }}" data-jetpackid="{{ revision.package.jid }}"><span></span></a>
+    <a title="Test" href="{{ revision.get_test_xpi_url }}" data-jetpackid="{{ revision.package.get_jid }}"><span></span></a>
 	</li>
 	<li id="download" class="UI_Editor_Menu_Button Icon_download">
     <a target="_new" title="Download" href="{{ revision.get_download_xpi_url }}"><span></span></a>
