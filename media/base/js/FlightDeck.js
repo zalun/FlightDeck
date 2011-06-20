@@ -34,7 +34,7 @@ XPIRequest = new Class({
             this.cancel_callback();
             if (xhr.status == 404) {
                 // XPI failed to produce, display an error with message
-                fd.error.alert('XPI not build', xhr.responseText);
+                fd.error.alert('XPI not built', xhr.responseText);
             } else {
                 if (this.options.addOnFailure) {
                   this.options.addOnFailure();
