@@ -204,6 +204,10 @@ form.UI_Editor_Menu_Descendant {
 		background-position: -178px 0;
 	}
 	
+	.UI_Editor_Menu_Button.Icon_properties a span {
+		background-position: -196px 0;
+	}
+	
 /* SUBMENU */
 .UI_Editor_Menu_Parent > .UI_Editor_Menu_Descendant {
     display: none;
