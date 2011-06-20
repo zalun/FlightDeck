@@ -794,13 +794,12 @@ class PackageRevision(BaseModel):
 
         kwargs = {
             'author': author,
-            'filename': filename
-        }
+            'filename': filename}
 
         if ext:
             kwargs['ext'] = ext
 
-        attachment = self.attachment_create(**kwargs)
+        attachment = self.attachment_create(assign=False, **kwargs)
 
         # we must write data of some sort, in order to create the file on the disk
         # so at the least, write a blank string
@@ -808,9 +807,10 @@ class PackageRevision(BaseModel):
             content = ''
         attachment.data = content
         attachment.write()
+        self.attachment_add(attachment)
         return attachment
 
-    def attachment_create(self, save=True, **kwargs):
+    def attachment_create(self, save=True, assign=True, **kwargs):
         """ create attachment and add to attachments """
         att = Attachment(**kwargs)
         att.clean()
@@ -819,11 +819,11 @@ class PackageRevision(BaseModel):
             raise FilenameExistException(
                 ('Sorry, there is already an attachment in your add-on with '
                  'the name "%s.%s". Each attachment in your add-on needs to '
-                 'have a unique name.') % (att.filename, att.ext)
-            )
+                 'have a unique name.') % (att.filename, att.ext))
 
         att.save()
-        self.attachment_add(att, save=save)
+        if assign:
+            self.attachment_add(att, save=save)
         return att
 
     def attachment_add(self, att, check=True, save=True):
@@ -1805,9 +1805,11 @@ class Attachment(BaseModel):
         try:
             with codecs.open(self.get_file_path(), **kwargs) as f:
                 f.write(data)
-        except UnicodeDecodeError:
-            log.error('Attachment write failure: %s' % self.pk)
-            raise AttachmentWriteException('Attachment failed to save properly')
+        except UnicodeDecodeError, err:
+            log.error('Attachment write failure: (%s)\n%s' % (
+                self.pk, str(err)))
+            raise AttachmentWriteException(
+                'Attachment failed to save properly')
 
 
     def export_code(self, static_dir):
