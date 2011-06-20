@@ -39,7 +39,8 @@ class Command(BaseCommand):
             exit(1)
 
         from_q = to_q = models.Q()
-        revisions = PackageRevision.objects.filter(package__type='a')
+        revisions = PackageRevision.objects.filter(
+                package__type='a').exclude(sdk__version=target_version)
 
         if from_version:
             from_q = models.Q(sdk__version__gt=from_version)
@@ -50,16 +51,16 @@ class Command(BaseCommand):
 
         revisions = revisions.all()
         for revision in revisions:
-            old_sdk = revision.sdk
-            revision.sdk = sdk
-            revision.commit_message += ' switched SDK to (%s)' % target_version
-            revision.save(create_new_revision=False)
+            if revision.sdk != sdk:
+                revision.force_sdk(sdk)
 
         self.stdout.write("%d Revisions switched to SDK %s\n" % (
             len(revisions), target_version))
 
         if kwargs.get('purge', False):
-            oldrevs = PackageRevision.objects.filter(package=sdk.core_lib.package).exclude(version_name=sdk.version)
+            oldrevs = PackageRevision.objects.filter(
+                    package=sdk.core_lib.package).exclude(
+                            version_name=sdk.version)
             oldsdks = SDK.objects.exclude(version=target_version)
             for oldsdk in oldsdks:
                 oldsdk.delete(purge=True)
