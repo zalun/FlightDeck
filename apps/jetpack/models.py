@@ -190,6 +190,16 @@ class PackageRevision(BaseModel):
     def default_name(self):
         self.name = self.package.name
 
+    def update_full_name(self):
+        if not self.full_name:
+            # fixing revision
+            log.debug('Full name not set to PackageRevision %s' % self.pk)
+            if not self.package.full_name:
+                # fixing package
+                log.debug('Full name not set for Package %d' % self.package.pk)
+                self.package.save()
+            self.full_name = self.package.full_name
+
     def update_name(self, force=False):
         self.name = make_name(self.full_name)
         if self.pk and self.pk != self.package.latest:
@@ -407,6 +417,10 @@ class PackageRevision(BaseModel):
                 'Every Add-on needs to be linked with an executable Module')
         return main[0]
 
+    def get_jid(self):
+        return self.package.get_jid()
+
+
     def get_version_name(self):
         """Returns version name with revision number if needed."""
 
@@ -565,6 +579,7 @@ class PackageRevision(BaseModel):
         """Changes SDK without creating new revision
         """
         self.sdk = sdk
+        log.debug('Switching SDK on %s to %s' % (self, sdk.version))
         self.add_commit_message(
                 'Automatic Add-on SDK upgrade to version (%s)' % sdk.version,
                 force_save=True)
@@ -1327,6 +1342,17 @@ class Package(BaseModel):
                 self.id_number = _get_next_id_number()
                 self.save(**kwargs)
 
+    def update_full_name(self):
+        if not self.full_name:
+            log.warning('Full name was empty %d' % self.pk)
+            self.set_full_name()
+
+    def update_name(self):
+        if not self.full_name:
+            self.set_full_name()
+        self.name = make_name(self.full_name)
+
+
     def __unicode__(self):
         return '%s v. %s by %s' % (self.full_name, self.version_name,
                                    self.author)
@@ -1492,6 +1518,13 @@ class Package(BaseModel):
             return self.save()
         log.info("Package (%s) deleted" % self)
         return super(Package, self).delete()
+
+    def get_jid(self):
+        jid = self.jid
+        if '@' in jid:
+            return jid
+        else:
+            return jid + '@jetpack'
 
     def create_revision_from_xpi(self, packed, manifest, author, jid,
             new_revision=False):

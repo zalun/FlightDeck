@@ -46,7 +46,7 @@ def search_by_type(request, type_):
 
 def me(request):
     if not request.user.is_authenticated():
-        return redirect(reverse('search.results') + '?' +
+        return redirect(reverse('search.combined') + '?' +
                         request.META['QUERY_STRING'])
     q = (request.GET.get('q', ''))
     data = query(q, user=request.user, filter_by_user=True)

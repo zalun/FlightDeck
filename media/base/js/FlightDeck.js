@@ -14,8 +14,8 @@ Request = Class.refactor(Request, {
             }
 			if (xhr.status != 0 && xhr.responseText) {
 				fd.error.alert(
-					'Error {status}'.substitute(xhr),
-					'{statusText}<br/>{responseText}'.substitute(xhr)
+					'{statusText}'.substitute(xhr),
+					'{responseText}'.substitute(xhr)
 					);
 			}
         }
@@ -34,15 +34,15 @@ XPIRequest = new Class({
             this.cancel_callback();
             if (xhr.status == 404) {
                 // XPI failed to produce, display an error with message
-                fd.error.alert('XPI not build', xhr.responseText);
+                fd.error.alert('XPI not built', xhr.responseText);
             } else {
                 if (this.options.addOnFailure) {
                   this.options.addOnFailure();
                 }
                 if (xhr.status != 0 && xhr.responseText) {
                     fd.error.alert(
-                        'Error {status}'.substitute(xhr),
-                        '{statusText}<br/>{responseText}'.substitute(xhr)
+                        '{statusText}'.substitute(xhr),
+                        '{responseText}'.substitute(xhr)
                         );
                 }
             }
