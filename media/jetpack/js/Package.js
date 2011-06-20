@@ -806,8 +806,6 @@ Package.Edit = new Class({
 		package_info_form_elements: ['full_name', 'package_description']
 	},
 	
-	_modules_list: {},
-
 	initialize: function(options) {
 		this.setOptions(options);
         if (this.isAddon()) {
@@ -822,7 +820,6 @@ Package.Edit = new Class({
 		//	'url': settings.library_autocomplete_url
 		//});
 		
-		this.updateFullModulesList();
 	},
 
 	assignActions: function() {
@@ -931,17 +928,6 @@ Package.Edit = new Class({
         }
 	},
 	
-	updateFullModulesList: function() {
-		new Request.JSON({
-			method: 'get',
-			url: this.options.all_modules_list_url,
-			onSuccess: function(response) {
-				this._modules_list = response;
-			}.bind(this)
-		}).send();
-	},
-
-
     uploadAttachment: function(files, renameAfterLoad) {
 		var self = this;
         var spinner = new Spinner($('attachments')).show();
@@ -1365,7 +1351,7 @@ Package.Edit = new Class({
 				'revision': lib.retrieveNewVersion().revision
 			},
 			useSpinner: true,
-			spinerTarget: 'plugins',
+			spinerTarget: 'libraries',
 			spinnerOptions: {
 				img: {
 					'class': 'spinner-img spinner-16'
@@ -1434,7 +1420,6 @@ Package.Edit = new Class({
 				this.registerRevision(response);
 				fd.message.alert(response.message_title, response.message);
 				lib.destroy();
-				this.updateFullModulesList();
 			}.bind(this)
 		}).send();
 	},
