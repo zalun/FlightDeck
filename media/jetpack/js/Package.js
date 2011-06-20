@@ -1351,7 +1351,7 @@ Package.Edit = new Class({
 				'revision': lib.retrieveNewVersion().revision
 			},
 			useSpinner: true,
-			spinerTarget: 'libraries',
+			spinnerTarget: 'libraries',
 			spinnerOptions: {
 				img: {
 					'class': 'spinner-img spinner-16'
