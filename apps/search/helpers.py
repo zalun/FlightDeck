@@ -18,7 +18,7 @@ def query(searchq, type_=None, user=None, filter_by_user=False, page=1,
                 query=query,
                 filter={
                     'not': dict(filter=dict(
-                        term=dict(version_text='initial')
+                        term=dict(version_name='initial')
                         ))
                     }
                 )
@@ -38,12 +38,12 @@ def query(searchq, type_=None, user=None, filter_by_user=False, page=1,
 
     q = q.filter(**filters)
 
-    
+
     try:
         page = int(page)
     except ValueError:
         page = 1
-    
+
     pager = Paginator(q, per_page=limit).page(page)
     facet_type = q.get_facet('_type')
     data = dict(pager=pager, total=q.total,
