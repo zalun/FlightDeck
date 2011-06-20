@@ -336,7 +336,7 @@ class PackageRevisionTest(TestCase):
             type='a')
         oldsdk = addon.latest.sdk
 
-        mozuser = User.objects.get(username='mozilla')
+        mozuser = User.objects.get(username='4757633')
         version='testsdk'
         kit_lib = PackageRevision.objects.create(
                 author=mozuser,

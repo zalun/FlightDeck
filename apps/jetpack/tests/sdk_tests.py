@@ -19,7 +19,7 @@ class SDKTests(TestCase):
 
     def setUp(self):
         self.addon = Package.objects.filter(type='a')[0]
-        self.mozuser = User.objects.get(username='mozilla')
+        self.mozuser = User.objects.get(username='4757633')
         self.sdk = SDK.objects.get()
 
     def test_purge(self):
