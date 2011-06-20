@@ -196,7 +196,7 @@ class PackageRevision(BaseModel):
             log.debug('Full name not set to PackageRevision %s' % self.pk)
             if not self.package.full_name:
                 # fixing package
-                log.debug('full name not set for Package %d' % self.package.pk)
+                log.debug('Full name not set for Package %d' % self.package.pk)
                 self.package.set_full_name()
                 self.package.save()
             self.full_name = self.package.full_name
