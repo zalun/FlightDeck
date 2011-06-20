@@ -67,6 +67,7 @@ class Command(BaseCommand):
                 try:
                     revision.force_sdk(sdk)
                 except Exception, err:
+                    log.warning('Revision failed (%s)' % revision)
                     serr = str(err)
                     if serr not in failed_revisions:
                         failed_revisions[serr] = []
