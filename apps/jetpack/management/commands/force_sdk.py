@@ -27,7 +27,7 @@ class Command(BaseCommand):
                 help='Delete all SDK except of target version'),
             make_option('--force_purge',
                 action='store_true',
-                dest='force_putge',
+                dest='force_purge',
                 default=False,
                 help="Don't bother about the errors")
             )
