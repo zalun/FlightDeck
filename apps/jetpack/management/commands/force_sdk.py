@@ -5,12 +5,17 @@ jetpack.management.commands.force_sdk
 Force all addons depending on SDK which version is between given versions
 to depend on another SDK
 """
+import commonware
+
 from optparse import make_option
 
 from django.core.management.commands.loaddata import Command as BaseCommand
 
 from django.db import models
 from jetpack.models import SDK, PackageRevision
+
+log = commonware.log.getLogger('f.jetpack')
+
 
 class Command(BaseCommand):
     args = "<target_version from_version to_version>"
@@ -50,6 +55,7 @@ class Command(BaseCommand):
             revisions = revisions.filter(to_q)
 
         revisions = revisions.all()
+        log.debug('changing (%d) revisions' % len(revisions))
         for revision in revisions:
             if revision.sdk != sdk:
                 revision.force_sdk(sdk)
