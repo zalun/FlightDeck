@@ -49,8 +49,10 @@ def prepare_test(r, id_number, revision_number=None):
             if r.POST.get(str(att.pk), False):
                 code = r.POST.get(str(att.pk))
                 att_codes[str(att.pk)] = code
-    tasks.xpi_build_from_model.delay(revision.pk,
-            mod_codes=mod_codes, att_codes=att_codes, hashtag=hashtag)
+    if mod_codes or att_codes or not os.path.exists('%s.xpi' %
+            os.path.join(settings.XPI_TARGETDIR, hashtag)):
+        tasks.xpi_build_from_model.delay(revision.pk,
+                mod_codes=mod_codes, att_codes=att_codes, hashtag=hashtag)
     return HttpResponse('{"delayed": true}')
 
 @never_cache

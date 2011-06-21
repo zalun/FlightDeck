@@ -89,10 +89,6 @@ var Package = new Class({
             }.bind(this));
         }
 
-        fd.addEvent('xpi_downloaded', function() {
-           this.generateHashtag(); 
-        }.bind(this));
-		
 		this.setupButtonTooltips();
 	},
 
@@ -781,6 +777,8 @@ Package.View = new Class({
 		e.stop();
 		fd.displayModal(this.options.package_info);
 	},
+
+    generateHashtag: function() {}
 });
 
 
@@ -819,7 +817,10 @@ Package.Edit = new Class({
 		//this.autocomplete = new FlightDeck.Autocomplete({
 		//	'url': settings.library_autocomplete_url
 		//});
-		
+        // generateHashtag needed only in edit mode
+        fd.addEvent('xpi_downloaded', function() {
+           this.generateHashtag(); 
+        }.bind(this));
 	},
 
 	assignActions: function() {
