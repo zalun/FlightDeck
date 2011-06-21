@@ -16,7 +16,7 @@
 <ul class="UI_Actions">
 	<li class="UI_Try_in_Browser XPI_test">
     <a title="Test Add-on" href="{{ item.latest.get_test_xpi_url }}" 
-        data-jetpackid="{{ item.get_jid }}" data-hashtag="{% hashtag %}">Test</a>
+        data-jetpackid="{{ item.get_jid }}" data-hashtag="{{ item.latest.get_cache_hashtag }}">Test</a>
 	</li>
 	{% include "_package_edit_view_source_bar.html" %}
 </ul>

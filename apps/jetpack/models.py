@@ -131,6 +131,10 @@ class PackageRevision(BaseModel):
                             self.full_name, version,
                             self.revision_number, self.author.get_profile()
                             )
+
+    def get_cache_hashtag(self):
+        return "%sr%d" % (self.package.id_number, self.revision_number)
+
     # NAME and FULL_NAME in Revision #############
 
     def set_full_name(self, value):
