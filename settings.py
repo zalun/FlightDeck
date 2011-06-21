@@ -199,6 +199,7 @@ TEMPLATE_LOADERS = (
 MIDDLEWARE_CLASSES = [
     # Munging REMOTE_ADDR must come before ThreadRequest.
     'commonware.response.middleware.GraphiteRequestTimingMiddleware',
+    'commonware.response.middleware.GraphiteMiddleware',
     'commonware.middleware.SetRemoteAddrFromForwardedFor',
 
     'django.middleware.common.CommonMiddleware',
