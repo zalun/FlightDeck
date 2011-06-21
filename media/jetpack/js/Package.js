@@ -984,10 +984,10 @@ Package.Edit = new Class({
 				}
 			}
 		};
-        $log('uploading ' + file.fileName)
+        $log('FD: DEBUG: uploading ' + file.name)
 		data.append('upload_attachment', file);
 		xhr.open('POST', this.options.upload_attachment_url);
-		xhr.setRequestHeader('X-File-Name', file.fileName);
+		xhr.setRequestHeader('X-File-Name', file.name);
 		xhr.setRequestHeader('X-File-Size', file.fileSize)
 		xhr.setRequestHeader("X-CSRFToken", Cookie.read('csrftoken'));
         xhr.send(data);

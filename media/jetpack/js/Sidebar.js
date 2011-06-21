@@ -539,8 +539,8 @@ var Sidebar = new Class({
 				}
 				
 				for (var f = 0; f < files.length; f++){
-					var fname = files[f].fileName.getFileName(),
-						ex = files[f].fileName.getFileExtension();
+					var fname = files[f].name.getFileName(),
+						ex = files[f].name.getFileExtension();
 						
 					if (Attachment.exists(fname, ex)) {
 						fd.error.alert('Filename has to be unique', 
