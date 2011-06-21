@@ -8,11 +8,9 @@ import tempfile
 import markdown
 import hashlib
 import codecs
-
 from copy import deepcopy
 
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
-
 from django.db.models.signals import (pre_save, post_delete, post_save,
                                       m2m_changed)
 from django.db import models, transaction, IntegrityError
@@ -24,12 +22,13 @@ from django.template.defaultfilters import slugify
 from django.conf import settings
 from django.utils.translation import ugettext as _
 
-
 from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
 from ecdsa import SigningKey, NIST256p
 from elasticutils import es_required
 from pyes import djangoutils
 from pyes.exceptions import NotFoundException as PyesNotFoundException
+
+from statsd import statsd
 
 from base.models import BaseModel
 from jetpack.errors import (SelfDependencyException, FilenameExistException,
@@ -1161,9 +1160,8 @@ class PackageRevision(BaseModel):
 
         # XPI: Copy files from NFS to local temp dir
         xpi_utils.sdk_copy(sdk_source, sdk_dir)
-        t1 = time.time()
-        log.debug("[xpi:%s] SDK copied (time %dms)" %
-                (hashtag, ((t1 - tstart) * 1000)))
+        t1 = (time.time() - tstart) * 1000
+        log.debug("[xpi:%s] SDK copied (time %dms)" % (hashtag, t1))
 
         # TODO: check if it's still needed
         self.export_keys(sdk_dir)
@@ -1184,9 +1182,9 @@ class PackageRevision(BaseModel):
                     e_mod.export_code(lib_dir)
             if not mod_edited:
                 mod.export_code(lib_dir)
-        t2 = time.time()
-        log.debug("[xpi:%s] modules exported (time %dms)" %
-                (hashtag, ((t2 - t1) * 1000)))
+        t2 = (time.time() * 1000) - t1
+        statsd.timing('xpi.build.modules', t2)
+        log.debug("[xpi:%s] modules exported (time %dms)" % (hashtag, t2))
 
         # export atts with ability to use edited code (from attachments var)
         # XPI: memory/database/NFS to local
@@ -1199,16 +1197,16 @@ class PackageRevision(BaseModel):
                     e_att.export_code(data_dir)
             if not att_edited:
                 att.export_file(data_dir)
-        t3 = time.time()
-        log.debug("[xpi:%s] attachments exported (time %dms)" %
-                (hashtag, ((t3 - t2) * 1000)))
-        #self.export_attachments(
-        #    '%s/%s' % (package_dir, self.get_data_dir()))
+        t3 = (time.time() * 1000) - t2
+        statsd.timing('xpi.build.attachments', t3)
+        log.debug("[xpi:%s] attachments exported (time %dms)" % (hashtag, t3))
+
         # XPI: copying to local from memory/db/files
         self.export_dependencies(packages_dir, sdk=self.sdk)
-        t4 = time.time()
-        log.debug("[xpi:%s] dependencies exported (time %dms)" %
-                (hashtag, ((t4 - t3) * 1000)))
+        t4 = (time.time() * 1000) - t3
+        statsd.timing('xpi.build.dependencies', t4)
+        log.debug("[xpi:%s] dependencies exported (time %dms)" % (hashtag, t4))
+
         # XPI: building locally and copying to NFS
         return xpi_utils.build(sdk_dir, self.get_dir_name(packages_dir),
                 self.name, hashtag, tstart=tstart)

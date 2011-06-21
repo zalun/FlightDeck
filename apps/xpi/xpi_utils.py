@@ -14,6 +14,7 @@ import urllib
 import zipfile
 
 import commonware.log
+from statsd import statsd
 
 from django.http import Http404, HttpResponseServerError, HttpResponseForbidden
 from django.conf import settings
@@ -35,6 +36,7 @@ def info_write(path, status, message, hashtag=None):
 
 def sdk_copy(sdk_source, sdk_dir):
     log.debug("Copying SDK from (%s) to (%s)" % (sdk_source, sdk_dir))
+    t1 = time.time()
     if os.path.isdir(sdk_dir):
         for d in os.listdir(sdk_source):
             s_d = os.path.join(sdk_source, d)
@@ -44,6 +46,7 @@ def sdk_copy(sdk_source, sdk_dir):
                 shutil.copy(s_d, sdk_dir)
     else:
         shutil.copytree(sdk_source, sdk_dir)
+    statsd.timing('xpi.copy', t1 * 1000)
 
 
 def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
@@ -109,11 +112,15 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
     t3 = time.time()
     copy_xpi_time = '%dms' % ((t3 - t2) * 1000)
     build_time = '%dms' % ((t2 - t1) * 1000)
-    preparation_time = '%dms'% ((t1 - tstart) * 1000) if tstart else "n.d."
+    preparation_time = '%dms'% ((t1 - tstart) * 1000) if tstart else 0
 
-    log.info(('[xpi:%s] Created xpi: %s (prep time: %s) (build time: %s) '
-            '(copy xpi time: %s)') % (
-        hashtag, xpi_targetpath, preparation_time, build_time, copy_xpi_time))
+    statsd.timing('xpi.build.prep', t1)
+    statsd.timing('xpi.build.build', t2)
+    statsd.timing('xpi.build.copyresult', t3)
+    log.info('[xpi:%s] Created xpi: %s (prep time: %s) (build time: %s) '
+             '(copy xpi time: %s)' % (hashtag, xpi_targetpath,
+                                      preparation_time, build_time,
+                                      copy_xpi_time))
 
     info_write(info_targetpath, 'success', response[0], hashtag)
 
