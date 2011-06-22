@@ -115,9 +115,9 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
     build_time = '%dms' % ((t2 - t1) * 1000)
     preparation_time = '%dms'% ((t1 - tstart) * 1000) if tstart else 0
 
-    statsd.timing('xpi.build.prep', t1)
-    statsd.timing('xpi.build.build', t2)
-    statsd.timing('xpi.build.copyresult', t3)
+    statsd.timing('xpi.build.prep', preparation_time)
+    statsd.timing('xpi.build.build', build_time)
+    statsd.timing('xpi.build.copyresult', copy_xpi_time)
     log.info('[xpi:%s] Created xpi: %s (prep time: %s) (build time: %s) '
              '(copy xpi time: %s)' % (hashtag, xpi_targetpath,
                                       preparation_time, build_time,
