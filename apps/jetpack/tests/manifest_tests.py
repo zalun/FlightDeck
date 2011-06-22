@@ -74,7 +74,7 @@ class ManifestsTest(TestCase):
         first.dependency_add(lib)
 
         manifest = deepcopy(self.manifest)
-        manifest['dependencies'] = ['test-library', 'api-utils', 'addon-kit']
+        manifest['dependencies'].insert(0, 'test-library')
         manifest['version'] = "%s.rev1" % settings.INITIAL_VERSION_NAME
 
         first_manifest = first.get_manifest()
