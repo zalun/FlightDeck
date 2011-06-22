@@ -111,17 +111,17 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
     ret.extend(response)
 
     t3 = time.time()
-    copy_xpi_time = '%dms' % ((t3 - t2) * 1000)
-    build_time = '%dms' % ((t2 - t1) * 1000)
-    preparation_time = '%dms'% ((t1 - tstart) * 1000) if tstart else 0
+    copy_xpi_time = (t3 - t2) * 1000
+    build_time = (t2 - t1) * 1000
+    preparation_time = ((t1 - tstart) * 1000) if tstart else 0
 
     statsd.timing('xpi.build.prep', preparation_time)
     statsd.timing('xpi.build.build', build_time)
     statsd.timing('xpi.build.copyresult', copy_xpi_time)
-    log.info('[xpi:%s] Created xpi: %s (prep time: %s) (build time: %s) '
-             '(copy xpi time: %s)' % (hashtag, xpi_targetpath,
-                                      preparation_time, build_time,
-                                      copy_xpi_time))
+    log.info('[xpi:%s] Created xpi: %s (prep time: %dms) (build time: %dms) '
+             '(copy xpi time: %dms)' % (hashtag, xpi_targetpath,
+                                        preparation_time, build_time,
+                                        copy_xpi_time))
 
     info_write(info_targetpath, 'success', response[0], hashtag)
 
