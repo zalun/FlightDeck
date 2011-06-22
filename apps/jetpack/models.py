@@ -382,8 +382,8 @@ class PackageRevision(BaseModel):
             version = "%s - test" % version
 
         name = self.name
-        if not self.package.is_addon():
-            name = "%s-%s" % (name, self.package.id_number)
+        #if not self.package.is_addon():
+        #    name = "%s-%s" % (name, self.package.id_number)
 
         manifest = {
             'fullName': self.full_name,
