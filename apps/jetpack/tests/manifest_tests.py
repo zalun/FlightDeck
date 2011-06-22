@@ -74,7 +74,7 @@ class ManifestsTest(TestCase):
         first.dependency_add(lib)
 
         manifest = deepcopy(self.manifest)
-        manifest['dependencies'].append('test-library')
+        manifest['dependencies'] = ['test-library', 'api-utils', 'addon-kit']
         manifest['version'] = "%s.rev1" % settings.INITIAL_VERSION_NAME
 
         first_manifest = first.get_manifest()
@@ -111,5 +111,5 @@ class ManifestsTest(TestCase):
         assert firstpk != first.pk
         manifest = first.get_manifest()
         eq_(manifest['dependencies'],
-                ['api-utils', 'addon-kit', u'test-library',
-                    u'test-library-copy-1'])
+                [u'test-library', u'test-library-copy-1',
+                'api-utils', 'addon-kit'])

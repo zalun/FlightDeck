@@ -356,11 +356,11 @@ class PackageRevision(BaseModel):
     def get_dependencies_list(self, sdk=None):
         " returns a list of dependencies names extended by default core "
         # XXX: breaking possibility to build jetpack SDK 0.6
-        deps = ['api-utils']
+        deps = ["%s" % (dep.name) \
+                     for dep in self.dependencies.all()]
+        deps.append('api-utils')
         if self.package.is_addon():
             deps.append('addon-kit')
-        deps.extend(["%s" % (dep.name) \
-                     for dep in self.dependencies.all()])
         return deps
 
     def get_full_description(self):
