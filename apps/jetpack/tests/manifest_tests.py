@@ -98,12 +98,15 @@ class ManifestsTest(TestCase):
     def test_deeper_dependency(self):
         first = self.addon.latest
         revlib = self.library.latest
+        lib2 = self.library.copy(author=self.addon.author)
+        revlibpk = revlib.pk
+        revlib.dependency_add(lib2.latest)
+        assert revlibpk != revlib.pk
         firstpk = first.pk
         # add revlib to dependencies
         first.dependency_add(revlib)
         assert firstpk != first.pk
         firstpk = first.pk
-        lib2 = self.library.copy(author=self.addon.author)
         first.dependency_add(lib2.latest)
         assert firstpk != first.pk
         manifest = first.get_manifest()
