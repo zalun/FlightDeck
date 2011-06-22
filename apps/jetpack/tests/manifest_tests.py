@@ -22,7 +22,7 @@ class ManifestsTest(TestCase):
         'description': u'',
         'author': u'john',
         'version': settings.INITIAL_VERSION_NAME,
-        'dependencies': ['addon-kit'],
+        'dependencies': ['api-utils', 'addon-kit'],
         'license': u'',
         'url': '',
         'main': 'main',
@@ -73,7 +73,7 @@ class ManifestsTest(TestCase):
         first.dependency_add(lib)
 
         manifest = deepcopy(self.manifest)
-        manifest['dependencies'].append('test-library-%s' % self.library.id_number)
+        manifest['dependencies'].append('test-library')
         manifest['version'] = "%s.rev1" % settings.INITIAL_VERSION_NAME
 
         first_manifest = first.get_manifest()
