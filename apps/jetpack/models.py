@@ -159,7 +159,7 @@ class PackageRevision(BaseModel):
             raise IntegrityError
 
     def get_dir_name(self, packages_dir):
-        return os.path.join(packages_dir, self.name + '-' + self.package.id_number)
+        return os.path.join(packages_dir, self.name)
 
     def make_dir(self, packages_dir):
         """
@@ -356,11 +356,10 @@ class PackageRevision(BaseModel):
     def get_dependencies_list(self, sdk=None):
         " returns a list of dependencies names extended by default core "
         # XXX: breaking possibility to build jetpack SDK 0.6
+        deps = ['api-utils']
         if self.package.is_addon():
-            deps = ['addon-kit']
-        else:
-            deps = ['api-utils']
-        deps.extend(["%s-%s" % (dep.name, dep.package.id_number) \
+            deps.append('addon-kit')
+        deps.extend(["%s" % (dep.name) \
                      for dep in self.dependencies.all()])
         return deps
 
