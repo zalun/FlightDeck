@@ -392,7 +392,6 @@ class PackageRevision(BaseModel):
             'id': self.package.jid if self.package.is_addon() \
                     else self.package.id_number,
             'version': version,
-            'dependencies': self.get_dependencies_list(sdk),
             'license': self.package.license,
             'url': str(self.package.url),
             'contributors': self.get_contributors_list(),
