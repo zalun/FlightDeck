@@ -9,7 +9,6 @@
 var Package = new Class({
 
 	Implements: [Options, Events],
-	Binds: ['makePublic', 'makePrivate'],
 
 	options: {
 		// data
@@ -1490,7 +1489,7 @@ Package.Edit = new Class({
 			onSuccess: function(response) {
 				fd.message.alert(response.message_title, response.message);
 				fd.fireEvent('disable_' + response.package_type);
-				$('activate').addEvent('click', this.makePublic);
+				$('activate').addEvent('click', this.makePublic.bind(this));
 				deactivateButton.addClass('pressed').getElement('a').addClass('inactive');
 				$('UI_ActivateLink').removeClass('pressed').getElement('a').removeClass('inactive');
 			}.bind(this)
@@ -1520,8 +1519,8 @@ Package.Edit = new Class({
 			}.bind(this));
 		}
 
-		$('UI_ActivateLink').getElement('a').addEvent('click', this.makePublic);
-		$('UI_DisableLink').getElement('a').addEvent('click', this.makePrivate);
+		$('UI_ActivateLink').getElement('a').addEvent('click', this.makePublic.bind(this));
+		$('UI_DisableLink').getElement('a').addEvent('click', this.makePrivate.bind(this));
 
 		this.validator = new Form.Validator.Inline('package-info_form');
 		self = this;
