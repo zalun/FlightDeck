@@ -89,6 +89,7 @@
     var browser_delete_item = function(el) {
         el.addEvent('click', function(e){
             if (e) e.stop();
+            var itemEl = this.getParent('.UI_Item');
             fd.showQuestion({
                 title: "Deleting Package with all revisions", 
                 message: "Are you sure you want to delete this Package ?"
@@ -105,8 +106,10 @@
                         callback: function(e2) {
                                 new Request.JSON({
                                     url: this.get('href'),
+                                    useSpinner: true,
+                                    spinnerTarget: itemEl,
                                     onSuccess: function(response) {
-                                        el.getParent('li.UI_Item').destroy();
+                                        itemEl.destroy();
                                         fd.message.alert(
                                             response.message_title, response.message
                                         );
