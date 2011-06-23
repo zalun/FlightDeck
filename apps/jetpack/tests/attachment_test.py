@@ -33,6 +33,7 @@ class AttachmentTest(TestCase):
 
         self.old = settings.UPLOAD_DIR
         settings.UPLOAD_DIR = tempfile.mkdtemp()
+        self.tempdir = tempfile.mkdtemp()
 
         # Simulating upload.
         self.attachment = Attachment.objects.create(
@@ -48,10 +49,11 @@ class AttachmentTest(TestCase):
 
     def tearDown(self):
         shutil.rmtree(settings.UPLOAD_DIR)
+        shutil.rmtree(self.tempdir)
         settings.UPLOAD_DIR = self.old
 
     def test_export_file(self):
-        destination = tempfile.mkdtemp()
+        destination = self.tempdir
         filename = '%s.%s' % (self.attachment.filename, self.attachment.ext)
         filename = os.path.join(destination, filename)
         self.attachment.export_file(destination)
@@ -60,7 +62,7 @@ class AttachmentTest(TestCase):
     def test_create_attachment_with_utf_content(self):
         self.attachment.data = u'ą'
         self.attachment.write()
-        destination = tempfile.mkdtemp()
+        destination = self.tempdir
         filename = '%s.%s' % (self.attachment.filename, self.attachment.ext)
         filename = os.path.join(destination, filename)
         self.attachment.export_file(destination)

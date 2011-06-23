@@ -4,6 +4,7 @@ repackage.tests.test_models
 """
 import commonware
 import os
+import tempfile
 import urllib2
 
 #from mock import Mock
@@ -33,10 +34,14 @@ class RepackageTest(TestCase):
                 settings.ROOT, 'lib/addon-sdk-1.0rc2')
 
     def tearDown(self):
-        target_xpi = os.path.join(
-                settings.XPI_TARGETDIR, self.hashtag, '.xpi')
+        target_xpi = '%s.xpi' % os.path.join(
+                tempfile.gettempdir(), self.hashtag)
+        target_json = '%s.json' % os.path.join(
+                tempfile.gettempdir(), self.hashtag)
         if os.path.isfile(target_xpi):
             os.remove(target_xpi)
+        if os.path.isfile(target_json):
+            os.remove(target_json)
 
     # mock self.sdk.get_source_dir()
     def test_repackage(self):
