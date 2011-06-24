@@ -92,10 +92,12 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
         info_write(info_targetpath, 'error', str(err), hashtag)
         log.critical("[xpi:%s] Failed to build xpi: %s.  Command(%s)" % (
                      hashtag, str(err), cfx))
+        shutil.rmtree(sdk_dir)
         raise
     if response[1]:
         info_write(info_targetpath, 'error', response[1], hashtag)
         log.critical("[xpi:%s] Failed to build xpi." % hashtag)
+        shutil.rmtree(sdk_dir)
         return response
 
     t2 = time.time()
