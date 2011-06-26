@@ -16,6 +16,7 @@ var Package = new Class({
 				// id_number: '',
 				// full_name: '',
 				// name: '',
+				// revision_string: '',
 				// description: '',
 				// type: '', // 'a'/'l'
 				// package_author: '',
@@ -1698,6 +1699,8 @@ Package.Edit = new Class({
 	},
 
 	registerRevision: function(urls) {
+        // update page title to reflect current revision and name
+        document.title = document.title.replace(this.options.revision_string, urls.revision_string);
         this.setOptions(urls);
         // this only for the right display href
         if (urls.download_url && $(this.options.download_el)) {
