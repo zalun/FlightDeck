@@ -290,6 +290,11 @@ var FlightDeck = new Class({
                                     'Wrong response from Add-on Builder Helper. Please <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=573778">let us know</a>'
                                 );
                             }
+                        } else if (test_request.request_number > 50) {
+                            this.warning.alert(
+                                'Add-on Builder',
+                                'The add-on was not successfully built (attempts timed out). Please try again.'
+                            );
                         }
                     }.bind(this)
                 }).send(this);
