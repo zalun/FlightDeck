@@ -35,7 +35,7 @@
 	<pre>
 require("widget").Widget({
     label: "My Mozilla Widget",
-	id: "my-widget-id",
+    id: "my-widget-id",
     contentURL: "http://www.mozilla.org/favicon.ico"
 });
 	</pre>
@@ -78,7 +78,8 @@ require("widget").Widget({
 
 	<pre class="faded">
 require("widget").Widget({
-    label: <span class="highlighted">"My Mozilla Widget"</span>,
+    label: "My Mozilla Widget",
+    id: "my-widget-id",
     contentURL: "http://www.mozilla.org/favicon.ico",
     <span class="highlighted">onClick: function(event) {
         require("tabs").open("http://www.mozilla.org");
