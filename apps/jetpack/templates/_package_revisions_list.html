@@ -1,11 +1,11 @@
 {% load jetpack_extras %}
-<div id='display-package-revisions'>
+<div id="display-package-revisions">
     <h3>{% if current %}{{ current.full_name}}
         {% else %}{{ package.full_name }}{% endif %} - Revisions</h3>
 	<div class="UI_Modal_Section">
 		<ul class="UI_Revisions">
 			{% for revision in revisions %}
-            <li{% ifequal revision current %} class="current"{% endifequal %}>
+            <li class="{% ifequal revision current %}current{% endifequal %} {% if revision.version_name %} version{% endif %}">
 					<em class="date">{{ revision.created_at|date:"Y-m-d" }}</em>
 					<a href="{{ revision.get_absolute_url }}">{{ revision.get_version_name }}</a>
                     {% if revision.commit_message %}<span class='commit_message'>{{ revision.commit_message }}</span>{% endif %}
@@ -15,6 +15,15 @@
 		</ul>
 	</div>
 	<div class="UI_Modal_Actions">
-		<ul><li><input type="reset" value="Close" class="closeModal"/></li></ul>
+		<ul>
+			<li><input type="reset" value="Close" class="closeModal"/></li>
+			<li class="UI_Boolean_Action">
+				<label>
+					<input type="checkbox" value="1" id="versions_only" name="versions_only" />
+					Show only named versions
+				</label>
+			</li>
+		</ul>
+		
 	</div>
 </div>

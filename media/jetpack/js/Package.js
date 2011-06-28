@@ -303,7 +303,21 @@ var Package = new Class({
             },
 			url: that.options.revisions_list_html_url.substitute(that.options),
 			onSuccess: function(html) {
-				fd.displayModal(html);
+				var modal = fd.displayModal(html),
+					modalEl = $(modal).getElement('.UI_Modal'),
+					showVersionsEl = modalEl.getElement('#versions_only');
+				//setup handler for "Show versions only" checkbox
+				function toggleVersionsOnly() {
+					if (showVersionsEl.checked) {
+						modalEl.addClass('boolean-on');
+					} else {
+						modalEl.removeClass('boolean-on');
+					}
+				}
+				showVersionsEl.addEvent('change', function(e) {
+					toggleVersionsOnly()
+				});
+				toggleVersionsOnly();
 			}
 		}).send();
 	}
