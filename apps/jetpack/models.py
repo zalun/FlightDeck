@@ -557,6 +557,10 @@ class PackageRevision(BaseModel):
         self.revision_number = self.get_next_revision_number()
 
         save_return = super(PackageRevision, self).save(**kwargs)
+        
+        # reset commit_message list
+        self._commit_messages = []
+        
         # reassign all dependencies
         for dep in origin.dependencies.all():
             self.dependencies.add(dep)
