@@ -83,6 +83,7 @@ def package_browser(r, page_number=1, type_id=None, username=None):
     return render_to_response(
         'package_browser%s.html' % template_suffix, {
             'pager': pager,
+            'single': False,
             'author': author,
             'other_packages_number': other_packages_number
         },
@@ -151,6 +152,8 @@ def package_edit(r, revision):
     return render_to_response(
         "%s_edit.html" % revision.package.get_type_name(), {
             'revision': revision,
+            'item': revision.package,
+            'single': True,
             'libraries': libraries,
             'library_counter': library_counter,
             'readonly': False,

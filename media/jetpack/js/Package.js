@@ -16,6 +16,7 @@ var Package = new Class({
 				// id_number: '',
 				// full_name: '',
 				// name: '',
+				// revision_string: '',
 				// description: '',
 				// type: '', // 'a'/'l'
 				// package_author: '',
@@ -1426,6 +1427,63 @@ Package.Edit = new Class({
 	},
 
 	/*
+	 * Method: makePublic
+	 * activate a package
+	 */
+	makePublic: function(e) {
+		e.stop();
+		this.savenow = false;
+		var activateButton = $('UI_ActivateLink');
+		if (activateButton.getElement('a').hasClass('inactive')) return false;
+		new Request.JSON({
+			url: activateButton.getElement('a').get('href'),
+			useSpinner: true,
+			spinnerTarget: activateButton,
+			spinnerOptions: {
+				img: {
+					class: 'spinner-img spinner-16'
+				},
+				maskBorder: false
+			},
+			onSuccess: function(response) {
+				fd.message.alert(response.message_title, response.message);
+				fd.fireEvent('activate_' + response.package_type);
+				activateButton.addClass('pressed').getElement('a').addClass('inactive');
+				$('UI_DisableLink').removeClass('pressed').getElement('a').removeClass('inactive');
+			}
+		}).send();
+	},
+
+	/*
+	 * Method: makePrivate
+	 * deactivate a package
+	 */
+	makePrivate: function(e) {
+		e.stop();
+		this.savenow = false;
+		var deactivateButton = $('UI_DisableLink');
+		if (deactivateButton.getElement('a').hasClass('inactive')) return false;
+		new Request.JSON({
+			url: deactivateButton.getElement('a').get('href'),
+			useSpinner: true,
+			spinnerTarget: deactivateButton,
+			spinnerOptions: {
+				img: {
+					class: 'spinner-img spinner-16'
+				},
+				maskBorder: false
+			},
+			onSuccess: function(response) {
+				fd.message.alert(response.message_title, response.message);
+				fd.fireEvent('disable_' + response.package_type);
+				$('activate').addEvent('click', this.makePublic.bind(this));
+				deactivateButton.addClass('pressed').getElement('a').addClass('inactive');
+				$('UI_ActivateLink').removeClass('pressed').getElement('a').removeClass('inactive');
+			}.bind(this)
+		}).send();
+	},
+
+	/*
 	 * Method: editInfo
 	 * display the EditInfoModalWindow
 	 */
@@ -1447,6 +1505,10 @@ Package.Edit = new Class({
 				this.savenow = true;
 			}.bind(this));
 		}
+
+		$('UI_ActivateLink').getElement('a').addEvent('click', this.makePublic.bind(this));
+		$('UI_DisableLink').getElement('a').addEvent('click', this.makePrivate.bind(this));
+
 		this.validator = new Form.Validator.Inline('package-info_form');
 		self = this;
 		$$('#package-info_form input[type=submit]').each(function(el) {
@@ -1698,6 +1760,8 @@ Package.Edit = new Class({
 	},
 
 	registerRevision: function(urls) {
+        // update page title to reflect current revision and name
+        document.title = document.title.replace(this.options.revision_string, urls.revision_string);
         this.setOptions(urls);
         // this only for the right display href
         if (urls.download_url && $(this.options.download_el)) {
