@@ -12,6 +12,7 @@ from optparse import make_option
 from django.core.management.commands.loaddata import Command as BaseCommand
 
 from django.db import models, IntegrityError
+from django.core.exceptions import ValidationError
 from jetpack.models import SDK, PackageRevision
 
 log = commonware.log.getLogger('f.jetpack')
@@ -66,7 +67,7 @@ class Command(BaseCommand):
             if revision.sdk != sdk:
                 try:
                     revision.force_sdk(sdk)
-                except IntegrityError:
+                except ValidationError:
                     # forcing the name
                     force_name = "forced %s" % revision.package.id_number
                     log.debug('Forcing the name (%s)' % force_name)
