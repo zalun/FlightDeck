@@ -12,7 +12,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 path = lambda *a: os.path.join(ROOT, *a)
 
 # Set the project version
-PROJECT_VERSION = "0.9.6a"
+PROJECT_VERSION = "0.9.6b"
 
 # TODO: This should be handled by prod in a settings_local.  By default, we
 # shouldn't be in prod mode
@@ -198,7 +198,10 @@ TEMPLATE_LOADERS = (
 
 MIDDLEWARE_CLASSES = [
     # Munging REMOTE_ADDR must come before ThreadRequest.
+    'commonware.response.middleware.GraphiteRequestTimingMiddleware',
+    'commonware.response.middleware.GraphiteMiddleware',
     'commonware.middleware.SetRemoteAddrFromForwardedFor',
+
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -320,3 +323,13 @@ ENGAGE_ROBOTS = False
 ES_DISABLED = True
 ES_INDEX = 'flightdeck'
 # ES_HOSTS = ['127.0.0.1:9201']
+
+# Graphite reporting
+STATSD_HOST = "localhost"
+STATSD_PORT = 8125
+STATSD_PREFIX = "builder"
+
+GRAPHITE_HOST = STATSD_HOST
+GRAPHITE_PORT = 2003
+GRAPHITE_PREFIX = STATSD_PREFIX
+GRAPHITE_TIMEOUT = 1

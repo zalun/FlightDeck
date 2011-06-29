@@ -34,19 +34,21 @@
 
 	<pre>
 require("widget").Widget({
+    id: "widgetID1",
     label: "My Mozilla Widget",
     contentURL: "http://www.mozilla.org/favicon.ico"
 });
 	</pre>
 
-	<p>Then click <i>Test</i>. You may now be asked to install the <i>Add-on
-	  Builder Helper</i> extension; this is a small extension that lets
-	  Add-on Builder integrate seamlessly with Firefox, so go ahead and
-	  install it and click <i>Test</i> again.</p>
+	<p>Then click <i>Test</i> (<img 
+  src="/media/tutorial/img/editor-button-test.png">). You may now be asked to 
+  install the <i>Add-on Builder Helper</i> extension; this is a small extension
+  that lets Add-on Builder integrate seamlessly with Firefox, so go ahead and
+	install it and click <i>Test</i> again.</p>
 
 	<p>At this point, a Mozilla logo (<img
 	src="http://www.mozilla.org/favicon.ico" style="width: 1em; height: 1em">)
-	should appear at the bottom-left corner of your browser.</p>
+	should appear at the bottom-right corner of your browser.</p>
 
 	<h2 class="UI_Heading">Oh Noes!</h2>
 
@@ -55,6 +57,10 @@ require("widget").Widget({
 	Firefox's <i>Tools</i> menu and select <i>Error Console</i>. Make sure that the
 	<i>All</i> button appears pressed down in this window, and any errors in
 	your code should be logged there.</p>
+
+  <p>You may also have to turn on the Add-on Bar manually in order to see your
+  widget, if you have it hidden. In Firefox's View menu, go into Toolbars and click
+  on "Add-on Bar", or press Ctrl+/ to turn it on.</p>
 
 	<h2 class="UI_Heading">How Does The Code Work?</h2>
 
@@ -77,6 +83,7 @@ require("widget").Widget({
 
 	<pre class="faded">
 require("widget").Widget({
+    id: "widgetID1",
     label: <span class="highlighted">"My Mozilla Widget"</span>,
     contentURL: "http://www.mozilla.org/favicon.ico",
     <span class="highlighted">onClick: function(event) {
@@ -94,13 +101,19 @@ require("widget").Widget({
 	<h2 class="UI_Heading">Checkpointing</h2>
 
 	<p>Whenever you've reached a stopping point in your development, click
-	the <i>Save</i> button. This actually saves a snapshot of your code as
-	a new revision, and you can go back to it whenever you want by
-	clicking the <i>Revisions</i> button. This allows you to play around
-	with an idea and simply restore your code to an old revision if you
-	decide you don't like the changes. It's just like a wiki this way:
-	feel free to play around and don't worry about making
-	mistakes&mdash;that's how you learn.</p>
+	the <i>Save</i> (<img src="/media/tutorial/img/editor-button-save.png">)
+  button. This actually saves a snapshot of your code as a new revision,
+  and you can go back to it whenever you want by clicking the <i>Revisions</i>
+  (<img 
+  src="/media/tutorial/img/editor-button-revisions.png">) button. This allows
+  you to play around with an idea and simply restore your code to an old 
+  revision if you decide you don't like the changes. It's just like a wiki 
+  this way:	feel free to play around and don't worry about making	
+  mistakes&mdash;that's how you learn.</p>
+
+  <p>You can also assign a version number to your add-on for each revision by
+  hovering over the <i>Save</i> button and filling in the Version box before
+  clicking <i>Save</i>.
 
 	<h2 class="UI_Heading">Making It Real</h2>
 
@@ -110,12 +123,14 @@ require("widget").Widget({
 	its name suggests, lets you create add-ons that work with the latest
 	version of Firefox, no strings attached.</p>
 
-	<p>First you need to give your add-on a real name, a description, and
-	a version number. Just click on the text "My Add-on" on the left side
-	of the page and fill in the fields; we suggest starting at version
-	0.1.</p>
+	<p>First you need to give your add-on a real name, a description, and 
+  (if you haven't already assigned a version up in the <i>Checkpointing</i> 
+  section) a version number. Just click on the <i>Properties</i> (<img 
+  src="/media/tutorial/img/editor-button-properties.png">) button and fill in
+  the name and description.</p>
 
-	<p>Then just click <i>Download</i> to get the XPI file that
+	<p>Then just click <i>Download</i> (<img 
+  src="/media/tutorial/img/editor-button-download.png">)to get the XPI file that
 	constitutes your add-on. You can send this to friends and family, or
 	upload it to <a
 	 href="https://addons.mozilla.org/">addons.mozilla.org</a> for all the
@@ -137,3 +152,4 @@ require("widget").Widget({
 
 
 {% block app_sidebar %}{% endblock %}
+

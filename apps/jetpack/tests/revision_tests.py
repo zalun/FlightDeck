@@ -9,7 +9,7 @@ from nose.tools import eq_
 from django.contrib.auth.models import User
 from django.conf import settings
 
-from jetpack.models import Package, PackageRevision, Module, Attachment
+from jetpack.models import Package, PackageRevision, Module, Attachment, SDK
 from jetpack.errors import SelfDependencyException, FilenameExistException, \
         DependencyException
 from base.templatetags.base_helpers import hashtag
@@ -18,7 +18,7 @@ log = commonware.log.getLogger('f.test')
 
 
 class PackageRevisionTest(TestCase):
-    fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']
+    fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages', 'old_packages']
 
     def setUp(self):
         self.author = User.objects.get(username='john')
@@ -38,6 +38,8 @@ class PackageRevisionTest(TestCase):
         revisions = PackageRevision.objects.filter(package__pk=addon.pk)
         eq_(1, revisions.count())
         revision = revisions[0]
+        eq_(revision.full_name, addon.full_name)
+        eq_(revision.name, addon.name)
         eq_(revision.author.username, addon.author.username)
         eq_(revision.revision_number, 0)
         eq_(revision.pk, addon.latest.pk)
@@ -327,8 +329,70 @@ class PackageRevisionTest(TestCase):
         )
         self.assertRaises(FilenameExistException, first.attachment_add, att)
 
+    def test_add_commit_message(self):
+        author = User.objects.all()[0]
+        addon = Package(type='a', author=author)
+        addon.save()
+        rev = addon.latest
+        rev.add_commit_message('one')
+        rev.add_commit_message('two')
+        rev.save()
+        
+        eq_(rev.commit_message, 'one, two')
+        
+        # revision has been saved, so we should be building up a new commit message
+        rev.add_commit_message('three')
+        rev.save()
+        eq_(rev.commit_message, 'three')
+    
+
+    def test_force_sdk(self):
+        addon = Package.objects.create(
+            full_name="Other Package",
+            author=self.author,
+            type='a')
+        oldsdk = addon.latest.sdk
+
+        mozuser = User.objects.get(username='4757633')
+        version='testsdk'
+        kit_lib = PackageRevision.objects.create(
+                author=mozuser,
+                package=oldsdk.kit_lib.package,
+                revision_number=oldsdk.kit_lib.revision_number + 1,
+                version_name=version)
+        core_lib = PackageRevision.objects.create(
+                author=mozuser,
+                package=oldsdk.core_lib.package,
+                revision_number=oldsdk.core_lib.revision_number + 1,
+                version_name=version)
+        sdk = SDK.objects.create(
+                version=version,
+                kit_lib=kit_lib,
+                core_lib=core_lib,
+                dir='somefakedir')
+
+        addon.latest.force_sdk(sdk)
+        eq_(len(addon.revisions.all()), 1)
+        eq_(addon.latest.sdk.version, version)
+        eq_(addon.latest.commit_message,
+                'Automatic Add-on SDK upgrade to version (%s)' % sdk.version)
+        addon.latest.force_sdk(oldsdk)
+        eq_(len(addon.revisions.all()), 1)
+        eq_(addon.latest.commit_message.count('SDK'), 2)
+
+    def test_fix_old_packages(self):
+        old_rev = PackageRevision.objects.get(pk=401)
+        assert not old_rev.full_name
+        old_rev.force_sdk(self.addon.latest.sdk)
+        old_package = Package.objects.get(pk=401)
+        assert old_rev.full_name
+        assert old_rev.name
+        assert old_package.full_name
+        assert old_package.name
+
     """
-    Althought not supported on view and front-en, there is no harm in these two
+    Althought not supported on view and front-end,
+    there is no harm in these two
 
     def test_adding_module_which_was_added_to_other_package_before(self):
         " ""
@@ -366,3 +430,4 @@ class PackageRevisionTest(TestCase):
         first.attachment_add(att)
         self.assertRaises(AddingAttachmentDenied, rev.attachment_add, att)
     """
+

@@ -11,18 +11,24 @@ def query(searchq, type_=None, user=None, filter_by_user=False, page=1,
             [z['_id'] for z in x['hits']['hits']]).active()
 
     # This is a filtered query, that says we want to do a query, but not have
-    # to deal with version_text='initial'
+    # to deal with version_text='initial' or 'copy'
+    # nested awesomenezz!
     query = dict(text=dict(_all=searchq)) if searchq else dict(match_all={})
     fq = dict(
             filtered=dict(
                 query=query,
                 filter={
-                    'not': dict(filter=dict(
-                        term=dict(version_text='initial')
-                        ))
+                    'not': {
+                        'filter': {
+                            'or': [
+                                dict(term=dict(version_name='initial')),
+                                dict(term=dict(version_name='copy')),
+                            ]
+                        }
                     }
-                )
+                }
             )
+        )
 
     q = S(fq, result_transform=get_packages).facet('_type')
 
@@ -36,14 +42,15 @@ def query(searchq, type_=None, user=None, filter_by_user=False, page=1,
     if filter_by_user:
         filters['author'] = user.id
 
-    q = q.filter(**filters)
+    if filters:
+        q = q.filter(**filters)
 
-    
+
     try:
         page = int(page)
     except ValueError:
         page = 1
-    
+
     pager = Paginator(q, per_page=limit).page(page)
     facet_type = q.get_facet('_type')
     data = dict(pager=pager, total=q.total,

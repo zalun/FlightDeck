@@ -1,6 +1,7 @@
 import commonware
 
 from copy import deepcopy
+from nose.tools import eq_
 from test_utils import TestCase
 
 from django.contrib.auth.models import User
@@ -22,7 +23,7 @@ class ManifestsTest(TestCase):
         'description': u'',
         'author': u'john',
         'version': settings.INITIAL_VERSION_NAME,
-        'dependencies': ['addon-kit'],
+        'dependencies': ['api-utils', 'addon-kit'],
         'license': u'',
         'url': '',
         'main': 'main',
@@ -73,7 +74,7 @@ class ManifestsTest(TestCase):
         first.dependency_add(lib)
 
         manifest = deepcopy(self.manifest)
-        manifest['dependencies'].append('test-library-%s' % self.library.id_number)
+        manifest['dependencies'].insert(0, 'test-library')
         manifest['version'] = "%s.rev1" % settings.INITIAL_VERSION_NAME
 
         first_manifest = first.get_manifest()
@@ -93,3 +94,22 @@ class ManifestsTest(TestCase):
         first_manifest = first.get_manifest()
         del first_manifest['id']
         self.assertEqual(manifest, first_manifest)
+
+    def test_deeper_dependency(self):
+        first = self.addon.latest
+        revlib = self.library.latest
+        lib2 = self.library.copy(author=self.addon.author)
+        revlibpk = revlib.pk
+        revlib.dependency_add(lib2.latest)
+        assert revlibpk != revlib.pk
+        firstpk = first.pk
+        # add revlib to dependencies
+        first.dependency_add(revlib)
+        assert firstpk != first.pk
+        firstpk = first.pk
+        first.dependency_add(lib2.latest)
+        assert firstpk != first.pk
+        manifest = first.get_manifest()
+        eq_(manifest['dependencies'],
+                [u'test-library', u'test-library-copy-1',
+                'api-utils', 'addon-kit'])

@@ -14,8 +14,8 @@ Request = Class.refactor(Request, {
             }
 			if (xhr.status != 0 && xhr.responseText) {
 				fd.error.alert(
-					'Error {status}'.substitute(xhr),
-					'{statusText}<br/>{responseText}'.substitute(xhr)
+					'{statusText}'.substitute(xhr),
+					'{responseText}'.substitute(xhr)
 					);
 			}
         }
@@ -34,15 +34,15 @@ XPIRequest = new Class({
             this.cancel_callback();
             if (xhr.status == 404) {
                 // XPI failed to produce, display an error with message
-                fd.error.alert('XPI not build', xhr.responseText);
+                fd.error.alert('XPI not built', xhr.responseText);
             } else {
                 if (this.options.addOnFailure) {
                   this.options.addOnFailure();
                 }
                 if (xhr.status != 0 && xhr.responseText) {
                     fd.error.alert(
-                        'Error {status}'.substitute(xhr),
-                        '{statusText}<br/>{responseText}'.substitute(xhr)
+                        '{statusText}'.substitute(xhr),
+                        '{responseText}'.substitute(xhr)
                         );
                 }
             }
@@ -290,6 +290,11 @@ var FlightDeck = new Class({
                                     'Wrong response from Add-on Builder Helper. Please <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=573778">let us know</a>'
                                 );
                             }
+                        } else if (test_request.request_number > 50) {
+                            this.warning.alert(
+                                'Add-on Builder',
+                                'The add-on was not successfully built (attempts timed out). Please try again.'
+                            );
                         }
                     }.bind(this)
                 }).send(this);
