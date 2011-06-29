@@ -372,8 +372,8 @@ var Sidebar = new Class({
     },
 	
 	promptRemoval: function(file, fileType) {
-		var title = 'Are you sure you want to remove "{name}"?',
-		    titleOpts = {};
+		var title = 'Are you sure you want to remove {type}"{name}"?',
+		    titleOpts = {type: ''};
 
 		if (fileType != null) {
 		    titleOpts.name = file + " and all its files";
@@ -383,7 +383,8 @@ var Sidebar = new Class({
             } else if (file.options.full_name) {
                 titleOpts.name = file.options.full_name;
             } else if (file.getFullName) {
-                titleOpts.name = "empty folder " + file.getFullName();
+                titleOpts.type = "an empty folder ";
+                titleOpts.name = file.getFullName();
             }
 		}
 		
