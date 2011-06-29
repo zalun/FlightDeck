@@ -66,12 +66,22 @@ class Command(BaseCommand):
             if revision.sdk != sdk:
                 try:
                     revision.force_sdk(sdk)
-                except Exception, err:
-                    log.warning('Revision failed (%s)' % revision)
-                    serr = str(err)
-                    if serr not in failed_revisions:
-                        failed_revisions[serr] = []
-                    failed_revisions[serr].append(revision.get_absolute_url())
+                except:
+                    # forcing the name
+                    force_name = "forced %s" % revision.package.id_number
+                    log.debug('Forcing the name (%s)' % force_name)
+                    revision.package.full_name = force_name
+                    revision.full_name = force_name
+                    revision.package.save()
+                    try:
+                        revision.force_sdk(sdk)
+                    except Exception, err:
+                        # forcing the name not possible
+                        log.warning('Revision failed (%s)' % revision)
+                        serr = str(err)
+                        if serr not in failed_revisions:
+                            failed_revisions[serr] = []
+                        failed_revisions[serr].append(revision.get_absolute_url())
 
         self.stdout.write("%d Revisions switched to SDK %s\n" % (
             len(revisions), target_version))
