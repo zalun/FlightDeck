@@ -311,6 +311,7 @@ djcelery.setup_loader()
 
 # Setting this to true will bypass celeryd and execute tasks in-process
 CELERY_ALWAYS_EAGER = True
+CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 
 CELERY_ROUTES = {
     'repackage.tasks.low_rebuild': {'queue': 'builder_bulk'},
