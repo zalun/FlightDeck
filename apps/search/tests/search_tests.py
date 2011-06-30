@@ -1,11 +1,9 @@
 import commonware
 
-from django.conf import settings
 from django.contrib.auth.models import User
 
 from nose.tools import eq_
 from pyes import StringQuery, FieldQuery, FieldParameter
-from elasticutils import S
 from elasticutils.tests import ESTestCase
 
 from jetpack.models import Package
@@ -24,8 +22,8 @@ def create_library(name):
 
 def create_package(name, type, **kwargs):
     u = User.objects.get(username='john')
-    return Package.objects.create(full_name=name, author=u, type=type, **kwargs)
-
+    return Package.objects.create(full_name=name, author=u, type=type,
+                                  **kwargs)
 
 
 class TestSearch(ESTestCase):
@@ -119,7 +117,6 @@ class QueryTest(ESTestCase):
 
     fixtures = ('mozilla_user', 'users', 'core_sdk')
 
-
     def test_initial_packages_excluded(self):
         bar = create_addon('super bar')
         create_addon('super baz')
@@ -145,6 +142,7 @@ class QueryTest(ESTestCase):
         self.es.refresh()
         data = query('foo')
         eq_(1, data['total'])
+
 
 
 class AggregateQueryTest(ESTestCase):
