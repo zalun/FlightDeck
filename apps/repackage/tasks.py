@@ -85,7 +85,7 @@ def rebuild(location, upload, sdk_source_dir, hashtag,
             log.warning("%s: Error in retrieving xpi (%s)\n%s" % (hashtag,
                 upload, str(err)))
             if pingback:
-                data['msg': str(err)]
+                data['msg'] = str(err)
                 urllib2.urlopen(pingback, data=urllib.urlencode(data),
                         timeout=settings.URLOPEN_TIMEOUT)
             raise
@@ -103,7 +103,7 @@ def rebuild(location, upload, sdk_source_dir, hashtag,
         info_write(info_path, 'error', str(err), hashtag)
         log.warning("%s: Error in rebuilding xpi (%s)" % (hashtag, str(err)))
         if pingback:
-            data['msg': str(err)]
+            data['msg'] = str(err)
             urllib2.urlopen(pingback, data=urllib.urlencode(data),
                     timeout=settings.URLOPEN_TIMEOUT)
         raise
