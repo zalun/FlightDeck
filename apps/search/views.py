@@ -27,7 +27,8 @@ def combined(request):
     libs = query(q, user=request.user, type_='library', limit=5)
     addons.update(q=q,
             addons=addons['pager'].object_list,
-            libraries=libs['pager'].object_list
+            libraries=libs['pager'].object_list,
+            total=addons.get('total', 0) + libs.get('total', 0)
             )
     return render(request, 'aggregate.html', addons)
 

@@ -557,6 +557,10 @@ class PackageRevision(BaseModel):
         self.revision_number = self.get_next_revision_number()
 
         save_return = super(PackageRevision, self).save(**kwargs)
+        
+        # reset commit_message list
+        self._commit_messages = []
+        
         # reassign all dependencies
         for dep in origin.dependencies.all():
             self.dependencies.add(dep)
@@ -1990,8 +1994,8 @@ def make_keypair_on_create(instance, **kwargs):
 pre_save.connect(make_keypair_on_create, sender=Package)
 
 def index_package(instance, **kwargs):
-    from search.tasks import index_all
-    index_all.delay([instance.id])
+    from search.tasks import index_one
+    index_one.delay(instance.id)
 
 post_save.connect(index_package, sender=Package)
 
@@ -2001,8 +2005,8 @@ post_delete.connect(unindex_package, sender=Package)
 
 def index_package_m2m(instance, action, **kwargs):
     if action in ("post_add", "post_remove"):
-        from search.tasks import index_all
-        index_all.delay([instance.package.id])
+        from search.tasks import index_one
+        index_one.delay(instance.package.id)
 m2m_changed.connect(index_package_m2m,
                     sender=PackageRevision.dependencies.through)
 

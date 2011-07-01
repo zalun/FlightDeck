@@ -1,4 +1,5 @@
     "revision_number": {{ revision.revision_number }},
+    "revision_string": "{{ revision|escapejs }}",
 	"save_url": "{{ revision.get_save_url }}",
 	"view_url": "{{ revision.package.get_latest_url }}",
 	"add_module_url": "{{ revision.get_add_module_url }}",

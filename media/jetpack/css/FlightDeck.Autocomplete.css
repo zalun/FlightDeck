@@ -58,6 +58,9 @@ license: MIT-style license
 .ma-container .ma-even {
 }
 .ma-loading {
+    background-image:url('../img/spinner-16.gif');
+    background-repeat:no-repeat;
+    background-position:98% center;
 }
 
 .ma-selected {

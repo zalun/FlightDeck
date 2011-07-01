@@ -329,6 +329,23 @@ class PackageRevisionTest(TestCase):
         )
         self.assertRaises(FilenameExistException, first.attachment_add, att)
 
+    def test_add_commit_message(self):
+        author = User.objects.all()[0]
+        addon = Package(type='a', author=author)
+        addon.save()
+        rev = addon.latest
+        rev.add_commit_message('one')
+        rev.add_commit_message('two')
+        rev.save()
+        
+        eq_(rev.commit_message, 'one, two')
+        
+        # revision has been saved, so we should be building up a new commit message
+        rev.add_commit_message('three')
+        rev.save()
+        eq_(rev.commit_message, 'three')
+    
+
     def test_force_sdk(self):
         addon = Package.objects.create(
             full_name="Other Package",
