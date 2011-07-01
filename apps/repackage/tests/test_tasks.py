@@ -22,6 +22,7 @@ from repackage.tasks import rebuild
 
 log = commonware.log.getLogger('f.repackage')
 
+OLDURLOPEN = urllib2.urlopen
 
 class RepackageTaskTest(TestCase):
 
@@ -41,6 +42,7 @@ class RepackageTaskTest(TestCase):
                 settings.XPI_TARGETDIR, self.hashtag)
 
     def tearDown(self):
+        urllib2.urlopen = OLDURLOPEN
         if os.path.exists('%s.xpi' % self.target_basename):
             os.remove('%s.xpi' % self.target_basename)
         if os.path.exists('%s.json' % self.target_basename):
@@ -56,15 +58,19 @@ class RepackageTaskTest(TestCase):
 
     def test_download_and_failed_rebuild(self):
         with tempfile.NamedTemporaryFile() as bad_xpi:
+            urllib2.urlopen = Mock(return_value=open(bad_xpi.name))
             self.assertRaises(Exception,
                     rebuild,
                     'file://%s' % bad_xpi.name, None, self.sdk_source_dir,
-                    self.hashtag)
+                    self.hashtag,
+                    pingback='test_pingback')
         assert os.path.exists('%s.json' % self.target_basename)
         response_json = {}
         with open('%s.json' % self.target_basename) as response:
             response_json = simplejson.loads(response.read())
         eq_(response_json['status'], 'error')
+        params = urlparse.parse_qs(urllib2.urlopen.call_args[1]['data'])
+        eq_(params['result'][0], 'failure')
 
     def test_pingback(self):
         urllib2.urlopen = Mock(return_value=open(os.path.join(
