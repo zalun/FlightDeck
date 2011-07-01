@@ -74,7 +74,7 @@ FlightDeck = Class.refactor(FlightDeck,{
 	parseMessages: function() {
 		['message', 'warning', 'error', 'success', 'info', 'debug'].each(function(t) {
 			$$('.fd_'+t).each(function(el) {
-				this[t].alert(el.get('title') || t, el.get('text'));
+				this[t].alert(el.get('title') || t, el.get('html'));
 				el.destroy();
 			}, this);
 		}, this);
