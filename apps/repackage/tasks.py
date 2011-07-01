@@ -55,6 +55,9 @@ def rebuild(location, upload, sdk_source_dir, hashtag,
     """
     rep = Repackage()
     info_path = '%s.json' % os.path.join(settings.XPI_TARGETDIR, hashtag)
+    data = {
+        'secret': settings.AMO_SECRET_KEY,
+        'result': 'failure'}
     if location:
         log.info("[%s] Starting package rebuild... (%s)" % (hashtag, location))
         try:
@@ -63,6 +66,10 @@ def rebuild(location, upload, sdk_source_dir, hashtag,
             info_write(info_path, 'error', str(err), hashtag)
             log.warning("%s: Error in downloading xpi (%s)\n%s" % (hashtag,
                 location, str(err)))
+            if pingback:
+                data['msg'] = str(err)
+                urllib2.urlopen(pingback, data=urllib.urlencode(data),
+                        timeout=settings.URLOPEN_TIMEOUT)
             raise
         log.debug("[%s] XPI file downloaded (%s)" % (hashtag, location))
         if not filename:
@@ -77,6 +84,10 @@ def rebuild(location, upload, sdk_source_dir, hashtag,
             info_write(info_path, 'error', str(err), hashtag)
             log.warning("%s: Error in retrieving xpi (%s)\n%s" % (hashtag,
                 upload, str(err)))
+            if pingback:
+                data['msg': str(err)]
+                urllib2.urlopen(pingback, data=urllib.urlencode(data),
+                        timeout=settings.URLOPEN_TIMEOUT)
             raise
         log.debug("[%s] XPI file retrieved from upload" % hashtag)
         if not filename:
@@ -91,21 +102,24 @@ def rebuild(location, upload, sdk_source_dir, hashtag,
     except Exception, err:
         info_write(info_path, 'error', str(err), hashtag)
         log.warning("%s: Error in rebuilding xpi (%s)" % (hashtag, str(err)))
+        if pingback:
+            data['msg': str(err)]
+            urllib2.urlopen(pingback, data=urllib.urlencode(data),
+                    timeout=settings.URLOPEN_TIMEOUT)
         raise
     log.debug('[%s] Response from rebuild: %s' % (hashtag, str(response)))
 
     if pingback:
-        data = {
+        data.update({
             'id': rep.manifest['id'],
-            'secret': settings.AMO_SECRET_KEY,
             'result': 'success' if not response[1] else 'failure',
             'msg': response[1] or response[0],
             'location': "%s%s" % (settings.SITE_URL,
-                reverse('jp_download_xpi', args=[hashtag, filename]))}
+                reverse('jp_download_xpi', args=[hashtag, filename]))})
         if post:
             data['request'] = post
-        log.debug('[%s] Pingback: %s' % (hashtag, pingback))
         urllib2.urlopen(pingback, data=urllib.urlencode(data),
                 timeout=settings.URLOPEN_TIMEOUT)
+        log.debug('[%s] Pingback: %s' % (hashtag, pingback))
     log.info("[%s] Finished package rebuild." % hashtag)
     return response
