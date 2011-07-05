@@ -7,8 +7,24 @@ register = Library()
 
 @register.filter
 def replace(item, value):
-    f, t = value.split(',')
-    return item.replace(f, t)
+    """Replaces first part of ``value`` with the second one
+
+    :param: value (string) list of 2 items separated by comma
+    :result: (string) ``item`` with the first string replaced by the other
+    """
+    items = value.split(',')
+    if len(items) != 2:
+        raise TemplateSyntaxError(
+                "Replace filter argument is a comma separated list of 2 items")
+    return item.replace(items[0], items[1])
+
+
+@register.filter
+def capitalize(item):
+    """Return a copy of the string with its first character capitalized and
+    the rest lowercased
+    """
+    return item.capitalize()
 
 
 @register.tag
