@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load base_helpers %}
 {% load safe_csrf %}
 {# default django template for login page #}
 
@@ -15,11 +16,14 @@
 
 {% block app_content %}
 	{% if form.errors %}
+        <p class="fd_error" title="Sign in error">
 		{% for sender,subject in form.errors.items %}
 			{% for error in subject %}
-				<p class="fd_error" title="Sign In Error">{{ error|escape }}</p>
+                {{ sender|replace:"username,email address"|capitalize }}: 
+                {{ error|escape }}<br/>
 			{% endfor %}
 		{% endfor %}
+        </p>
 	{% endif %}
 
 	<div class="UI_Login">
