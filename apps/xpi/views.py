@@ -56,7 +56,7 @@ def prepare_test(r, id_number, revision_number=None):
             os.path.join(settings.XPI_TARGETDIR, hashtag)):
         log.info('[xpi:%s] Addon added to queue' % hashtag)
         tqueued = time.time()
-        tkey = '%s-%s' % (hashtag, r.session.session_key)
+        tkey = xpi_utils.get_queued_cache_key(hashtag, r)
         cache.set(tkey, tqueued, 120)
         tasks.xpi_build_from_model.delay(revision.pk,
                 mod_codes=mod_codes, att_codes=att_codes,
@@ -98,7 +98,7 @@ def get_test(r, hashtag):
     if os.path.exists('%s.json' % base):
         os.remove('%s.json' % base)
 
-    tkey = '%s-%s' % (hashtag, r.session.session_key)
+    tkey = xpi_utils.get_queued_cache_key(hashtag, r)
     tqueued = cache.get(tkey)
     if tqueued:
         ttotal = (tend - tqueued) * 1000
@@ -130,7 +130,7 @@ def prepare_download(r, id_number, revision_number=None):
         return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
     log.info('[xpi:%s] Addon added to queue' % hashtag)
     tqueued = time.time()
-    tkey = '%s-%s' % (hashtag, r.session.session_key)
+    tkey = xpi_utils.get_queued_cache_key(hashtag, r)
     cache.set(tkey, tqueued, 120)
     tasks.xpi_build_from_model.delay(revision.pk, hashtag=hashtag,
             tqueued=tqueued)
@@ -162,7 +162,7 @@ def get_download(r, hashtag, filename):
     log.info('[xpi:%s] Downloading Addon from %s' % (filename, path))
 
     tend = time.time()
-    tkey = '%s-%s' % (hashtag, r.session.session_key)
+    tkey = xpi_utils.get_queued_cache_key(hashtag, r)
     tqueued = cache.get(tkey)
     if tqueued:
         ttotal = (tend - tqueued) * 1000
