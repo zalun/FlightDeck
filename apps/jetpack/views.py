@@ -12,9 +12,9 @@ from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.views.static import serve
 from django.shortcuts import get_object_or_404
-from django.http import HttpResponseRedirect, HttpResponse, \
-                        HttpResponseForbidden, HttpResponseServerError, \
-                        HttpResponseNotAllowed, Http404  # , QueryDict
+from django.http import (HttpResponseRedirect, HttpResponse,
+                        HttpResponseForbidden, HttpResponseServerError,
+                        HttpResponseNotAllowed, Http404)  # , QueryDict
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator, EmptyPage, InvalidPage
 from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
@@ -31,10 +31,10 @@ from base.shortcuts import get_object_with_related_or_404
 from utils import validator
 from utils.helpers import pathify, render, render_json
 
-from jetpack.package_helpers import get_package_revision, \
-        create_package_from_xpi
-from jetpack.models import Package, PackageRevision, Module, Attachment, SDK, \
-                           EmptyDir
+from jetpack.package_helpers import (get_package_revision,
+        create_package_from_xpi)
+from jetpack.models import (Package, PackageRevision, Module, Attachment, SDK,
+                           EmptyDir)
 from jetpack.errors import FilenameExistException, DependencyException
 
 from person.models import Profile
@@ -308,8 +308,8 @@ def delete(request, id_number):
 
 @require_POST
 @login_required
-def add_module(request, id_number, type_id,
-                       revision_number=None, version_name=None):
+def add_module(request, id_number, type_id, revision_number=None,
+        version_name=None):
     """
     Add new module to the PackageRevision
     """
@@ -537,8 +537,8 @@ def upload_attachment(request, id_number, type_id,
                 "by non-owner (%s)" % (id_number, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden(
-            'You are not the author of this %s' \
-                % escape(revision.package.get_type_name()))
+            'You are not the author of this %s' % escape(
+                revision.package.get_type_name()))
 
     file = request.FILES.get('upload_attachment')
     filename = request.META.get('HTTP_X_FILE_NAME')
@@ -577,8 +577,8 @@ def upload_attachments(request, id_number, type_id,
                 "by non-owner (%s)" % (id_number, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden(
-            'You are not the author of this %s' \
-                % escape(revision.package.get_type_name()))
+            'You are not the author of this %s' % escape(
+                revision.package.get_type_name()))
 
     content = request.raw_post_data
     filename = request.META.get('HTTP_X_FILE_NAME')
@@ -615,8 +615,8 @@ def add_empty_attachment(request, id_number, type_id,
                    "non-owner (%s)" % (id_number, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden(
-            'You are not the author of this %s' \
-                % escape(revision.package.get_type_name()))
+            'You are not the author of this %s' % escape(
+                revision.package.get_type_name()))
 
     filename = request.POST.get('filename', False)
 
@@ -650,8 +650,8 @@ def revision_add_attachment(request, pk):
                    "non-owner (%s)" % (revision.package, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden(
-            'You are not the author of this %s' \
-                % escape(revision.package.get_type_name()))
+            'You are not the author of this %s' % escape(
+                revision.package.get_type_name()))
     url = request.POST.get('url', None)
     filename = request.POST.get('filename', None)
     log.debug(filename)
@@ -665,10 +665,10 @@ def revision_add_attachment(request, pk):
         try:
             url = field.clean(url)
         except ValidationError, err:
-            # XXX: Ugly log as it appears as [u'Here the message']
-            log.debug('Invalid url provided (%s)\n%s' % (url, err))
-            return HttpResponseForbidden("Loading attachment failed<br/>"
-                "%s" % str(err))
+            log.debug('Invalid url provided (%s)\n%s' % (url,
+                '\n'.join(err.messages)))
+            return HttpResponseForbidden(("Loading attachment failed<br/>"
+                "%s") % '<br/>'.join(err.messages))
         except Exception, err:
             return HttpResponseForbidden(str(err))
         att = urllib2.urlopen(url, timeout=settings.URLOPEN_TIMEOUT)
