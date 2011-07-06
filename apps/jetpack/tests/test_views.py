@@ -150,11 +150,9 @@ class TestEmptyDirs(TestCase):
         self.author = User.objects.get(username='john')
         self.author.set_password('password')
         self.author.save()
-        log.debug(self.author.pk)
 
         self.package = self.author.packages_originated.addons()[0:1].get()
         self.revision = self.package.revisions.all()[0]
-        log.debug(self.revision.author.pk)
 
         self.client.login(username=self.author.username, password='password')
 
