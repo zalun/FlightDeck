@@ -336,5 +336,12 @@ GRAPHITE_PORT = 2003
 GRAPHITE_PREFIX = STATSD_PREFIX
 GRAPHITE_TIMEOUT = 1
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        'TIMEOUT': 60,
+        'KEY_PREFIX': 'bamo',
+    }
+}
 CACHE_PREFIX = "bamo:"
 CACHE_BACKEND = "dummy://?timeout=60"
