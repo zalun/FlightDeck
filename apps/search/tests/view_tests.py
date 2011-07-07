@@ -6,7 +6,7 @@ from nose import SkipTest
 from nose.tools import eq_
 
 from jetpack.models import Package
-from search.tests import ESTestCase
+from elasticutils.tests import ESTestCase
 
 def create_addon(name):
     return create_package(name, type='a')
@@ -22,14 +22,14 @@ def create_package(name, type):
 
 
 
-class TestSearch(ESTestCase):
+class TestSearchViews(ESTestCase):
     fixtures = ('mozilla_user', 'users', 'core_sdk')
 
     def test_pagenumber_with_weird_characters(self):
         " Should not error if non-int value is passed for the page number "
         url = '%s?q=%s&page=%s' % (reverse('search_by_type', args=['addon']),
                                    'test', '-^')
-        
+
         resp = self.client.get(url)
-        
+
         eq_(200, resp.status_code)

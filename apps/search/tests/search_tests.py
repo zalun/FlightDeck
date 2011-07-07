@@ -7,7 +7,8 @@ from nose.tools import eq_
 from pyes import StringQuery, FieldQuery, FieldParameter
 
 from jetpack.models import Package
-from search.tests import ESTestCase
+#from search.tests import ESTestCase
+from elasticutils.tests import ESTestCase
 
 
 def create_addon(name):
@@ -45,7 +46,7 @@ class TestSearch(ESTestCase):
         es.refresh()
         r = es.search(query=StringQuery('zool'))
         eq_(r['hits']['total'], 0, "We shouldn't get any hits.")
-    
+
     def test_index_removed_private_addon(self):
         """
         When an addon is marked private, it should be removed from the index.
@@ -56,7 +57,7 @@ class TestSearch(ESTestCase):
         es.refresh()
         r = es.search(query=StringQuery('zool'))
         eq_(r['hits']['total'], 0, "We shouldn't get any hits.")
-    
+
     def test_index_removed_limbo_deleted_library(self):
         """
         If package in limbo deleted=True state, should not be in index.
