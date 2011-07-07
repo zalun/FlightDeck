@@ -557,10 +557,10 @@ class PackageRevision(BaseModel):
         self.revision_number = self.get_next_revision_number()
 
         save_return = super(PackageRevision, self).save(**kwargs)
-        
+
         # reset commit_message list
         self._commit_messages = []
-        
+
         # reassign all dependencies
         for dep in origin.dependencies.all():
             self.dependencies.add(dep)
@@ -1185,7 +1185,7 @@ class PackageRevision(BaseModel):
                     e_mod.export_code(lib_dir)
             if not mod_edited:
                 mod.export_code(lib_dir)
-        t2 = (time.time() * 1000) - t1
+        t2 = (time.time() - (t1 / 1000) - tstart) * 1000
         statsd.timing('xpi.build.modules', t2)
         log.debug("[xpi:%s] modules exported (time %dms)" % (hashtag, t2))
 
@@ -1200,13 +1200,13 @@ class PackageRevision(BaseModel):
                     e_att.export_code(data_dir)
             if not att_edited:
                 att.export_file(data_dir)
-        t3 = (time.time() * 1000) - t2
+        t3 = (time.time() - (t2 / 1000) - tstart) * 1000
         statsd.timing('xpi.build.attachments', t3)
         log.debug("[xpi:%s] attachments exported (time %dms)" % (hashtag, t3))
 
         # XPI: copying to local from memory/db/files
         self.export_dependencies(packages_dir, sdk=self.sdk)
-        t4 = (time.time() * 1000) - t3
+        t4 = (time.time() - (t3 / 1000) - tstart) * 1000
         statsd.timing('xpi.build.dependencies', t4)
         log.debug("[xpi:%s] dependencies exported (time %dms)" % (hashtag, t4))
 
