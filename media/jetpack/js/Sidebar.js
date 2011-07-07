@@ -394,6 +394,7 @@ var Sidebar = new Class({
 		    //return;
 		}
 		
+        titleOpts.name = titleOpts.name.split('/').getLast();
 		fd.showQuestion({
 			title: title.substitute(titleOpts),
 			message: file instanceof Module ? 'You may always copy it from this revision' : '',
