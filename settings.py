@@ -54,6 +54,7 @@ SYSLOG_TAG = "http_app_builder"
 # Handlers and log levels are set up automatically based on LOG_LEVEL and DEBUG
 # unless you set them here. Messages will not propagate through a logger
 # unless propagate: True is set.
+LOGGING_CONFIG = None
 LOGGING = {
     'loggers': {
         'amqplib': {'handlers': ['null']},
