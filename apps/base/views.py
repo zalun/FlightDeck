@@ -15,6 +15,24 @@ from base.models import CeleryResponse
 
 log = commonware.log.getLogger('f.monitor')
 
+def graphite(request, site):
+    # This code (and the template) is ugly as hell.  Since we aren't on Jinja
+    # yet we can't use the same views/templates as the other projects, so we
+    # have to hack together our own.  This is temporary until we can replace it
+    # with jinja code.
+
+    v = {}
+    v['ns'] = {"trunk": "builder.preview",
+               "stage": "builder.next",
+               "prod": "builder"}[site]  # Validated by url regex
+    v['base'] = "https://graphite-sjc.mozilla.org/render/?width=586&height=308"
+    v['spans'] = { "fifteen": "from=-15minutes&title=15 minutes",
+                   "hour": "from=-1hours&title=1 hour",
+                   "day": "from=-24hours&title=24 hours",
+                   "week": "from=-7days&title=7 days", }
+
+
+    return render_to_response('graphite.html', v)
 
 @user_passes_test(lambda u: u.is_superuser)
 def site_settings(request):
