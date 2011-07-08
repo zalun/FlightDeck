@@ -26,7 +26,9 @@ class TestSearchViews(ESTestCase):
     fixtures = ('mozilla_user', 'users', 'core_sdk')
 
     def test_pagenumber_with_weird_characters(self):
-        " Should not error if non-int value is passed for the page number "
+        """Should not error if non-int value is passed for the page number"""
+        create_addon('derp')
+
         url = '%s?q=%s&page=%s' % (reverse('search_by_type', args=['addon']),
                                    'test', '-^')
 
