@@ -1,5 +1,6 @@
 import commonware.log
 import time
+from statsd import statsd
 
 from celery.decorators import task
 
@@ -11,13 +12,17 @@ log = commonware.log.getLogger('f.celery')
 
 
 @task(rate_limit='30/m')
-def xpi_build_from_model(rev_pk, mod_codes={}, att_codes={}, hashtag=None):
+def xpi_build_from_model(rev_pk, mod_codes={}, att_codes={}, hashtag=None, tqueued=None):
     """ Get object and build xpi
     """
     if not hashtag:
         log.critical("No hashtag provided")
         return
     tstart = time.time()
+    if tqueued:
+        tinqueue = (tstart - tqueued) * 1000
+        statsd.timing('xpi.build.queued', tinqueue)
+        log.info('[xpi:%s] Addon job picked from queue (%dms)' % (hashtag, tinqueue))
     revision = PackageRevision.objects.get(pk=rev_pk)
     # prepare changed modules and attachments
     modules = []

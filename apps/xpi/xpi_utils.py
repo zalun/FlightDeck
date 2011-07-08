@@ -135,3 +135,7 @@ def remove(path):
     log.debug("Removing directory (%s)" % path)
     os.remove(path)
 
+def get_queued_cache_key(hashtag, request=None):
+    session = request.session.session_key if request else None
+    key = 'xpi:timing:queued:%s:%s' % (hashtag, session)
+    return key
