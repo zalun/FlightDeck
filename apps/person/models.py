@@ -53,10 +53,9 @@ class Profile(models.Model):
             columns = ('id', 'email', 'username', 'display_name', 'email' ,
                        'homepage')
 
-            SQL = ('SELECT %s FROM %s WHERE username=%s') % (
-                    ','.join(columns), settings.AUTH_DATABASE['TABLE'],
-                    self.nickname)
-            auth_cursor.execute(SQL)
+            SQL = ('SELECT %s FROM %s WHERE username=%%s') % (
+                    ','.join(columns), settings.AUTH_DATABASE['TABLE'])
+            auth_cursor.execute(SQL, [self.nickname])
             data = auth_cursor.fetchone()
             data = {}
             for i in range(len(data)):
