@@ -18,7 +18,7 @@ Slick.definePseudo('hidden', Element.prototype.isHidden)
 Slick.definePseudo('visible', Element.prototype.isVisible);
 
 String.prototype.get_basename = function(isFolder) {
-    basename = this.split('/').getLast();
+    var basename = this.split('/').getLast();
     if (!isFolder) {
         basename = basename.split('.');
         if (basename.length > 1) {
