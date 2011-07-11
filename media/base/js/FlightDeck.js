@@ -13,10 +13,11 @@ Request = Class.refactor(Request, {
               this.options.addOnFailure();
             }
 			if (xhr.status != 0 && xhr.responseText) {
-				fd.error.alert(
-					'{statusText}'.substitute(xhr),
-					'{responseText}'.substitute(xhr)
-					);
+                response = xhr.responseText;
+                if (this.headers['X-Request'] == 'JSON') {
+                    response = JSON.decode(response);
+                }
+				fd.error.alert(xhr.statusText, response);
 			}
         }
     },
