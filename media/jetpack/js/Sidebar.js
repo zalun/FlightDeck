@@ -580,7 +580,6 @@ var Sidebar = new Class({
 				    filename = filename.replace(/^\//, '');
 				    filename = filename.replace(/\/*$/g, ''); /* */
 				    
-				    
 				    if (!isFolder && !filename.getFileExtension()) {
 				        filename = filename.replace(/\./, '') + '.js'; //we're defaulting to .js files if the user doesnt enter an extension
 				    }

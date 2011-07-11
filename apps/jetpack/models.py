@@ -1855,7 +1855,8 @@ class Attachment(BaseModel):
             log.error('Attachment write failure: (%s)\n%s' % (
                 self.pk, str(err)))
             raise AttachmentWriteException(
-                'Attachment failed to save properly')
+                'Attachment failed to save properly<br/>'
+                'Unknown unicode in file')
 
 
     def export_code(self, static_dir):
