@@ -248,7 +248,6 @@ var Sidebar = new Class({
                 that.setSelectedFile(file);
             }
         });
-
         
         // file.onChange should add an asterisk to the tree branch
         // file.onReset should remove the asterisk
@@ -285,9 +284,6 @@ var Sidebar = new Class({
         if (li) {
             li.destroy();
         }
-	    
-	    
-	    
 	},
 	
 	addData: function(attachment) {
@@ -449,10 +445,17 @@ var Sidebar = new Class({
 					pack = fd.getItem();
 					
 				if (!filename) {
-					fd.error.alert('Filename can\'t be empty', 'Please provide the name of the module');
+					fd.error.alert(
+                        'Filename can\'t be empty', 
+                        'Please provide the name of the module');
 					return;
 				}
 				
+                // remove janky characters from filenames
+                // (from promptAttachment)
+                filename = filename.replace(/[^a-zA-Z0-9\-_\/\.]+/g, '-');
+                filename = filename.replace(/\/{2,}/g, '/');
+
 				if (filename[filename.length-1] == '/') {
 					isFolder = true;
 					filename = filename.substr(0, filename.length-1);
@@ -461,7 +464,7 @@ var Sidebar = new Class({
 					filename = filename.replace(/^\//, '');
 					filename = filename.replace(/\.[^\.]+$/, '');
 				}
-				
+                
 				if (!isFolder && Module.exists(filename)) {
 					fd.error.alert('Filename has to be unique', 'You already have the module with that name');
 					return;
@@ -469,6 +472,13 @@ var Sidebar = new Class({
 					fd.error.alert('Folder has to be unique', 'You already have the folder with that name');
 					return;
 				}
+                if (['-', ''].contains(filename.get_basename(isFolder))) {
+                    fd.error.alert(
+                            'ERROR',
+                            'Please use alphanumeric characters for filename');
+                    return;
+                }
+				
 				
 				if (isFolder){
 					pack.addFolder(filename, Folder.ROOT_DIR_LIB);
@@ -499,7 +509,8 @@ var Sidebar = new Class({
 	},
 	
 	promptAttachment: function(folder) {
-        var that = this,
+        var basename,
+            that = this,
             pack = fd.getItem(),
             path = (folder && folder.get('path')) || '';
         if (path) path += '/';
@@ -581,8 +592,18 @@ var Sidebar = new Class({
 				    filename = filename.replace(/\/*$/g, ''); /* */
 				    
 				    if (!isFolder && !filename.getFileExtension()) {
-				        filename = filename.replace(/\./, '') + '.js'; //we're defaulting to .js files if the user doesnt enter an extension
+                        // we're defaulting to .js files if the user doesnt 
+                        // enter an extension
+				        filename = filename.replace(/\./, '') + '.js'; 
 				    }
+                    // basename should have a meaning after replacing all
+                    // non alphanumeric characters
+                    if (['-', ''].contains(filename.get_basename(isFolder))) {
+                        fd.error.alert(
+                                'ERROR',
+                                'Please use alphanumeric characters for filename');
+                        return;
+                    }
 				}
 				
 				if(files.length) {

@@ -15,7 +15,11 @@ Request = Class.refactor(Request, {
 			if (xhr.status != 0 && xhr.responseText) {
                 response = xhr.responseText;
                 if (this.headers['X-Request'] == 'JSON') {
-                    response = JSON.decode(response);
+                    try {
+                        response = JSON.decode(response);
+                    } catch(err) {
+                        // u'some string' is not valid JSON
+                    };
                 }
 				fd.error.alert(xhr.statusText, response);
 			}
