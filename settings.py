@@ -343,5 +343,3 @@ CACHES = {
         'KEY_PREFIX': 'bamo',
     }
 }
-CACHE_PREFIX = "bamo:"
-CACHE_BACKEND = "dummy://?timeout=60"
