@@ -14,6 +14,7 @@ import urllib
 import zipfile
 
 import commonware.log
+from statsd import statsd
 
 from django.http import Http404, HttpResponseServerError, HttpResponseForbidden
 from django.conf import settings
@@ -35,15 +36,18 @@ def info_write(path, status, message, hashtag=None):
 
 def sdk_copy(sdk_source, sdk_dir):
     log.debug("Copying SDK from (%s) to (%s)" % (sdk_source, sdk_dir))
-    if os.path.isdir(sdk_dir):
-        for d in os.listdir(sdk_source):
-            s_d = os.path.join(sdk_source, d)
-            if os.path.isdir(s_d):
-                shutil.copytree(s_d, os.path.join(sdk_dir, d))
-            else:
-                shutil.copy(s_d, sdk_dir)
-    else:
-        shutil.copytree(sdk_source, sdk_dir)
+    with statsd.timer('xpi.copy'):
+        if os.path.isdir(sdk_dir):
+            for d in os.listdir(sdk_source):
+                s_d = os.path.join(sdk_source, d)
+                if os.path.isdir(s_d):
+                    shutil.copytree(s_d, os.path.join(sdk_dir, d))
+                else:
+                    shutil.copy(s_d, sdk_dir)
+        else:
+            shutil.copytree(sdk_source, sdk_dir)
+
+
 
 
 def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
@@ -88,10 +92,12 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
         info_write(info_targetpath, 'error', str(err), hashtag)
         log.critical("[xpi:%s] Failed to build xpi: %s.  Command(%s)" % (
                      hashtag, str(err), cfx))
+        shutil.rmtree(sdk_dir)
         raise
     if response[1]:
         info_write(info_targetpath, 'error', response[1], hashtag)
         log.critical("[xpi:%s] Failed to build xpi." % hashtag)
+        shutil.rmtree(sdk_dir)
         return response
 
     t2 = time.time()
@@ -107,13 +113,17 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
     ret.extend(response)
 
     t3 = time.time()
-    copy_xpi_time = '%dms' % ((t3 - t2) * 1000)
-    build_time = '%dms' % ((t2 - t1) * 1000)
-    preparation_time = '%dms'% ((t1 - tstart) * 1000) if tstart else "n.d."
+    copy_xpi_time = (t3 - t2) * 1000
+    build_time = (t2 - t1) * 1000
+    preparation_time = ((t1 - tstart) * 1000) if tstart else 0
 
-    log.info(('[xpi:%s] Created xpi: %s (prep time: %s) (build time: %s) '
-            '(copy xpi time: %s)') % (
-        hashtag, xpi_targetpath, preparation_time, build_time, copy_xpi_time))
+    statsd.timing('xpi.build.prep', preparation_time)
+    statsd.timing('xpi.build.build', build_time)
+    statsd.timing('xpi.build.copyresult', copy_xpi_time)
+    log.info('[xpi:%s] Created xpi: %s (prep time: %dms) (build time: %dms) '
+             '(copy xpi time: %dms)' % (hashtag, xpi_targetpath,
+                                        preparation_time, build_time,
+                                        copy_xpi_time))
 
     info_write(info_targetpath, 'success', response[0], hashtag)
 
@@ -125,3 +135,7 @@ def remove(path):
     log.debug("Removing directory (%s)" % path)
     os.remove(path)
 
+def get_queued_cache_key(hashtag, request=None):
+    session = request.session.session_key if request else None
+    key = 'xpi:timing:queued:%s:%s' % (hashtag, session)
+    return key

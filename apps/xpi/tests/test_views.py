@@ -1,3 +1,8 @@
+"""
+xpi.tests.test_views
+--------------------
+"""
+import mock
 import simplejson
 import os
 import commonware
@@ -9,7 +14,10 @@ from mock import patch
 from django.core.urlresolvers import reverse
 from django.conf import settings
 
+from base.shortcuts import get_object_with_related_or_404
+
 from base.templatetags.base_helpers import hashtag
+from xpi import tasks
 from jetpack.models import PackageRevision
 
 log = commonware.log.getLogger('f.test')
@@ -22,6 +30,8 @@ class TestViews(TestCase):
         self.hashtag = hashtag()
         self.check_download_url = reverse('jp_check_download_xpi',
                 args=[self.hashtag])
+        self.prepare_test_url = reverse('jp_addon_revision_test',
+                args=['1000003', 0])
         self.xpi_path = os.path.join(
             settings.XPI_TARGETDIR, '%s.xpi' % self.hashtag)
 
@@ -78,3 +88,14 @@ class TestViews(TestCase):
         eq_(response.status_code, 404)
         response = self.client.get('/xpi/check_download/abc%20123')
         eq_(response.status_code, 404)
+
+    def test_cach_hashtag(self):
+        os.path.exists = mock.Mock(return_value=True)
+        tasks.xpi_build_from_model.delay = mock.Mock()
+        response = self.client.post(self.prepare_test_url, {
+            'hashtag': 'abc'})
+        assert not tasks.xpi_build_from_model.delay.called
+        os.path.exists = mock.Mock(return_value=False)
+        response = self.client.post(self.prepare_test_url, {
+            'hashtag': 'abc'})
+        assert tasks.xpi_build_from_model.delay.called

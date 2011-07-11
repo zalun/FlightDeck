@@ -8,11 +8,9 @@ import tempfile
 import markdown
 import hashlib
 import codecs
-
 from copy import deepcopy
 
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
-
 from django.db.models.signals import (pre_save, post_delete, post_save,
                                       m2m_changed)
 from django.db import models, transaction, IntegrityError
@@ -24,12 +22,13 @@ from django.template.defaultfilters import slugify
 from django.conf import settings
 from django.utils.translation import ugettext as _
 
-
 from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
 from ecdsa import SigningKey, NIST256p
 from elasticutils import es_required
 from pyes import djangoutils
 from pyes.exceptions import NotFoundException as PyesNotFoundException
+
+from statsd import statsd
 
 from base.models import BaseModel
 from jetpack.errors import (SelfDependencyException, FilenameExistException,
@@ -131,6 +130,10 @@ class PackageRevision(BaseModel):
                             self.full_name, version,
                             self.revision_number, self.author.get_profile()
                             )
+
+    def get_cache_hashtag(self):
+        return "%sr%d" % (self.package.id_number, self.revision_number)
+
     # NAME and FULL_NAME in Revision #############
 
     def set_full_name(self, value):
@@ -156,7 +159,7 @@ class PackageRevision(BaseModel):
             raise IntegrityError
 
     def get_dir_name(self, packages_dir):
-        return os.path.join(packages_dir, self.name + '-' + self.package.id_number)
+        return os.path.join(packages_dir, self.name)
 
     def make_dir(self, packages_dir):
         """
@@ -189,6 +192,16 @@ class PackageRevision(BaseModel):
 
     def default_name(self):
         self.name = self.package.name
+
+    def update_full_name(self):
+        if not self.full_name:
+            # fixing revision
+            log.debug('Full name not set to PackageRevision %s' % self.pk)
+            if not self.package.full_name:
+                # fixing package
+                log.debug('Full name not set for Package %d' % self.package.pk)
+                self.package.save()
+            self.full_name = self.package.full_name
 
     def update_name(self, force=False):
         self.name = make_name(self.full_name)
@@ -343,12 +356,11 @@ class PackageRevision(BaseModel):
     def get_dependencies_list(self, sdk=None):
         " returns a list of dependencies names extended by default core "
         # XXX: breaking possibility to build jetpack SDK 0.6
+        deps = ["%s" % (dep.name) \
+                     for dep in self.dependencies.all()]
+        deps.append('api-utils')
         if self.package.is_addon():
-            deps = ['addon-kit']
-        else:
-            deps = ['api-utils']
-        deps.extend(["%s-%s" % (dep.name, dep.package.id_number) \
-                     for dep in self.dependencies.all()])
+            deps.append('addon-kit')
         return deps
 
     def get_full_description(self):
@@ -369,8 +381,8 @@ class PackageRevision(BaseModel):
             version = "%s - test" % version
 
         name = self.name
-        if not self.package.is_addon():
-            name = "%s-%s" % (name, self.package.id_number)
+        #if not self.package.is_addon():
+        #    name = "%s-%s" % (name, self.package.id_number)
 
         manifest = {
             'fullName': self.full_name,
@@ -406,6 +418,10 @@ class PackageRevision(BaseModel):
             raise Exception(
                 'Every Add-on needs to be linked with an executable Module')
         return main[0]
+
+    def get_jid(self):
+        return self.package.get_jid()
+
 
     def get_version_name(self):
         """Returns version name with revision number if needed."""
@@ -541,6 +557,10 @@ class PackageRevision(BaseModel):
         self.revision_number = self.get_next_revision_number()
 
         save_return = super(PackageRevision, self).save(**kwargs)
+
+        # reset commit_message list
+        self._commit_messages = []
+
         # reassign all dependencies
         for dep in origin.dependencies.all():
             self.dependencies.add(dep)
@@ -565,6 +585,7 @@ class PackageRevision(BaseModel):
         """Changes SDK without creating new revision
         """
         self.sdk = sdk
+        log.debug('Switching SDK on %s to %s' % (self, sdk.version))
         self.add_commit_message(
                 'Automatic Add-on SDK upgrade to version (%s)' % sdk.version,
                 force_save=True)
@@ -1142,9 +1163,8 @@ class PackageRevision(BaseModel):
 
         # XPI: Copy files from NFS to local temp dir
         xpi_utils.sdk_copy(sdk_source, sdk_dir)
-        t1 = time.time()
-        log.debug("[xpi:%s] SDK copied (time %dms)" %
-                (hashtag, ((t1 - tstart) * 1000)))
+        t1 = (time.time() - tstart) * 1000
+        log.debug("[xpi:%s] SDK copied (time %dms)" % (hashtag, t1))
 
         # TODO: check if it's still needed
         self.export_keys(sdk_dir)
@@ -1165,9 +1185,9 @@ class PackageRevision(BaseModel):
                     e_mod.export_code(lib_dir)
             if not mod_edited:
                 mod.export_code(lib_dir)
-        t2 = time.time()
-        log.debug("[xpi:%s] modules exported (time %dms)" %
-                (hashtag, ((t2 - t1) * 1000)))
+        t2 = (time.time() - (t1 / 1000) - tstart) * 1000
+        statsd.timing('xpi.build.modules', t2)
+        log.debug("[xpi:%s] modules exported (time %dms)" % (hashtag, t2))
 
         # export atts with ability to use edited code (from attachments var)
         # XPI: memory/database/NFS to local
@@ -1180,16 +1200,16 @@ class PackageRevision(BaseModel):
                     e_att.export_code(data_dir)
             if not att_edited:
                 att.export_file(data_dir)
-        t3 = time.time()
-        log.debug("[xpi:%s] attachments exported (time %dms)" %
-                (hashtag, ((t3 - t2) * 1000)))
-        #self.export_attachments(
-        #    '%s/%s' % (package_dir, self.get_data_dir()))
+        t3 = (time.time() - (t2 / 1000) - tstart) * 1000
+        statsd.timing('xpi.build.attachments', t3)
+        log.debug("[xpi:%s] attachments exported (time %dms)" % (hashtag, t3))
+
         # XPI: copying to local from memory/db/files
         self.export_dependencies(packages_dir, sdk=self.sdk)
-        t4 = time.time()
-        log.debug("[xpi:%s] dependencies exported (time %dms)" %
-                (hashtag, ((t4 - t3) * 1000)))
+        t4 = (time.time() - (t3 / 1000) - tstart) * 1000
+        statsd.timing('xpi.build.dependencies', t4)
+        log.debug("[xpi:%s] dependencies exported (time %dms)" % (hashtag, t4))
+
         # XPI: building locally and copying to NFS
         return xpi_utils.build(sdk_dir, self.get_dir_name(packages_dir),
                 self.name, hashtag, tstart=tstart)
@@ -1326,6 +1346,17 @@ class Package(BaseModel):
             if Package.objects.filter(id_number=self.id_number).exclude(pk=self.pk):
                 self.id_number = _get_next_id_number()
                 self.save(**kwargs)
+
+    def update_full_name(self):
+        if not self.full_name:
+            log.warning('Full name was empty %d' % self.pk)
+            self.set_full_name()
+
+    def update_name(self):
+        if not self.full_name:
+            self.set_full_name()
+        self.name = make_name(self.full_name)
+
 
     def __unicode__(self):
         return '%s v. %s by %s' % (self.full_name, self.version_name,
@@ -1492,6 +1523,13 @@ class Package(BaseModel):
             return self.save()
         log.info("Package (%s) deleted" % self)
         return super(Package, self).delete()
+
+    def get_jid(self):
+        jid = self.jid
+        if '@' in jid:
+            return jid
+        else:
+            return jid + '@jetpack'
 
     def create_revision_from_xpi(self, packed, manifest, author, jid,
             new_revision=False):
@@ -1958,8 +1996,8 @@ def make_keypair_on_create(instance, **kwargs):
 pre_save.connect(make_keypair_on_create, sender=Package)
 
 def index_package(instance, **kwargs):
-    from search.tasks import index_all
-    index_all.delay([instance.id])
+    from search.tasks import index_one
+    index_one.delay(instance.id)
 
 post_save.connect(index_package, sender=Package)
 
@@ -1969,8 +2007,8 @@ post_delete.connect(unindex_package, sender=Package)
 
 def index_package_m2m(instance, action, **kwargs):
     if action in ("post_add", "post_remove"):
-        from search.tasks import index_all
-        index_all.delay([instance.package.id])
+        from search.tasks import index_one
+        index_one.delay(instance.package.id)
 m2m_changed.connect(index_package_m2m,
                     sender=PackageRevision.dependencies.through)
 

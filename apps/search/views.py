@@ -27,7 +27,8 @@ def combined(request):
     libs = query(q, user=request.user, type_='library', limit=5)
     addons.update(q=q,
             addons=addons['pager'].object_list,
-            libraries=libs['pager'].object_list
+            libraries=libs['pager'].object_list,
+            total=addons.get('total', 0) + libs.get('total', 0)
             )
     return render(request, 'aggregate.html', addons)
 
@@ -46,7 +47,7 @@ def search_by_type(request, type_):
 
 def me(request):
     if not request.user.is_authenticated():
-        return redirect(reverse('search.results') + '?' +
+        return redirect(reverse('search.combined') + '?' +
                         request.META['QUERY_STRING'])
     q = (request.GET.get('q', ''))
     data = query(q, user=request.user, filter_by_user=True)

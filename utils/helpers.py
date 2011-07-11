@@ -1,5 +1,10 @@
-from random import choice
 import re
+
+from random import choice
+
+from django.shortcuts import render_to_response
+from django.template import RequestContext
+
 
 def get_random_string(length=10):
     """ return random alphanumeric string """
@@ -24,3 +29,17 @@ def pathify(path):
 
     cleaned = re.sub('\/{2,}', '/', cleaned)
     return cleaned
+
+
+def render(request, template_name, *args, **kwargs):
+    """Render to response with context instance
+    """
+    return render_to_response(template_name,
+            context_instance=RequestContext(request),
+            *args, **kwargs)
+
+def render_json(request, template_name, *args, **kwargs):
+    """Render to response with context instans and json mimetype
+    """
+    return render(request, template_name, mimetype='application/json',
+            *args, **kwargs)

@@ -11,14 +11,5 @@
         </li>
     </ul>
     <ul class="UI_Actions">
-        <li class="UI_Activate{% if item.active %} pressed{% endif %}">
-        <a{% if not item.active %} title="Let the world use it" href="{{ item.get_activate_url }}"{% endif %}>
-                Public
-            </a>
-        </li>
-        <li class="UI_Disable{% if not item.active %} pressed{% endif %}">
-        <a{% if item.active %} title="My preciousss!" href="{{ item.get_disable_url }}"{% endif %}>
-                Private
-            </a>
-        </li>
+        {% include "_package_privacy_toggle.html" %}
 {% endif %}

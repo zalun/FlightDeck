@@ -3,6 +3,7 @@ import os
 import tempfile
 import commonware
 import json
+import shutil
 import simplejson
 import hashlib
 
@@ -32,6 +33,7 @@ class AttachmentTest(TestCase):
 
         self.old = settings.UPLOAD_DIR
         settings.UPLOAD_DIR = tempfile.mkdtemp()
+        self.tempdir = tempfile.mkdtemp()
 
         # Simulating upload.
         self.attachment = Attachment.objects.create(
@@ -46,11 +48,12 @@ class AttachmentTest(TestCase):
         self.path = self.attachment.path
 
     def tearDown(self):
-        os.remove(os.path.join(settings.UPLOAD_DIR, self.path))
+        shutil.rmtree(settings.UPLOAD_DIR)
+        shutil.rmtree(self.tempdir)
         settings.UPLOAD_DIR = self.old
 
     def test_export_file(self):
-        destination = tempfile.mkdtemp()
+        destination = self.tempdir
         filename = '%s.%s' % (self.attachment.filename, self.attachment.ext)
         filename = os.path.join(destination, filename)
         self.attachment.export_file(destination)
@@ -59,7 +62,7 @@ class AttachmentTest(TestCase):
     def test_create_attachment_with_utf_content(self):
         self.attachment.data = u'ą'
         self.attachment.write()
-        destination = tempfile.mkdtemp()
+        destination = self.tempdir
         filename = '%s.%s' % (self.attachment.filename, self.attachment.ext)
         filename = os.path.join(destination, filename)
         self.attachment.export_file(destination)
@@ -307,13 +310,13 @@ class TestViews(TestCase):
         revision = PackageRevision.objects.get(package=self.package,
                                                revision_number=2)
         assert not revision.attachments.all().count()
-    
+
     def test_fake_attachment_remove(self):
         revision = self.add_one()
 
         data = {'uid': '1337'}
         resp = self.client.post(self.get_delete_url(1), data)
-        
+
         eq_(resp.status_code, 404)
 
     def test_attachment_rename(self):
@@ -460,19 +463,19 @@ class TestViews(TestCase):
         revision = self.get_revision_from_response(response)
         eq_(revision.attachments.count(), 1)
         eq_(revision.folders.count(), 0)
-    
+
     def test_private_attachments(self):
         revision = self.add_one()
         revision.package.active = False
         revision.package.save()
-        
+
         att = revision.attachments.all()[0]
         url = reverse('jp_attachment', args=[att.get_uid])
-        
+
         res = self.client.get(url)
         eq_(res.status_code, 200)
-        
+
         self.client.logout()
         res = self.client.get(url)
         eq_(res.status_code, 403)
-        
+

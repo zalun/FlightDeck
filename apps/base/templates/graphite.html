@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}FlightDeck Graphite{% endblock title %}
+
+{% block app_content %}
+
+<h2 class="UI_Heading">Graphite!</h2>
+
+  <p>If you don't see pictures, you don't have LDAP authentication.</p>
+
+    <ul>
+      <li><a href="#builds">XPI Build Times</a></li>
+      <li><a href="#responses">All Responses</a></li>
+      <li><a href="#errors">Redirects and Errors</a></li>
+    </ul>
+
+  <h2 id="builds">XPI Build Times</h2>
+  Building is:
+  <ul>
+    <li>Step 0: xpi.build.queued - Time from request start to celery picking and starting the task</li>
+    <li>Step 1: xpi.copy - 1 file from NFS to local disk</li>
+    <li>Step 2: xpi.build.modules - Many files from db to local disk</li>
+    <li>Step 3: xpi.build.attachments - Many files from NFS+db to local disk</li>
+    <li>Step 4: xpi.build.dependencies - Many files (recursively) from NFS+db to local disk</li>
+    <li>Step 5: xpi.build.prep - A worthless measurement as far as I can tell.  Measures the end of one method to the beginning of the next.</li>
+    <li>Step 6: xpi.build.build - the actual cfx call</li>
+    <li>Step 7: xpi.build.copyresult - 1 file from local to NFS and removal from local</li>
+    <li>Step 8: xpi.build.fileread - 1 File read from NFS to app server to be served in response</li>
+    <li>Step 9: xpi.build.total - Time since first request to serving file to user.</li>
+  </ul>
+  <img class="fifteen" src="{{ base }}&{{ spans.fifteen }}&target=stats.timer.{{ ns }}.xpi.build.queued.mean&target=stats.timers.{{ ns }}.xpi.copy.mean&target=stats.timers.{{ ns }}.xpi.build.prep.mean&target=stats.timers.{{ ns }}.xpi.build.modules.mean&target=stats.timers.{{ ns }}.xpi.build.dependencies.mean&target=stats.timers.{{ ns }}.xpi.build.copyresult.mean&target=stats.timers.{{ ns }}.xpi.build.build.mean&target=stats.timers.{{ ns }}.xpi.build.attachments.mean&target=stats.timer.{{ ns }}.xpi.build.fileread.mean&target=stats.timer.{{ ns }}.xpi.build.total.mean">
+  <img class="hour" src="{{ base }}&{{ spans.hour }}&target=stats.timer.{{ ns }}.xpi.build.queued.mean&target=stats.timers.{{ ns }}.xpi.copy.mean&target=stats.timers.{{ ns }}.xpi.build.prep.mean&target=stats.timers.{{ ns }}.xpi.build.modules.mean&target=stats.timers.{{ ns }}.xpi.build.dependencies.mean&target=stats.timers.{{ ns }}.xpi.build.copyresult.mean&target=stats.timers.{{ ns }}.xpi.build.build.mean&target=stats.timers.{{ ns }}.xpi.build.attachments.mean&target=stats.timer.{{ ns }}.xpi.build.fileread.mean&target=stats.timer.{{ ns }}.xpi.build.total.mean">
+  <img class="day" src="{{ base }}&{{ spans.day }}&target=stats.timer.{{ ns }}.xpi.build.queued.mean&target=stats.timers.{{ ns }}.xpi.copy.mean&target=stats.timers.{{ ns }}.xpi.build.prep.mean&target=stats.timers.{{ ns }}.xpi.build.modules.mean&target=stats.timers.{{ ns }}.xpi.build.dependencies.mean&target=stats.timers.{{ ns }}.xpi.build.copyresult.mean&target=stats.timers.{{ ns }}.xpi.build.build.mean&target=stats.timers.{{ ns }}.xpi.build.attachments.mean&target=stats.timer.{{ ns }}.xpi.build.fileread.mean&target=stats.timer.{{ ns }}.xpi.build.total.mean">
+  <img class="week" src="{{ base }}&{{ spans.week }&target=stats.timer.{{ ns }}.xpi.build.queued.mean}&target=stats.timers.{{ ns }}.xpi.copy.mean&target=stats.timers.{{ ns }}.xpi.build.prep.mean&target=stats.timers.{{ ns }}.xpi.build.modules.mean&target=stats.timers.{{ ns }}.xpi.build.dependencies.mean&target=stats.timers.{{ ns }}.xpi.build.copyresult.mean&target=stats.timers.{{ ns }}.xpi.build.build.mean&target=stats.timers.{{ ns }}.xpi.build.attachments.mean&target=stats.timer.{{ ns }}.xpi.build.fileread.mean&target=stats.timer.{{ ns }}.xpi.build.total.mean">
+
+  <h2 id="responses">All Responses</h2>
+    <img class="fifteen" src="{{ base }}&{{ spans.fifteen }}&target=sumSeries%28stats.{{ ns }}.response.*%29&target=stats.{{ ns }}.response.200&target=stats.{{ ns }}.response.301&target=stats.{{ ns }}.response.302&target=stats.{{ ns }}.response.403&target=stats.{{ ns }}.response.404&target=stats.{{ ns }}.response.405&target=stats.{{ ns }}.response.500">
+    <img class="hour" src="{{ base }}&{{ spans.hour }}&target=sumSeries%28stats.{{ ns }}.response.*%29&target=stats.{{ ns }}.response.200&target=stats.{{ ns }}.response.301&target=stats.{{ ns }}.response.302&target=stats.{{ ns }}.response.403&target=stats.{{ ns }}.response.404&target=stats.{{ ns }}.response.405&target=stats.{{ ns }}.response.500">
+    <img class="day" src="{{ base }}&{{ spans.day }}&target=sumSeries%28stats.{{ ns }}.response.*%29&target=stats.{{ ns }}.response.200&target=stats.{{ ns }}.response.301&target=stats.{{ ns }}.response.302&target=stats.{{ ns }}.response.403&target=stats.{{ ns }}.response.404&target=stats.{{ ns }}.response.405&target=stats.{{ ns }}.response.500">
+    <img class="week" src="{{ base }}&{{ spans.week }}&target=sumSeries%28stats.{{ ns }}.response.*%29&target=stats.{{ ns }}.response.200&target=stats.{{ ns }}.response.301&target=stats.{{ ns }}.response.302&target=stats.{{ ns }}.response.403&target=stats.{{ ns }}.response.404&target=stats.{{ ns }}.response.405&target=stats.{{ ns }}.response.500">
+
+  <h2 id="errors">Redirects and Errors</h2>
+    <img class="fifteen" src="{{ base }}&{{ spans.fifteen }}&target=stats.{{ ns }}.response.301&target=stats.{{ ns }}.response.302&target=stats.{{ ns }}.response.304&target=stats.{{ ns }}.response.400&target=stats.{{ ns }}.response.403&target=stats.{{ ns }}.response.404&target=stats.{{ ns }}.response.405&target=stats.{{ ns }}.response.500&target=stats.{{ ns }}.response.503">
+    <img class="hour" src="{{ base }}&{{ spans.hour }}&target=stats.{{ ns }}.response.301&target=stats.{{ ns }}.response.302&target=stats.{{ ns }}.response.304&target=stats.{{ ns }}.response.400&target=stats.{{ ns }}.response.403&target=stats.{{ ns }}.response.404&target=stats.{{ ns }}.response.405&target=stats.{{ ns }}.response.500&target=stats.{{ ns }}.response.503">
+    <img class="day" src="{{ base }}&{{ spans.day }}&target=stats.{{ ns }}.response.301&target=stats.{{ ns }}.response.302&target=stats.{{ ns }}.response.304&target=stats.{{ ns }}.response.400&target=stats.{{ ns }}.response.403&target=stats.{{ ns }}.response.404&target=stats.{{ ns }}.response.405&target=stats.{{ ns }}.response.500&target=stats.{{ ns }}.response.503">
+    <img class="week" src="{{ base }}&{{ spans.week }}&target=stats.{{ ns }}.response.301&target=stats.{{ ns }}.response.302&target=stats.{{ ns }}.response.304&target=stats.{{ ns }}.response.400&target=stats.{{ ns }}.response.403&target=stats.{{ ns }}.response.404&target=stats.{{ ns }}.response.405&target=stats.{{ ns }}.response.500&target=stats.{{ ns }}.response.503">
+
+{% endblock %}

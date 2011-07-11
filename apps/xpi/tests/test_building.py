@@ -232,6 +232,158 @@ class XPIBuildTest(TestCase):
         assert os.path.isfile('%s.xpi' % self.target_basename)
         assert os.path.isfile('%s.json' % self.target_basename)
 
+    def test_broken_dependency(self):
+        # A > B
+        # B > C
+        # C > D
+        # A requires via shortcut modules from api-libs, A, B and C
+        addon = Package.objects.create(
+                author=self.author,
+                full_name='A',
+                name='a',
+                type='a')
+        mod = addon.latest.modules.get()
+        mod.code += """
+require('file');
+require('addonAmodule');
+require('libBmodule');
+// this fails
+require('libCmodule');
+"""
+        addon.latest.update(mod)
+        addon.latest.module_create(
+                author=addon.author,
+                filename='addonAmodule',
+                code="// empty module")
+        # creating Library B
+        libB = Package.objects.create(
+                author=self.author,
+                full_name='B',
+                name='b',
+                type='l')
+        mod = libB.latest.modules.get()
+        mod.code = """
+require('file');
+require('libBmodule');
+require('libCmodule');
+"""
+        libB.latest.update(mod)
+        libB.latest.module_create(
+                author=addon.author,
+                filename='libBmodule',
+                code="// empty module")
+        # creating Library C
+        libC = Package.objects.create(
+                author=self.author,
+                full_name='C',
+                name='c',
+                type='l')
+        mod = libC.latest.modules.get()
+        mod.code = """
+require('file');
+require('libCmodule');
+"""
+        libC.latest.update(mod)
+        libC.latest.module_create(
+                author=addon.author,
+                filename='libCmodule',
+                code="// empty module")
+        # adding dependencies
+        libB.latest.dependency_add(libC.latest)
+        addon.latest.dependency_add(libB.latest)
+        celery_eager = settings.CELERY_ALWAYS_EAGER
+        settings.CELERY_ALWAYS_EAGER = False
+        response = addon.latest.build_xpi(hashtag=self.hashtag)
+        settings.CELERY_ALWAYS_EAGER = celery_eager
+        assert response[1]
+
+    def test_addon_with_deep_dependency(self):
+        # A > B, C
+        # B > C
+        # C > D
+        # A requires via shortcut modules from api-libs, A, B and C
+        # B requires via shortcut modules from api-libs, B and C
+        # C requires via shortcut modules from api-libs, C and D
+        addon = Package.objects.create(
+                author=self.author,
+                full_name='A',
+                name='a',
+                type='a')
+        mod = addon.latest.modules.get()
+        mod.code += """
+require('file');
+require('addonAmodule');
+require('libBmodule');
+require('libCmodule');
+require('d/libDmodule');
+"""
+        addon.latest.update(mod)
+        addon.latest.module_create(
+                author=addon.author,
+                filename='addonAmodule',
+                code="// empty module")
+        # creating Library B
+        libB = Package.objects.create(
+                author=self.author,
+                full_name='B',
+                name='b',
+                type='l')
+        mod = libB.latest.modules.get()
+        mod.code = """
+require('file');
+require('libBmodule');
+require('libCmodule');
+require('d/libDmodule');
+"""
+        libB.latest.update(mod)
+        libB.latest.module_create(
+                author=addon.author,
+                filename='libBmodule',
+                code="// empty module")
+        # creating Library C
+        libC = Package.objects.create(
+                author=self.author,
+                full_name='C',
+                name='c',
+                type='l')
+        mod = libC.latest.modules.get()
+        mod.code = """
+require('file');
+require('libCmodule');
+require('libDmodule');
+"""
+        libC.latest.update(mod)
+        libC.latest.module_create(
+                author=addon.author,
+                filename='libCmodule',
+                code="// empty module")
+        # creating Library D
+        libD = Package.objects.create(
+                author=self.author,
+                full_name='D',
+                name='d',
+                type='l')
+        mod = libD.latest.modules.get()
+        mod.code = """
+require('file');
+require('libDmodule');
+"""
+        libD.latest.update(mod)
+        libD.latest.module_create(
+                author=addon.author,
+                filename='libDmodule',
+                code="// empty module")
+        # now assigning dependencies
+        libC.latest.dependency_add(libD.latest)
+        libB.latest.dependency_add(libC.latest)
+        addon.latest.dependency_add(libC.latest)
+        addon.latest.dependency_add(libB.latest)
+        celery_eager = settings.CELERY_ALWAYS_EAGER
+        settings.CELERY_ALWAYS_EAGER = False
+        response = addon.latest.build_xpi(hashtag=self.hashtag)
+        settings.CELERY_ALWAYS_EAGER = celery_eager
+        assert not response[1]
+
     def test_module_with_utf(self):
 
         mod = Module.objects.create(

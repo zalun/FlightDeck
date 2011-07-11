@@ -372,8 +372,8 @@ var Sidebar = new Class({
     },
 	
 	promptRemoval: function(file, fileType) {
-		var title = 'Are you sure you want to remove "{name}"?',
-		    titleOpts = {};
+		var title = 'Are you sure you want to remove {type}"{name}"?',
+		    titleOpts = {type: ''};
 
 		if (fileType != null) {
 		    titleOpts.name = file + " and all its files";
@@ -383,7 +383,8 @@ var Sidebar = new Class({
             } else if (file.options.full_name) {
                 titleOpts.name = file.options.full_name;
             } else if (file.getFullName) {
-                titleOpts.name = "empty folder " + file.getFullName();
+                titleOpts.type = "an empty folder ";
+                titleOpts.name = file.getFullName();
             }
 		}
 		
@@ -393,6 +394,7 @@ var Sidebar = new Class({
 		    //return;
 		}
 		
+        titleOpts.name = titleOpts.name.split('/').getLast();
 		fd.showQuestion({
 			title: title.substitute(titleOpts),
 			message: file instanceof Module ? 'You may always copy it from this revision' : '',
@@ -539,8 +541,8 @@ var Sidebar = new Class({
 				}
 				
 				for (var f = 0; f < files.length; f++){
-					var fname = files[f].fileName.getFileName(),
-						ex = files[f].fileName.getFileExtension();
+					var fname = files[f].name.getFileName(),
+						ex = files[f].name.getFileExtension();
 						
 					if (Attachment.exists(fname, ex)) {
 						fd.error.alert('Filename has to be unique', 

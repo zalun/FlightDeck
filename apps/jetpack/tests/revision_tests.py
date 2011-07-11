@@ -18,7 +18,7 @@ log = commonware.log.getLogger('f.test')
 
 
 class PackageRevisionTest(TestCase):
-    fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']
+    fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages', 'old_packages']
 
     def setUp(self):
         self.author = User.objects.get(username='john')
@@ -329,6 +329,23 @@ class PackageRevisionTest(TestCase):
         )
         self.assertRaises(FilenameExistException, first.attachment_add, att)
 
+    def test_add_commit_message(self):
+        author = User.objects.all()[0]
+        addon = Package(type='a', author=author)
+        addon.save()
+        rev = addon.latest
+        rev.add_commit_message('one')
+        rev.add_commit_message('two')
+        rev.save()
+        
+        eq_(rev.commit_message, 'one, two')
+        
+        # revision has been saved, so we should be building up a new commit message
+        rev.add_commit_message('three')
+        rev.save()
+        eq_(rev.commit_message, 'three')
+    
+
     def test_force_sdk(self):
         addon = Package.objects.create(
             full_name="Other Package",
@@ -362,6 +379,16 @@ class PackageRevisionTest(TestCase):
         addon.latest.force_sdk(oldsdk)
         eq_(len(addon.revisions.all()), 1)
         eq_(addon.latest.commit_message.count('SDK'), 2)
+
+    def test_fix_old_packages(self):
+        old_rev = PackageRevision.objects.get(pk=401)
+        assert not old_rev.full_name
+        old_rev.force_sdk(self.addon.latest.sdk)
+        old_package = Package.objects.get(pk=401)
+        assert old_rev.full_name
+        assert old_rev.name
+        assert old_package.full_name
+        assert old_package.name
 
     """
     Althought not supported on view and front-end,

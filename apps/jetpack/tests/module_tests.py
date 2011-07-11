@@ -5,6 +5,7 @@ Piotr Zalewa (pzalewa@mozilla.com)
 import os
 import commonware
 import json
+import tempfile
 
 from test_utils import TestCase
 from nose.tools import eq_
@@ -45,6 +46,7 @@ class ModuleTest(TestCase):
                 author=author,
                 code=u'ą')
         eq_(Module.objects.get(author=author).code, u'ą')
+
 
 class TestModules(TestCase):
 
