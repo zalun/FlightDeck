@@ -2,7 +2,10 @@ import os
 import commonware.log
 import codecs
 import simplejson
+import time
+from statsd import statsd
 
+from django.core.cache import cache
 from django.views.static import serve
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseServerError, HttpResponseNotFound
 from django.views.decorators.csrf import csrf_exempt
@@ -51,8 +54,13 @@ def prepare_test(r, id_number, revision_number=None):
                 att_codes[str(att.pk)] = code
     if mod_codes or att_codes or not os.path.exists('%s.xpi' %
             os.path.join(settings.XPI_TARGETDIR, hashtag)):
+        log.info('[xpi:%s] Addon added to queue' % hashtag)
+        tqueued = time.time()
+        tkey = xpi_utils.get_queued_cache_key(hashtag, r)
+        cache.set(tkey, tqueued, 120)
         tasks.xpi_build_from_model.delay(revision.pk,
-                mod_codes=mod_codes, att_codes=att_codes, hashtag=hashtag)
+                mod_codes=mod_codes, att_codes=att_codes,
+                hashtag=hashtag, tqueued=tqueued)
     return HttpResponse('{"delayed": true}')
 
 @never_cache
@@ -65,6 +73,7 @@ def get_test(r, hashtag):
         return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
     base = os.path.join(settings.XPI_TARGETDIR, hashtag)
     mimetype = 'text/plain; charset=x-user-defined'
+    tfile = time.time()
     try:
         xpi = codecs.open('%s.xpi' % base, mode='rb').read()
     except Exception, err:
@@ -77,12 +86,28 @@ def get_test(r, hashtag):
                         % error_json['message'] )
                 return HttpResponseNotFound(error_json['message'])
 
-        log.debug('Add-on not yet created: %s' % str(err))
+        log.debug('[xpi:%s] Add-on not yet created: %s' % (hashtag, str(err)))
         return HttpResponse('')
+
+    tend = time.time()
+    tread = (tend - tfile) * 1000
+    log.info('[xpi:%s] Add-on file found and read (%dms)' % (hashtag, tread))
+    statsd.timing('xpi.build.fileread', tread)
+
     # Clean up
     if os.path.exists('%s.json' % base):
         os.remove('%s.json' % base)
-    log.info('Downloading Add-on: %s' % hashtag)
+
+    tkey = xpi_utils.get_queued_cache_key(hashtag, r)
+    tqueued = cache.get(tkey)
+    if tqueued:
+        ttotal = (tend - tqueued) * 1000
+        statsd.timing('xpi.build.total', ttotal)
+        total = '%dms' % ttotal
+    else:
+        total = 'n/a'
+
+    log.info('[xpi:%s] Downloading Add-on (%s)' % (hashtag, total))
     return HttpResponse(xpi, mimetype=mimetype)
 
 @csrf_exempt
@@ -103,7 +128,12 @@ def prepare_download(r, id_number, revision_number=None):
     if not validator.is_valid('alphanum', hashtag):
         log.warning('[security] Wrong hashtag provided')
         return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
-    tasks.xpi_build_from_model.delay(revision.pk, hashtag=hashtag)
+    log.info('[xpi:%s] Addon added to queue' % hashtag)
+    tqueued = time.time()
+    tkey = xpi_utils.get_queued_cache_key(hashtag, r)
+    cache.set(tkey, tqueued, 120)
+    tasks.xpi_build_from_model.delay(revision.pk, hashtag=hashtag,
+            tqueued=tqueued)
     return HttpResponse('{"delayed": true}')
 
 
@@ -129,7 +159,20 @@ def get_download(r, hashtag, filename):
         log.warning('[security] Wrong hashtag provided')
         return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
     path = os.path.join(settings.XPI_TARGETDIR, '%s.xpi' % hashtag)
-    log.info('Downloading %s.xpi from %s' % (filename, path))
+    log.info('[xpi:%s] Downloading Addon from %s' % (filename, path))
+
+    tend = time.time()
+    tkey = xpi_utils.get_queued_cache_key(hashtag, r)
+    tqueued = cache.get(tkey)
+    if tqueued:
+        ttotal = (tend - tqueued) * 1000
+        statsd.timing('xpi.build.total', ttotal)
+        total = '%dms' % ttotal
+    else:
+        total = 'n/a'
+
+    log.info('[xpi:%s] Downloading Add-on (%s)' % (hashtag, total))
+
     response = serve(r, path, '/', show_indexes=False)
     response['Content-Disposition'] = ('attachment; '
             'filename="%s.xpi"' % filename)

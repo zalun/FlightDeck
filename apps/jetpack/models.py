@@ -557,10 +557,10 @@ class PackageRevision(BaseModel):
         self.revision_number = self.get_next_revision_number()
 
         save_return = super(PackageRevision, self).save(**kwargs)
-        
+
         # reset commit_message list
         self._commit_messages = []
-        
+
         # reassign all dependencies
         for dep in origin.dependencies.all():
             self.dependencies.add(dep)
@@ -823,13 +823,12 @@ class PackageRevision(BaseModel):
 
         kwargs = {
             'author': author,
-            'filename': filename
-        }
+            'filename': filename}
 
         if ext:
             kwargs['ext'] = ext
 
-        attachment = self.attachment_create(**kwargs)
+        attachment = self.attachment_create(assign=False, **kwargs)
 
         # we must write data of some sort, in order to create the file on the disk
         # so at the least, write a blank string
@@ -837,9 +836,10 @@ class PackageRevision(BaseModel):
             content = ''
         attachment.data = content
         attachment.write()
+        self.attachment_add(attachment)
         return attachment
 
-    def attachment_create(self, save=True, **kwargs):
+    def attachment_create(self, save=True, assign=True, **kwargs):
         """ create attachment and add to attachments """
         att = Attachment(**kwargs)
         att.clean()
@@ -848,11 +848,11 @@ class PackageRevision(BaseModel):
             raise FilenameExistException(
                 ('Sorry, there is already an attachment in your add-on with '
                  'the name "%s.%s". Each attachment in your add-on needs to '
-                 'have a unique name.') % (att.filename, att.ext)
-            )
+                 'have a unique name.') % (att.filename, att.ext))
 
         att.save()
-        self.attachment_add(att, save=save)
+        if assign:
+            self.attachment_add(att, save=save)
         return att
 
     def attachment_add(self, att, check=True, save=True):
@@ -1185,7 +1185,7 @@ class PackageRevision(BaseModel):
                     e_mod.export_code(lib_dir)
             if not mod_edited:
                 mod.export_code(lib_dir)
-        t2 = (time.time() * 1000) - t1
+        t2 = (time.time() - (t1 / 1000) - tstart) * 1000
         statsd.timing('xpi.build.modules', t2)
         log.debug("[xpi:%s] modules exported (time %dms)" % (hashtag, t2))
 
@@ -1200,13 +1200,13 @@ class PackageRevision(BaseModel):
                     e_att.export_code(data_dir)
             if not att_edited:
                 att.export_file(data_dir)
-        t3 = (time.time() * 1000) - t2
+        t3 = (time.time() - (t2 / 1000) - tstart) * 1000
         statsd.timing('xpi.build.attachments', t3)
         log.debug("[xpi:%s] attachments exported (time %dms)" % (hashtag, t3))
 
         # XPI: copying to local from memory/db/files
         self.export_dependencies(packages_dir, sdk=self.sdk)
-        t4 = (time.time() * 1000) - t3
+        t4 = (time.time() - (t3 / 1000) - tstart) * 1000
         statsd.timing('xpi.build.dependencies', t4)
         log.debug("[xpi:%s] dependencies exported (time %dms)" % (hashtag, t4))
 
@@ -1851,9 +1851,12 @@ class Attachment(BaseModel):
         try:
             with codecs.open(self.get_file_path(), **kwargs) as f:
                 f.write(data)
-        except UnicodeDecodeError:
-            log.error('Attachment write failure: %s' % self.pk)
-            raise AttachmentWriteException('Attachment failed to save properly')
+        except UnicodeDecodeError, err:
+            log.error('Attachment write failure: (%s)\n%s' % (
+                self.pk, str(err)))
+            raise AttachmentWriteException(
+                'Attachment failed to save properly<br/>'
+                'Unknown unicode in file')
 
 
     def export_code(self, static_dir):
