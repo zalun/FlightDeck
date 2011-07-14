@@ -143,6 +143,22 @@ class QueryTest(ESTestCase):
         data = query('foo')
         eq_(1, data['total'])
 
+    def test_custom_scoring(self):
+        baz = create_addon('score baz')
+        baz.latest.set_version('1.0')
+
+        quux = create_addon('score quux')
+        quux.latest.set_version('1.0')
+        quux.latest.set_version('1.1')
+
+        self.es.refresh()
+
+        data = query('score', score_on='version')
+        """
+        Since quux has more versions than baz, it will have a higher score
+        and should be the first result.
+        """
+        eq_([p.name for p in data['pager'].object_list], [quux.name, baz.name])
 
 
 class AggregateQueryTest(ESTestCase):
