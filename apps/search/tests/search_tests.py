@@ -9,7 +9,7 @@ from elasticutils import S
 from elasticutils.tests import ESTestCase
 
 from jetpack.models import Package
-from search.helpers import query
+from search.helpers import query, aggregate
 
 log = commonware.log.getLogger('f.test.search')
 
@@ -145,3 +145,27 @@ class QueryTest(ESTestCase):
         self.es.refresh()
         data = query('foo')
         eq_(1, data['total'])
+
+
+class AggregateQueryTest(ESTestCase):
+    """
+    search.helpers.aggregate is used to be able to show results from both
+    addons and libraries on the same page.
+    """
+
+    fixtures = ('mozilla_user', 'users', 'core_sdk')
+
+    def test_combined(self):
+        noob = create_addon('noobs r us')
+        noob.latest.set_version('1.noob')
+
+        newb = create_library('noobs are the new newbs')
+        newb.latest.set_version('QQ')
+
+        self.es.refresh()
+        data = aggregate('noobs')
+
+        eq_('noobs', data['q'])
+        self.assertTrue('addons' in data)
+        self.assertTrue('libraries' in data)
+        eq_(2, data['total'])

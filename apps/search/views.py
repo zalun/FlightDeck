@@ -4,7 +4,7 @@ from django.shortcuts import render_to_response, redirect
 from django.template import RequestContext
 
 from jetpack.models import Package
-from helpers import query
+from helpers import query, aggregate
 
 def render(request, template, data={}):
     return render_to_response(template, data, RequestContext(request))
@@ -23,14 +23,8 @@ def combined(request):
     """This aggregates the first results from add-ons and libraries."""
     q = request.GET.get('q', '')
 
-    addons = query(q, user=request.user, type_='addon', limit=5)
-    libs = query(q, user=request.user, type_='library', limit=5)
-    addons.update(q=q,
-            addons=addons['pager'].object_list,
-            libraries=libs['pager'].object_list,
-            total=addons.get('total', 0) + libs.get('total', 0)
-            )
-    return render(request, 'aggregate.html', addons)
+    data = aggregate(q, user=request.user, limit=5)
+    return render(request, 'aggregate.html', data)
 
 
 def search_by_type(request, type_):
@@ -49,9 +43,8 @@ def me(request):
     if not request.user.is_authenticated():
         return redirect(reverse('search.combined') + '?' +
                         request.META['QUERY_STRING'])
-    q = (request.GET.get('q', ''))
-    data = query(q, user=request.user, filter_by_user=True)
-    data.update(q=q)
+    q = request.GET.get('q', '')
+    data = aggregate(q, user=request.user, filter_by_user=True)
     return render(request, 'aggregate.html', data)
 
 

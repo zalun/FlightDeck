@@ -62,3 +62,21 @@ def query(searchq, type_=None, user=None, filter_by_user=False, page=1,
         facet =  q.get_facet('author')
         data['my_total'] = facet.values()[0] if facet else 0
     return data
+
+
+def aggregate(searchq, user=None, filter_by_user=False, limit=20):
+    """
+    Queries for both addons and libraries to show a combined results page.
+    """
+    kwargs = dict(searchq=searchq, user=user, filter_by_user=filter_by_user,
+                  limit=limit)
+    addons = query(type_='addon', **kwargs)
+    libs = query(type_='library', **kwargs)
+
+    data = addons
+    data.update(q=searchq,
+            addons=addons['pager'].object_list,
+            libraries=libs['pager'].object_list,
+            total=addons.get('total', 0) + libs.get('total', 0)
+            )
+    return data
