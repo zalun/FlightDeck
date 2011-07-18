@@ -11,7 +11,7 @@ from jetpack.models import PackageRevision
 log = commonware.log.getLogger('f.celery')
 
 
-@task(rate_limit='30/m')
+@task
 def xpi_build_from_model(rev_pk, mod_codes={}, att_codes={}, hashtag=None, tqueued=None):
     """ Get object and build xpi
     """
