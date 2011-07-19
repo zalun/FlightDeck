@@ -1,11 +1,9 @@
 import commonware
 
-from django.conf import settings
 from django.contrib.auth.models import User
 
 from nose.tools import eq_
 from pyes import StringQuery, FieldQuery, FieldParameter
-from elasticutils import S
 from elasticutils.tests import ESTestCase
 
 from jetpack.models import Package
@@ -24,8 +22,8 @@ def create_library(name):
 
 def create_package(name, type, **kwargs):
     u = User.objects.get(username='john')
-    return Package.objects.create(full_name=name, author=u, type=type, **kwargs)
-
+    return Package.objects.create(full_name=name, author=u, type=type,
+                                  **kwargs)
 
 
 class TestSearch(ESTestCase):
@@ -119,7 +117,6 @@ class QueryTest(ESTestCase):
 
     fixtures = ('mozilla_user', 'users', 'core_sdk')
 
-
     def test_initial_packages_excluded(self):
         bar = create_addon('super bar')
         create_addon('super baz')
@@ -145,6 +142,23 @@ class QueryTest(ESTestCase):
         self.es.refresh()
         data = query('foo')
         eq_(1, data['total'])
+
+    def test_custom_scoring(self):
+        baz = create_addon('score baz')
+        baz.latest.set_version('1.0')
+
+        quux = create_addon('score quux')
+        quux.latest.set_version('1.0')
+        quux.latest.set_version('1.1')
+
+        self.es.refresh()
+
+        data = query('score', score_on='version')
+        """
+        Since quux has more versions than baz, it will have a higher score
+        and should be the first result.
+        """
+        eq_([p.name for p in data['pager'].object_list], [quux.name, baz.name])
 
 
 class AggregateQueryTest(ESTestCase):
