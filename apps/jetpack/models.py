@@ -1,4 +1,5 @@
 import os
+import re
 import csv
 import shutil
 import time
@@ -1736,6 +1737,13 @@ class Module(BaseModel):
         first_period = self.filename.find('.')
         if first_period > -1:
             self.filename = self.filename[:first_period]
+
+        # remove illegal characters from filename
+        self.filename = re.sub('[^a-zA-Z0-9=!@#\$%\^&\(\)\+\-_\/\.]+', '-',
+                self.filename)
+        self.filename = re.sub('\/{2,}', '/', self.filename)
+        self.filename = re.sub('^\/', '', self.filename)
+        self.filename = re.sub('\/*$', '', self.filename)
 
     def can_view(self, viewer=None):
         can_view_q = models.Q(package__active=True)
