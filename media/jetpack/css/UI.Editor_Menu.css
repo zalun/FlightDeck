@@ -91,7 +91,8 @@ form.UI_Editor_Menu_Descendant {
 			-moz-border-radius-bottomleft: 0;
 		}
 
-	.UI_Editor_Menu_Button a:hover {
+	.UI_Editor_Menu_Button a:hover,
+    .UI_Editor_Menu_Button a:focus {
 		background: -moz-linear-gradient(270deg, #FBFBFB, #E6E8EB);
 		text-decoration: none;
 	}

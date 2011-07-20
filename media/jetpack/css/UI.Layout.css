@@ -32,7 +32,7 @@ a:link {
 	outline: none;
 }
 
-a:hover {
+a:hover, a:focus {
 	text-decoration: underline;
 }
 
