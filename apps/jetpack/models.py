@@ -113,7 +113,7 @@ class PackageRevision(BaseModel):
     contributors = models.CharField(max_length=255, blank=True, default='')
 
     #: main for the Manifest
-    module_main = models.CharField(max_length=100, blank=True, default='main')
+    module_main = models.CharField(max_length=100, blank=True)
 
     #: SDK which should be used to create the XPI
     sdk = models.ForeignKey('SDK', blank=True, null=True)
@@ -213,6 +213,10 @@ class PackageRevision(BaseModel):
             self.package.name = self.name
         if force:
             super(Package, self).save()
+
+    def default_module_main(self):
+        self.module_main = 'main' if self.package.is_addon() else 'index'
+
 
     # URLS #############
 
@@ -392,14 +396,13 @@ class PackageRevision(BaseModel):
             'id': self.package.jid if self.package.is_addon() \
                     else self.package.id_number,
             'version': version,
+            'main': self.module_main,
             'dependencies': self.get_dependencies_list(sdk),
             'license': self.package.license,
             'url': str(self.package.url),
             'contributors': self.get_contributors_list(),
             'lib': self.get_lib_dir()
         }
-        if self.package.is_addon():
-            manifest['main'] = self.module_main
 
         return manifest
 
@@ -408,15 +411,12 @@ class PackageRevision(BaseModel):
         return simplejson.dumps(self.get_manifest(sdk=sdk, **kwargs))
 
     def get_main_module(self):
-        " return executable Module for Add-ons "
-        if self.package.type == 'l':
-            return None
-
+        " return executable Module "
         # find main module
         main = self.modules.filter(filename=self.module_main)
         if not main:
             raise Exception(
-                'Every Add-on needs to be linked with an executable Module')
+                'Every Package needs to be linked with an executable Module')
         return main[0]
 
     def get_jid(self):
@@ -1056,7 +1056,7 @@ class PackageRevision(BaseModel):
         m_list = [{
                 'filename': escape(m.filename),
                 'author': escape(m.author.username),
-                'executable': self.module_main == m.filename,
+                'main': self.module_main == m.filename,
                 'get_url': reverse('jp_module', args=[m.pk])
                 } for m in self.modules.all()
             ] if self.modules.count() > 0 else []
@@ -2034,12 +2034,11 @@ def save_first_revision(instance, **kwargs):
     instance.version = revision
     instance.latest = revision
     if instance.is_addon():
-        first_module_name = revision.module_main
         first_module_code = """// This is an active module of the %s Add-on
 exports.main = function() {};"""
-    else:
-        first_module_name = 'index'
-        first_module_code = "// This is first module of the %s Library"
+    elif instance.is_library():
+        first_module_code = "// This is the main module of the %s Library"
+    first_module_name = revision.module_main
     mod = Module.objects.create(
         filename=first_module_name,
         author=instance.author,
