@@ -15,7 +15,8 @@ class LibraryTest(TestCase):
     def test_library_has_no_main_module(self):
         " library has no executable module "
         lib = Package.objects.get(type='l', author=self.author)
-        self.assertEqual(lib.latest.get_main_module(), None)
+        mod = lib.latest.get_main_module()
+        eq_(mod.filename, 'index')
 
     def test_library_has_default_module(self):
         lib = Package.objects.create(
