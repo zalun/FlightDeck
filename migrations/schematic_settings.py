@@ -27,3 +27,4 @@ else:
 
 db = s.format(**config)
 table = 'schema_version'
+handlers = {'.py': 'python -B manage.py runscript migrations.%s'}
