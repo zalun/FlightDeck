@@ -240,27 +240,11 @@ var Package = new Class({
 
 	instantiate_modules: function() {
 		// iterate by modules and instantiate Module
-        // XXX: this is quite hacky - it should be determnined in the
-        //      back-end
-		var main_module;
 		this.options.modules.each(function(module) {
 			module.readonly = this.options.readonly;
 			module.append = true;
-			if (!main_module && module.filename == 'main') {
-				module.main = true;
-				main_module = module;
-			}
 			this.modules[module.filename] = new Module(this,module);
 		}, this);
-		// there is always a module
-		// if no main, then activate the first module
-		if (!main_module){
-			if (this.options.modules[0]) {
-				var mod = this.modules[this.options.modules[0].filename];
-				fd.sidebar.setSelectedFile(mod)
-				mod.switchTo();
-			} 
-		}
 	},
 
 	instantiate_attachments: function() {
