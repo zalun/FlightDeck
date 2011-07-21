@@ -202,6 +202,11 @@ var Package = new Class({
 	},
 
 	installAddon: function() {
+		if (this._test_request && this._test_request.isRunning()) {
+			$log('FD: DEBUG: Test request already running. Cancelling second attempt');
+			return;
+		}
+		
 		var spinner = new Spinner($(this.options.test_el).getElement('a'), {
             img: {
                 'class': 'spinner-img spinner-16'
@@ -213,7 +218,7 @@ var Package = new Class({
 		};
 		var data = this.data || {};
 		data['hashtag'] = this.options.hashtag;
-		new Request.JSON({
+		this._test_request = new Request.JSON({
             url: this.options.test_url,
             data: data,
             onSuccess: fd.testXPI,
