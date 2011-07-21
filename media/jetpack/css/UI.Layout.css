@@ -126,7 +126,7 @@ a:hover, a:focus {
 		position:absolute;
 		right: -13px;
 		margin-top: 3px;
-		z-index:100;
+		z-index:900;
 	}
 	
 		#app-header nav li:hover .pointytip {
