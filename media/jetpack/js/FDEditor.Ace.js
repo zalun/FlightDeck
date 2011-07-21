@@ -47,6 +47,7 @@
         initialize: function(wrapper, options) {
             this.previous(wrapper, options);
             this.editor = ace.edit(this.element);
+            this.editor.getSession().setUseWorker(false);
 			this.spinner = new Spinner(this.element.getElement('.ace_scroller'), {
 				maskBorder: false
 			});
