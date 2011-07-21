@@ -597,6 +597,10 @@ var Attachment = new Class({
         delete editorItems[this.uid];
         this.uid = editorUID;
 
+		if (options.append) {
+			this.append();
+		}
+
         if (this.tab) {
             this.tab.setLabel(this.getShortName());
         }
@@ -955,7 +959,6 @@ Package.Edit = new Class({
 				if(xhr.status >= 200 && xhr.status < 300 && response) {
 					//onSuccess
 					
-					$log(response)
 					fd.message.alert(response.message_title, response.message);
 					var attachment = new Attachment(self,{
 						append: true,
@@ -1054,7 +1057,8 @@ Package.Edit = new Class({
 			filename = filename.getFileName();
 		}
 		
-		var spinnerEl = fd.sidebar.getBranchFromFile(newName, 'data');
+		var attachmentEl = fd.sidebar.getBranchFromFile(newName, 'data');
+		var spinnerEl = attachmentEl || $(fd.sidebar.trees.data);
 		
 		new Request.JSON({
 			url: that.options.rename_attachment_url,
@@ -1083,7 +1087,7 @@ Package.Edit = new Class({
 					return;
 				}
 				attachment.reassign({
-					append: true,
+					append: !attachmentEl,
 					active: false,
 					filename: response.filename,
 					ext: response.ext,
