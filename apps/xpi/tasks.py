@@ -40,3 +40,8 @@ def xpi_build_from_model(rev_pk, mod_codes={}, att_codes={}, hashtag=None, tqueu
             attachments=attachments,
             hashtag=hashtag,
             tstart=tstart)
+
+def xpi_build_task(*args, **kwargs):
+    # yes, the signature is correct. its Task.apply(args, kwargs, **options)
+    return xpi_build_from_model.apply(args=args, kwargs=kwargs)
+
