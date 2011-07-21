@@ -58,7 +58,7 @@ def prepare_test(r, id_number, revision_number=None):
         tqueued = time.time()
         tkey = xpi_utils.get_queued_cache_key(hashtag, r)
         cache.set(tkey, tqueued, 120)
-        tasks.xpi_build_from_model.delay(revision.pk,
+        tasks.xpi_build_from_model.apply(revision.pk,
                 mod_codes=mod_codes, att_codes=att_codes,
                 hashtag=hashtag, tqueued=tqueued)
     return HttpResponse('{"delayed": true}')
@@ -132,7 +132,7 @@ def prepare_download(r, id_number, revision_number=None):
     tqueued = time.time()
     tkey = xpi_utils.get_queued_cache_key(hashtag, r)
     cache.set(tkey, tqueued, 120)
-    tasks.xpi_build_from_model.delay(revision.pk, hashtag=hashtag,
+    tasks.xpi_build_from_model.apply(revision.pk, hashtag=hashtag,
             tqueued=tqueued)
     return HttpResponse('{"delayed": true}')
 
