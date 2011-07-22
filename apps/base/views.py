@@ -12,6 +12,7 @@ from django.views.debug import get_safe_settings
 from jetpack.models import Package, SDK
 import base.tasks
 from base.models import CeleryResponse
+from elasticutils import get_es
 
 log = commonware.log.getLogger('f.monitor')
 
@@ -87,6 +88,12 @@ def monitor(request):
         data['celery_responses'] = CeleryResponse.objects.all()
     except:
         pass
+
+    try:
+        data['es_health'] = get_es().cluster_health()
+    except:
+        pass
+
 
     context = RequestContext(request, data)
     status = 200 if status else 500
