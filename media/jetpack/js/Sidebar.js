@@ -567,15 +567,15 @@ var Sidebar = new Class({
 				    filename = path + filename;
 				} else if (path) {
 				    renameAfterLoad = function(att) {
-				        var new_name = path + att.options.filename;
-				        // rename attachment (quietly) to place in the right
-                        // folder 
-				        pack.renameAttachment(att.options.uid, new_name, true);
 				        var el = that.getBranchFromFile(att);
 				        if (el) {
 				            el.destroy();
 				        }
-				        
+
+						var new_name = path + att.options.filename;
+				        // rename attachment (quietly) to place in the right
+                        // folder 
+				        pack.renameAttachment(att.options.uid, new_name, true);
 				    };
 				}
 				
@@ -586,7 +586,7 @@ var Sidebar = new Class({
 				
 				//remove janky characters from filenames
 				if (filename) {
-				    filename = filename.replace(/[^a-zA-Z0-9\-_\/\.]+/g, '-');
+				    filename = filename.replace(/[^a-zA-Z0-9=!@#\$%\^&\(\)\+\-_\/\.]+/g, '-');
 				    filename = filename.replace(/\/{2,}/g, '/');
 				    filename = filename.replace(/^\//, '');
 				    filename = filename.replace(/\/*$/g, ''); /* */

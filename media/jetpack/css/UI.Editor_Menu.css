@@ -91,7 +91,8 @@ form.UI_Editor_Menu_Descendant {
 			-moz-border-radius-bottomleft: 0;
 		}
 
-	.UI_Editor_Menu_Button a:hover {
+	.UI_Editor_Menu_Button a:hover,
+    .UI_Editor_Menu_Button a:focus {
 		background: -moz-linear-gradient(270deg, #FBFBFB, #E6E8EB);
 		text-decoration: none;
 	}
@@ -101,6 +102,8 @@ form.UI_Editor_Menu_Descendant {
 		background: -moz-linear-gradient(270deg, #BEC5CC, #D9DDE0);
 		-moz-box-shadow: none;
 		color: #6D7880;
+        border-top-color:#555;
+        border-bottom-color:#bbb;
 	}
 
 	.UI_Editor_Menu_Button.UI_Single a {

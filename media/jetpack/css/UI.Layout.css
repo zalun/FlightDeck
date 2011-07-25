@@ -32,7 +32,7 @@ a:link {
 	outline: none;
 }
 
-a:hover {
+a:hover, a:focus {
 	text-decoration: underline;
 }
 
@@ -126,7 +126,7 @@ a:hover {
 		position:absolute;
 		right: -13px;
 		margin-top: 3px;
-		z-index:100;
+		z-index:900;
 	}
 	
 		#app-header nav li:hover .pointytip {
@@ -356,7 +356,7 @@ a:hover {
 	}
 
 		.UI_Actions li a {
-			background: -moz-linear-gradient(270deg, #EBEFF2, #D4D9DF);
+			background: -moz-linear-gradient(center top , #F4F8FC, #CED4DB);
 			-moz-box-shadow: 0 -1px 0 #fff;
 			display: block;
 			padding: 7px 10px;
@@ -367,33 +367,33 @@ a:hover {
 
 	/* Starting element */
 	.UI_Actions li:first-child {
-		-moz-border-radius-topleft: 6px;
-        -moz-border-radius-bottomleft: 6px;
+		-moz-border-radius-topleft: 3px;
+        -moz-border-radius-bottomleft: 3px;
 	}
 
 		.UI_Actions li:first-child a {
-			-moz-border-radius-topleft: 5px;
-            -moz-border-radius-bottomleft: 5px;
+			-moz-border-radius-topleft: 2px;
+            -moz-border-radius-bottomleft: 2px;
 		}
 
 	/* Ending element */
 	.UI_Actions li:last-child {
-		-moz-border-radius-topright: 6px;
-        -moz-border-radius-bottomright: 6px;
+		-moz-border-radius-topright: 3px;
+        -moz-border-radius-bottomright: 3px;
 	}
 
 		.UI_Actions li:last-child a {
-			-moz-border-radius-topright: 5px;
-            -moz-border-radius-bottomright: 5px;
+			-moz-border-radius-topright: 2px;
+            -moz-border-radius-bottomright: 2px;
 		}
 		
 	/* There's only one element */
 	.UI_Actions li.single {
-		border-radius: 6px;
+		border-radius: 3px;
 	}
 
 		.UI_Actions li.single a {
-			border-radius: 5px;
+			border-radius: 2px;
 		}
 
 		.UI_Actions li a:hover,

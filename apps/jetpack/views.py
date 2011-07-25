@@ -323,7 +323,7 @@ def add_module(request, id_number, type_id, revision_number=None,
             'You are not the author of this %s' % escape(
                 revision.package.get_type_name()))
 
-    filename = pathify(request.POST.get('filename'))
+    filename = request.POST.get('filename')
 
     mod = Module(
         filename=filename,

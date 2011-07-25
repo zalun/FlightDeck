@@ -202,6 +202,11 @@ var Package = new Class({
 	},
 
 	installAddon: function() {
+		if (this._test_request && this._test_request.isRunning()) {
+			$log('FD: DEBUG: Test request already running. Cancelling second attempt');
+			return;
+		}
+		
 		var spinner = new Spinner($(this.options.test_el).getElement('a'), {
             img: {
                 'class': 'spinner-img spinner-16'
@@ -213,7 +218,7 @@ var Package = new Class({
 		};
 		var data = this.data || {};
 		data['hashtag'] = this.options.hashtag;
-		new Request.JSON({
+		this._test_request = new Request.JSON({
             url: this.options.test_url,
             data: data,
             onSuccess: fd.testXPI,
@@ -240,27 +245,11 @@ var Package = new Class({
 
 	instantiate_modules: function() {
 		// iterate by modules and instantiate Module
-        // XXX: this is quite hacky - it should be determnined in the
-        //      back-end
-		var main_module;
 		this.options.modules.each(function(module) {
 			module.readonly = this.options.readonly;
 			module.append = true;
-			if (!main_module && module.filename == 'main') {
-				module.main = true;
-				main_module = module;
-			}
 			this.modules[module.filename] = new Module(this,module);
 		}, this);
-		// there is always a module
-		// if no main, then activate the first module
-		if (!main_module){
-			if (this.options.modules[0]) {
-				var mod = this.modules[this.options.modules[0].filename];
-				fd.sidebar.setSelectedFile(mod)
-				mod.switchTo();
-			} 
-		}
 	},
 
 	instantiate_attachments: function() {
@@ -608,6 +597,10 @@ var Attachment = new Class({
         delete editorItems[this.uid];
         this.uid = editorUID;
 
+		if (options.append) {
+			this.append();
+		}
+
         if (this.tab) {
             this.tab.setLabel(this.getShortName());
         }
@@ -828,10 +821,6 @@ Package.Edit = new Class({
 		this.parent(options);
 		this.prepareDependenciesInterval();
 		this.assignActions();
-		// autocomplete
-		//this.autocomplete = new FlightDeck.Autocomplete({
-		//	'url': settings.library_autocomplete_url
-		//});
         // generateHashtag needed only in edit mode
         fd.addEvent('xpi_downloaded', function() {
            this.generateHashtag(); 
@@ -850,6 +839,7 @@ Package.Edit = new Class({
 					contents: 'open' });
 			});
 		}
+		this.setupSavePopupEvents();
 
 		// save
 		this.boundSaveAction = this.saveAction.bind(this);
@@ -903,6 +893,23 @@ Package.Edit = new Class({
 			}.bind(this));
 		}
 		this.bind_keyboard();
+	},
+
+	setupSavePopupEvents: function() {
+		var packageSave = $('package-save'),
+			versionName = $('version_name'),
+			revisionMsg = $('revision_message');
+
+		packageSave.addEvent('mouseenter', function(e) {
+			versionName.focus();
+		});
+		revisionMsg.addEvent('keypress', function(e) {
+			if (e.key == 'tab') {
+				e.preventDefault();
+				packageSave.focus();
+			}
+		});
+
 	},
 
 	downloadAddonOrSave: function(e){
@@ -966,7 +973,6 @@ Package.Edit = new Class({
 				if(xhr.status >= 200 && xhr.status < 300 && response) {
 					//onSuccess
 					
-					$log(response)
 					fd.message.alert(response.message_title, response.message);
 					var attachment = new Attachment(self,{
 						append: true,
@@ -1065,7 +1071,8 @@ Package.Edit = new Class({
 			filename = filename.getFileName();
 		}
 		
-		var spinnerEl = fd.sidebar.getBranchFromFile(newName, 'data');
+		var attachmentEl = fd.sidebar.getBranchFromFile(newName, 'data');
+		var spinnerEl = attachmentEl || $(fd.sidebar.trees.data);
 		
 		new Request.JSON({
 			url: that.options.rename_attachment_url,
@@ -1094,7 +1101,7 @@ Package.Edit = new Class({
 					return;
 				}
 				attachment.reassign({
-					append: true,
+					append: !attachmentEl,
 					active: false,
 					filename: response.filename,
 					ext: response.ext,

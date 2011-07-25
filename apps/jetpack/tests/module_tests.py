@@ -91,10 +91,10 @@ class TestModules(TestCase):
 
     def test_module_name_sanitization(self):
         revision = self.add_one(filename='A"> <a href="google.com">malicious module')
-        eq_(revision.modules.all().order_by('-id')[0].filename, 'A-a-href-google')
+        eq_(revision.modules.all().order_by('-id')[0].filename, 'A-a-href=-google')
 
         revision = self.add_one(filename='void:myXSSFunction(fd.item)')
-        eq_(revision.modules.all().order_by('-id')[0].filename, 'void-myXSSFunction-fd')
+        eq_(revision.modules.all().order_by('-id')[0].filename, 'void-myXSSFunction(fd')
 
     def test_module_rename(self):
         first_name = 'a-module'

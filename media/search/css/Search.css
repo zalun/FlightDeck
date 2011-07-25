@@ -82,7 +82,7 @@ body {
 }
     
     #BlankSearchForm {
-        background: -moz-linear-gradient(270deg, #FFFFFE, #F3F5F7);
+        background: -moz-linear-gradient(270deg, #FAFAFA, #E3E5E7);
         border:1px solid #ccc;
         border-radius:3px;
         padding:10px;

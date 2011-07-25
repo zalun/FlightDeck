@@ -73,7 +73,8 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
     # @TODO xulrunner should be a config variable
     cfx = [settings.PYTHON_EXEC, '%s/bin/cfx' % sdk_dir,
            '--binary=/usr/bin/xulrunner',
-           '--keydir=%s/%s' % (sdk_dir, settings.KEYDIR), 'xpi']
+           '--keydir=%s/%s' % (sdk_dir, settings.KEYDIR), 'xpi',
+           '--strip-xpi']
 
     log.debug(cfx)
 
