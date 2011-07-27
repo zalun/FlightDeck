@@ -988,14 +988,15 @@ def library_autocomplete(request):
     """
     'Live' search by name
     """
+    from search.helpers import query
+    q = request.GET.get('q')
+    limit = request.GET.get('limit', settings.LIBRARY_AUTOCOMPLETE_LIMIT)
+    not_ = [{'term': {'name': 'addon-kit'}}, {'term': {'name': 'api-utils'}}]
     try:
-        query = request.GET.get('q')
-        limit = request.GET.get('limit', settings.LIBRARY_AUTOCOMPLETE_LIMIT)
-        found = Package.objects.libraries().exclude(
-            name='jetpack-core').filter(
-                Q(name__icontains=query) | Q(full_name__icontains=query)
-            )[:limit]
-    except:
+        data = query(q, not_=not_, user=request.user, limit=limit)
+        found = data['pager'].object_list
+    except Exception, ex:
+        log.exception('Library autocomplete error')
         found = []
 
     return render_json(request,
