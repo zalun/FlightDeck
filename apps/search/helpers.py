@@ -4,8 +4,8 @@ from elasticutils import S
 from jetpack.models import Package
 
 
-def query(searchq, type_=None, user=None, filter_by_user=False, page=1,
-           limit=20, score_on=None):
+def query(searchq='', type_=None, user=None, filter_by_user=False, page=1,
+           limit=20, score_on=None, not_=None):
 
     get_packages = lambda x: Package.objects.manual_order(
             [z['_id'] for z in x['hits']['hits']]).active()
@@ -15,16 +15,17 @@ def query(searchq, type_=None, user=None, filter_by_user=False, page=1,
     # nested awesomenezz!
     query = dict(text=dict(_all=searchq)) if searchq else dict(match_all={})
 
+    if not not_:
+        not_ =  [{'term': {'version_name':'initial'}},
+            {'term': {'version_name':'copy'}},]
+
     fq = dict(
             filtered=dict(
                 query=query,
                 filter={
                     'not': {
                         'filter': {
-                            'or': [
-                                dict(term=dict(version_name='initial')),
-                                dict(term=dict(version_name='copy')),
-                            ]
+                            'or': not_
                         }
                     }
                 }
@@ -53,6 +54,11 @@ def query(searchq, type_=None, user=None, filter_by_user=False, page=1,
         page = int(page)
     except ValueError:
         page = 1
+
+    try:
+        limit = int(limit)
+    except ValueError:
+        limit = 20
 
     pager = Paginator(q, per_page=limit).page(page)
     facet_type = q.get_facet('_type')
