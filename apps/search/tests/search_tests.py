@@ -160,6 +160,24 @@ class QueryTest(ESTestCase):
         """
         eq_([p.name for p in data['pager'].object_list], [quux.name, baz.name])
 
+    def test_filter_not(self):
+        """
+        Test passing a `not_` parameter to query.
+        """
+        iota = create_addon('iota')
+        iota.latest.set_version('i.i')
+
+        self.es.refresh()
+        data1 = query()
+        self.assertTrue(iota in data1['pager'].object_list)
+
+        not_ = [{'term': {'name': iota.name}},]
+        data2 = query(not_=not_)
+        self.assertTrue(iota not in data2['pager'].object_list)
+
+        data3 = query(iota.name, not_=not_)
+        self.assertTrue(iota not in data3['pager'].object_list)
+
 
 class AggregateQueryTest(ESTestCase):
     """
