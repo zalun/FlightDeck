@@ -991,7 +991,8 @@ def library_autocomplete(request):
     from search.helpers import query
     q = request.GET.get('q')
     limit = request.GET.get('limit', settings.LIBRARY_AUTOCOMPLETE_LIMIT)
-    not_ = [{'term': {'name': 'addon-kit'}}, {'term': {'name': 'api-utils'}}]
+    ids = (settings.MINIMUM_PACKAGE_ID, settings.MINIMUM_PACKAGE_ID - 1)
+    not_ = [{'term': {'id_number': id}} for id in ids]
     try:
         data = query(q, not_=not_, user=request.user, limit=limit)
         found = data['pager'].object_list
