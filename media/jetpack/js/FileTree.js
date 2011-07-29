@@ -16,7 +16,11 @@ FileTree = new Class({
 			//remove: false
 		},
 		snap: 3,
-		id_prefix: ''
+		id_prefix: '',
+		
+		// if container is null, container will default to the Tree el
+		// "false" will cancel the container
+		container: true,
 		//onAddBranch: function(el, attributes, target){}
 		//onRenameStart: function(li, span){}
 		//onRenameComplete: function(li, span){}
