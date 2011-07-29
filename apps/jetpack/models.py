@@ -1278,6 +1278,9 @@ class Package(BaseModel):
     #: to have this relied on any database model
     id_number = models.CharField(max_length=255, unique=True, blank=True)
 
+    #: identification in AMO
+    amo_id = models.IntegerField(blank=True, null=True)
+
     #: name of the Package
     full_name = models.CharField(max_length=255, blank=True)
     #: made from the full_name, used to create Package directory for export
