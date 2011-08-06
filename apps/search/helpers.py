@@ -1,91 +1,42 @@
-from django.core.paginator import Paginator
-
-from elasticutils import S
+from elasticutils import S, F
 from jetpack.models import Package
 
 
-def query(searchq='', type_=None, user=None, filter_by_user=False, page=1,
-           limit=20, score_on=None, not_=None):
-
-    get_packages = lambda x: Package.objects.manual_order(
-            [z['_id'] for z in x['hits']['hits']]).active()
+def package_search(searchq='', user=None, score_on=None, **filters):
+    """This provides some sane defaults to filter on when searching Packages"""
 
     # This is a filtered query, that says we want to do a query, but not have
     # to deal with version_text='initial' or 'copy'
     # nested awesomenezz!
-    query = dict(text=dict(_all=searchq)) if searchq else dict(match_all={})
+    notInitialOrCopy = ~(F(version_name='initial') | F(version_name='copy'))
 
-    if not not_:
-        not_ =  [{'term': {'version_name':'initial'}},
-            {'term': {'version_name':'copy'}},]
+    qs = (Package.search().filter(notInitialOrCopy, **filters)
+            .facet(types={'terms': {'field': 'type'},
+                'facet_filter': notInitialOrCopy.filters}))
+    if searchq:
+        qs = qs.query(or_=package_query(searchq))
 
-    fq = dict(
-            filtered=dict(
-                query=query,
-                filter={
-                    'not': {
-                        'filter': {
-                            'or': not_
-                        }
-                    }
-                }
-            )
-        )
-
-    q = S(fq, result_transform=get_packages).facet('_type')
-
-    filters = {}
-    if type_ in ('addon', 'library'):
-        filters['_type'] = type_
 
     if user and user.is_authenticated():
-        q.facet('author', script='term == %d ? true : false' % user.id)
-
-    if filter_by_user:
-        filters['author'] = user.id
-
-    if filters:
-        q = q.filter(**filters)
-
-    if score_on:
-        q.score(script='_score * doc[\'%s\'].value' % score_on)
-
-    try:
-        page = int(page)
-    except ValueError:
-        page = 1
-
-    try:
-        limit = int(limit)
-    except ValueError:
-        limit = 20
-
-    pager = Paginator(q, per_page=limit).page(page)
-    facet_type = q.get_facet('_type')
-    data = dict(pager=pager, total=q.total,
-                addon_total=facet_type.get('addon', 0),
-                library_total=facet_type.get('library', 0)
-                )
-
-    if user and user.is_authenticated():
-        facet = q.get_facet('author')
-        data['my_total'] = facet.values()[0] if facet else 0
-    return data
+        qs = qs.facet(author={'terms': {
+                     'field': 'author',
+                     'script':'term == %d ? true : false' % user.id}
+                    })
 
 
-def aggregate(searchq, user=None, filter_by_user=False, limit=20):
-    """
-    Queries for both addons and libraries to show a combined results page.
-    """
-    kwargs = dict(searchq=searchq, user=user, filter_by_user=filter_by_user,
-                  limit=limit)
-    addons = query(type_='addon', **kwargs)
-    libs = query(type_='library', **kwargs)
+    #if score_on:
+    #    q.score(script='_score * doc[\'%s\'].value' % score_on)
 
-    data = addons
-    data.update(q=searchq,
-            addons=addons['pager'].object_list,
-            libraries=libs['pager'].object_list,
-            total=addons.get('total', 0) + libs.get('total', 0)
-            )
-    return data
+
+    return qs
+
+
+def package_query(q):
+    # 1. Prefer name text matches first (boost=3).
+    # 2. Try fuzzy matches on name ("git hub" => github) (boost=2).
+    # 3. Try query as a the start of name (boost=1.5)
+    # 4. Try text match inside description (boost=0.8)
+    return dict(full_name__text={'query': q, 'boost': 3},
+                full_name__fuzzy={'value': q, 'boost': 2, 'prefix_length': 4},
+                full_name__startswith={'value': q, 'boost': 1.5},
+                description__text={'query': q, 'boost': 0.8})

@@ -2,7 +2,7 @@ from django.contrib.syndication.views import Feed
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
-from search.helpers import query
+from search.helpers import package_search
 
 
 class PackageFeed(Feed):
@@ -24,9 +24,9 @@ class PackageFeed(Feed):
         self.search_query = request.GET.get('q', '')
         if type_ == 'combined':
             self.search_type = None
-        return query(self.search_query, self.search_type, user=request.user,
-                     filter_by_user=False, page=1, limit=20,
-                     score_on='created_at')
+        t = self.search_type and self.search_type[0]
+        return package_search(self.search_query, type=t,
+                user=request.user).order_by('-created_at')[:20]
 
     def title(self):
         title = 'Add-on Builder: New '
@@ -48,7 +48,7 @@ class PackageFeed(Feed):
         return url
 
     def items(self, data):
-        return data['pager'].object_list
+        return data
 
     def item_title(self, item):
         return item.full_name
