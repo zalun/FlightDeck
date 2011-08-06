@@ -1,22 +1,21 @@
 <h2 class="UI_Heading">Narrow Search</h2>
+<h3 class="UI_SubHeading">Types</h3>
 <ul class="UI_Action_List">
-    <li>
+    <li {% if not type  %}class="selected"{% endif %}>
         <a href="{% url search.combined %}?q={{ q }}">Combined</a>
         <strong>({{ total }})</strong>
     </li>
-    <li>
-        <a href="{% url search_by_type 'addon' %}?q={{ q }}">Add-ons</a>
         <strong>({{ addon_total }})</strong>
     </li>
-    <li>
+    <li {% ifequal type 'library' %}class="selected"{% endifequal %}>
         <a href="{% url search_by_type 'library' %}?q={{ q }}">Libraries</a>
         <strong>({{ library_total }})</strong>
     </li>
 </ul>
 {% if user.is_authenticated %}
 <ul class="UI_Action_List">
-    <li>
         <a href="{% url search.me %}?q={{ q }}">By Me</a>
+    <li {% ifequal query.author user %}class="selected"{% endifequal %}>
         <strong>({{ my_total }})</strong>
     </li>
 </ul>

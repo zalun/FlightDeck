@@ -265,6 +265,12 @@ a:hover, a:focus {
 	margin-bottom: 5px;
 }
 
+.UI_SubHeading {
+    margin:15px 0 5px;
+    padding:0 0 2px;
+    color:#666;
+}
+
 /*
  =========================================================================== */
 .UI_SeeMore a {
