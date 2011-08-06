@@ -1,4 +1,5 @@
-from django.template import Library, loader, TemplateSyntaxError, Node, Variable
+from django.template import Library, loader, TemplateSyntaxError, Node, \
+        Variable, VariableDoesNotExist
 from django.template.defaultfilters import escapejs
 from utils.helpers import get_random_string
 
@@ -86,7 +87,11 @@ class QueryStringNode(Node):
         else:
             orig = ''
 
-        params = dict((k, Variable(v).resolve(context))
-                      for k, v in self.params.items())
+        params = {}
+        for k, v in self.params.items():
+            try:
+                params[k] = Variable(v).resolve(context)
+            except VariableDoesNotExist:
+                params[k] = None
 
         return helpers.querystring(orig, **params)
