@@ -36,6 +36,7 @@ from jetpack.errors import (SelfDependencyException, FilenameExistException,
                             UpdateDeniedException, SingletonCopyException,
                             DependencyException, AttachmentWriteException)
 from jetpack.managers import PackageManager
+from search.models import SearchMixin
 from utils import validator
 from utils.exceptions import SimpleException
 from utils.helpers import pathify, alphanum, alphanum_plus
@@ -1268,7 +1269,7 @@ class PackageRevision(BaseModel):
         return self.pk == self.package.latest.pk
 
 
-class Package(BaseModel):
+class Package(BaseModel, SearchMixin):
     """
     Holds the meta data shared across all PackageRevisions
     """
@@ -1623,7 +1624,7 @@ class Package(BaseModel):
             pass
 
         try:
-            es.index(data, settings.ES_INDEX, self.get_type_name(), self.id,
+            es.index(data, settings.ES_INDEX, self._meta.db_table, id=self.id,
                  bulk=bulk)
         except Exception, e:
             log.error("ElasticSearch errored for addon (%s): %s" % (self, e))
@@ -1641,7 +1642,7 @@ class Package(BaseModel):
     @es_required
     def remove_from_index(self, es, bulk=False):
         try:
-            es.delete(settings.ES_INDEX, self.get_type_name(), self.id,
+            es.delete(settings.ES_INDEX, self._meta.db_table, id=self.id,
                  bulk=bulk)
         except PyesNotFoundException:
             log.debug('Package %d tried to remove from index but was not found.'
