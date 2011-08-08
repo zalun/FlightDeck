@@ -24,6 +24,9 @@ urls.extend([
     # XPI build
     (r'^xpi/', include('xpi.urls')),
 
+    # AMO upload
+    (r'^amo/', include('amo.urls')),
+
     # /docs are an Apache rewrite
 
     (r'^tutorial/', include('tutorial.urls')),

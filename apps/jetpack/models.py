@@ -40,6 +40,7 @@ from utils import validator
 from utils.exceptions import SimpleException
 from utils.helpers import pathify, alphanum, alphanum_plus
 from utils.os_utils import make_path
+from utils.amo import AMOOAuth
 from xpi import xpi_utils
 
 log = commonware.log.getLogger('f.jetpack')
@@ -314,6 +315,14 @@ class PackageRevision(BaseModel):
         return reverse(
             'jp_addon_revision_xpi',
             args=[self.package.id_number, self.revision_number])
+
+    def get_upload_to_amo_url(self):
+        " returns URL to upload to AMO "
+        if self.package.type != 'a':
+            raise Exception('Only Add-ons might be uploaded to AMO')
+        return reverse(
+            'amo_upload',
+            args=[self.pk])
 
     def get_copy_url(self):
         " returns URL to copy the package "
@@ -1339,6 +1348,37 @@ class Package(BaseModel):
         unique_together = ('author', 'name')
 
     objects = PackageManager()
+
+    ##################
+    # AMO Integration
+
+    def upload_to_amo(self, hashtag):
+        """Uploads Package to AMO, updates or creates as a new Addon
+        """
+        # open XPI File
+        xpi_file = open(os.path.join('%s.xpi' % hashtag))
+        # upload
+        data = {'xpi': xpi_file,
+                'builtin': 0,
+                'name': 'FREEDOM',
+                'text': 'This is FREE!',
+                'platform': 'linux',
+                'authenticate_as': 2}
+        amo = AMOOAuth(domain=AMOOAUTH_DOMAIN, port=AMOOAUTH_PORT,
+                       protocol=AMOOAUTH_PROTOCOL)
+        amo.set_consumer(consumer_key=AMOOAUTH_CONSUMERKEY,
+                         consumer_secret=AMOOAUTH_CONSUMERSECRET)
+        if self.amo_id:
+            # update addon on AMO
+            # update jetpack ID if needed
+            pass
+        else:
+            # create addon on AMO
+            response = amo.create_addon(data)
+            # set amo_id
+            # set jetpack ID
+
+        print response
 
     ##################
     # Methods
