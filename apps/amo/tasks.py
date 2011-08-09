@@ -13,15 +13,16 @@ log = commonware.log.getLogger('f.celery')
 
 
 @task
-def upload_to_amo(rev_pk):
+def upload_to_amo(rev_pk, hashtag=None):
     """Build XPI and upload to AMO
     Read result and save amo_id
     """
     tstart = time.time()
-    hashtag = get_random_string(10)
+    if not hashtag:
+        hashtag = get_random_string(10)
     revision = PackageRevision.objects.get(pk=rev_pk)
     response = revision.build_xpi(
             hashtag=hashtag,
             tstart=tstart)
     # use created XPI
-    revision.upload_to_amo(hashtag)
+    revision.package.upload_to_amo(hashtag)

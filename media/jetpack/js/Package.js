@@ -41,6 +41,7 @@ var Package = new Class({
 		test_el: 'try_in_browser',
 		download_el: 'download',
 		console_el: 'error-console',
+        amo_upload_el: 'upload_to_amo',
         check_if_latest: true  // switch to false if displaying revisions
 	},
 
@@ -79,6 +80,13 @@ var Package = new Class({
             }
 			this.options.download_url = $(this.options.download_el).getElement('a').get('href');
 			$(this.options.download_el).addEvent('click', this.boundDownloadAddon);
+            this.amo_upload_el = $(this.options.amo_upload_el);
+            if (this.amo_upload_el) {
+                if (!this.options.amo_upload_url) {
+                    this.options.amo_upload_url = this.amo_upload_el.getElement('a').get('href');
+                }
+                this.amo_upload_el.addEvent('click', this.uploadToAMO.bind(this));
+            }
 		}
 		this.copy_el = $(this.options.copy_el)
 		if (this.copy_el) {
@@ -118,6 +126,30 @@ var Package = new Class({
 			this.options.latest_url +'">Click this link to go to it now.</a>'
 		);
 	},
+
+    /*
+     * Method: uploadToAMO
+     * create XPI and upload it to AMO
+     */
+    uploadToAMO: function(e) {
+        if (e) e.stop();
+
+		new Request.JSON({
+			url: this.options.amo_upload_url,
+            //useSpinner: true,
+            spinnerTarget: this.copy_el.getElement('a'),
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                },
+                maskBorder: false
+            },
+			onSuccess: function(response) {
+                fd.message.alert('Add-on upload', 'We\'ve scheduled the Add-on to upload');
+			}
+		}).send();
+
+    },
 
 	/*
 	 * Method: copyPackage

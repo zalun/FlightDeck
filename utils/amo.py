@@ -36,7 +36,7 @@ old = httplib2.Http.__init__
 
 # Ouch, I'll go to hell for this.
 def hack(self, **kw):
-    kw['disable_ssl_certificate_validation'] = True
+    #kw['disable_ssl_certificate_validation'] = True
     return old(self, **kw)
 
 httplib2.Http.__init__ = hack
@@ -47,6 +47,7 @@ class AMOOAuth:
     A base class to authenticate and work with AMO OAuth.
     """
     signature_method = oauth.SignatureMethod_HMAC_SHA1()
+    should_save_storage = False
 
     def __init__(self, domain='addons.mozilla.org', protocol='https',
                  port=443, prefix='', three_legged=False):

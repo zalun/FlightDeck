@@ -1169,6 +1169,7 @@ class PackageRevision(BaseModel):
 
         # sdk_dir = self.get_sdk_dir(hashtag)
         sdk_dir = tempfile.mkdtemp()
+        print self.sdk
         sdk_source = self.sdk.get_source_dir()
 
         # XPI: Copy files from NFS to local temp dir
@@ -1356,29 +1357,33 @@ class Package(BaseModel):
         """Uploads Package to AMO, updates or creates as a new Addon
         """
         # open XPI File
-        xpi_file = open(os.path.join('%s.xpi' % hashtag))
-        # upload
-        data = {'xpi': xpi_file,
-                'builtin': 0,
-                'name': 'FREEDOM',
-                'text': 'This is FREE!',
-                'platform': 'linux',
-                'authenticate_as': 2}
-        amo = AMOOAuth(domain=AMOOAUTH_DOMAIN, port=AMOOAUTH_PORT,
-                       protocol=AMOOAUTH_PROTOCOL)
-        amo.set_consumer(consumer_key=AMOOAUTH_CONSUMERKEY,
-                         consumer_secret=AMOOAUTH_CONSUMERSECRET)
-        if self.amo_id:
-            # update addon on AMO
-            # update jetpack ID if needed
-            pass
-        else:
-            # create addon on AMO
-            response = amo.create_addon(data)
-            # set amo_id
-            # set jetpack ID
+        xpi_path = os.path.join(settings.XPI_TARGETDIR,
+                                os.path.join('%s.xpi' % hashtag))
+        with open(xpi_path) as xpi_file:
+            # upload
+            data = {'xpi': xpi_file,
+                    'builtin': 0,
+                    'name': 'FREEDOM',
+                    'text': 'This is FREE!',
+                    'platform': 'linux',
+                    'authenticate_as': 2}
+            amo = AMOOAuth(domain=settings.AMOOAUTH_DOMAIN,
+                           port=settings.AMOOAUTH_PORT,
+                           protocol=settings.AMOOAUTH_PROTOCOL)
+            amo.set_consumer(consumer_key=settings.AMOOAUTH_CONSUMERKEY,
+                             consumer_secret=settings.AMOOAUTH_CONSUMERSECRET)
+            if self.amo_id:
+                # update addon on AMO
+                # update jetpack ID if needed
+                pass
+            else:
+                # create addon on AMO
+                response = amo.create_addon(data)
+                # set amo_id
+                # set jetpack ID
 
-        print response
+            print response
+        os.remove(xpi_path)
 
     ##################
     # Methods
