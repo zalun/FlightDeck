@@ -1495,6 +1495,10 @@ class Package(BaseModel, SearchMixin):
         # Saving the track of forks
         new_p.latest.origin = self.latest
         super(PackageRevision, new_p.latest).save()
+
+        # search index keeps track of copies
+        self.refresh_index()
+
         return new_p
 
     def enable(self):
@@ -1616,6 +1620,12 @@ class Package(BaseModel, SearchMixin):
             return self.remove_from_index(bulk=bulk)
 
         data = djangoutils.get_values(self)
+        data['copies'] = list(set(PackageRevision.objects
+            .filter(origin__package=self)
+            .exclude(package=self)
+            .values_list('package_id', flat=True)))
+        data['copies_count'] = len(data['copies'])
+
         try:
             if self.latest:
                 deps = self.latest.dependencies.all()

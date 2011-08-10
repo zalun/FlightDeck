@@ -1,0 +1,18 @@
+<section id="SearchResults">
+	{% if addons %}
+		<h2 class="UI_Heading">Add-on Results ({{ addon_total }})</h2>
+		{% for package in addons %}
+			{% include "_package_result.html" %}
+		{% endfor %}
+	{% endif %}
+	{% if libraries %}
+		<h2 class="UI_Heading">Library Results ({{ library_total }})</h2>
+		{% for package in libraries %}
+			{% include "_package_result.html" %}
+		{% endfor %}
+	{% endif %}
+	
+	{% if not addons and not libraries %}
+		<p>No results were found for the term "{{q}}".</p>
+	{% endif %}
+</section>

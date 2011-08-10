@@ -6,6 +6,7 @@
 	<link rel="alternate" type="application/rss+xml" href="rss/{% if q %}?q={{q}}{% endif %}" />
 	<link rel="stylesheet" type="text/css" href="/media/search/css/Search.css" />
 	<script src="/media/jetpack/js/FlightDeck.Browser.js"></script>
+    <script src="/media/search/js/Search.js"></script>
 {% endblock %}
 {% block app_body %}
     {% include "_search_form.html" %}
@@ -14,22 +15,5 @@
     {% include "_search_filter.html" %}
 {% endblock %}
 {% block app_content %}
-	<section id="SearchResults">
-	{% if addons %}
-		<h2 class="UI_Heading">Add-on Results ({{ addon_total }})</h2>
-		{% for package in addons %}
-			{% include "_package_result.html" %}
-		{% endfor %}
-	{% endif %}
-	{% if libraries %}
-		<h2 class="UI_Heading">Library Results ({{ library_total }})</h2>
-		{% for package in libraries %}
-			{% include "_package_result.html" %}
-		{% endfor %}
-	{% endif %}
-	
-	{% if not addons and not libraries %}
-		<p>No results were found for the term "{{q}}".</p>
-	{% endif %}
-	</section>
+    {% include "_aggregate.html" %}
 {% endblock %}
