@@ -19,9 +19,9 @@ def urlparams(url_, **query):
     Update the parameters of a url and return it.
     """
     url = urlparse.urlparse(url_)
-    query_string = querystring(url.query)
+    query_string = querystring(url.query, **query)
     new = urlparse.ParseResult(url.scheme, url.netloc, url.path, url.params,
-                               querty_string, url.fragment)
+                               query_string, url.fragment)
     return new.geturl()
 
 def urlencode(items):

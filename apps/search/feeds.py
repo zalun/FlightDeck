@@ -2,12 +2,17 @@ from django.contrib.syndication.views import Feed
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
+from base.helpers import urlparams
+from search.forms import SearchForm
 from search.helpers import package_search
 
+
+_TYPES = {'a': 'addon', 'l': 'library'}
 
 class PackageFeed(Feed):
     search_type = False
     search_query = False
+    query = None
 
     def description(self):
         description = 'New '
@@ -19,14 +24,27 @@ class PackageFeed(Feed):
         return _(description) % {'type': self.search_type,
                                  'query': self.search_query}
 
-    def get_object(self, request, type_):
-        self.search_type = type_
-        self.search_query = request.GET.get('q', '')
-        if type_ == 'combined':
-            self.search_type = None
-        t = self.search_type and self.search_type[0]
-        return package_search(self.search_query, type=t,
-                user=request.user).order_by('-created_at')[:20]
+    def get_object(self, request):
+        form = SearchForm(request.GET)
+        form.is_valid()
+        self.query = query = form.cleaned_data
+
+        t = query.get('type')
+        self.search_type = _TYPES.get(t)
+        self.search_query = query.get('q', '')
+
+        filters = {}
+        if t:
+            filters['type'] = t
+
+        if query.get('author'):
+            filters['author'] = query['author'].id
+
+        if query.get('copies'):
+            filters['copies_count'] = query['copies']
+
+        return package_search(self.search_query, user=request.user,
+                **filters).order_by('-created_at')[:20]
 
     def title(self):
         title = 'Add-on Builder: New '
@@ -38,14 +56,11 @@ class PackageFeed(Feed):
         return _(title) % {'type': self.search_type,
                            'query': self.search_query}
 
-    def link(self):
-        if self.search_type in ['addon', 'library']:
-            url = reverse('search_by_type', args=[self.search_type])
-        else:
-            url = reverse('search.combined')
-        if self.search_query:
-            url += '?q=%s' % self.search_query
-        return url
+    def link(self, obj):
+        return urlparams(reverse('search'), **self.query)
+
+    def feed_url(self):
+        return urlparams(reverse('search.rss'), **self.query)
 
     def items(self, data):
         return data
