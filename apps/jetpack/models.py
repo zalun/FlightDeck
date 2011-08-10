@@ -188,7 +188,7 @@ class PackageRevision(BaseModel):
             if amo_id:
                 # update addon on AMO
                 # update jetpack ID if needed
-                raise NotImplementedError("Updating existing Add-ons is not yet implemented")
+                error = NotImplementedError("Updating existing Add-ons is not yet implemented")
             else:
                 # create addon on AMO
                 try:
