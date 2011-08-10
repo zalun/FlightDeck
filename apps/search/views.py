@@ -72,7 +72,7 @@ def rss_redirect(request, type_):
     if type_ != 'combined':
         query['type'] = type_[0]
 
-    return redirect(urlparams(reverse('search.rss'), **query))
+    return redirect(urlparams(reverse('search.rss'), **query), permanent=True)
 
 def _render(request, template, data={}):
     return render_to_response(template, data, RequestContext(request))
