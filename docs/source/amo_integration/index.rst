@@ -13,3 +13,5 @@ Contents:
    :maxdepth: 2
 
    sync.rst
+   usecases.rst
+   statuses.rst
