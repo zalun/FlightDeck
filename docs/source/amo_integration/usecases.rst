@@ -12,7 +12,7 @@ Upload to AMO
 * Builder validates if all fields are correct (especially if that Add-on with
   the same version_name was already successfully uploaded to AMO).
   
-* Builder is scheduling a task which creates ``XPI`` and, changes the status
+* Builder is scheduling a task which creates ``XPI``, changes the status
   to ``STATUS_UPLOAD_SCHEDULED`` and uploads it to AMO
 
 * User receives a notification ``Upload to AMO is scheduled, you can

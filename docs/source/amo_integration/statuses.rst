@@ -21,6 +21,11 @@ Every Add-on uploaded to AMO has a status which is one of the following:
 The AMOStatus needs to be stored (and updated) within
 :class:`~jetpack.models.PackageRevision`.
 
+.. note:: Updating PackageRevision status should be done by AMO on every
+ status change. AMO should save the
+ :attr:`jetpack.models.PackageRevision.pk` and
+ :attr:`jetpack.models.Package.pk` with the uploaded Add-on version
+
 Builder adds another statuses:
 
 * ``STATUS_UPLOAD_SCHEDULED`` - Upload scheduled

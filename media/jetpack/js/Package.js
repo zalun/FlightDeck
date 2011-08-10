@@ -145,7 +145,9 @@ var Package = new Class({
                 maskBorder: false
             },
 			onSuccess: function(response) {
-                fd.message.alert('Add-on upload', 'We\'ve scheduled the Add-on to upload');
+                fd.message.alert('Uploading to AMO (addons.mozilla.org)', 
+                                 'We\'ve scheduled the Add-on to upload<br/>' +
+                                 'There is no need to wait for confirmation.');
 			}
 		}).send();
 

@@ -45,6 +45,23 @@ from xpi import xpi_utils
 
 log = commonware.log.getLogger('f.jetpack')
 
+# XXX: We need to implement constants somehow
+# Flightdeck <-> AMO integration statuses
+STATUS_UPLOAD_SCHEDULED = -1
+STATUS_UPLOAD_FAILED = -2
+# Add-on and File statuses.
+STATUS_NULL = 0
+STATUS_UNREVIEWED = 1
+STATUS_PENDING = 2
+STATUS_NOMINATED = 3
+STATUS_PUBLIC = 4
+STATUS_DISABLED = 5
+STATUS_LISTED = 6
+STATUS_BETA = 7
+STATUS_LITE = 8
+STATUS_LITE_AND_NOMINATED = 9
+STATUS_PURGATORY = 10  # A temporary home; bug 614686
+
 def make_name(value=None):
     " wrap for slugify "
     return slugify(value)
@@ -99,6 +116,9 @@ class PackageRevision(BaseModel):
     #: autmagical message
     commit_message = models.TextField(blank=True, null=True)
 
+    # Status of the integration with AMO
+    amo_status = models.IntegerField(blank=True, null=True)
+
     #: Libraries on which current package depends
     dependencies = models.ManyToManyField('self', blank=True, null=True,
                                             symmetrical=False)
@@ -132,6 +152,60 @@ class PackageRevision(BaseModel):
                             self.full_name, version,
                             self.revision_number, self.author.get_profile()
                             )
+
+    ##################
+    # AMO Integration
+
+    def upload_to_amo(self, hashtag, amo_id=None):
+        """Uploads Package to AMO, updates or creates as a new Addon
+
+        :attr: hashtag (string)
+        :attr: amo_id (int) Add-on's id on AMO. Used if this is the
+               first upload from Builder of an already existing Add-on on
+               AMO
+        """
+        self.amo_status = STATUS_UPLOAD_SCHEDULED
+        super(PackageRevision, self).save()
+        # open XPI File
+        xpi_path = os.path.join(settings.XPI_TARGETDIR,
+                                os.path.join('%s.xpi' % hashtag))
+        with open(xpi_path) as xpi_file:
+            # upload
+            data = {'xpi': xpi_file,
+                    'builtin': 0,
+                    'name': 'FREEDOM',
+                    'text': 'This is FREE!',
+                    'platform': 'linux',
+                    'authenticate_as': 2}
+            amo = AMOOAuth(domain=settings.AMOOAUTH_DOMAIN,
+                           port=settings.AMOOAUTH_PORT,
+                           protocol=settings.AMOOAUTH_PROTOCOL)
+            amo.set_consumer(consumer_key=settings.AMOOAUTH_CONSUMERKEY,
+                             consumer_secret=settings.AMOOAUTH_CONSUMERSECRET)
+            error = None
+            if self.package.amo_id:
+                amo_id = self.package.amo_id
+            if amo_id:
+                # update addon on AMO
+                # update jetpack ID if needed
+                raise NotImplementedError("Updating existing Add-ons is not yet implemented")
+            else:
+                # create addon on AMO
+                try:
+                    response = amo.create_addon(data)
+                except Exception, error:
+                    pass
+                else:
+                    self.amo_status = STATUS_UNREVIEWED
+                    super(PackageRevision, self).save()
+                    self.package.amo_id = response['id']
+                    self.package.save()
+
+        os.remove(xpi_path)
+        if error:
+            raise error
+
+    ###############
 
     def get_cache_hashtag(self):
         return "%sr%d" % (self.package.id_number, self.revision_number)
@@ -1350,40 +1424,6 @@ class Package(BaseModel):
 
     objects = PackageManager()
 
-    ##################
-    # AMO Integration
-
-    def upload_to_amo(self, hashtag):
-        """Uploads Package to AMO, updates or creates as a new Addon
-        """
-        # open XPI File
-        xpi_path = os.path.join(settings.XPI_TARGETDIR,
-                                os.path.join('%s.xpi' % hashtag))
-        with open(xpi_path) as xpi_file:
-            # upload
-            data = {'xpi': xpi_file,
-                    'builtin': 0,
-                    'name': 'FREEDOM',
-                    'text': 'This is FREE!',
-                    'platform': 'linux',
-                    'authenticate_as': 2}
-            amo = AMOOAuth(domain=settings.AMOOAUTH_DOMAIN,
-                           port=settings.AMOOAUTH_PORT,
-                           protocol=settings.AMOOAUTH_PROTOCOL)
-            amo.set_consumer(consumer_key=settings.AMOOAUTH_CONSUMERKEY,
-                             consumer_secret=settings.AMOOAUTH_CONSUMERSECRET)
-            if self.amo_id:
-                # update addon on AMO
-                # update jetpack ID if needed
-                pass
-            else:
-                # create addon on AMO
-                response = amo.create_addon(data)
-                # set amo_id
-                # set jetpack ID
-
-            print response
-        os.remove(xpi_path)
 
     ##################
     # Methods

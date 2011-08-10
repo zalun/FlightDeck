@@ -25,4 +25,4 @@ def upload_to_amo(rev_pk, hashtag=None):
             hashtag=hashtag,
             tstart=tstart)
     # use created XPI
-    revision.package.upload_to_amo(hashtag)
+    revision.upload_to_amo(hashtag)
