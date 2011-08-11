@@ -177,9 +177,6 @@ class PackageRevision(BaseModel):
                 # this is not possible in live environment
                 amo_user_id = 1
             data = {'xpi': xpi_file,
-                    'name': 'DEFAULT',
-                    'text': 'This needs to be changed in AMO form',
-                    'platform': 'all',
                     'authenticate_as': amo_user_id}
             amo = AMOOAuth(domain=settings.AMOOAUTH_DOMAIN,
                            port=settings.AMOOAUTH_PORT,
@@ -196,8 +193,7 @@ class PackageRevision(BaseModel):
                 error = NotImplementedError("Updating existing Add-ons is not yet implemented")
             else:
                 # create addon on AMO
-                data.update({
-                    })
+                data.update({'platform': 'all'})
                 try:
                     response = amo.create_addon(data)
                 except Exception, error:
