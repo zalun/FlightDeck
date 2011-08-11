@@ -116,8 +116,10 @@ class PackageRevision(BaseModel):
     #: autmagical message
     commit_message = models.TextField(blank=True, null=True)
 
-    # Status of the integration with AMO
+    #: status of the integration with AMO
     amo_status = models.IntegerField(blank=True, null=True)
+    #: version name used to upload to AMO
+    amo_version_name = models.CharField(max_length=250, blank=True, null=True)
 
     #: Libraries on which current package depends
     dependencies = models.ManyToManyField('self', blank=True, null=True,
@@ -164,25 +166,28 @@ class PackageRevision(BaseModel):
                first upload from Builder of an already existing Add-on on
                AMO
         """
-        self.amo_status = STATUS_UPLOAD_SCHEDULED
-        super(PackageRevision, self).save()
         # open XPI File
         xpi_path = os.path.join(settings.XPI_TARGETDIR,
                                 os.path.join('%s.xpi' % hashtag))
         with open(xpi_path) as xpi_file:
             # upload
+            try:
+                amo_user_id = int(self.author.username)
+            except:
+                # this is not possible in live environment
+                amo_user_id = 1
             data = {'xpi': xpi_file,
-                    'builtin': 0,
-                    'name': 'FREEDOM',
-                    'text': 'This is FREE!',
-                    'platform': 'linux',
-                    'authenticate_as': 2}
+                    'name': 'DEFAULT',
+                    'text': 'This needs to be changed in AMO form',
+                    'platform': 'all',
+                    'authenticate_as': amo_user_id}
             amo = AMOOAuth(domain=settings.AMOOAUTH_DOMAIN,
                            port=settings.AMOOAUTH_PORT,
                            protocol=settings.AMOOAUTH_PROTOCOL)
             amo.set_consumer(consumer_key=settings.AMOOAUTH_CONSUMERKEY,
                              consumer_secret=settings.AMOOAUTH_CONSUMERSECRET)
             error = None
+            self.amo_version_name = self.get_version_name_only()
             if self.package.amo_id:
                 amo_id = self.package.amo_id
             if amo_id:
@@ -191,17 +196,23 @@ class PackageRevision(BaseModel):
                 error = NotImplementedError("Updating existing Add-ons is not yet implemented")
             else:
                 # create addon on AMO
+                data.update({
+                    })
                 try:
                     response = amo.create_addon(data)
                 except Exception, error:
-                    pass
+                    log.critical("AMOOAUTHAPI: Upload failed, revision:"
+                            " %s\n%s" % (self, str(error)))
+                    self.amo_status = STATUS_UPLOAD_FAILED
+                    super(PackageRevision, self).save()
                 else:
-                    self.amo_status = STATUS_UNREVIEWED
+                    self.amo_status = response['status']
                     super(PackageRevision, self).save()
                     self.package.amo_id = response['id']
                     self.package.save()
 
         os.remove(xpi_path)
+        log.debug(self.amo_status)
         if error:
             raise error
 
