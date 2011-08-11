@@ -90,9 +90,13 @@ SearchResult.setupUI = function() {
 				cValue.set('text', steps[step]);
 			},
 			onComplete: function(step) {
-				console.log('filter copies >=', steps[step]);
-				var loc = new URI(String(window.location));
-				if (loc.getData('copies') == steps[step]) return;
+				var loc = new URI(String(window.location)),
+					oldCopies = loc.getData('copies');
+
+				// no need to fetch a page if copies==undefined and
+				// steps[step] = 0
+				if (!(oldCopies || steps[step]) || (oldCopies == steps[step])) 
+					return;
 				
 				loc.setData('copies', steps[step]);
 				SearchResult.page(loc);
