@@ -35,15 +35,19 @@ def search(request):
     facets = {}
     if type_:
         filters['type'] = type_
-        qs = package_search(q, **filters)
+        qs = package_search(q, **filters).facet(copies={'terms':
+            {'field':'copies_count'}})
         results['pager'] = Paginator(qs, per_page=20).page(page)
         facets = _facets(results['pager'].object_list.facets)
+        facets['everyone_total'] = len(qs)
         template = 'results.html'
     else:
         # combined view
-        results['addons'] = package_search(q, type='a', **filters)[:5]
+        results['addons'] = package_search(q, type='a', **filters).facet(
+                copies={'terms':{'field':'copies_count'}})[:5]
         results['libraries'] = package_search(q, type='l', **filters)[:5]
         facets = _facets(results['addons'].facets)
+        facets['everyone_total'] = facets['combined_total']
         template = 'aggregate.html'
 
 
@@ -74,6 +78,7 @@ def rss_redirect(request, type_):
 
     return redirect(urlparams(reverse('search.rss'), **query), permanent=True)
 
+
 def _render(request, template, data={}):
     return render_to_response(template, data, RequestContext(request))
 
@@ -84,9 +89,20 @@ def _facets(facets):
     if 'author' in facets and len(facets['author']):
         my_total = facets['author'][0]['count']
 
+    copies_steps = []
+    if 'copies' in facets:
+        copies_steps = [t['term'] for t in facets['copies']]
+        if len(copies_steps) > 1 or not copies_steps.count(0):
+            if not copies_steps.count(0):
+                copies_steps.append(0)
+            copies_steps.sort()
+        else:
+            copies_steps = []
+
     return {
         'addon_total': type_totals.get('a', 0),
         'library_total': type_totals.get('l', 0),
         'my_total': my_total,
-        'total': type_totals.get('a', 0) + type_totals.get('l', 0)
+        'combined_total': type_totals.get('a', 0) + type_totals.get('l', 0),
+        'copies_steps': copies_steps,
     }

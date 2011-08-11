@@ -73,7 +73,14 @@ SearchResult.setupUI = function() {
 		var cSlider = copies.getElement('.slider'),
 			cKnob = cSlider.getElement('.knob'),
 			cValue = copies.getElement('.slider-value'),
+			cSteps = cSlider.get('data-steps'),
 			steps = [0, 1, 2, 5, 10];
+
+		//try parsing steps from data-attribute
+		if (cSteps) {
+			cSteps = cSteps.substring(1, cSteps.length -1);
+			steps = cSteps.split(',').map(function(i) { return i.toInt(); });
+		}
 
 		var copiesSlider = new Slider(cSlider, cKnob, {
 			//snap: true,
@@ -104,7 +111,7 @@ window.addEvent('domready', function() {
 	$('app-body').addEvent('click:relay(a)', function(e, a) {
 		if (a.pathname == window.location.pathname) {
 			e.preventDefault();
-			SearchResult.fetch(a.get('href'));
+			SearchResult.page(a.get('href'));
 		}
 	});
 

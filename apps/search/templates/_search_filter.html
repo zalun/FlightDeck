@@ -8,7 +8,7 @@
             <a href="?{% querystring type=None %}">
                 Combined
             </a>
-            <strong>({{ total }})</strong>
+            <strong>({{ combined_total }})</strong>
         </li>
         <li {% ifequal type 'addon' %}class="selected"{% endifequal %}>
         <a href="?{% querystring type='a' %}">
@@ -29,7 +29,7 @@
     <ul class="UI_Action_List">
         <li {% if not query.author %}class="selected" {% endif %}>
             <a href="?{% querystring author=None %}">By Everyone</a>
-            <strong>({{ total }})</strong>
+            <strong>({{ everyone_total }})</strong>
         </li>
         <li {% ifequal query.author user %}class="selected"{% endifequal %}>
             <a href="?{% querystring author=user.id %}">By Me</a>
@@ -40,10 +40,13 @@
 
     <h3 class="UI_SubHeading">Usage</h3>
     <ul class="UI_Action_List">
-        <li id="CopiesFilter"># Copies: <span class="slider-value">{{ query.copies }}</span>
-            <div class="slider">
+        {% if copies_steps %}
+        <li id="CopiesFilter"># Copies: 
+            <span class="slider-value">{{ query.copies }}</span>
+            <div class="slider" data-steps="{{ copies_steps }}">
                 <div class="knob"></div>
             </div>
         </li>
+        {% endif %}
     </ul>
 </section>
