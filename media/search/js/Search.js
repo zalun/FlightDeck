@@ -82,10 +82,12 @@ SearchResult.setupUI = function() {
 			steps = cSteps.split(',').map(function(i) { return i.toInt(); });
 		}
 
+		var initialStep = Math.max(0 ,steps.indexOf(cValue.get('text').toInt()));
+
 		var copiesSlider = new Slider(cSlider, cKnob, {
 			//snap: true,
 			steps: steps.length - 1,
-			initialStep: steps[cValue.get('text').toInt()] || 0,
+			initialStep: initialStep,
 			onChange: function(step) {
 				cValue.set('text', steps[step]);
 			},
