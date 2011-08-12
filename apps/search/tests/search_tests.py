@@ -9,7 +9,7 @@ from elasticutils.tests import ESTestCase
 from elasticutils import F
 
 from jetpack.models import Package
-from search.helpers import package_search, aggregate
+from search.helpers import package_search
 
 log = commonware.log.getLogger('f.test.search')
 
