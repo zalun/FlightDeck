@@ -189,10 +189,23 @@ class PackageRevision(BaseModel):
                 amo_id = self.package.amo_id
             if amo_id:
                 # update addon on AMO
-                # update jetpack ID if needed
-                error = NotImplementedError("Updating existing Add-ons is not yet implemented")
+                log.info('AMOOAUTHAPI: updating addon from %s' % self)
+                try:
+                    response = amo.create_version(data, self.package.amo_id)
+                except Exception, error:
+                    log.critical("AMOOAUTHAPI: Update failed, revision:"
+                            " %s\n%s" % (self, str(error)))
+                    self.amo_status = STATUS_UPLOAD_FAILED
+                    super(PackageRevision, self).save()
+                else:
+                    log.debug(response)
+                    #self.amo_status = response['status']
+                    self.amo_status = STATUS_UNREVIEWED
+                    super(PackageRevision, self).save()
+                    # TODO: update jetpack ID if needed
             else:
                 # create addon on AMO
+                log.info('AMOOAUTHAPI: creating addon from %s' % self)
                 data.update({'platform': 'all'})
                 try:
                     response = amo.create_addon(data)

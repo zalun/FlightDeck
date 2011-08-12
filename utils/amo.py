@@ -24,6 +24,7 @@ urls = {
     'authorize': '/oauth/authorize/',
     'user': '/api/2/user/',
     'addon': '/api/2/addons/',
+    'version': '/api/2/addon/%s/versions',
     'update': '/api/2/update/',
     'perf': '/api/2/performance/',
 }
@@ -217,6 +218,8 @@ class AMOOAuth:
     def create_perf(self, data):
         return self._send(self.url('perf'), 'POST', data)
 
+    def create_version(self, data, id):
+        return self._send(self.url('version') % id, 'POST', data)
 
 if __name__ == '__main__':
     username = 'amckay@mozilla.com'
