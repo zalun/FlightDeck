@@ -265,6 +265,20 @@ a:hover, a:focus {
 	margin-bottom: 5px;
 }
 
+.UI_SubHeading {
+    margin:15px 0 5px;
+    padding:0 0 2px;
+    color:#696;
+	font-size:1.1em;
+	text-transform:uppercase;
+
+}
+
+	.UI_Action_List + .UI_SubHeading {
+		border-top:1px solid #eee;
+		padding-top:15px;
+	}
+
 /*
  =========================================================================== */
 .UI_SeeMore a {
@@ -335,7 +349,6 @@ a:hover, a:focus {
 			font-size: .9em;
 			margin-left: 5px;
 		}
-
 /*
 =========================================================================== */
 .UI_Browser .UI_Item {

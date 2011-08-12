@@ -1,23 +1,52 @@
-<h2 class="UI_Heading">Narrow Search</h2>
-<ul class="UI_Action_List">
-    <li>
-        <a href="{% url search.combined %}?q={{ q }}">Combined</a>
-        <strong>({{ total }})</strong>
-    </li>
-    <li>
-        <a href="{% url search_by_type 'addon' %}?q={{ q }}">Add-ons</a>
-        <strong>({{ addon_total }})</strong>
-    </li>
-    <li>
-        <a href="{% url search_by_type 'library' %}?q={{ q }}">Libraries</a>
-        <strong>({{ library_total }})</strong>
-    </li>
-</ul>
-{% if user.is_authenticated %}
-<ul class="UI_Action_List">
-    <li>
-        <a href="{% url search.me %}?q={{ q }}">By Me</a>
-        <strong>({{ my_total }})</strong>
-    </li>
-</ul>
-{% endif %}
+{% load base_helpers %}
+<section id="NarrowSearch">
+    <h2 class="UI_Heading">Narrow Search</h2>
+
+    <h3 class="UI_SubHeading">Types</h3>
+    <ul class="UI_Action_List">
+        <li {% if not type  %}class="selected"{% endif %}>
+            <a href="?{% querystring type=None %}">
+                Combined
+            </a>
+            <strong>({{ combined_total }})</strong>
+        </li>
+        <li {% ifequal type 'addon' %}class="selected"{% endifequal %}>
+        <a href="?{% querystring type='a' %}">
+                Add-ons
+            </a>
+            <strong>({{ addon_total }})</strong>
+        </li>
+        <li {% ifequal type 'library' %}class="selected"{% endifequal %}>
+            <a href="?{% querystring type='l' %}">
+                Libraries
+            </a>
+            <strong>({{ library_total }})</strong>
+        </li>
+    </ul>
+
+    {% if user.is_authenticated %}
+    <h3 class="UI_SubHeading">Owners</h3>
+    <ul class="UI_Action_List">
+        <li {% if not query.author %}class="selected" {% endif %}>
+            <a href="?{% querystring author=None %}">By Everyone</a>
+            <strong>({{ everyone_total }})</strong>
+        </li>
+        <li {% ifequal query.author user %}class="selected"{% endifequal %}>
+            <a href="?{% querystring author=user.id %}">By Me</a>
+            <strong>({{ my_total }})</strong>
+        </li>
+    </ul>
+    {% endif %}
+
+    <h3 class="UI_SubHeading">Usage</h3>
+    <ul class="UI_Action_List">
+        {% if copies_steps %}
+        <li id="CopiesFilter"># Copies: 
+            <span class="slider-value">{{ query.copies }}</span>
+            <div class="slider" data-steps="{{ copies_steps }}">
+                <div class="knob"></div>
+            </div>
+        </li>
+        {% endif %}
+    </ul>
+</section>

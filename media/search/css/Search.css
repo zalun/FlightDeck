@@ -11,6 +11,27 @@ body {
     position:static;
 }
 
+    #NarrowSearch .slider {
+        background:-moz-linear-gradient(270deg, #8394CB, #4F64A9);
+        border-radius:5px;
+        border:1px solid;
+        border-color:#35467E #2C3C70 #1E2A52;
+        cursor:pointer;
+        height:5px;
+        margin:10px 0;
+    }
+
+        #NarrowSearch .slider .knob {
+            background:-moz-linear-gradient(270deg, #F4F8FC, #CED4DB);
+            border-radius:3px;
+            border:1px solid;
+            border-color:#888 #777 #444;
+            box-shadow:0 1px 0 #fff inset;
+            height:16px;
+            top:-7px;
+            width:8px;
+        }
+
 #search-bar {
     background: -moz-linear-gradient(270deg, #FFFFFE, #F3F5F7) repeat scroll 0 0 transparent;
     border-bottom:1px solid #fff;
@@ -75,34 +96,7 @@ body {
             background:-moz-linear-gradient(90deg, #EBEFF2, #D4D9DF);
         }
 
-/* No Results page */
 
-#BlankSearch {
-    margin:100px 150px;
-}
-    
-    #BlankSearchForm {
-        background: -moz-linear-gradient(270deg, #FAFAFA, #E3E5E7);
-        border:1px solid #ccc;
-        border-radius:3px;
-        padding:10px;
-    }
-    
-        #BlankSearchForm span {
-            font-size:1.5em;
-            color:#163876;
-        }
-    
-        #BlankSearchForm #q {
-            background:#fff url('../img/magnifying_glass.png') 2px center no-repeat;
-            border:1px solid #aaa;
-            border-radius:3px;
-            -moz-box-sizing: border-box;
-            display:block;
-            margin:10px 0px;
-            padding:8px 8px 8px 35px;
-            width:100%;
-        }
 
 #SearchResults {
     float:left;
