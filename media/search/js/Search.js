@@ -43,7 +43,14 @@ var SearchResult = new Class({
 			newSidebar.replaces(sidebar);
 		}
 
-		SearchResult.setupUI();
+		if (!this.slider) {
+			this.slider =  SearchResult.setupUI();
+		} else {
+			this.slider.sanityCheck = false;
+			var loc = new URI(this.url);
+			this.slider.set(loc.getData('copies') || 0);
+			this.slider.sanityCheck = true;
+		}
 
 		return this;
 	}
@@ -91,7 +98,7 @@ SearchResult.setupUI = function() {
 				cValue.set('text', step);
 			},
 			onComplete: function(step) {
-				if (!sanityCheck) return;
+				if (!this.sanityCheck) return;
 
 				var loc = new URI(String(window.location));
 				loc.setData('copies', step);
@@ -104,7 +111,9 @@ SearchResult.setupUI = function() {
 		// check our sanity by stopping all onComplete's that happen
 		// during initialization, since sanityCheck get's set to true
 		// _after_ construction.
-		var sanityCheck = true;
+		copiesSlider.sanityCheck = true;
+
+		return copiesSlider;
 	}
 };
 
