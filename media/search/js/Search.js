@@ -73,23 +73,18 @@ SearchResult.setupUI = function() {
 		var cSlider = copies.getElement('.slider'),
 			cKnob = cSlider.getElement('.knob'),
 			cValue = copies.getElement('.slider-value'),
-			cSteps = cSlider.get('data-steps'),
+			cRangeEnd = cSlider.getElement('.range.end'),
+			end = cRangeEnd.get('text').toInt(),
 			steps = [0, 1, 2, 5, 10];
 
-		//try parsing steps from data-attribute
-		if (cSteps) {
-			cSteps = cSteps.substring(1, cSteps.length -1);
-			steps = cSteps.split(',').map(function(i) { return i.toInt(); });
-		}
-
-		var initialStep = Math.max(0 ,steps.indexOf(cValue.get('text').toInt()));
+		var initialStep = Math.max(0, cValue.get('text').toInt() || 0);
 
 		var copiesSlider = new Slider(cSlider, cKnob, {
 			//snap: true,
-			steps: steps.length - 1,
+			range: [0, end],
 			initialStep: initialStep,
 			onChange: function(step) {
-				cValue.set('text', steps[step]);
+				cValue.set('text', step);
 			},
 			onComplete: function(step) {
 				var loc = new URI(String(window.location)),
@@ -97,10 +92,10 @@ SearchResult.setupUI = function() {
 
 				// no need to fetch a page if copies==undefined and
 				// steps[step] = 0
-				if (!(oldCopies || steps[step]) || (oldCopies == steps[step])) 
+				if (!(oldCopies || step) || (oldCopies == step)) 
 					return;
 				
-				loc.setData('copies', steps[step]);
+				loc.setData('copies', step);
 				SearchResult.page(loc);
 			}
 		});

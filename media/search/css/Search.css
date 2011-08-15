@@ -19,6 +19,7 @@ body {
         cursor:pointer;
         height:5px;
         margin:10px 0;
+        position:relative;
     }
 
         #NarrowSearch .slider .knob {
@@ -31,6 +32,20 @@ body {
             top:-7px;
             width:8px;
         }
+
+        #NarrowSearch .slider .range {
+            color:#aaa;
+            font-size:0.9em;
+            position:absolute;
+            bottom:-20px;
+        }
+            #NarrowSearch .slider .range.start {
+                left:1px;
+            }
+            
+            #NarrowSearch .slider .range.end {
+                right:1px;
+            }
 
 #search-bar {
     background: -moz-linear-gradient(270deg, #FFFFFE, #F3F5F7) repeat scroll 0 0 transparent;

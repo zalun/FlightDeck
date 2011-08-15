@@ -40,11 +40,14 @@
 
     <h3 class="UI_SubHeading">Usage</h3>
     <ul class="UI_Action_List">
-        {% if copies_steps %}
-        <li id="CopiesFilter"># Copies: 
+        {% if max_copies %}
+        <li id="CopiesFilter">
             <span class="slider-value">{{ query.copies }}</span>
-            <div class="slider" data-steps="{{ copies_steps }}">
+            or more copies: 
+            <div class="slider">
                 <div class="knob"></div>
+                <span class="range start">0</span>
+                <span class="range end">{{max_copies}}</span>
             </div>
         </li>
         {% endif %}
