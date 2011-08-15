@@ -44,4 +44,15 @@
     </li>
     {% endfor %}
 </ul>
+<h2 class="UI_Heading" style="padding-top: 3em">ElasticSearch</h2>
+{% if es_health %}
+<ul>
+    {% for key, value in es_health.items %}
+    <li><strong>{{key}}:</strong> {{value}}</li>
+    {% endfor %}
+</ul>
+{% else %}
+<p>Can't connect to ElasticSearch cluster.</p>
+{% endif %}
+
 {% endblock %}

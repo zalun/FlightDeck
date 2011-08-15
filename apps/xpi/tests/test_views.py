@@ -91,11 +91,11 @@ class TestViews(TestCase):
 
     def test_cach_hashtag(self):
         os.path.exists = mock.Mock(return_value=True)
-        tasks.xpi_build_from_model.delay = mock.Mock()
+        tasks.xpi_build_task = mock.Mock()
         response = self.client.post(self.prepare_test_url, {
             'hashtag': 'abc'})
-        assert not tasks.xpi_build_from_model.delay.called
+        assert not tasks.xpi_build_task.called
         os.path.exists = mock.Mock(return_value=False)
         response = self.client.post(self.prepare_test_url, {
             'hashtag': 'abc'})
-        assert tasks.xpi_build_from_model.delay.called
+        assert tasks.xpi_build_task.called

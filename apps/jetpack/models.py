@@ -36,6 +36,7 @@ from jetpack.errors import (SelfDependencyException, FilenameExistException,
                             UpdateDeniedException, SingletonCopyException,
                             DependencyException, AttachmentWriteException)
 from jetpack.managers import PackageManager
+from search.models import SearchMixin
 from utils import validator
 from utils.exceptions import SimpleException
 from utils.helpers import pathify, alphanum, alphanum_plus
@@ -1372,7 +1373,7 @@ class PackageRevision(BaseModel):
         return self.pk == self.package.latest.pk
 
 
-class Package(BaseModel):
+class Package(BaseModel, SearchMixin):
     """
     Holds the meta data shared across all PackageRevisions
     """
@@ -1602,6 +1603,10 @@ class Package(BaseModel):
         # Saving the track of forks
         new_p.latest.origin = self.latest
         super(PackageRevision, new_p.latest).save()
+
+        # search index keeps track of copies
+        self.refresh_index()
+
         return new_p
 
     def enable(self):
@@ -1723,6 +1728,12 @@ class Package(BaseModel):
             return self.remove_from_index(bulk=bulk)
 
         data = djangoutils.get_values(self)
+        data['copies'] = list(set(PackageRevision.objects
+            .filter(origin__package=self)
+            .exclude(package=self)
+            .values_list('package_id', flat=True)))
+        data['copies_count'] = len(data['copies'])
+
         try:
             if self.latest:
                 deps = self.latest.dependencies.all()
@@ -1731,7 +1742,7 @@ class Package(BaseModel):
             pass
 
         try:
-            es.index(data, settings.ES_INDEX, self.get_type_name(), self.id,
+            es.index(data, settings.ES_INDEX, self._meta.db_table, id=self.id,
                  bulk=bulk)
         except Exception, e:
             log.error("ElasticSearch errored for addon (%s): %s" % (self, e))
@@ -1749,7 +1760,7 @@ class Package(BaseModel):
     @es_required
     def remove_from_index(self, es, bulk=False):
         try:
-            es.delete(settings.ES_INDEX, self.get_type_name(), self.id,
+            es.delete(settings.ES_INDEX, self._meta.db_table, id=self.id,
                  bulk=bulk)
         except PyesNotFoundException:
             log.debug('Package %d tried to remove from index but was not found.'
