@@ -22,8 +22,13 @@ var SearchResult = new Class({
 	},
 
 	show: function() {
-		if (!this.content && !(this.request && this.request.isRunning())) {
-			return this.load();
+		if (!this.content) {
+			if (!(this.request && this.request.isRunning())) {
+				this.load();
+			} else {
+				// loading, so dont worry, it will show soon
+			}
+			return this;
 		}
 
 		var results = $('SearchResults'),
