@@ -74,11 +74,10 @@ SearchResult.setupUI = function() {
 			cKnob = cSlider.getElement('.knob'),
 			cValue = copies.getElement('.slider-value'),
 			cRangeEnd = cSlider.getElement('.range.end'),
-			end = cRangeEnd.get('text').toInt(),
-			steps = [0, 1, 2, 5, 10];
+			end = cRangeEnd.get('text').toInt();
 
 		var initialStep = Math.max(0, cValue.get('text').toInt() || 0);
-
+	
 		var copiesSlider = new Slider(cSlider, cKnob, {
 			//snap: true,
 			range: [0, end],
@@ -87,18 +86,20 @@ SearchResult.setupUI = function() {
 				cValue.set('text', step);
 			},
 			onComplete: function(step) {
-				var loc = new URI(String(window.location)),
-					oldCopies = loc.getData('copies');
+				if (!sanityCheck) return;
 
-				// no need to fetch a page if copies==undefined and
-				// steps[step] = 0
-				if (!(oldCopies || step) || (oldCopies == step)) 
-					return;
-				
+				var loc = new URI(String(window.location));
 				loc.setData('copies', step);
 				SearchResult.page(loc);
 			}
 		});
+		// onComplete gets triggered many times when no dragging
+		// actually occurred, because we set a range and initialStep. To
+		// prevent those fake onComplete's from trigger anything, we
+		// check our sanity by stopping all onComplete's that happen
+		// during initialization, since sanityCheck get's set to true
+		// _after_ construction.
+		var sanityCheck = true;
 	}
 };
 
