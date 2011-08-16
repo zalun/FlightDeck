@@ -220,13 +220,3 @@ class AMOOAuth:
 
     def create_version(self, data, id):
         return self._send(self.url('version') % id, 'POST', data)
-
-if __name__ == '__main__':
-    username = 'amckay@mozilla.com'
-    amo = AMOOAuth(domain="addons.mozilla.local", port=8000, protocol='http')
-    amo.set_consumer(consumer_key='CmAn9KhXR8SD3xUSrf',
-                     consumer_secret='4hPsAW9yCecr4KRSR4DVKanCkgpqDETm')
-    if not amo.has_access_token():
-        # This is an example, don't get too excited.
-        amo.authenticate(username=username)
-    print amo.get_user()

@@ -136,8 +136,8 @@ var Package = new Class({
 
 		new Request.JSON({
 			url: this.options.amo_upload_url,
-            //useSpinner: true,
-            spinnerTarget: this.copy_el.getElement('a'),
+            useSpinner: true,
+            spinnerTarget: this.amo_upload_el.getElement('a'),
             spinnerOptions: {
                 img: {
                     'class': 'spinner-img spinner-16'
@@ -1648,7 +1648,7 @@ Package.Edit = new Class({
             },
 			onSuccess: function(response) {
 				// set the redirect data to view_url of the new revision
-                $log('response success')
+                $log('FD: DEBUG: Save succeeded')
 				if (response.full_name) {
 					$('package-info-name').set('text', response.full_name);
 					this.options.full_name = response.full_name;

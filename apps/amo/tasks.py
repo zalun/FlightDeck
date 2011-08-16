@@ -46,6 +46,7 @@ def upload_to_amo(rev_pk, hashtag=None):
         raise SimpleException("This Add-on is currently scheduled to upload")
     # save status
     revision.amo_status = STATUS_UPLOAD_SCHEDULED
+    revision.amo_version_name = revision.get_version_name_only()
     super(PackageRevision, revision).save()
     response = revision.build_xpi(
             hashtag=hashtag,

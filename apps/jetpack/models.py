@@ -185,7 +185,6 @@ class PackageRevision(BaseModel):
             amo.set_consumer(consumer_key=settings.AMOOAUTH_CONSUMERKEY,
                              consumer_secret=settings.AMOOAUTH_CONSUMERSECRET)
             error = None
-            self.amo_version_name = self.get_version_name_only()
             if self.package.amo_id:
                 amo_id = self.package.amo_id
             if amo_id:
@@ -199,7 +198,8 @@ class PackageRevision(BaseModel):
                     self.amo_status = STATUS_UPLOAD_FAILED
                     super(PackageRevision, self).save()
                 else:
-                    log.debug(response)
+                    log.debug("AMOOAUTHAPI: update response: %s " % response)
+                    # XXX: AMO's response should contain status
                     #self.amo_status = response['status']
                     self.amo_status = STATUS_UNREVIEWED
                     super(PackageRevision, self).save()
@@ -216,6 +216,7 @@ class PackageRevision(BaseModel):
                     self.amo_status = STATUS_UPLOAD_FAILED
                     super(PackageRevision, self).save()
                 else:
+                    log.debug("AMOOAUTHAPI: create response: %s " % response)
                     self.amo_status = response['status']
                     super(PackageRevision, self).save()
                     self.package.amo_id = response['id']
@@ -1264,7 +1265,6 @@ class PackageRevision(BaseModel):
 
         # sdk_dir = self.get_sdk_dir(hashtag)
         sdk_dir = tempfile.mkdtemp()
-        print self.sdk
         sdk_source = self.sdk.get_source_dir()
 
         # XPI: Copy files from NFS to local temp dir
