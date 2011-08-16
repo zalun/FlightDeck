@@ -992,7 +992,12 @@ def library_autocomplete(request):
     from elasticutils import F
 
     q = request.GET.get('q')
-    limit = request.GET.get('limit', settings.LIBRARY_AUTOCOMPLETE_LIMIT)
+    limit = request.GET.get('limit')
+    try:
+        limit = int(limit)
+    except:
+        limit = settings.LIBRARY_AUTOCOMPLETE_LIMIT
+
     ids = (settings.MINIMUM_PACKAGE_ID, settings.MINIMUM_PACKAGE_ID - 1)
     notAddonKit = ~(F(id_number=ids[0]) | F(id_number=ids[1]))
     try:
