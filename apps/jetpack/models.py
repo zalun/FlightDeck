@@ -41,7 +41,7 @@ from utils import validator
 from utils.exceptions import SimpleException
 from utils.helpers import pathify, alphanum, alphanum_plus
 from utils.os_utils import make_path
-from utils.amo import AMOOAuth
+#from utils.amo import AMOOAuth
 from xpi import xpi_utils
 
 log = commonware.log.getLogger('f.jetpack')
