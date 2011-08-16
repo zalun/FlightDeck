@@ -41,9 +41,27 @@ from utils import validator
 from utils.exceptions import SimpleException
 from utils.helpers import pathify, alphanum, alphanum_plus
 from utils.os_utils import make_path
+from utils.amo import AMOOAuth
 from xpi import xpi_utils
 
 log = commonware.log.getLogger('f.jetpack')
+
+# XXX: We need to implement constants somehow
+# Flightdeck <-> AMO integration statuses
+STATUS_UPLOAD_SCHEDULED = -1
+STATUS_UPLOAD_FAILED = -2
+# Add-on and File statuses.
+STATUS_NULL = 0
+STATUS_UNREVIEWED = 1
+STATUS_PENDING = 2
+STATUS_NOMINATED = 3
+STATUS_PUBLIC = 4
+STATUS_DISABLED = 5
+STATUS_LISTED = 6
+STATUS_BETA = 7
+STATUS_LITE = 8
+STATUS_LITE_AND_NOMINATED = 9
+STATUS_PURGATORY = 10  # A temporary home; bug 614686
 
 def make_name(value=None):
     " wrap for slugify "
@@ -99,6 +117,11 @@ class PackageRevision(BaseModel):
     #: autmagical message
     commit_message = models.TextField(blank=True, null=True)
 
+    #: status of the integration with AMO
+    amo_status = models.IntegerField(blank=True, null=True)
+    #: version name used to upload to AMO
+    amo_version_name = models.CharField(max_length=250, blank=True, null=True)
+
     #: Libraries on which current package depends
     dependencies = models.ManyToManyField('self', blank=True, null=True,
                                             symmetrical=False)
@@ -132,6 +155,79 @@ class PackageRevision(BaseModel):
                             self.full_name, version,
                             self.revision_number, self.author.get_profile()
                             )
+
+    ##################
+    # AMO Integration
+
+    def upload_to_amo(self, hashtag, amo_id=None):
+        """Uploads Package to AMO, updates or creates as a new Addon
+
+        :attr: hashtag (string)
+        :attr: amo_id (int) Add-on's id on AMO. Used if this is the
+               first upload from Builder of an already existing Add-on on
+               AMO
+        """
+        # open XPI File
+        xpi_path = os.path.join(settings.XPI_TARGETDIR,
+                                os.path.join('%s.xpi' % hashtag))
+        with open(xpi_path) as xpi_file:
+            # upload
+            try:
+                amo_user_id = int(self.author.username)
+            except:
+                # this is not possible in live environment
+                amo_user_id = 1
+            data = {'xpi': xpi_file,
+                    'authenticate_as': amo_user_id}
+            amo = AMOOAuth(domain=settings.AMOOAUTH_DOMAIN,
+                           port=settings.AMOOAUTH_PORT,
+                           protocol=settings.AMOOAUTH_PROTOCOL)
+            amo.set_consumer(consumer_key=settings.AMOOAUTH_CONSUMERKEY,
+                             consumer_secret=settings.AMOOAUTH_CONSUMERSECRET)
+            error = None
+            if self.package.amo_id:
+                amo_id = self.package.amo_id
+            if amo_id:
+                # update addon on AMO
+                log.info('AMOOAUTHAPI: updating addon from %s' % self)
+                try:
+                    response = amo.create_version(data, self.package.amo_id)
+                except Exception, error:
+                    log.critical("AMOOAUTHAPI: Update failed, revision:"
+                            " %s\n%s" % (self, str(error)))
+                    self.amo_status = STATUS_UPLOAD_FAILED
+                    super(PackageRevision, self).save()
+                else:
+                    log.debug("AMOOAUTHAPI: update response: %s " % response)
+                    # XXX: AMO's response should contain status
+                    #self.amo_status = response['status']
+                    self.amo_status = STATUS_UNREVIEWED
+                    super(PackageRevision, self).save()
+                    # TODO: update jetpack ID if needed
+            else:
+                # create addon on AMO
+                log.info('AMOOAUTHAPI: creating addon from %s' % self)
+                data.update({'platform': 'all'})
+                try:
+                    response = amo.create_addon(data)
+                except Exception, error:
+                    log.critical("AMOOAUTHAPI: Upload failed, revision:"
+                            " %s\n%s" % (self, str(error)))
+                    self.amo_status = STATUS_UPLOAD_FAILED
+                    super(PackageRevision, self).save()
+                else:
+                    log.debug("AMOOAUTHAPI: create response: %s " % response)
+                    self.amo_status = response['status']
+                    super(PackageRevision, self).save()
+                    self.package.amo_id = response['id']
+                    self.package.save()
+
+        os.remove(xpi_path)
+        log.debug(self.amo_status)
+        if error:
+            raise error
+
+    ###############
 
     def get_cache_hashtag(self):
         return "%sr%d" % (self.package.id_number, self.revision_number)
@@ -315,6 +411,14 @@ class PackageRevision(BaseModel):
         return reverse(
             'jp_addon_revision_xpi',
             args=[self.package.id_number, self.revision_number])
+
+    def get_upload_to_amo_url(self):
+        " returns URL to upload to AMO "
+        if self.package.type != 'a':
+            raise Exception('Only Add-ons might be uploaded to AMO')
+        return reverse(
+            'amo_upload',
+            args=[self.pk])
 
     def get_copy_url(self):
         " returns URL to copy the package "
@@ -1279,6 +1383,9 @@ class Package(BaseModel, SearchMixin):
     #: to have this relied on any database model
     id_number = models.CharField(max_length=255, unique=True, blank=True)
 
+    #: identification in AMO
+    amo_id = models.IntegerField(blank=True, null=True)
+
     #: name of the Package
     full_name = models.CharField(max_length=255, blank=True)
     #: made from the full_name, used to create Package directory for export
@@ -1337,6 +1444,7 @@ class Package(BaseModel, SearchMixin):
         unique_together = ('author', 'name')
 
     objects = PackageManager()
+
 
     ##################
     # Methods

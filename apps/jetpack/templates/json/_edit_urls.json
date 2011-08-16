@@ -20,5 +20,6 @@
 	{% if revision.package.is_addon %}
         "test_url": "{{ revision.get_test_xpi_url }}",
         "download_url": "{{ revision.get_download_xpi_url }}",
+        "amo_upload_url": "{{ revision.get_upload_to_amo_url }}",
     {% endif %}
 
