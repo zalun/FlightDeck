@@ -1,7 +1,11 @@
 import commonware.log
 import cronjobs
+from pyes.exceptions import ElasticSearchException
 from celery.messaging import establish_connection
 from celeryutils import chunked
+from elasticutils import get_es
+
+from django.conf import settings
 
 from jetpack.models import Package
 from search import tasks
@@ -17,3 +21,24 @@ def index_all():
     with establish_connection() as conn:
         for chunk in chunked(ids, 100):
             tasks.index_all.apply_async(args=[chunk], connection=conn)
+
+@cronjobs.register
+def setup_mapping():
+    """Create index, and setup mapping, for ES."""
+
+    package_mapping = {
+        'properties': {
+            # type is only ever 'a' or 'l', and we do exact matchs.
+            # 'a' gets analyzed otherwise
+            'type': {'type': 'string', 'index': 'not_analyzed'},
+        },
+    }
+
+    es = get_es()
+    try:
+        es.create_index_if_missing(settings.ES_INDEX)
+        es.put_mapping(Package._meta.db_table, package_mapping,
+                settings.ES_INDEX)
+    except ElasticSearchException, e:
+        log.debug(e)
+

@@ -171,7 +171,9 @@ this.Tree = new Class({
 			droppables: this.element.getElements('li span'),
 			onLeave: this.bound('hideIndicator'),
 			onDrag: this.bound('onDrag'),
-			onDrop: this.bound('onDrop')
+			onDrop: this.bound('onDrop'),
+			// omg, i added this line, panic!
+			container: this.options.container ? ($(this.options.container) || this.element) : null
 		}).start(event);
 	},
 
