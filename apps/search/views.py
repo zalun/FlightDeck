@@ -92,9 +92,10 @@ def _facets(facets):
     max_copies = 0
     if 'copies' in facets:
         copies_steps = [t['term'] for t in facets['copies']]
-        copies_steps.sort()
-        max_ = copies_steps.pop()
-        max_copies = max(max_copies, max_)
+        if copies_steps:
+            copies_steps.sort()
+            max_ = copies_steps.pop()
+            max_copies = max(max_copies, max_)
 
     return {
         'addon_total': type_totals.get('a', 0),
