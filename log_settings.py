@@ -55,6 +55,11 @@ cfg = {
     },
     'loggers': {
         'f': {},
+        'django.request': {
+            'handlers': ['mail_admins'],
+            'level': 'ERROR',
+            'propagate': False,
+        }
     },
     'root': {},
 }
