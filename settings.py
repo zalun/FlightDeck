@@ -12,7 +12,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 path = lambda *a: os.path.join(ROOT, *a)
 
 # Set the project version
-PROJECT_VERSION = "0.9.6b"
+PROJECT_VERSION = "0.9.9b"
 
 # TODO: This should be handled by prod in a settings_local.  By default, we
 # shouldn't be in prod mode
@@ -26,7 +26,8 @@ TEMPLATE_DEBUG = DEBUG
 ADMINS = (
         ('clouserw', 'clouserw@gmail.com'),
         ('zalun', 'pzalewa@mozilla.com'),
-        ('dbuc', 'daniel@mozilla.com')
+        ('dbuc', 'daniel@mozilla.com'),
+        ('seanmonstar', 'smcarthur@mozilla.com'),
 )
 MANAGERS = ADMINS
 
