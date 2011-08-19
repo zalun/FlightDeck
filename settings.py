@@ -140,6 +140,13 @@ BUILDER_SECRET_KEY = 'notsecure'
 DOMAIN = "builder.addons.mozilla.org"
 SITE_URL = "https://%s" % DOMAIN
 
+# AMO OAUTH DATA
+AMOOAUTH_DOMAIN = "addons.mozilla.org"
+AMOOAUTH_PORT = 443
+AMOOAUTH_PROTOCOL = "https"
+AMOOAUTH_CONSUMERKEY = "key"
+AMOOAUTH_CONSUMERSECRET = "secret"
+
 URLOPEN_TIMEOUT = 4  # default timeout for urllib2.urlopen (seconds)
 
 # set it in settings_local.py if AMO auth should be used
