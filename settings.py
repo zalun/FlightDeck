@@ -147,6 +147,7 @@ AMOOAUTH_PORT = 443
 AMOOAUTH_PROTOCOL = "https"
 AMOOAUTH_CONSUMERKEY = "key"
 AMOOAUTH_CONSUMERSECRET = "secret"
+AMOOAUTH_PREFIX = "/z/"
 
 URLOPEN_TIMEOUT = 4  # default timeout for urllib2.urlopen (seconds)
 
