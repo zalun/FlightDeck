@@ -19,6 +19,7 @@ def search(request):
     type_ = query.get('type') or None
     types = {'a': 'addon', 'l': 'library'}
     page = query.get('page') or 1
+    limit = 20
 
 
     filters = {}
@@ -37,7 +38,10 @@ def search(request):
         filters['type'] = type_
         qs = package_search(q, **filters).facet(copies={'terms':
             {'field':'copies_count'}})
-        results['pager'] = Paginator(qs, per_page=20).page(page)
+        try:
+            results['pager'] = Paginator(qs, per_page=limit).page(page)
+        except EmptyPage:
+            results['pager'] = Paginator(qs, per_page=limit).page(1)
         facets = _facets(results['pager'].object_list.facets)
         facets['everyone_total'] = len(qs)
         template = 'results.html'
