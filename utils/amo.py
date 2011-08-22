@@ -37,7 +37,7 @@ old = httplib2.Http.__init__
 
 # Ouch, I'll go to hell for this.
 def hack(self, **kw):
-    #kw['disable_ssl_certificate_validation'] = True
+    kw['disable_ssl_certificate_validation'] = True
     return old(self, **kw)
 
 httplib2.Http.__init__ = hack
