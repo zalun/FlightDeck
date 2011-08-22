@@ -191,6 +191,7 @@ class PackageRevision(BaseModel):
             if amo_id:
                 # update addon on AMO
                 log.info('AMOOAUTHAPI: updating addon from %s' % self)
+                log.debug(data)
                 try:
                     response = amo.create_version(data, self.package.amo_id)
                 except Exception, error:
