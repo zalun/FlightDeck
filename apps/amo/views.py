@@ -8,7 +8,7 @@ from jetpack.models import (PackageRevision,
         STATUS_UPLOAD_FAILED, STATUS_UPLOAD_SCHEDULED)
 from utils.exceptions import SimpleException
 
-log = commonware.log.getLogger('f.celery')
+log = commonware.log.getLogger('f.amo')
 
 
 def upload_to_amo(request, pk):
