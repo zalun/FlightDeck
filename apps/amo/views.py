@@ -1,7 +1,7 @@
 import commonware.log
 
 from django.shortcuts import render_to_response
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseNotAllowed, HttpResponseBadRequest
 
 from amo import tasks
 from jetpack.models import (PackageRevision,
@@ -26,7 +26,7 @@ def upload_to_amo(request, pk):
     if len(uploaded) > 0:
         log.debug("This Add-on was already uploaded using version \"%s\"" % version)
         log.debug(revision.amo_status)
-        raise SimpleException("This Add-on was already uploaded using version \"%s\"" % version)
+        return HttpResponseBadRequest("This Add-on was already uploaded using version \"%s\"" % version)
     try:
         PackageRevision.objects.get(
             package=revision.package, amo_version_name=version,
@@ -35,6 +35,6 @@ def upload_to_amo(request, pk):
         pass
     else:
         log.debug("This Add-on is currently scheduled to upload")
-        raise SimpleException("This Add-on is currently scheduled to upload")
+        return HttpResponseBadRequest("This Add-on is currently scheduled to upload")
     tasks.upload_to_amo.delay(pk)
     return HttpResponse('{"delayed": true}')
