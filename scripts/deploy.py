@@ -42,12 +42,15 @@ def _git_checkout_tag(ctx, tag):
     ctx.local("git submodule sync")
     ctx.local("git submodule update --init --recursive")
 
+def _rmpyc(ctx):
+    ctx.local("rm `find . -name '*.pyc'`")
 
 @task
 def start_update(ctx, tag):
     """Updates code to `tag`"""
     with ctx.lcd(FLIGHTDECK_DIR):
         _git_checkout_tag(ctx, tag)
+        _rmpyc(ctx)
 
 
 @task
