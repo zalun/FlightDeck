@@ -181,7 +181,8 @@ class PackageRevision(BaseModel):
                     'authenticate_as': amo_user_id}
             amo = AMOOAuth(domain=settings.AMOOAUTH_DOMAIN,
                            port=settings.AMOOAUTH_PORT,
-                           protocol=settings.AMOOAUTH_PROTOCOL)
+                           protocol=settings.AMOOAUTH_PROTOCOL,
+                           prefix=settings.AMOOAUTH_PREFIX)
             amo.set_consumer(consumer_key=settings.AMOOAUTH_CONSUMERKEY,
                              consumer_secret=settings.AMOOAUTH_CONSUMERSECRET)
             error = None
@@ -190,6 +191,7 @@ class PackageRevision(BaseModel):
             if amo_id:
                 # update addon on AMO
                 log.info('AMOOAUTHAPI: updating addon from %s' % self)
+                log.debug(data)
                 try:
                     response = amo.create_version(data, self.package.amo_id)
                 except Exception, error:

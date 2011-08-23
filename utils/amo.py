@@ -37,7 +37,7 @@ old = httplib2.Http.__init__
 
 # Ouch, I'll go to hell for this.
 def hack(self, **kw):
-    #kw['disable_ssl_certificate_validation'] = True
+    kw['disable_ssl_certificate_validation'] = True
     return old(self, **kw)
 
 httplib2.Http.__init__ = hack
@@ -59,7 +59,7 @@ class AMOOAuth:
         self.prefix = prefix
         self.three_legged = three_legged
 
-    def set_consumer(self, consumer_key, consumer_secret, save_storage=True):
+    def set_consumer(self, consumer_key, consumer_secret, save_storage=False):
         self.should_save_storage = save_storage
         self.data['consumer_key'] = consumer_key
         self.data['consumer_secret'] = consumer_secret

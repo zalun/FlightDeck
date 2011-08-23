@@ -8,7 +8,7 @@ from jetpack.models import (PackageRevision,
         STATUS_UPLOAD_FAILED, STATUS_UPLOAD_SCHEDULED)
 from utils.exceptions import SimpleException
 
-log = commonware.log.getLogger('f.celery')
+log = commonware.log.getLogger('f.amo')
 
 
 def upload_to_amo(request, pk):
@@ -36,5 +36,6 @@ def upload_to_amo(request, pk):
     else:
         log.debug("This Add-on is currently scheduled to upload")
         return HttpResponseBadRequest("This Add-on is currently scheduled to upload")
+    log.debug('AMOOAUTH: Scheduling upload to AMO')
     tasks.upload_to_amo.delay(pk)
     return HttpResponse('{"delayed": true}')

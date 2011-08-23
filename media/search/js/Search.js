@@ -10,6 +10,7 @@ var SearchResult = new Class({
 			url: this.url,
 			filter: 'section',
 			useSpinner: true,
+			method: 'get',
 			spinnerTarget: 'SearchResults',
 			onSuccess: function(tree, elements, html) {
 				if (SearchResult.$loading == this) SearchResult.$loading = null;
