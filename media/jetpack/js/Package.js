@@ -145,9 +145,12 @@ var Package = new Class({
                 maskBorder: false
             },
 			onSuccess: function(response) {
-                fd.message.alert('Uploading to AMO (addons.mozilla.org)', 
+                fd.message.alert('Uploading to AMO (' + settings.amooauth_domain +')', 
                                  'We\'ve scheduled the Add-on to upload<br/>' +
-                                 'There is no need to wait for confirmation.');
+                                 'Check the upload status and complete the process on your ' + 
+                                 '<a href="' + settings.amooauth_protocol + 
+                                 '://' + settings.amooauth_domain + 
+                                 '/en-US/developers/addons" target="amo_dashboard">AMO dashboard</a>');
 			}
 		}).send();
 
