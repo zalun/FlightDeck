@@ -159,13 +159,10 @@ class PackageRevision(BaseModel):
     ##################
     # AMO Integration
 
-    def upload_to_amo(self, hashtag, amo_id=None):
+    def upload_to_amo(self, hashtag):
         """Uploads Package to AMO, updates or creates as a new Addon
 
         :attr: hashtag (string)
-        :attr: amo_id (int) Add-on's id on AMO. Used if this is the
-               first upload from Builder of an already existing Add-on on
-               AMO
         """
         # open XPI File
         xpi_path = os.path.join(settings.XPI_TARGETDIR,
@@ -187,8 +184,6 @@ class PackageRevision(BaseModel):
                              consumer_secret=settings.AMOOAUTH_CONSUMERSECRET)
             error = None
             if self.package.amo_id:
-                amo_id = self.package.amo_id
-            if amo_id:
                 # update addon on AMO
                 log.info('AMOOAUTHAPI: updating addon from %s' % self)
                 log.debug(data)
