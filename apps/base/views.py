@@ -87,13 +87,14 @@ def monitor(request):
     try:
         data['celery_responses'] = CeleryResponse.objects.all()
     except:
-        pass
+        status = False
 
     try:
-        data['es_health'] = get_es().cluster_health()
+        es = get_es()
+        data['es_health'] = es.cluster_health()
+        data['es_health']['version'] = es.collect_info()['server']['version']['number']
     except:
-        pass
-
+        status = False
 
     context = RequestContext(request, data)
     status = 200 if status else 500
