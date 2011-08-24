@@ -170,6 +170,10 @@ form.UI_Editor_Menu_Descendant {
 		background-position: -34px 0;
 	}
 
+	.UI_Editor_Menu_Button.Icon_upload a span {
+		background-position: -212px 0;
+	}
+
 	.UI_Editor_Menu_Button.Icon_setAsBase a span {
 		background-position: -51px 0;
 	}
