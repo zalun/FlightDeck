@@ -1,5 +1,5 @@
 {% load base_helpers %}
-<div class="result package">
+<div class="result package {{ package.is_addon|yesno:"addon,library" }}">
     <h3>
         <a href="{{ package.get_absolute_url }}">{{ package.full_name }}</a>
         <span>by <a href="{% url person_public_profile package.author.username %}">{{ package.author.get_profile }}</a></span>
