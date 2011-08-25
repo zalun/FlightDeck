@@ -16,7 +16,7 @@ def upload_to_amo(request, pk):
     """
     # check if there this Add-on was uploaded with the same version name
     revision = PackageRevision.objects.get(pk=pk)
-    version = revision.get_version_name_only()
+    version = revision.get_version_name()
     uploaded = PackageRevision.objects.filter(
             package=revision.package).filter(
             amo_version_name=version).exclude(

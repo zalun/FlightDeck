@@ -2,6 +2,7 @@
 A class to interact with AMO's api, using OAuth.
 Ripped off from Daves test_oauth.py and some notes from python-oauth2
 """
+import commonware
 # Wherein import almost every http or urllib in Python
 import urllib
 import urllib2
@@ -15,6 +16,8 @@ import json
 import mimetools
 
 from helpers import encode_multipart, data_keys
+
+log = commonware.log.getLogger('f.amooauth')
 
 # AMO Specific end points
 urls = {
@@ -108,12 +111,14 @@ class AMOOAuth:
                                                  method, url, parameters))
         request.sign_request(self.signature_method, self.get_consumer(), token)
         client = httplib2.Http()
+        strdata = str(data)
         if data and method == 'POST':
             data = encode_multipart(boundary, data)
             headers.update({'Content-Type':
                             'multipart/form-data; boundary=%s' % boundary})
         else:
             data = urllib.urlencode(data)
+        log.debug("AMOOAUTH: Sending  request %s" % strdata)
         return client.request(request.to_url(), method=method,
                               headers=headers, body=data)
 

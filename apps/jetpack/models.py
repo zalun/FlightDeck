@@ -185,7 +185,8 @@ class PackageRevision(BaseModel):
             error = None
             if self.package.amo_id:
                 # update addon on AMO
-                log.info('AMOOAUTHAPI: updating addon from %s' % self)
+                log.info('AMOOAUTHAPI: updating addon %s to version %s' % (
+                    self, self.amo_version_name))
                 log.debug(data)
                 try:
                     response = amo.create_version(data, self.package.amo_id)
@@ -203,7 +204,8 @@ class PackageRevision(BaseModel):
                     # TODO: update jetpack ID if needed
             else:
                 # create addon on AMO
-                log.info('AMOOAUTHAPI: creating addon from %s' % self)
+                log.info('AMOOAUTHAPI: creating addon %s version %s' % (
+                    self, self.amo_version_name))
                 data.update({'platform': 'all'})
                 try:
                     response = amo.create_addon(data)
