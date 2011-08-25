@@ -25,7 +25,7 @@ def upload_to_amo(rev_pk, hashtag=None):
     revision = PackageRevision.objects.get(pk=rev_pk)
     # save status
     revision.amo_status = STATUS_UPLOAD_SCHEDULED
-    revision.amo_version_name = revision.get_version_name_only()
+    revision.amo_version_name = revision.get_version_name()
     super(PackageRevision, revision).save()
     response = revision.build_xpi(
             hashtag=hashtag,
