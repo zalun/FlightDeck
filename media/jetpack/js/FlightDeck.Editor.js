@@ -6,8 +6,8 @@ FlightDeck = Class.refactor(FlightDeck,{
 
 	initialize: function(options) {
 		this.setOptions(options);
-		this.sidebar = new Sidebar();
-		var tabs = this.tabs = new FlightDeck.TabBar('editor-tabs', {
+		this.sidebar = new (require('editor').Sidebar)();
+		var tabs = this.tabs = new (require('editor/views/Tabs').TabBar)('editor-tabs', {
 			arrows: false,
 			onTabDown: function(tab) {
 				if (!tab.hasClass('selected')) {

@@ -1,4 +1,13 @@
-var Sidebar = new Class({
+var Class = require('shipyard/class'),
+	Events = require('shipyard/class/Events'),
+	Options = require('shipyard/class/Options'),
+	object = require('shipyard/utils/object'),
+	
+	FileTree = require('./FileTree');
+
+// globals: $, FlightDeck.Keyboard, fd.item
+
+var Sidebar = module.exports = new Class({
 	
 	Implements: [Options, Events],
 	

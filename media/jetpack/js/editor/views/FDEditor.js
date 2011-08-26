@@ -6,8 +6,14 @@
  * Its functionalities should be overwritten in specific classes (Bespin.js, etc.)
  * Otherwise standard textarea will be used.
  */
+var Class = require('shipyard/class'),
+	Events = require('shipyard/class/Events'),
+	Options = require('shipyard/class/Options')
+	object = require('shipyard/utils/object');
 
-var FDEditor = new Class({
+// globals: Element, Spinner, Element.addVolatileEvent, fd
+
+var FDEditor = module.exports = new Class({
 
 	Implements: [Options, Events],
 
@@ -114,7 +120,7 @@ var FDEditor = new Class({
     },
     
     cleanChangeState: function(){
-        Object.each(this.items, function(item){
+        object.forEach(this.items, function(item){
             item.setChanged(false);
             item.change_hooked = false;
             // refresh original content

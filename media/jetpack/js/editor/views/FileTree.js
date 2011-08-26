@@ -1,4 +1,12 @@
-FileTree = new Class({
+var /*Class = require('shipyard/class'),
+	shipyard/class only lets Class extends from other shipyard/class, 
+	and FileTree extends from Tree (which is a regular Moo Class)
+	*/
+	object = require('shipyard/utils/object');
+
+// globals: Class, Tree, Collapse.LocalStorage, Element, String.implement
+
+var FileTree = module.exports = new Class({
 	
 	Extends: Tree,
 	
@@ -105,7 +113,7 @@ FileTree = new Class({
 	},
 	
 	addBranch: function(attr, target, options){
-		attr = Object.merge({}, this.options.branch, attr);
+		attr = object.merge({}, this.options.branch, attr);
 		target = $(target) || this.element;
 		if (target.get('tag') !== 'ul') {
 			target = target.getElement('ul');
@@ -113,7 +121,7 @@ FileTree = new Class({
 		
 		var isEditable = this.options.editable;
 		
-		options = Object.merge({}, {
+		options = object.merge({}, {
 			add: attr.rel == 'directory',
 			edit: attr.rel != 'directory',
 			remove: true, //can delete anything

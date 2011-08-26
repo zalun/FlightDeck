@@ -5,7 +5,7 @@
 /*
  * Javascript Package/PackageRevision representation
  */
-
+var FDEditor = require('editor/views/FDEditor.Ace');
 var Package = new Class({
 
 	Implements: [Options, Events],
@@ -383,7 +383,7 @@ var File = new Class({
 	},
 	
 	makeTab: function() {
-		var tab = this.tab = new FlightDeck.Tab(fd.tabs, {
+		var tab = this.tab = new (require('editor/views/Tabs').Tab)(fd.tabs, {
 			title: this.getShortName()
 		});
         this.addEvent('change', function() {

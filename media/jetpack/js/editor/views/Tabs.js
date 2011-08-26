@@ -1,4 +1,12 @@
-FlightDeck.Tab = new Class({
+var Class = require('shipyard/class'),
+	Events = require('shipyard/class/Events'),
+	Options = require('shipyard/class/Options'),
+	
+	object = require('shipyard/utils/object');
+
+// globals: $, Element, Fx.Scroll
+
+var Tab = new Class({
 	
 	Implements: [Events, Options],
 	
@@ -61,7 +69,7 @@ FlightDeck.Tab = new Class({
 	
 });
 
-FlightDeck.TabBar = new Class({
+var TabBar = new Class({
 	
 	Implements: [Events, Options],
 	
@@ -98,7 +106,7 @@ FlightDeck.TabBar = new Class({
 		
 		//events: Down,Up,Enter,Leave
 		//targets: tab-close, everything else
-		Object.each({
+		object.forEach({
 			'tabDown': ['mousedown'],
 			'tabUp': ['mouseup'],
 			'tabEnter': ['mouseenter'],
@@ -116,7 +124,7 @@ FlightDeck.TabBar = new Class({
 			tabEvents[evt + ':relay(.' + cls + ')'] = function(e){
 				if((cls == 'tab' && !e.target.hasClass('tab-close'))
 				   || e.target.hasClass(cls)) {
-					bar.fireEvent(eventName, [this, e]);
+					bar.fireEvent(eventName, this, e);
 				}
 			};
 			
@@ -206,3 +214,6 @@ FlightDeck.TabBar = new Class({
 	}
 	
 });
+
+exports.Tab = Tab;
+exports.TabBar = TabBar;
