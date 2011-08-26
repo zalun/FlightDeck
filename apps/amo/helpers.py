@@ -36,9 +36,9 @@ def get_addon_details(amo_id):
     req = urllib2.Request(get_addon_amo_api_url(amo_id))
     try:
         page = urllib2.urlopen(req, timeout=settings.URLOPEN_TIMEOUT)
-    except: Exception, error:
+    except Exception, error:
         log.critical(("AMOAPI: ERROR receiving add-on info from \"%s\""
-            "\n%s") % (url, str(error))
+            "\n%s") % (url, str(error)))
         raise
     amo_xml = etree.fromstring(page.read())
     amo_data = {}
