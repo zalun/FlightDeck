@@ -17,6 +17,8 @@ module.exports = new Class({
 		}
 	},
 
+	//pk: 'id_number',
+
 	fields: {
 		id: fields.NumberField(),
 		id_number: fields.NumberField(), // the real PK?
