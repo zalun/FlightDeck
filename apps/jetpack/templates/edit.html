@@ -27,7 +27,14 @@
 	<script src="/media/jetpack/js/Package.js"></script>
 	<script src="/media/lib/FloatingTips.js"></script>
 
-   	
+    <script type="text/javascript">
+        define('editor/settings', [], function(require, exports, module) {
+            module.exports = {
+            {% include "js/_package_initiate.js" %},
+            {% include "js/_edit_package_initiate.js" %}
+            };
+        });
+    </script>
 {% endblock %}
 
 
@@ -39,10 +46,9 @@
 
 {# initialize package view #}
 {% block app_domready %}
-  fd.item = new Package.Edit({
-    {% include "js/_package_initiate.js" %},
-    {% include "js/_edit_package_initiate.js" %}
-  });
+
+    fd.item = new Package(require('editor/settings'));
+
 {% endblock %}
 
 
