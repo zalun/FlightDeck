@@ -112,6 +112,22 @@ class TestSearch(ESTestCase):
 
 
 class PackageSearchTest(ESTestCase):
+    fixtures = ('mozilla_user', 'users', 'core_sdk',)
+
+    def test_times_depended_on(self):
+        foo = create_library('foooooo')
+        bar = create_addon('barrrr')
+
+        bar.latest.dependency_add(foo.latest)
+
+        self.es.refresh()
+
+        qs = Package.search().filter(times_depended__gte=1)
+
+        eq_(len(qs), 1)
+        eq_(qs[0], foo)
+
+class PackageHelperSearchTest(ESTestCase):
     """
     search.helpers.package_search has some built-in sane defaults when
     searching for Packages.
