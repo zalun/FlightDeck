@@ -34,7 +34,9 @@ def search(request):
     else:
         query['copies'] = 0
 
-    if query.get('used'):
+    if query.get('used') and type_ != 'a':
+        # Add-ons can't be depended upon, so this query would filter out
+        # every single Add-on
         filters['times_depended__gte'] = query['used']
     else:
         query['used'] = 0
