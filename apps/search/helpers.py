@@ -7,26 +7,27 @@ def package_search(searchq='', user=None, score_on=None, **filters):
 
     # This is a filtered query, that says we want to do a query, but not have
     # to deal with version_text='initial' or 'copy'
-    # nested awesomenezz!
     notInitialOrCopy = ~(F(version_name='initial') | F(version_name='copy'))
 
-    qs = (Package.search().filter(notInitialOrCopy, **filters)
-            .facet(types={'terms': {'field': 'type'},
-                'facet_filter': notInitialOrCopy.filters}))
+    qs = Package.search().filter(notInitialOrCopy, **filters)
+
+    # Add type facet (minus any type filter)
+    facetFilter = dict((k, v) for k, v in filters.items() if k != 'type')
+    if facetFilter:
+        facetFilter = notInitialOrCopy & F(**facetFilter)
+    else:
+        facetFilter = notInitialOrCopy
+    qs = qs.facet(types={'terms': {'field': 'type'},
+                'facet_filter': facetFilter.filters})
+
     if searchq:
         qs = qs.query(or_=package_query(searchq))
 
-
     if user and user.is_authenticated():
         qs = qs.facet(author={'terms': {
-                     'field': 'author',
-                     'script':'term == %d ? true : false' % user.id}
-                    })
-
-
-    #if score_on:
-    #    q.score(script='_score * doc[\'%s\'].value' % score_on)
-
+            'field': 'author',
+            'script':'term == %d ? true : false' % user.id}
+        })
 
     return qs
 

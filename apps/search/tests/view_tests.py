@@ -29,7 +29,7 @@ class TestSearchViews(ESTestCase):
         """Should not error if non-int value is passed for the page number"""
         create_addon('derp')
 
-        url = '%s?q=%s&page=%s' % (reverse('search_by_type', args=['addon']),
+        url = '%s?q=%s&page=%s' % (reverse('search'),
                                    'test', '-^')
 
         resp = self.client.get(url)
