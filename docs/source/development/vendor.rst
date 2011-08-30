@@ -26,3 +26,10 @@ From the help::
  optional arguments:
    -h, --help            show this help message and exit
    -d DIR, --dir DIR     path to the vendor directory
+
+However, because ``vendor`` is a submodule, vending-machine should not
+be used in it's default behavior. Instead, FlightDeck-lib should be
+checked out to a separate folder, and you should set the ``-d`` argument
+of vend::
+
+ vend -d ./FlightDeck-lib add elasticutils
