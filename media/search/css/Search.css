@@ -158,6 +158,13 @@ body {
             opacity:1;
         }
 
+#SearchResults .see-more {
+    margin:10px 0;
+}
+    #SearchResults .see-more a {
+        color:#478CDE;
+    }
+
 #SearchResults .UI_Pagination {
     margin-top:40px;
 }
