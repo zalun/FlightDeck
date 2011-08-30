@@ -51,5 +51,17 @@
             </div>
         </li>
         {% endif %}
+        {% if max_times_depended %}
+        <li id="UsedFilter">
+            Used by 
+            <span class="slider-value">{{ query.used }}</span>
+            or more packages:
+            <div class="slider">
+                <div class="knob"></div>
+                <span class="range start">0</span>
+                <span class="range end">{{ max_times_depended }}</span>
+            </div>
+        </li>
+        {% endif %}
     </ul>
 </section>
