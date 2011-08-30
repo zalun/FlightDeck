@@ -1,7 +1,7 @@
 import commonware.log
 import simplejson
 
-from django.shortcuts import render_to_response
+from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponse, HttpResponseNotAllowed, HttpResponseBadRequest
 
 from amo import tasks
@@ -17,7 +17,7 @@ def upload_to_amo(request, pk):
     """Upload a XPI to AMO
     """
     # check if there this Add-on was uploaded with the same version name
-    revision = PackageRevision.objects.get(pk=pk)
+    revision = get_object_or_404(PackageRevision, pk=pk)
     version = revision.get_version_name()
     uploaded = PackageRevision.objects.filter(
             package=revision.package).filter(

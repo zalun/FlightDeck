@@ -3,7 +3,7 @@ from django.conf import settings
 from lxml import etree
 import urllib2
 
-log = commonware.log.getLogger('f.authentication')
+log = commonware.log.getLogger('f.amo')
 
 
 get_addon_amo_api_url = lambda id: "%s://%s/api/%s/addon/%d" % (
