@@ -1,4 +1,5 @@
 from django import forms
+from django.forms.util import ErrorDict
 from django.contrib.auth.models import User
 
 from base.forms import CleanForm
