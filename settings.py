@@ -12,7 +12,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 path = lambda *a: os.path.join(ROOT, *a)
 
 # Set the project version
-PROJECT_VERSION = "0.9.9b"
+PROJECT_VERSION = "0.9.10"
 
 # TODO: This should be handled by prod in a settings_local.  By default, we
 # shouldn't be in prod mode
@@ -140,6 +140,14 @@ REPACKAGE_SDK_SOURCE = None
 BUILDER_SECRET_KEY = 'notsecure'
 DOMAIN = "builder.addons.mozilla.org"
 SITE_URL = "https://%s" % DOMAIN
+
+# AMO OAUTH DATA
+AMOOAUTH_DOMAIN = "addons.mozilla.org"
+AMOOAUTH_PORT = 443
+AMOOAUTH_PROTOCOL = "https"
+AMOOAUTH_CONSUMERKEY = "key"
+AMOOAUTH_CONSUMERSECRET = "secret"
+AMOOAUTH_PREFIX = "/z"
 
 URLOPEN_TIMEOUT = 4  # default timeout for urllib2.urlopen (seconds)
 

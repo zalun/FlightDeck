@@ -1,15 +1,22 @@
+{% load base_helpers %}
 <section id="SearchResults">
 	{% if addons %}
 		<h2 class="UI_Heading">Add-on Results ({{ addon_total }})</h2>
 		{% for package in addons %}
 			{% include "_package_result.html" %}
 		{% endfor %}
+        {% if addon_total > 5 %}
+            <p class="see-more"><a href="?{% querystring type='a' %}">See all {{ addon_total}} matching add-ons &rarr;</a></p>
+        {% endif %}
 	{% endif %}
 	{% if libraries %}
 		<h2 class="UI_Heading">Library Results ({{ library_total }})</h2>
 		{% for package in libraries %}
 			{% include "_package_result.html" %}
-		{% endfor %}
+        {% endfor %}
+        {% if library_total > 5 %}
+            <p class="see-more"><a href="?{% querystring type='l' %}">See all {{ library_total }} matching libraries &rarr;</a></p>
+        {% endif %}
 	{% endif %}
 	
 	{% if not addons and not libraries %}

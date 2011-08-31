@@ -36,6 +36,27 @@ def schematic(ctx):
         ctx.local("python2.6 ./vendor/src/schematic/schematic migrations")
 
 
+@task
+def disable_cron(ctx):
+    ctx.local("mv /etc/cron.d/builder-prod-maint /tmp/builder-prod-maint")
+
+
+@task
+def enable_cron(ctx):
+    with ctx.lcd(FLIGHTDECK_DIR):
+        ctx.local("cp scripts/crontab/prod /etc/cron.d/builder-prod-maint")
+
+
+def manage_cmd(ctx, command):
+    """Call a manage.py command."""
+    with ctx.lcd(FLIGHTDECK_DIR):
+        ctx.local("python2.6 manage.py %s" % command)
+@task
+def make_crons(ctx):
+    with ctx.lcd(FLIGHTDECK_DIR):
+        ctx.local("python2.6 ./scripts/crontab/make-crons.py")
+
+
 def _git_checkout_tag(ctx, tag):
     ctx.local("git fetch -t origin")
     ctx.local("git checkout %s" % tag)
@@ -48,6 +69,7 @@ def _rmpyc(ctx):
 @task
 def start_update(ctx, tag):
     """Updates code to `tag`"""
+    disable_cron()
     with ctx.lcd(FLIGHTDECK_DIR):
         _git_checkout_tag(ctx, tag)
         _rmpyc(ctx)
@@ -56,6 +78,16 @@ def start_update(ctx, tag):
 @task
 def update_flightdeck(ctx):
     """Deploys code to the webservers and restarts celery"""
+    # BEGIN: The normal update/push cycle.
+    make_crons()
     schematic()
     deploy_code()
     restart_celery()
+    enable_cron()
+    # END: The normal update/push cycle.
+
+    # Run management commands like this:
+    # manage_cmd(ctx, 'cmd')
+
+    # For 0.9.10
+    manage_cmd(ctx, 'cron index_all')

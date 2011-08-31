@@ -10,6 +10,7 @@ from elasticutils import F
 
 from jetpack.models import Package
 from search.helpers import package_search
+from search.cron import setup_mapping
 
 log = commonware.log.getLogger('f.test.search')
 
@@ -28,7 +29,20 @@ def create_package(name, type, **kwargs):
                                   **kwargs)
 
 
-class TestSearch(ESTestCase):
+
+class MappedESTestCase(ESTestCase):
+    """
+    FlightDeck has special mapping that needs to be put into the index for
+    the tests to work, so put the mapping each time the index is re-created.
+    """
+    @classmethod
+    def setup_class(cls):
+        super(MappedESTestCase, cls).setup_class()
+        setup_mapping()
+
+
+
+class TestSearch(MappedESTestCase):
     fixtures = ('mozilla_user', 'users', 'core_sdk')
 
     def test_index(self, name='zool'):
@@ -111,7 +125,23 @@ class TestSearch(ESTestCase):
             eq_(r['hits']['total'], 0)
 
 
-class PackageSearchTest(ESTestCase):
+class PackageSearchTest(MappedESTestCase):
+    fixtures = ('mozilla_user', 'users', 'core_sdk',)
+
+    def test_times_depended_on(self):
+        foo = create_library('foooooo')
+        bar = create_addon('barrrr')
+
+        bar.latest.dependency_add(foo.latest)
+
+        self.es.refresh()
+
+        qs = Package.search().filter(times_depended__gte=1)
+
+        eq_(len(qs), 1)
+        eq_(qs[0], foo)
+
+class PackageHelperSearchTest(MappedESTestCase):
     """
     search.helpers.package_search has some built-in sane defaults when
     searching for Packages.
@@ -144,6 +174,26 @@ class PackageSearchTest(ESTestCase):
         self.es.refresh()
         data = package_search('foo')
         eq_(1, len(data))
+
+    def test_type_facet_filter(self):
+        """)
+        Type facet should not have a type filter in it's facet_filter.
+        """
+        buzz = create_addon('buzz lightyear')
+        buzz.latest.set_version('Infinity')
+
+        toystory = create_library('the toy story')
+        toystory.latest.set_version('1')
+
+        self.es.refresh()
+        data = package_search(type='a')
+
+        eq_(1, len(data))
+
+        types = dict((f['term'], f['count']) for f in data.facets['types'])
+        eq_(1, types.get('a'))
+        eq_(1, types.get('l'))
+
 
     def test_custom_scoring(self):
         raise SkipTest()

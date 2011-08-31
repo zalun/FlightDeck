@@ -5,6 +5,8 @@ import simplejson
 import os
 import commonware
 
+from django.http import Http404
+
 from base.shortcuts import get_object_with_related_or_404
 from jetpack.models import Package, PackageRevision
 from jetpack.errors import ManifestNotValid
@@ -24,6 +26,10 @@ def get_package_revision(id_name, type_id,
         package = get_object_with_related_or_404(Package, id_number=id_name,
                                                  type=type_id)
         package_revision = package.latest if latest else package.version
+        if not package_revision:
+            log.critical("Package %s by %s has no latest or version "
+                    "revision" % (package, package.author))
+            raise Http404
 
     elif revision_number:
         # get version given by revision number
@@ -35,6 +41,11 @@ def get_package_revision(id_name, type_id,
         package_revision = get_object_with_related_or_404(PackageRevision,
                             package__id_number=id_name, package__type=type_id,
                             version_name=version_name)
+    # For unknown reason some revisions are not linked to any package
+    if not package_revision.package:
+        log.critical("PackageRevision %d by %s is not related to any "
+                "Package" % (package_revision.pk, package_revision.author))
+        raise Http404
     return package_revision
 
 

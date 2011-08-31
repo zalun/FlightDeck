@@ -19,7 +19,6 @@ class ProfileManager(models.Manager):
         # for AMO users
         by_nick = Q(nickname=username)
 
-        index = 0
         def _get_profile():
             try:
                 return self.get(by_nick | by_username)
@@ -29,15 +28,20 @@ class ProfileManager(models.Manager):
                 for p in profiles:
                     p.update_from_AMO()
 
-                if index > MAX_GET_PROFILE:
+                if _get_profile.index > MAX_GET_PROFILE:
                     log.error(("User (%s) has multiple profiles. "
                         "AMO uids: (%s)") %
                             (username,
                             ', '.join([p.user.username for p in profiles])))
                     raise
-                index += 1
+                _get_profile.index += 1
                 return _get_profile()
 
+        # a local var of `index` becomes UnboundLocalError due to the
+        # `index += 1`. Storing it on an object prevents this error.
+        # Bug: https://bugzilla.mozilla.org/show_bug.cgi?id=681098
+        # PEP: http://www.python.org/dev/peps/pep-3104/
+        _get_profile.index = 0
         return _get_profile()
 
 

@@ -17,7 +17,7 @@ var SearchResult = new Class({
 				this.content = tree;
 				this.show();
 			}.bind(this)
-		}).send();
+		}).send('xhr');
 
 		return this;
 	},
@@ -44,13 +44,16 @@ var SearchResult = new Class({
 			newSidebar.replaces(sidebar);
 		}
 
-		if (!this.slider) {
-			this.slider =  SearchResult.setupUI();
+		if (!this.ui) {
+			SearchResult.setupUI(this);
 		} else {
-			this.slider.sanityCheck = false;
 			var loc = new URI(this.url);
-			this.slider.set(loc.getData('copies') || 0);
-			this.slider.sanityCheck = true;
+		    Object.each(this.ui.sliders, function(slider, name) {
+                slider.sanityCheck = false;
+			    slider.set(loc.getData(name) || 0);
+			    slider.sanityCheck = true;
+            });	
+            
 		}
 
 		return this;
@@ -80,42 +83,51 @@ SearchResult.page = function(url) {
 	SearchResult.fetch(String(window.location));
 };
 
-SearchResult.setupUI = function() {
-	var copies = $('CopiesFilter');
-	if (copies) {
-		var cSlider = copies.getElement('.slider'),
-			cKnob = cSlider.getElement('.knob'),
-			cValue = copies.getElement('.slider-value'),
-			cRangeEnd = cSlider.getElement('.range.end'),
-			end = cRangeEnd.get('text').toInt();
+SearchResult.setupUI = function(result) {
+	var ui = { sliders: {} };
+    if (result) result.ui = ui;
 
-		var initialStep = Math.max(0, cValue.get('text').toInt() || 0);
-	
-		var copiesSlider = new Slider(cSlider, cKnob, {
-			//snap: true,
-			range: [0, end],
-			initialStep: initialStep,
-			onChange: function(step) {
-				cValue.set('text', step);
-			},
-			onComplete: function(step) {
-				if (!this.sanityCheck) return;
+    var filters = ['Copies', 'Used'];
+    filters.forEach(function(filter) {
+        var container = $(filter + 'Filter'),
+            dataKey = filter.toLowerCase();
 
-				var loc = new URI(String(window.location));
-				loc.setData('copies', step);
-				SearchResult.page(loc);
-			}
-		});
-		// onComplete gets triggered many times when no dragging
-		// actually occurred, because we set a range and initialStep. To
-		// prevent those fake onComplete's from trigger anything, we
-		// check our sanity by stopping all onComplete's that happen
-		// during initialization, since sanityCheck get's set to true
-		// _after_ construction.
-		copiesSlider.sanityCheck = true;
+        if (container) {
+        
+            var sliderEl = container.getElement('.slider'),
+                knobEl = sliderEl.getElement('.knob'),
+                valueEl = container.getElement('.slider-value'),
+                rangeEndEl = sliderEl.getElement('.range.end'),
+                end = rangeEndEl.get('text').toInt();
 
-		return copiesSlider;
-	}
+            var initialStep = Math.max(0, valueEl.get('text').toInt() || 0);
+        
+            var slider = new Slider(sliderEl, knobEl, {
+                //snap: true,
+                range: [0, end],
+                initialStep: initialStep,
+                onChange: function(step) {
+                    valueEl.set('text', step);
+                },
+                onComplete: function(step) {
+                    if (!this.sanityCheck) return;
+
+                    var loc = new URI(String(window.location));
+                    loc.setData(dataKey, step);
+                    SearchResult.page(loc);
+                }
+            });
+            // onComplete gets triggered many times when no dragging
+            // actually occurred, because we set a range and initialStep. To
+            // prevent those fake onComplete's from trigger anything, we
+            // check our sanity by stopping all onComplete's that happen
+            // during initialization, since sanityCheck get's set to true
+            // _after_ construction.
+            slider.sanityCheck = true;
+
+            ui.sliders[dataKey] = slider;
+        }
+    });
 };
 
 
