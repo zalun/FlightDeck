@@ -35,6 +35,11 @@ def get_package_revision(id_name, type_id,
         package_revision = get_object_with_related_or_404(PackageRevision,
                             package__id_number=id_name, package__type=type_id,
                             version_name=version_name)
+    # For unknown reason some revisions are not linked to any package
+    if not package_revision.package:
+        log.critical("PackageRevision %d by %s is not related to any "
+                "Package" % (package_revision.pk, package_revision.author))
+        raise Http404
     return package_revision
 
 
