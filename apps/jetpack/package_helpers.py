@@ -5,6 +5,8 @@ import simplejson
 import os
 import commonware
 
+from django.http import Http404
+
 from base.shortcuts import get_object_with_related_or_404
 from jetpack.models import Package, PackageRevision
 from jetpack.errors import ManifestNotValid
