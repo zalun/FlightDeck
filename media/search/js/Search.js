@@ -17,7 +17,7 @@ var SearchResult = new Class({
 				this.content = tree;
 				this.show();
 			}.bind(this)
-		}).send();
+		}).send('xhr');
 
 		return this;
 	},
