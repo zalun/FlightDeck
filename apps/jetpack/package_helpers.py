@@ -27,6 +27,7 @@ def get_package_revision(id_name, type_id,
         if not package_revision:
             log.critical("Package %s by %s has no latest or version "
                     "revision" % (package, package.author))
+            raise Http404
 
     elif revision_number:
         # get version given by revision number
