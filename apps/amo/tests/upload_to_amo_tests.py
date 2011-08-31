@@ -58,9 +58,7 @@ class UploadTest(TestCase):
         assert self.amo.url('addon') in AMOOAuth._send.call_args[0]
 
     def test_update_amo_addon(self):
-        AMOOAuth._send = Mock(return_value={
-            'status': STATUS_UNREVIEWED,
-            'id': self.ADDON_AMO_ID})
+        AMOOAuth._send = Mock(return_value={'status': STATUS_UNREVIEWED})
         # set add-on as uploaded
         self.addonrev.amo_status = STATUS_PUBLIC
         self.addonrev.amo_version_name = self.addonrev.get_version_name()
