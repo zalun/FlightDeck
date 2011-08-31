@@ -1,10 +1,10 @@
 import commonware
 import shutil
-import tempfile
 import os
 
 from mock import Mock
 from nose.tools import eq_
+from test_utils import TestCase
 
 from django.contrib.auth.models import User
 from django.conf import settings
@@ -14,7 +14,6 @@ from base.templatetags.base_helpers import hashtag
 from jetpack.models import (Package, PackageRevision, STATUS_UNREVIEWED,
         STATUS_PUBLIC)
 from utils.amo import AMOOAuth
-from utils.test import TestCase
 
 log = commonware.log.getLogger('f.test')
 
@@ -28,19 +27,11 @@ class UploadTest(TestCase):
         self.addonrev = Package.objects.get(name='test-addon',
                                          author__username='john').latest
         self.hashtag = hashtag()
-        self.xpi_file = os.path.join(settings.XPI_TARGETDIR,
-                "%s.xpi" % self.hashtag)
-        self.SDKDIR = tempfile.mkdtemp()
         self.amo = AMOOAuth(domain=settings.AMOOAUTH_DOMAIN,
                            port=settings.AMOOAUTH_PORT,
                            protocol=settings.AMOOAUTH_PROTOCOL,
                            prefix=settings.AMOOAUTH_PREFIX)
 
-    def tearDown(self):
-        if os.path.exists(self.SDKDIR):
-            shutil.rmtree(self.SDKDIR)
-        if os.path.exists(self.xpi_file):
-            os.remove(self.xpi_file)
 
     def test_create_new_amo_addon(self):
         AMOOAuth._send = Mock(return_value={
