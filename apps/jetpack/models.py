@@ -204,7 +204,7 @@ class PackageRevision(BaseModel):
                     # TODO: update jetpack ID if needed
             else:
                 # create addon on AMO
-                log.info('AMOOAUTHAPI: creating addon %s version %s' % (
+                log.info('AMOOAUTHAPI: creating addon %s amo_version %s' % (
                     self, self.amo_version_name))
                 data.update({'platform': 'all'})
                 try:
@@ -222,7 +222,6 @@ class PackageRevision(BaseModel):
                     self.package.save()
 
         os.remove(xpi_path)
-        log.debug(self.amo_status)
         if error:
             raise error
 
