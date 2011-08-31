@@ -28,16 +28,29 @@ def search(request):
     author = query.get('author')
     if author:
         filters['author'] = author.id
+
     if query.get('copies'):
         filters['copies_count__gte'] = query['copies']
+    else:
+        query['copies'] = 0
+
+    if query.get('used') and type_ != 'a':
+        # Add-ons can't be depended upon, so this query would filter out
+        # every single Add-on
+        filters['times_depended__gte'] = query['used']
+    else:
+        query['used'] = 0
 
 
     results = {}
     facets = {}
+
+    copies_facet = {'terms': {'field': 'copies_count'}}
+    times_depended_facet = {'terms': {'field': 'times_depended'}}
+    facets_ = {'copies': copies_facet, 'times_depended': times_depended_facet}
     if type_:
         filters['type'] = type_
-        qs = package_search(q, **filters).facet(copies={'terms':
-            {'field':'copies_count'}})
+        qs = package_search(q, **filters).facet(**facets_)
         try:
             results['pager'] = Paginator(qs, per_page=limit).page(page)
         except EmptyPage:
@@ -48,8 +61,9 @@ def search(request):
     else:
         # combined view
         results['addons'] = package_search(q, type='a', **filters).facet(
-                copies={'terms':{'field':'copies_count'}})[:5]
-        results['libraries'] = package_search(q, type='l', **filters)[:5]
+                **facets_)[:5]
+        results['libraries'] = package_search(q, type='l', **filters).facet(
+                **facets_)[:5]
         facets = _facets(results['addons'].facets)
         facets['everyone_total'] = facets['combined_total']
         template = 'aggregate.html'
@@ -101,10 +115,19 @@ def _facets(facets):
             max_ = copies_steps.pop()
             max_copies = max(max_copies, max_)
 
+    max_times_depended = 0
+    if 'times_depended' in facets:
+        depended_steps = [t['term'] for t in facets['times_depended']]
+        if depended_steps:
+            depended_steps.sort()
+            max_ = depended_steps.pop()
+            max_times_depended = max(max_times_depended, max_)
+
     return {
         'addon_total': type_totals.get('a', 0),
         'library_total': type_totals.get('l', 0),
         'my_total': my_total,
         'combined_total': type_totals.get('a', 0) + type_totals.get('l', 0),
         'max_copies': max_copies,
+        'max_times_depended': max_times_depended
     }
