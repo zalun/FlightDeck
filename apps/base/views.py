@@ -1,4 +1,5 @@
 import os
+import socket
 import simplejson
 
 import commonware.log
@@ -48,6 +49,7 @@ def monitor(request):
     status = True
     data = {}
 
+    # Check Read/Write
     filepaths = [
          (settings.UPLOAD_DIR, os.R_OK | os.W_OK, 'We want read + write.'),
     ]
@@ -83,22 +85,64 @@ def monitor(request):
             }
 
     data['filepaths'] = filepath_results
-    template = loader.get_template('monitor.html')
+
+    # Check celery
     try:
         data['celery_responses'] = CeleryResponse.objects.all()
     except:
         status = False
 
+    # Check ElasticSearch
     try:
         es = get_es()
         data['es_health'] = es.cluster_health()
         data['es_health']['version'] = es.collect_info()['server']['version']['number']
-    except:
+        if data['es_health']['status'] =='red':
+            status = False
+            log.warning('ElasticSearch cluster health was red.')
+    except Exception, e:
         status = False
+        log.critical('Failed to connect to ElasticSearch: %s' % e)
+
+    # Check memcached
+    memcache = getattr(settings, 'CACHES', {}).get('default')
+    memcache_results = []
+    if memcache and 'memcached' in memcache['BACKEND']:
+        hosts = memcache['LOCATION']
+        if not isinstance(hosts, (tuple, list)):
+            hosts = [hosts]
+        for host in hosts:
+            ip, port = host.split(':')
+            try:
+                s = socket.socket()
+                s.connect((ip, int(port)))
+            except Exception, e:
+                status = False
+                result = False
+                log.critical('Failed to connect to memcached (%s): %s'
+                             % (host, e))
+            else:
+                result = True
+            finally:
+                s.close()
+            memcache_results.append((ip, port, result))
+        if len(memcache_results) < 2:
+            status = False
+            log.warning('You should have 2+ memcache servers. '
+                        'You have %d.' % len(memcache_results))
+
+    if not memcache_results:
+        status = False
+        log.info('Memcached is not configured.')
+    data['memcached'] = memcache_results
+
+    # Check Redis
+    # TODO: we don't currently use redis
+
 
     context = RequestContext(request, data)
     status = 200 if status else 500
-
+    template = loader.get_template('monitor.html')
     return HttpResponse(template.render(context), status=status)
 
 
