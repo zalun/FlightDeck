@@ -13,7 +13,7 @@ module.exports = new Class({
 	Sync: {
 		'default': {
 			driver: ServerSync,
-			route: '/modules'
+			route: '/api/0/modules'
 		}
 	},
 
