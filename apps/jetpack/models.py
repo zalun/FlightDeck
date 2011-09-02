@@ -63,6 +63,23 @@ STATUS_LITE = 8
 STATUS_LITE_AND_NOMINATED = 9
 STATUS_PURGATORY = 10  # A temporary home; bug 614686
 
+
+STATUS_NAMES = {
+    STATUS_UPLOAD_SCHEDULED: "Upload Scheduled",
+    STATUS_UPLOAD_FAILED: "Upload Failed",
+    STATUS_NULL: "Null",
+    STATUS_UNREVIEWED: "Unreviewed",
+    STATUS_PENDING: "Pending",
+    STATUS_NOMINATED: "Nominated",
+    STATUS_PUBLIC: "Public",
+    STATUS_DISABLED: "Disabled",
+    STATUS_LISTED: "Listed",
+    STATUS_BETA: "Beta",
+    STATUS_LITE: "Lite",
+    STATUS_LITE_AND_NOMINATED: "Lite and Nominated",
+    STATUS_PURGATORY: "Purgatory",
+}
+
 def make_name(value=None):
     " wrap for slugify "
     return slugify(value)
@@ -158,6 +175,9 @@ class PackageRevision(BaseModel):
 
     ##################
     # AMO Integration
+
+    def get_status_name(self):
+        return STATUS_NAMES.get(self.amo_status, None)
 
     def upload_to_amo(self, hashtag):
         """Uploads Package to AMO, updates or creates as a new Addon
