@@ -1,0 +1,19 @@
+{% extends "_package_browser_addon.html" %}
+{% block amo_info %}
+<div class='UI_AMO_Info'>
+    <h2>AMO Status</h2>
+    <p>latest version: <span class='amo-latest_version no-data'>---</span></p>
+    <p>last updated: <span class="amo-last_updated no-data">---</span></p>
+    <p>review status: <span class="amo-review_status no-data">---</span></p>
+
+    <ul class="UI_AMO_Actions">
+        {% if item.amo_id %}
+            <li class="UI_AMO_upload_new_version" data-url="">upload new version</li>
+            <li class="UI_AMO_view_history" data-url="">view history</li>
+            <li class="UI_AMO_view_on_amo"><a href="" target="">view on AMO</a></li>
+        {% else %}
+            <li class="UI_AMO_upload_new_addon" data-url="">upload to AMO</li>
+        {% endif %}
+    </ul>
+</div>
+{% endblock %}

@@ -4,6 +4,7 @@
 
 {% block head_continue %}
 	<link rel="stylesheet" href="/media/jetpack/css/UI.Browser.css" type="text/css" media="screen" />
+	<link rel="stylesheet" href="/media/person/css/UI.Dashboard.css" type="text/css" media="screen" />
 	<script src="/media/jetpack/js/FlightDeck.Browser.js"></script>
 	<script src="/media/person/js/Dashboard.js"></script>
 {% endblock %}
@@ -14,7 +15,7 @@
 		<ul class="UI_Browser">
 			{% for item in addons %}
 				<li class="UI_Item">
-					{% include "_package_browser_addon.html" %}
+					{% include "_dashboard_addon.html" %}
 				</li>
 			{% endfor %}
 		</ul>
