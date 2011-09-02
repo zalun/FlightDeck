@@ -204,7 +204,7 @@ class PackageRevision(BaseModel):
                     # TODO: update jetpack ID if needed
             else:
                 # create addon on AMO
-                log.info('AMOOAUTHAPI: creating addon %s version %s' % (
+                log.info('AMOOAUTHAPI: creating addon %s amo_version %s' % (
                     self, self.amo_version_name))
                 data.update({'platform': 'all'})
                 try:
@@ -222,7 +222,6 @@ class PackageRevision(BaseModel):
                     self.package.save()
 
         os.remove(xpi_path)
-        log.debug(self.amo_status)
         if error:
             raise error
 
@@ -1033,7 +1032,9 @@ class PackageRevision(BaseModel):
         if save:
             # save as new version
             self.save()
-        return self.dependencies.add(dep)
+        ret = self.dependencies.add(dep)
+        dep.package.refresh_index()
+        return ret
 
     def compare_dependency_conflicts(self, dep, as_upgrade=False):
         """
@@ -1117,7 +1118,9 @@ class PackageRevision(BaseModel):
                     'dependency (%s) removed' % dep.name)
             # save as new version
             self.save()
-            return self.dependencies.remove(dep)
+            ret = self.dependencies.remove(dep)
+            dep.package.refresh_index()
+            return ret
         raise DependencyException(
             'There is no such library in this %s' \
             % self.package.get_type_name())
@@ -1739,6 +1742,11 @@ class Package(BaseModel, SearchMixin):
                 data['dependencies'] = [dep.package.id for dep in deps]
         except PackageRevision.DoesNotExist:
             pass
+
+        if self.is_library():
+            data['times_depended'] = (Package.objects
+                    .filter(latest__dependencies__in=self.revisions.all())
+                    .count())
 
         try:
             es.index(data, settings.ES_INDEX, self._meta.db_table, id=self.id,

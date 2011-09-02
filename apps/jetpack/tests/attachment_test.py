@@ -22,7 +22,6 @@ from jetpack.errors import FilenameExistException
 
 log = commonware.log.getLogger('f.test')
 
-
 class AttachmentTest(TestCase):
     """Testing attachment methods."""
 
@@ -106,6 +105,8 @@ class TestViews(TestCase):
         if not os.path.exists(settings.UPLOAD_DIR):
             os.makedirs(settings.UPLOAD_DIR)
 
+        self.tempdir = tempfile.mkdtemp()
+
         self.author = User.objects.get(username='john')
         self.author.set_password('password')
         self.author.save()
@@ -118,6 +119,9 @@ class TestViews(TestCase):
         self.upload_url = self.get_upload_url(self.revision.revision_number)
         self.change_url = self.get_change_url(self.revision.revision_number)
         self.client.login(username=self.author.username, password='password')
+
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
 
     def test_attachment_error(self):
         res = self.client.post(self.add_url, {})
@@ -149,14 +153,15 @@ class TestViews(TestCase):
 
     def upload(self, url, data, filename):
         # A post that matches the JS and uses raw_post_data.
-        f = open('upload_attachment', 'w')
+        attachment = os.path.join(self.tempdir, 'upload_attachment')
+        f = open(attachment, 'w')
         f.write(data)
         f.close()
-        f = open('upload_attachment', 'r')
+        f = open(attachment, 'r')
         resp = self.client.post(url, { 'upload_attachment': f },
                                 HTTP_X_FILE_NAME=filename)
         f.close()
-        os.unlink('upload_attachment')
+        os.unlink(attachment)
         return resp
 
     def test_attachment_path(self):
