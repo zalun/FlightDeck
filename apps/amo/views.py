@@ -52,10 +52,13 @@ def get_addon_details(request, pk):
     """
     # get PackageRevision
     revision = PackageRevision.objects.get(pk=pk)
-    # check if Package is synced with the AMO
-    if not revision.package.amo_id:
-        return HttpResponse('{}', mimetype="application/json")
+    # check if Package is synced with the AMO and last update was successful
+    if (not revision.package.amo_id
+            or revision.amo_status == STATUS_UPLOAD_FAILED):
+        return HttpResponse('{}')# mimetype="application/json")
+
     # pull info
-    amo_meta = _get_addon_details(revision.package.amo_id)
-    return HttpResponse(simplejson.dumps(amo_meta),
-                        mimetype="application/json")
+    amo_meta = _get_addon_details(revision.package.amo_id,
+                                  revision.amo_file_id)
+    return HttpResponse(simplejson.dumps(amo_meta))
+                        #mimetype="application/json")
