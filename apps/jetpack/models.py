@@ -138,6 +138,8 @@ class PackageRevision(BaseModel):
     amo_status = models.IntegerField(blank=True, null=True)
     #: version name used to upload to AMO
     amo_version_name = models.CharField(max_length=250, blank=True, null=True)
+    #: AMO file ID used to identify version
+    amo_file_id = models.IntegerField(blank=True, null=True)
 
     #: Libraries on which current package depends
     dependencies = models.ManyToManyField('self', blank=True, null=True,
@@ -220,6 +222,7 @@ class PackageRevision(BaseModel):
                     # XXX: AMO's response should contain status
                     #self.amo_status = response['status']
                     self.amo_status = STATUS_UNREVIEWED
+                    self.amo_file_id = response['id']
                     super(PackageRevision, self).save()
                     # TODO: update jetpack ID if needed
             else:
