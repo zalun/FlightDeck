@@ -8,12 +8,12 @@
 
     <ul class="UI_AMO_Actions">
         {% if item.amo_id %}
-        {% if item.latest.amo_version_name == item.latest.get_version_name and item.latest.amo_status != -2 %}
-        <li class="UI_AMO_version_uploaded">upload new version</li> 
-        {% else %}
-        <li class="UI_AMO_upload_new_version" 
-            data-url="{{ item.latest.get_upload_to_amo_url }}"><a>upload new version</a></li>
-        {% endif %}
+            {% if item.latest.is_uploaded %}
+            <li class="UI_AMO_version_uploaded">upload new version</li> 
+            {% else %}
+            <li class="UI_AMO_upload_new_version" 
+                data-url="{{ item.latest.get_upload_to_amo_url }}"><a>upload new version</a></li>
+            {% endif %}
         {# <li class="UI_AMO_view_history" data-url=""><a>view history</a></li> #}
         <li class="UI_AMO_view_on_amo"><a href="" target="">view on AMO</a></li>
         {% else %}

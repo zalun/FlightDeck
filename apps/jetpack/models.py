@@ -178,7 +178,15 @@ class PackageRevision(BaseModel):
     ##################
     # AMO Integration
 
+    def is_uploaded(self):
+        """Find out if this revision has been uploaded successfuly to AMO
+        """
+        return (self.amo_version_name == self.get_version_name()
+                and self.amo_status != STATUS_UPLOAD_FAILED)
+
     def get_status_name(self):
+        """:returns: (string) the name of the AMO status or None
+        """
         return STATUS_NAMES.get(self.amo_status, None)
 
     def upload_to_amo(self, hashtag):
