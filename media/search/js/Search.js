@@ -92,7 +92,7 @@ SearchResult.setupUI = function(result) {
         var container = $(filter + 'Filter'),
             dataKey = filter.toLowerCase();
 
-        if (container) {
+        if (container && !container.hasClass('disabled')) {
         
             var sliderEl = container.getElement('.slider'),
                 knobEl = sliderEl.getElement('.knob'),
@@ -126,6 +126,10 @@ SearchResult.setupUI = function(result) {
             slider.sanityCheck = true;
 
             ui.sliders[dataKey] = slider;
+        } else {
+            var loc = new URI(String(window.location));
+            loc.setData(dataKey, 0);
+            SearchResult.page(loc);
         }
     });
 };
