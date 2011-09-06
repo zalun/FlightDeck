@@ -48,9 +48,9 @@ def get_addon_details(amo_id, amo_file_id=None):
     try:
         page = urllib2.urlopen(req, timeout=settings.URLOPEN_TIMEOUT)
     except Exception, error:
-        log.critical(("AMOAPI: ERROR receiving add-on info from \"%s\""
-            "\n%s") % (url, str(error)))
-        raise
+        msg = "AMOAPI: ERROR receiving add-on info from \"%s\"%s%s"
+        log.critical(msg % (url, '\n', str(error)))
+        return {'error': msg % (url, ' : ', str(error))}
     amo_xml = etree.fromstring(page.read())
     amo_data = {}
     for element in amo_xml.iter():
@@ -58,4 +58,3 @@ def get_addon_details(amo_id, amo_file_id=None):
             amo_data[element.tag] = element.text
     # return dict
     return amo_data
-

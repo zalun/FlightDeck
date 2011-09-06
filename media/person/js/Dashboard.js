@@ -16,6 +16,9 @@ FlightDeck = Class.refactor(FlightDeck, {
         }
         $$('.UI_AMO_Upload_New_Version a').addEvent('click', this.uploadToAMO);
         $$('.UI_AMO_Upload_New_Addon a').addEvent('click', this.uploadToAMO);
+        $$('.UI_AMO_Info').each(function(status_el) {
+            this.getStatusFromAMO(status_el);
+        }, this);
     },
 
     /*
@@ -33,7 +36,7 @@ FlightDeck = Class.refactor(FlightDeck, {
         $log(el);
 
 		new Request.JSON({
-			url: el.get('data-url'),
+			url: el.get('data-upload_url'),
             useSpinner: true,
             spinnerTarget: el.getElement('a'),
             spinnerOptions: {
@@ -51,6 +54,42 @@ FlightDeck = Class.refactor(FlightDeck, {
                                  '/en-US/developers/addons" target="amo_dashboard">AMO dashboard</a>');
 			}
 		}).send();
-
     },
+
+    /*
+     * Method: getStatusFromAMO
+     * pull Add-o status from AMO and update data on the page
+     */
+    getStatusFromAMO: function(status_el) {
+        if (!status_el.get('data-uploaded')) {
+            return;
+        }
+        var pk = status_el.get('data-revision_id');
+        new Request.JSON({
+            url: status_el.get('data-pull_info_url'),
+            useSpinner: true,
+            spinnerTarget: status_el.getElements('h2')[0],
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                },
+                maskBorder: false
+            },
+            onSuccess: function(response) {
+                this.updateStatus(status_el, response);
+            }.bind(this)
+        }).send();
+    },
+
+    /*
+     * Method: updateStatus
+     * update data on the page
+     */
+    updateStatus: function(status_el, data) {
+        var update = function(className, content) {
+            status_el.getElements(className)[0].set('text', content).highlight();
+        };
+        if (data.status) update('.amo-review_status', data.status);
+        if (data.version) update('.amo-latest_version', data.version);
+    }
 });

@@ -184,6 +184,11 @@ class PackageRevision(BaseModel):
         return (self.amo_version_name == self.get_version_name()
                 and self.amo_status != STATUS_UPLOAD_FAILED)
 
+    def get_amo_status_url(self):
+        """:returns: (string) url to pull amo_status view
+        """
+        return reverse('amo_get_addon_details', args=[self.pk])
+
     def get_status_name(self):
         """:returns: (string) the name of the AMO status or None
         """
@@ -197,6 +202,7 @@ class PackageRevision(BaseModel):
         # open XPI File
         xpi_path = os.path.join(settings.XPI_TARGETDIR,
                                 os.path.join('%s.xpi' % hashtag))
+        self.package.latest_uploaded = self
         with open(xpi_path) as xpi_file:
             # upload
             try:
@@ -250,8 +256,8 @@ class PackageRevision(BaseModel):
                     self.amo_status = response['status']
                     super(PackageRevision, self).save()
                     self.package.amo_id = response['id']
-                    self.package.save()
 
+        self.package.save()
         os.remove(xpi_path)
         if error:
             raise error
@@ -690,6 +696,8 @@ class PackageRevision(BaseModel):
         self.commit_message = ''
         self.origin = origin
         self.revision_number = self.get_next_revision_number()
+        self.amo_version_name = None
+        self.amo_status = None
 
         save_return = super(PackageRevision, self).save(**kwargs)
 
@@ -1418,6 +1426,9 @@ class Package(BaseModel, SearchMixin):
 
     #: identification in AMO
     amo_id = models.IntegerField(blank=True, null=True)
+    #: latest uploaded revision
+    latest_uploaded = models.ForeignKey('PackageRevision',
+            blank=True, null=True, related_name='+')
 
     #: name of the Package
     full_name = models.CharField(max_length=255, blank=True)

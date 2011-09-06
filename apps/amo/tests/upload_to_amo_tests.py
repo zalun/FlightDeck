@@ -55,12 +55,18 @@ class UploadTest(TestCase):
         self.addonrev.amo_status = STATUS_PUBLIC
         self.addonrev.amo_version_name = self.addonrev.get_version_name()
         self.addonrev.package.amo_id = self.ADDON_AMO_ID
-        # create a new revision
+        self.addonrev.package.latest_uploaded = self.addonrev
+        self.addonrev.package.save()
+        # create a new "clean" revision
         self.addonrev.save()
+        assert not self.addonrev.amo_version_name
+        assert not self.addonrev.amo_status
+        # upload it to AMO
         upload_to_amo(self.addonrev.pk, self.hashtag)
-        # checking status and other attributes
+        # test status and other attributes
         addonrev = Package.objects.get(name='test-addon',
                                        author__username='john').latest
+        eq_(addonrev.pk, addonrev.package.latest_uploaded.pk)
         eq_(addonrev.amo_version_name,
                 'initial.rev%d' % addonrev.revision_number)
         eq_(addonrev.amo_file_id, self.AMO_FILE_ID)
