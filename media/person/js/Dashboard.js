@@ -14,8 +14,8 @@ FlightDeck = Class.refactor(FlightDeck, {
                 })
             })
         }
-        $$('.UI_AMO_upload_new_version a').addEvent('click', this.uploadToAMO);
-        $$('.UI_AMO_upload_new_addon a').addEvent('click', this.uploadToAMO);
+        $$('.UI_AMO_Upload_New_Version a').addEvent('click', this.uploadToAMO);
+        $$('.UI_AMO_Upload_New_Addon a').addEvent('click', this.uploadToAMO);
     },
 
     /*

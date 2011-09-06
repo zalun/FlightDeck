@@ -9,15 +9,15 @@
     <ul class="UI_AMO_Actions">
         {% if item.amo_id %}
             {% if item.latest.is_uploaded %}
-            <li class="UI_AMO_version_uploaded">upload new version</li> 
+            <li class="UI_AMO_Version_Uploaded">upload new version</li> 
             {% else %}
-            <li class="UI_AMO_upload_new_version" 
+            <li class="UI_AMO_Upload_New_Version" 
                 data-url="{{ item.latest.get_upload_to_amo_url }}"><a>upload new version</a></li>
             {% endif %}
-        {# <li class="UI_AMO_view_history" data-url=""><a>view history</a></li> #}
-        <li class="UI_AMO_view_on_amo"><a href="" target="">view on AMO</a></li>
+        {# <li class="UI_AMO_View_History" data-url=""><a>view history</a></li> #}
+        <li class="UI_AMO_View_On_AMO"><a href="" target="">view on AMO</a></li>
         {% else %}
-        <li class="UI_AMO_upload_new_addon" 
+        <li class="UI_AMO_Upload_New_Addon" 
             data-url="{{ item.latest.get_upload_to_amo_url }}"><a>upload to AMO</a></li>
         {% endif %}
     </ul>

@@ -51,7 +51,7 @@ def get_addon_details(request, pk):
     :returns: add-on metadata or empty dict in JSON format
     """
     # get PackageRevision
-    revision = PackageRevision.objects.get(pk=pk)
+    revision = get_object_or_404(PackageRevision, pk=pk)
     # check if Package is synced with the AMO and last update was successful
     if (not revision.package.amo_id
             or revision.amo_status == STATUS_UPLOAD_FAILED):
