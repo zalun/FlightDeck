@@ -21,7 +21,8 @@ log = commonware.log.getLogger('f.repackage')
 
 
 class Extractor(object):
-    """Extracts manifest from ``install.rdf``
+    """
+    Extracts manifest from ``install.rdf``
 
     modified ``Extractor`` class from ``zamboni/apps/versions/compare.py``
     """
@@ -35,7 +36,8 @@ class Extractor(object):
         self.data = {}
 
     def read_manifest(self, package_overrides={}):
-        """Extracts data from ``install.rdf``, assignes it to ``self.data``
+        """
+        Extracts data from ``install.rdf``, assignes it to ``self.data``
 
         :param: target_version (String) forces the version
         :returns: dict
@@ -91,7 +93,8 @@ class Extractor(object):
 class Repackage(object):
 
     def download(self, location):
-        """Downloads the XPI (from ``location``) and
+        """
+        Downloads the XPI (from ``location``) and
         instantiates XPI in ``self.xpi_zip``
 
         This eventually will record statistics about build times
@@ -130,7 +133,8 @@ class Repackage(object):
         xpi_remote_file.close()
 
     def retrieve(self, xpi_from):
-        """Handles upload
+        """
+        Handles upload
 
         :param: xpi_from (element of request.FILES)
         """
@@ -140,7 +144,8 @@ class Repackage(object):
         self.xpi_zip = zipfile.ZipFile(self.xpi_temp)
 
     def rebuild(self, sdk_source_dir, hashtag, package_overrides={}):
-        """Drive the rebuild process
+        """
+        Drive the rebuild process
 
         :param: sdk_source_dir (String) absolute path of the SDK
         :param: hashtag (String) filename for the buid XPI
@@ -159,7 +164,8 @@ class Repackage(object):
         return response
 
     def get_manifest(self, package_overrides={}):
-        """extracts manifest from ``install.rdf`` it does not contain all
+        """
+        extracts manifest from ``install.rdf`` it does not contain all
         dependencies, these will be appended during copying package files
 
         Sets the ``self.manifest`` field
@@ -178,7 +184,7 @@ class Repackage(object):
         self.manifest['name'] = self.harness_options.get('name',
                 slugify(self.manifest['fullName']))
         # add default dependency
-        self.manifest['dependencies'] = ['addon-kit']
+        self.manifest['dependencies'] = ['addon-kit', 'api-utils']
 
     def extract_packages(self, sdk_source_dir):
         """Builds SDK environment and calls the :method:`xpi.xpi_utils.build`
