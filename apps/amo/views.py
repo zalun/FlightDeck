@@ -5,9 +5,9 @@ from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponse, HttpResponseNotAllowed, HttpResponseBadRequest
 
 from amo import tasks
+from amo.constants import *
 from amo.helpers import get_addon_details as _get_addon_details
-from jetpack.models import (PackageRevision,
-        STATUS_UPLOAD_FAILED, STATUS_UPLOAD_SCHEDULED)
+from jetpack.models import PackageRevision
 from utils.exceptions import SimpleException
 
 log = commonware.log.getLogger('f.amo')

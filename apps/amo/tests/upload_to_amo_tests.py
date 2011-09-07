@@ -9,10 +9,10 @@ from test_utils import TestCase
 from django.contrib.auth.models import User
 from django.conf import settings
 
+from amo.constants import *
 from amo.tasks import upload_to_amo
 from base.templatetags.base_helpers import hashtag
-from jetpack.models import (Package, PackageRevision, STATUS_UNREVIEWED,
-        STATUS_PUBLIC, STATUS_NULL)
+from jetpack.models import Package, PackageRevision
 from utils.amo import AMOOAuth
 
 log = commonware.log.getLogger('f.test')
