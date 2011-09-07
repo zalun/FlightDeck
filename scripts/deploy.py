@@ -88,6 +88,3 @@ def update_flightdeck(ctx):
 
     # Run management commands like this:
     # manage_cmd(ctx, 'cmd')
-
-    # For 0.9.10
-    manage_cmd(ctx, 'cron index_all')
