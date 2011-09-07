@@ -19,7 +19,7 @@ def alphanum(text):
 
 
 def alphanum_plus(text):
-    return re.sub('[^a-zA-Z0-9\s\.,_\-\*&%\$#@:\(\)!]+', '', text.strip())
+    return re.sub('[^a-zA-Z0-9\s\.,_\-\*&%\$#@:\(\)!\{\}\[\]\^\'\\/\?]+', '', text.strip())
 
 def pathify(path):
     """ Replaces all characters except alpanum, dash, underscore, and slash with a dash """
