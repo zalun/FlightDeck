@@ -2,11 +2,11 @@
 	<h3>Edit {full_name} info</h3>
 	<fieldset>
 		<label class="UI_Field">
-			<span>{{ revision.package.get_type_name|capfirst }} Name</span>
+			<span>{{ revision.package.get_type_name_with_dash|capfirst }} Name</span>
             <input type="text" name="full_name" id="full_name" class="validate-alphanum_plus_space" value="{full_name}"/>
 		</label>
 		<label class="UI_Field">
-			<span>{{ revision.package.get_type_name|capfirst }} Description</span>
+			<span>{{ revision.package.get_type_name_with_dash|capfirst }} Description</span>
 			<textarea id="package_description" name="package_description" rows="8" cols="40">{{ revision.package.description }}</textarea>
 		</label>
         <label class="UI_Field">
