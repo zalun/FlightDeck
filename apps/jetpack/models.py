@@ -1526,8 +1526,17 @@ class Package(BaseModel, SearchMixin):
         return self.is_core()
 
     def get_type_name(self):
-        " return name of the type (add-on / library) "
+        """name of the type (addon / library) "
+        :returns: (string)
+        """
         return settings.PACKAGE_SINGULAR_NAMES[self.type]
+
+    def get_type_name_with_dash(self):
+        """workaround to provide name of the type (add-on / library) "
+        :returns: (string)
+        """
+        name = settings.PACKAGE_SINGULAR_NAMES[self.type]
+        return 'add-on' if name == 'addon' else name
 
     def default_id_number(self):
         self.id_number = _get_next_id_number()
