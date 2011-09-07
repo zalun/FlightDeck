@@ -31,6 +31,7 @@ from pyes.exceptions import NotFoundException as PyesNotFoundException
 
 from statsd import statsd
 
+from amo.constants import *
 from base.models import BaseModel
 from jetpack.errors import (SelfDependencyException, FilenameExistException,
                             UpdateDeniedException, SingletonCopyException,
@@ -44,24 +45,9 @@ from utils.os_utils import make_path
 from utils.amo import AMOOAuth
 from xpi import xpi_utils
 
+
 log = commonware.log.getLogger('f.jetpack')
 
-# XXX: We need to implement constants somehow
-# Flightdeck <-> AMO integration statuses
-STATUS_UPLOAD_SCHEDULED = -1
-STATUS_UPLOAD_FAILED = -2
-# Add-on and File statuses.
-STATUS_NULL = 0
-STATUS_UNREVIEWED = 1
-STATUS_PENDING = 2
-STATUS_NOMINATED = 3
-STATUS_PUBLIC = 4
-STATUS_DISABLED = 5
-STATUS_LISTED = 6
-STATUS_BETA = 7
-STATUS_LITE = 8
-STATUS_LITE_AND_NOMINATED = 9
-STATUS_PURGATORY = 10  # A temporary home; bug 614686
 
 def make_name(value=None):
     " wrap for slugify "
@@ -121,6 +107,8 @@ class PackageRevision(BaseModel):
     amo_status = models.IntegerField(blank=True, null=True)
     #: version name used to upload to AMO
     amo_version_name = models.CharField(max_length=250, blank=True, null=True)
+    #: AMO file ID used to identify version
+    amo_file_id = models.IntegerField(blank=True, null=True)
 
     #: Libraries on which current package depends
     dependencies = models.ManyToManyField('self', blank=True, null=True,
@@ -159,6 +147,22 @@ class PackageRevision(BaseModel):
     ##################
     # AMO Integration
 
+    def is_uploaded(self):
+        """Find out if this revision has been uploaded successfuly to AMO
+        """
+        return (self.amo_version_name == self.get_version_name()
+                and self.amo_status != STATUS_UPLOAD_FAILED)
+
+    def get_amo_status_url(self):
+        """:returns: (string) url to pull amo_status view
+        """
+        return reverse('amo_get_addon_details', args=[self.pk])
+
+    def get_status_name(self):
+        """:returns: (string) the name of the AMO status or None
+        """
+        return STATUS_NAMES.get(self.amo_status, None)
+
     def upload_to_amo(self, hashtag):
         """Uploads Package to AMO, updates or creates as a new Addon
 
@@ -167,6 +171,7 @@ class PackageRevision(BaseModel):
         # open XPI File
         xpi_path = os.path.join(settings.XPI_TARGETDIR,
                                 os.path.join('%s.xpi' % hashtag))
+        self.package.latest_uploaded = self
         with open(xpi_path) as xpi_file:
             # upload
             try:
@@ -200,6 +205,7 @@ class PackageRevision(BaseModel):
                     # XXX: AMO's response should contain status
                     #self.amo_status = response['status']
                     self.amo_status = STATUS_UNREVIEWED
+                    self.amo_file_id = response['id']
                     super(PackageRevision, self).save()
                     # TODO: update jetpack ID if needed
             else:
@@ -219,8 +225,8 @@ class PackageRevision(BaseModel):
                     self.amo_status = response['status']
                     super(PackageRevision, self).save()
                     self.package.amo_id = response['id']
-                    self.package.save()
 
+        self.package.save()
         os.remove(xpi_path)
         if error:
             raise error
@@ -659,6 +665,8 @@ class PackageRevision(BaseModel):
         self.commit_message = ''
         self.origin = origin
         self.revision_number = self.get_next_revision_number()
+        self.amo_version_name = None
+        self.amo_status = None
 
         save_return = super(PackageRevision, self).save(**kwargs)
 
@@ -1387,6 +1395,9 @@ class Package(BaseModel, SearchMixin):
 
     #: identification in AMO
     amo_id = models.IntegerField(blank=True, null=True)
+    #: latest uploaded revision
+    latest_uploaded = models.ForeignKey('PackageRevision',
+            blank=True, null=True, related_name='+')
 
     #: name of the Package
     full_name = models.CharField(max_length=255, blank=True)

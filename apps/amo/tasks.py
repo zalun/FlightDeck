@@ -5,8 +5,8 @@ from utils.exceptions import SimpleException
 
 from celery.decorators import task
 
-from jetpack.models import (PackageRevision,
-        STATUS_UPLOAD_FAILED, STATUS_UPLOAD_SCHEDULED)
+from amo.constants import *
+from jetpack.models import PackageRevision
 from utils.helpers import get_random_string
 from xpi import xpi_utils
 

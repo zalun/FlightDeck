@@ -1,0 +1,32 @@
+{% extends "_package_browser_addon.html" %}
+{% block amo_info %}
+<div class='UI_AMO_Info' 
+        data-revision_id="{{ item.latest_uploaded.pk }}" 
+        data-uploaded="{% if item.amo_id and item.latest_uploaded and item.latest_uploaded.amo_status != -2 %}1{% endif %}"
+        data-pull_info_url="{{ item.latest_uploaded.get_amo_status_url }}">
+    <h2>AMO Status</h2>
+    <p>version: 
+    <span class='amo-latest_version'>{{ item.latest_uploaded.amo_version_name|default:"---"}}</span>
+    </p>
+    {# <p>last updated: <span class="amo-last_updated no-data">---</span></p> #}
+    <p>review status: 
+    <span class="amo-review_status">{{ item.latest_uploaded.get_status_name|default:"---"}}</span>
+    </p>
+
+    <ul class="UI_AMO_Actions">
+        {% if item.amo_id %}
+            {% if item.latest.is_uploaded %}
+            <li class="UI_AMO_Version_Uploaded">upload new version</li> 
+            {% else %}
+            <li class="UI_AMO_Upload_New_Version" 
+                data-upload_url="{{ item.latest.get_upload_to_amo_url }}"><a>upload new version</a></li>
+            {% endif %}
+        {# <li class="UI_AMO_View_History" data-url=""><a>view history</a></li> #}
+        <li class="UI_AMO_View_On_AMO"><a href="" target="">view on AMO</a></li>
+        {% else %}
+        <li class="UI_AMO_Upload_New_Addon" 
+            data-upload_url="{{ item.latest.get_upload_to_amo_url }}"><a>upload to AMO</a></li>
+        {% endif %}
+    </ul>
+</div>
+{% endblock %}

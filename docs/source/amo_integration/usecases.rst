@@ -15,8 +15,8 @@ Upload to AMO
 * Builder is scheduling a task which creates ``XPI``, changes the status
   to ``STATUS_UPLOAD_SCHEDULED`` and uploads it to AMO
 
-* User receives a notification ``Upload to AMO is scheduled, you can
-  leave the page``
+* User receives a notification ``Upload to AMO is scheduled`` with a
+  link to AMO Dashboard
 
 * After the upload has been done:
   
