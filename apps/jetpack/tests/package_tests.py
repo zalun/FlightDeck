@@ -80,7 +80,7 @@ class PackageTest(TestCase):
 
     def test_package_sanitization(self):
         bad_text = 'Te$t"><script src="google.com"></script>!#'
-        good_text = 'Te$tscript srcgoogle.comscript!#'
+        good_text = 'Te$tscript srcgoogle.com/script!#'
 
         package = Package(
             author=self.author,
@@ -94,7 +94,6 @@ class PackageTest(TestCase):
         eq_(package.full_name, good_text)
         eq_(package.description, good_text)
         eq_(package.version_name, good_text)
-
 
     def test_automatic_numbering(self):
         Package(
@@ -226,10 +225,10 @@ class PackageTest(TestCase):
         eq_(Package.objects.active().filter(type='a').count(), 0)
         eq_(Package.objects.active(viewer=self.author).filter(type='a').count(), 1)
         return addon
-    
+
     def test_enable(self):
         addon = self.test_disable()
-        
+
         addon.enable()
         eq_(Package.objects.active().filter(type='a').count(), 1)
 
@@ -324,3 +323,14 @@ class PackageTest(TestCase):
         assert "(copy 1)" not in addon_copy.full_name
         assert "(copy 2)" not in addon_copy.full_name
         assert "(copy 3)" in addon_copy.full_name
+
+    def test_description_characters(self):
+        addon = Package.objects.create(author=self.author, type='a')
+        description = "abcdefghijklmnoprstuwxyz!@#$%^&*(){}[]:',./?"
+        addon.description = description
+        addon.save()
+        addon_saved = Package.objects.get(author=self.author, type='a')
+        eq_(addon_saved.description, description)
+
+
+

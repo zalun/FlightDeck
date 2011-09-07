@@ -337,14 +337,14 @@ class PackageRevisionTest(TestCase):
         rev.add_commit_message('one')
         rev.add_commit_message('two')
         rev.save()
-        
+
         eq_(rev.commit_message, 'one, two')
-        
+
         # revision has been saved, so we should be building up a new commit message
         rev.add_commit_message('three')
         rev.save()
         eq_(rev.commit_message, 'three')
-    
+
 
     def test_force_sdk(self):
         addon = Package.objects.create(
