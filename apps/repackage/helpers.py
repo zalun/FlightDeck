@@ -152,6 +152,7 @@ class Repackage(object):
         :param: target_version (String)
         """
         self.get_manifest(package_overrides=package_overrides)
+        log.debug('[%s] Manifest: %s' % (hashtag, self.manifest))
         sdk_dir = self.extract_packages(sdk_source_dir)
         # build xpi
         log.debug("[%s] Rebuilding XPI" % hashtag)
@@ -217,6 +218,7 @@ class Repackage(object):
         dependencies = []
 
         def _extract(f, name, resource_dir_prefix):
+            log.debug('Extracting file %s, name: %s' % (f, name))
             # extract only package files
             if name not in f or resource_dir_prefix not in f:
                 return
@@ -246,6 +248,8 @@ class Repackage(object):
                             "(%s) required by (%s)\n%s" % (
                             current_package_name, package_name, str(err)))
                     return
+                log.debug('Opening %s' % (os.path.join(sdk_dir, 'packages',
+                    current_package_name, 'package.json')))
                 with open(os.path.join(sdk_dir, 'packages',
                     current_package_name, 'package.json'),
                         'w') as manifest:
