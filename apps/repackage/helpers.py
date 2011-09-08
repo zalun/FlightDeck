@@ -285,6 +285,9 @@ class Repackage(object):
         self.manifest['dependencies'].extend(dependencies)
 
         # create add-on's package.json
+        log.debug('Writing manifest %s, %s' % (os.path.join(
+                sdk_dir, 'packages', package_name, 'package.json'),
+                self.manifest))
         with open(os.path.join(
                 sdk_dir, 'packages', package_name, 'package.json'),
                 'w') as manifest:
