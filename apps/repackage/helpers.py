@@ -218,7 +218,6 @@ class Repackage(object):
         dependencies = []
 
         def _extract(f, name, resource_dir_prefix):
-            log.debug('Extracting file %s, name: %s' % (f, name))
             # extract only package files
             if name not in f or resource_dir_prefix not in f:
                 return
@@ -232,6 +231,7 @@ class Repackage(object):
             # create lib, data and tests directories
             if (current_package_name, name) not in exporting:
                 # create appropriate directory
+                log.debug("Creating directory %s" % get_package_dir(name, current_package_name))
                 os.makedirs(get_package_dir(name, current_package_name))
                 exporting.append((current_package_name, name))
 
