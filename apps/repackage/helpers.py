@@ -21,7 +21,8 @@ log = commonware.log.getLogger('f.repackage')
 
 
 class Extractor(object):
-    """Extracts manifest from ``install.rdf``
+    """
+    Extracts manifest from ``install.rdf``
 
     modified ``Extractor`` class from ``zamboni/apps/versions/compare.py``
     """
@@ -35,7 +36,8 @@ class Extractor(object):
         self.data = {}
 
     def read_manifest(self, package_overrides={}):
-        """Extracts data from ``install.rdf``, assignes it to ``self.data``
+        """
+        Extracts data from ``install.rdf``, assignes it to ``self.data``
 
         :param: target_version (String) forces the version
         :returns: dict
@@ -91,7 +93,8 @@ class Extractor(object):
 class Repackage(object):
 
     def download(self, location):
-        """Downloads the XPI (from ``location``) and
+        """
+        Downloads the XPI (from ``location``) and
         instantiates XPI in ``self.xpi_zip``
 
         This eventually will record statistics about build times
@@ -130,7 +133,8 @@ class Repackage(object):
         xpi_remote_file.close()
 
     def retrieve(self, xpi_from):
-        """Handles upload
+        """
+        Handles upload
 
         :param: xpi_from (element of request.FILES)
         """
@@ -140,13 +144,15 @@ class Repackage(object):
         self.xpi_zip = zipfile.ZipFile(self.xpi_temp)
 
     def rebuild(self, sdk_source_dir, hashtag, package_overrides={}):
-        """Drive the rebuild process
+        """
+        Drive the rebuild process
 
         :param: sdk_source_dir (String) absolute path of the SDK
         :param: hashtag (String) filename for the buid XPI
         :param: target_version (String)
         """
         self.get_manifest(package_overrides=package_overrides)
+        log.debug('[%s] Manifest: %s' % (hashtag, self.manifest))
         sdk_dir = self.extract_packages(sdk_source_dir)
         # build xpi
         log.debug("[%s] Rebuilding XPI" % hashtag)
@@ -159,7 +165,8 @@ class Repackage(object):
         return response
 
     def get_manifest(self, package_overrides={}):
-        """extracts manifest from ``install.rdf`` it does not contain all
+        """
+        extracts manifest from ``install.rdf`` it does not contain all
         dependencies, these will be appended during copying package files
 
         Sets the ``self.manifest`` field
@@ -178,7 +185,7 @@ class Repackage(object):
         self.manifest['name'] = self.harness_options.get('name',
                 slugify(self.manifest['fullName']))
         # add default dependency
-        self.manifest['dependencies'] = ['addon-kit']
+        self.manifest['dependencies'] = ['addon-kit', 'api-utils']
 
     def extract_packages(self, sdk_source_dir):
         """Builds SDK environment and calls the :method:`xpi.xpi_utils.build`
@@ -224,6 +231,7 @@ class Repackage(object):
             # create lib, data and tests directories
             if (current_package_name, name) not in exporting:
                 # create appropriate directory
+                log.debug("Creating package directory %s" % get_package_dir(name, current_package_name))
                 os.makedirs(get_package_dir(name, current_package_name))
                 exporting.append((current_package_name, name))
 
@@ -240,6 +248,8 @@ class Repackage(object):
                             "(%s) required by (%s)\n%s" % (
                             current_package_name, package_name, str(err)))
                     return
+                log.debug('Opening %s' % (os.path.join(sdk_dir, 'packages',
+                    current_package_name, 'package.json')))
                 with open(os.path.join(sdk_dir, 'packages',
                     current_package_name, 'package.json'),
                         'w') as manifest:
@@ -262,6 +272,7 @@ class Repackage(object):
                 if not os.path.isdir(parent_dir):
                     os.makedirs(parent_dir)
                 # export file
+                log.debug("Creating module %s" % f_name)
                 with open(f_name, 'w') as f_file:
                     f_file.write(self.xpi_zip.open(f).read())
 
@@ -275,10 +286,20 @@ class Repackage(object):
         self.manifest['dependencies'].extend(dependencies)
 
         # create add-on's package.json
-        with open(os.path.join(
+        log.debug('Writing manifest %s, %s' % (os.path.join(
                 sdk_dir, 'packages', package_name, 'package.json'),
-                'w') as manifest:
-            manifest.write(simplejson.dumps(self.manifest))
+                self.manifest))
+        package_dir = os.path.join(
+                    sdk_dir, 'packages', package_name)
+        if not os.path.isdir(package_dir):
+            log.warning("Package dir (%s) does not exist")
+            os.makedirs(package_dir)
+        try:
+            with open(os.path.join(package_dir, 'package.json'), 'w') as manifest:
+                manifest.write(simplejson.dumps(self.manifest))
+        except:
+            log.critical("Manifest couldn't be exported to %s" % package_path)
+
         return sdk_dir
 
     def cleanup(self):

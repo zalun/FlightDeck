@@ -40,8 +40,7 @@
 
     <h3 class="UI_SubHeading">Usage</h3>
     <ul class="UI_Action_List">
-        {% if max_copies %}
-        <li id="CopiesFilter">
+        <li id="CopiesFilter" {% if not max_copies %}class="disabled"{% endif %}>
             <span class="slider-value">{{ query.copies }}</span>
             or more copies: 
             <div class="slider">
@@ -50,9 +49,7 @@
                 <span class="range end">{{max_copies}}</span>
             </div>
         </li>
-        {% endif %}
-        {% if max_times_depended %}
-        <li id="UsedFilter">
+        <li id="UsedFilter" {% if not max_times_depended %}class="disabled"{% endif %}>
             Used by 
             <span class="slider-value">{{ query.used }}</span>
             or more packages:
@@ -62,6 +59,5 @@
                 <span class="range end">{{ max_times_depended }}</span>
             </div>
         </li>
-        {% endif %}
     </ul>
 </section>
