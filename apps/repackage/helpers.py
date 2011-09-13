@@ -288,10 +288,17 @@ class Repackage(object):
         log.debug('Writing manifest %s, %s' % (os.path.join(
                 sdk_dir, 'packages', package_name, 'package.json'),
                 self.manifest))
-        with open(os.path.join(
-                sdk_dir, 'packages', package_name, 'package.json'),
-                'w') as manifest:
-            manifest.write(simplejson.dumps(self.manifest))
+        package_dir = os.path.join(
+                    sdk_dir, 'packages', package_name)
+        if not os.path.isdir(package_dir):
+            log.warning("Package dir (%s) does not exist")
+            os.makedirs(package_dir)
+        try:
+            with open(os.path.join(package_dir, 'package.json'), 'w') as manifest:
+                manifest.write(simplejson.dumps(self.manifest))
+        except:
+            log.critical("Manifest couldn't be exported to %s" % package_path)
+
         return sdk_dir
 
     def cleanup(self):
