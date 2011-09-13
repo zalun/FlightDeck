@@ -231,7 +231,7 @@ class Repackage(object):
             # create lib, data and tests directories
             if (current_package_name, name) not in exporting:
                 # create appropriate directory
-                log.debug("Creating directory %s" % get_package_dir(name, current_package_name))
+                log.debug("Creating package directory %s" % get_package_dir(name, current_package_name))
                 os.makedirs(get_package_dir(name, current_package_name))
                 exporting.append((current_package_name, name))
 
@@ -272,6 +272,7 @@ class Repackage(object):
                 if not os.path.isdir(parent_dir):
                     os.makedirs(parent_dir)
                 # export file
+                log.debug("Creating module %s" % f_name)
                 with open(f_name, 'w') as f_file:
                     f_file.write(self.xpi_zip.open(f).read())
 
