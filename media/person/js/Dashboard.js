@@ -14,11 +14,9 @@ FlightDeck = Class.refactor(FlightDeck, {
                 })
             })
         }
-        $$('.UI_AMO_Upload_New_Version a').addEvent('click', this.uploadToAMO);
-        $$('.UI_AMO_Upload_New_Addon a').addEvent('click', this.uploadToAMO);
-        $$('.UI_AMO_Info').each(function(status_el) {
-            this.getStatusFromAMO(status_el);
-        }, this);
+        $$('.UI_AMO_Upload_New_Version a').addEvent('click', this.uploadToAMO.bind(this));
+        $$('.UI_AMO_Upload_New_Addon a').addEvent('click', this.uploadToAMO.bind(this));
+        $$('.UI_AMO_Info').each(this.getStatusFromAMO, this);
     },
 
     /*
@@ -52,7 +50,11 @@ FlightDeck = Class.refactor(FlightDeck, {
                                  '<a href="' + settings.amooauth_protocol + 
                                  '://' + settings.amooauth_domain + 
                                  '/en-US/developers/addons" target="amo_dashboard">AMO dashboard</a>');
-			}
+                this.getStatus.delay(5000, this, el.getParent('.UI_AMO_Info'));
+			}.bind(this),
+            addOnFailure: function() {
+                this.getStatus.delay(500, this, el.getParent('.UI_AMO_Info'));
+            }.bind(this)
 		}).send();
     },
 
@@ -82,6 +84,35 @@ FlightDeck = Class.refactor(FlightDeck, {
     },
 
     /*
+     * Method: getStatus
+     * pull Add-o status and update data on the page
+     */
+    getStatus: function(status_el) {
+        var pk = status_el.get('data-revision_id');
+        new Request.JSON({
+            url: status_el.get('data-get_addon_info_url'),
+            useSpinner: true,
+            spinnerTarget: status_el.getElements('h2')[0],
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                },
+                maskBorder: false
+            },
+            onSuccess: function(response) {
+                this.updateStatus(status_el, response);
+                if (!status_el.get('data-uploaded')) {
+                    status_el.set('data-uploaded', 1)
+                }
+                // repeat every 10s if still no answer from AMO was
+                // saved
+                if (response.status_code && response.status_code == -1) {
+                    this.getStatus.delay(10000, this, status_el);
+                }
+            }.bind(this)
+        }).send();
+    },
+    /*
      * Method: updateStatus
      * update data on the page
      */
@@ -91,5 +122,19 @@ FlightDeck = Class.refactor(FlightDeck, {
         };
         if (data.status) update('.amo-review_status', data.status);
         if (data.version) update('.amo-latest_version', data.version);
+        if (data.pk) status_el.set('data-revision_id', data.pk) ;
+        if (data.hasOwnProperty('uploaded')) {
+            status_el.set('data-uploaded', data.uploaded);
+            if (data.uploaded) {
+                // remove ability to upload
+                var li_anchor = $$('.upload_link')[0],
+                    anchor = li_anchor.getElement('a');
+                li_anchor.set('text', anchor.get('text'));
+                anchor.destroy();
+                li_anchor.removeClass('UI_AMO_Version_Uploaded').removeClass('UI_AMO_Version_Uploaded');
+                li_anchor.addClass('UI_AMO_Version_Uploaded');
+                li_anchor.highlight();
+            }
+        }
     }
 });

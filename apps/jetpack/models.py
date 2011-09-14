@@ -158,6 +158,11 @@ class PackageRevision(BaseModel):
         """
         return reverse('amo_get_addon_details', args=[self.pk])
 
+    def get_status_url(self):
+        """:returns: (string) url to pull get_addon_details view
+        """
+        return reverse('get_addon_status', args=[self.pk])
+
     def get_status_name(self):
         """:returns: (string) the name of the AMO status or None
         """
