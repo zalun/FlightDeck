@@ -332,5 +332,14 @@ class PackageTest(TestCase):
         addon_saved = Package.objects.get(author=self.author, type='a')
         eq_(addon_saved.description, description)
 
+    def test_activity_rating(self):
+        pack = Package()
+
+        pack.year_of_activity = '0' * 365
+        eq_(pack.get_activity_rating(), 0)
+
+        pack.year_of_activity = '1' * 365
+        eq_(pack.get_activity_rating() > 0.99, True)
+
 
 

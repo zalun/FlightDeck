@@ -46,3 +46,24 @@ def gc():
 
     if os.path.isdir(settings.SDKDIR_PREFIX):
         _prune_older_files(settings.SDKDIR_PREFIX, one_day_ago)
+
+
+@cronjobs.register
+def package_activity():
+    """
+    Collect all Packages, and update their daily_activity based
+    on if they have been active today.
+
+    Should be run nightly.
+    """
+    log.info('Start updating Package daily activity.')
+    pkgs = Package.objects.filter(deleted=False)
+
+    # update daily_activity if is_active_today
+    # reset all Packages is_active_today to false
+    for pkg in pkgs:
+        bit = '1' if pkg.is_active_today else '0'
+        pkg.daily_activity = bit + pkg.daily_activity[-1]
+        pkg.is_active_today = False
+        pkg.save()
+

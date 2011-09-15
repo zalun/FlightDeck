@@ -3,6 +3,7 @@ import re
 import csv
 import shutil
 import time
+import datetime
 import commonware
 import tarfile
 import tempfile
@@ -1451,6 +1452,10 @@ class Package(BaseModel, SearchMixin):
     # deleted is the limbo state
     deleted = models.BooleanField(default=False, blank=True)
 
+    # activity
+    year_of_activity = models.CharField(max_length=365, default='0'*365)
+    is_active_today = models.BooleanField(default=False, blank=True)
+
     class Meta:
         " Set the ordering of objects "
         ordering = ('-last_update', '-created_at')
@@ -1743,6 +1748,42 @@ class Package(BaseModel, SearchMixin):
         if self.version_name:
             self.version_name = alphanum_plus(self.version_name)
 
+    def get_activity_rating(self):
+        """
+        Build a weighted average based on activity from daily_activity
+        and recency of that activity.
+        """
+        # slices are by week
+        # first couple weeks are weighted high
+        # rest of the weeks are super tiny points
+        slice_size = 7
+        slices = len(self.year_of_activity) / slice_size
+
+        weights = {
+            '0': 0.35,
+            '1': 0.25,
+            '2': 0.15,
+        }
+
+        remaining_percentage = 1.0 - sum(weights.values())
+        standard_weight = remaining_percentage / (slices - len(weights.keys()))
+        total = 0
+
+        for i in range(slices):
+            # slice_ is like '1100101'
+            slice_start = i * slice_size
+            slice_end = slice_start + slice_size
+            points = self.year_of_activity.count('1', slice_start, slice_end)
+
+            weight = weights.get(str(i), standard_weight)
+            weighted_points = points * weight
+
+            total = total + weighted_points
+
+        rating = total / slice_size
+        return rating
+
+
     @es_required
     def refresh_index(self, es, bulk=False):
         # Don't index private/deleted things, and remove them.
@@ -1755,6 +1796,9 @@ class Package(BaseModel, SearchMixin):
             .exclude(package=self)
             .values_list('package_id', flat=True)))
         data['copies_count'] = len(data['copies'])
+
+        del data['year_of_activity']
+        data['activity'] = self.get_activity_rating()
 
         try:
             if self.latest:
@@ -2155,6 +2199,10 @@ def index_package(instance, **kwargs):
     index_one.delay(instance.id)
 
 post_save.connect(index_package, sender=Package)
+
+def mark_active_today(instance, **kw):
+    instance.is_active_today = True
+pre_save.connect(mark_active_today, sender=Package)
 
 unindex_package = lambda instance, **kwargs: instance.remove_from_index()
 post_delete.connect(unindex_package, sender=Package)

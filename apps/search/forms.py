@@ -16,4 +16,4 @@ class SearchForm(CleanForm):
     author = forms.ModelChoiceField(required=False, queryset=User.objects.all())
     copies = forms.IntegerField(required=False, initial=0)
     used = forms.IntegerField(required=False, initial=0)
-
+    activity = forms.IntegerField(required=False, initial=0)
