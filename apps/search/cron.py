@@ -31,6 +31,7 @@ def setup_mapping():
             # type is only ever 'a' or 'l', and we do exact matchs.
             # 'a' gets analyzed otherwise
             'type': {'type': 'string', 'index': 'not_analyzed'},
+            'activity': {'type': 'float'}
         },
     }
 
