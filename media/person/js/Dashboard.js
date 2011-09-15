@@ -66,7 +66,6 @@ FlightDeck = Class.refactor(FlightDeck, {
         if (!status_el.get('data-uploaded')) {
             return;
         }
-        var pk = status_el.get('data-revision_id');
         new Request.JSON({
             url: status_el.get('data-pull_info_url'),
             useSpinner: true,
