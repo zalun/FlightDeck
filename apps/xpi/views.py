@@ -95,8 +95,12 @@ def get_test(r, hashtag):
     statsd.timing('xpi.build.fileread', tread)
 
     # Clean up
-    if os.path.exists('%s.json' % base):
-        os.remove('%s.json' % base)
+    pkg_json = '%s.json' % base
+    if os.path.exists(pkg_json):
+        try:
+            os.remove(pkg_json)
+        except OSError, e:
+            log.debug('Error trying to cleanup (%s): %s' % (pkg_json, e))
 
     tkey = xpi_utils.get_queued_cache_key(hashtag, r)
     tqueued = cache.get(tkey)
@@ -115,7 +119,7 @@ def get_test(r, hashtag):
 def prepare_download(r, id_number, revision_number=None):
     """
     Prepare download XPI.  This package is built asynchronously and we assume
-    it works. It will be downloaded in ``get_download``
+    it works. It will be downloaded in %``get_download``
     """
     revision = get_object_with_related_or_404(PackageRevision,
                         package__id_number=id_number, package__type='a',
