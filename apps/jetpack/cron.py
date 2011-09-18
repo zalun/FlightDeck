@@ -63,7 +63,7 @@ def package_activity():
     # reset all Packages is_active_today to false
     for pkg in pkgs:
         bit = '1' if pkg.is_active_today else '0'
-        pkg.daily_activity = bit + pkg.daily_activity[-1]
+        pkg.year_of_activity = bit + pkg.year_of_activity[-1]
         pkg.is_active_today = False
         pkg.save()
 
