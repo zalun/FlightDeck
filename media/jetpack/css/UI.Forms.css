@@ -111,7 +111,8 @@ authors:
 			-moz-border-radius: 6px;
 		}
 
-			.UI_Forms .UI_Form_Actions li input {
+			.UI_Forms .UI_Form_Actions li input,
+            .UI_Forms .UI_Form_Actions li button {
 				background: -moz-linear-gradient(270deg, #C5F3AE, #96CE79);
 				border-top: solid 1px #fff;
 				display: block;

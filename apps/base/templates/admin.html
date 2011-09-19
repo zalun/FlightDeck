@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Mozilla FlightDeck Admin Area{% endblock title %}
+ 
+{% block head_prejs %}
+<style type="text/css">
+    .UI_Forms .UI_Form_Actions li {
+        float:none;
+        display:inline-block;
+    }
+</style>
+{% endblock %}
+
+{% block app_content %}
+<form method="post" action="" class="UI_Forms">
+<h2 class="UI_Heading" style="padding-top:3em;">Search</h2>
+{% if message %}
+    <p><strong>{{message}}</strong></p>
+{% endif %}
+    {% csrf_token %}
+    <ul class="UI_Form_Actions">
+        <li>
+            <button name="action" value="setup_mapping" type="submit">Setup Mapping</button>
+        </li>
+        <li>
+            <button name="action" value="index_all" type="submit">Index All</button>
+        </li>
+</form>
+
+{% endblock %}
