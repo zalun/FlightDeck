@@ -10,6 +10,14 @@ from .forms import SearchForm
 
 log = commonware.log.getLogger('f.search')
 
+ACTIVITY_MAP = {
+    '0': 0,   #dead
+    '1': 0.1, #stale
+    '2': 0.2, #low
+    '3': 0.4, #moderate
+    '4': 0.6, #high
+    '5': 0.8, #fresh
+}
 
 def search(request):
     form = SearchForm(request.GET)
@@ -41,6 +49,8 @@ def search(request):
     else:
         query['used'] = 0
 
+    if query.get('activity'):
+        filters['activity__gte'] = ACTIVITY_MAP.get(str(query['activity']), 0)
 
     results = {}
     facets = {}
