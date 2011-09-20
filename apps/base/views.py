@@ -59,6 +59,9 @@ def admin(request):
             msg = 'index_all triggered'
             log.info(log_msg % (msg , request.user, request.user.pk))
             index_all()
+        else:
+            log.warning('[TAMPERING][admin] Action "%s" tried by %s (id: %s)'
+                        % (action, request.user, request.user.pk))
 
     return render_to_response('admin.html', {
             'message': msg
