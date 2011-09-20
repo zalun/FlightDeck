@@ -214,7 +214,6 @@ a:hover, a:focus {
 /*
  =========================================================================== */
 #app-sidebar {
-	bottom:-72px;
     position: absolute;
     top:0;
 	width: 229px;
