@@ -408,12 +408,12 @@ class TestViews(TestCase):
 
         revision = self.add_one(filename='^you*()"[]"are-_crazy')
         att = revision.attachments.all()[0]
-        eq_(att.filename, '-you-are-_crazy')
+        eq_(att.filename, '^you-()-are-_crazy')
         revision.attachment_remove(att)
 
         revision = self.add_one(filename='"><a href="">test')
         att = revision.attachments.all()[0]
-        eq_(att.filename, '-a-href-test')
+        eq_(att.filename, '-a-href=-test')
         revision.attachment_remove(att)
 
         revision = self.add_one(filename='template.html.js')
@@ -431,6 +431,11 @@ class TestViews(TestCase):
         att = revision.attachments.all()[0]
         eq_(att.filename, 'image')
         eq_(att.ext, 'ahref')
+        revision.attachment_remove(att)
+
+        revision = self.add_one(filename='data+test.js')
+        att = revision.attachments.all()[0]
+        eq_(att.filename, 'data+test')
         revision.attachment_remove(att)
 
     def get_revision_from_response(self, response):

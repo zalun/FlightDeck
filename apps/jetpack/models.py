@@ -83,6 +83,9 @@ TYPE_CHOICES = (
 )
 
 
+FILENAME_RE = r'[^a-zA-Z0-9=!@#\$%\^&\(\)\+\-_\/\.]+'
+
+
 class PackageRevision(BaseModel):
     """
     contains data which may be changed and rolled back
@@ -1934,7 +1937,7 @@ class Module(BaseModel):
             self.filename = self.filename[:first_period]
 
         # remove illegal characters from filename
-        self.filename = re.sub('[^a-zA-Z0-9=!@#\$%\^&\(\)\+\-_\/\.]+', '-',
+        self.filename = re.sub(FILENAME_RE, '-',
                 self.filename)
         self.filename = re.sub('\/{2,}', '/', self.filename)
         self.filename = re.sub('^\/', '', self.filename)
@@ -2095,7 +2098,7 @@ class Attachment(BaseModel):
         return self
 
     def clean(self):
-        self.filename = pathify(self.filename)
+        self.filename = re.sub(FILENAME_RE, '-', self.filename)
         if self.ext:
             self.ext = alphanum(self.ext)
 
