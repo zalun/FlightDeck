@@ -453,7 +453,7 @@ var Sidebar = new Class({
 				
                 // remove janky characters from filenames
                 // (from promptAttachment)
-                filename = filename.replace(/[^a-zA-Z0-9\-_\/\.]+/g, '-');
+                filename = filename.replace(/[^a-zA-Z0-9=!@#\$%\^&\(\)\+\-_\/\.]+/g, '-');
                 filename = filename.replace(/\/{2,}/g, '/');
 
 				if (filename[filename.length-1] == '/') {
