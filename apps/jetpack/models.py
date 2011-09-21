@@ -1768,9 +1768,10 @@ class Package(BaseModel, SearchMixin):
         slices = len(self.year_of_activity) / slice_size
 
         weights = {
-            '0': 0.35,
-            '1': 0.25,
-            '2': 0.15,
+            '0': 0.20,
+            '1': 0.15,
+            '2': 0.10,
+            '3': 0.05,
         }
 
         remaining_percentage = 1.0 - sum(weights.values())
