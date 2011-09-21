@@ -68,4 +68,16 @@
 <p>There are no memcached servers!</p>
 {% endif %}
 
+<h2 class="UI_Heading" style="padding-top: 3em">AMO Integration Settings</h2>
+<ul>
+    <li><strong>AMOAPI_DOMAIN:</strong> "{{ settings.AMOAPI_DOMAIN }}"</li>
+    <li>-</li>
+    <li><strong>AMOOAUTH_DOMAIN:</strong> "{{ settings.AMOOAUTH_DOMAIN }}"</li>
+    <li><strong>AMOOAUTH_PORT:</strong> "{{ settings.AMOOAUTH_PORT }}"</li>
+    <li><strong>AMOOAUTH_PROTOCOL:</strong> "{{ settings.AMOOAUTH_PROTOCOL }}"</li>
+    {#<li><strong>AMOOAUTH_CONSUMERKEY:</strong> "{{ settings.AMOOAUTH_CONSUMERKEY }}"</li>#}
+    {#<li><strong>AMOOAUTH_CONSUMERSECRET:</strong> "{{ settings.AMOOAUTH_CONSUMERSECRET }}"</li>#}
+    <li><strong>AMOOAUTH_PREFIX:</strong> "{{ settings.AMOOAUTH_PREFIX }}"</li>
+</ul>
+
 {% endblock %}
