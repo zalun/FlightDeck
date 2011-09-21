@@ -1040,7 +1040,7 @@ class PackageRevision(BaseModel):
         # linked with the same Library
         if dep.package.id_number == self.package.id_number:
             raise SelfDependencyException(
-                'A Library can not depend on itself!')
+                'A Library cannot depend on itself!')
 
         # dependency have to be unique in the PackageRevision
         # currently, the SDK can't compile with libraries with same "name"
