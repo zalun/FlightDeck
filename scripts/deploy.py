@@ -80,7 +80,7 @@ def update_flightdeck(ctx):
     """Deploys code to the webservers and restarts celery"""
     # BEGIN: The normal update/push cycle.
     make_crons()
-    # 0.9.12 only! schematic()
+    schematic()
     deploy_code()
     restart_celery()
     enable_cron()
