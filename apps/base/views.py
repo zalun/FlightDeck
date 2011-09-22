@@ -13,6 +13,7 @@ from django.views.debug import get_safe_settings
 from elasticutils import get_es
 import base.tasks
 from search.cron import index_all, setup_mapping
+from search.helpers import package_search
 from jetpack.models import Package, SDK
 from base.models import CeleryResponse
 
@@ -171,10 +172,13 @@ def monitor(request):
 
 def homepage(r):
     # one more for the main one
-    addons_limit = settings.HOMEPAGE_PACKAGES_NUMBER
+    pkgs_limit = settings.HOMEPAGE_PACKAGES_NUMBER
 
-    libraries = Package.objects.libraries().active().sort_recently_active()[:settings.HOMEPAGE_PACKAGES_NUMBER]
-    addons = Package.objects.addons().active().sort_recently_active()[:addons_limit]
+    libraries = package_search(type='l').order_by('-activity')[:pkgs_limit]
+    addons = package_search(type='a').order_by('-activity')[:pkgs_limit]
+
+    #libraries = Package.objects.libraries().active().sort_recently_active()[:pkgs_limit]
+    #addons = Package.objects.addons().active().sort_recently_active()[:pkgs_limit]
 
     addons = list(addons)
     page = 'homepage'
