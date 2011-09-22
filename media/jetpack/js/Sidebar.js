@@ -229,7 +229,6 @@ var Sidebar = new Class({
 			options.nodrag = true;
 		}
 		
-		
 		var element = tree.addPath(file, options);	
 		tree.collapse.prepare();
 		
@@ -271,8 +270,6 @@ var Sidebar = new Class({
 	},
 	
 	removeFile: function(file, prefix) {
-		$log('sidebar destroy')
-	    
 	    if (file instanceof File) {
 	        file.destroy();
 	        return;
@@ -418,7 +415,6 @@ var Sidebar = new Class({
 						} else if (fileType == Module) {
 							fd.getItem().removeModules(file);
 						} else if (fileType == Attachment) {
-							$log('removing folder')
 							fd.getItem().removeAttachments(file);
 						}
 						
