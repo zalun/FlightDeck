@@ -78,7 +78,7 @@ def get_addon_details(request, pk):
     # get PackageRevision
     revision = get_object_or_404(PackageRevision, pk=pk)
     # check if Package is synced with the AMO and last update was successful
-    if (not revision.package.amo_id):
+    if not (revision.package.amo_id or revision.amo_status):
         return HttpResponse('{}')# mimetype="application/json")
 
     amo_meta = {'status': revision.get_status_name(),
