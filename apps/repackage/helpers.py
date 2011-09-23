@@ -208,11 +208,13 @@ class Repackage(object):
                 shutil.copy(s_d, sdk_dir)
         sdk_dependencies = ['addon-kit', 'api-utils']
         package_name = self.manifest['name']
-        resource_dir_prefix = "resources/%s-" % (
+        uri_prefix = "resources/%s-" % (
                 self.manifest['id'].split('@')[0].lower())
         # SDK 1.0 changed the resource naming convention
-        resource_dir_prefix_1 = "resources/%s-" % (
+        uri_prefix_1 = "resources/%s-" % (
                 self.manifest['id'].lower().replace('@', '-at-'))
+        uri_prefix_1 = (self.harness_options.get('uriPrefix', uri_prefix_1)
+                .replace('resource://', 'resources/', 1))
         # help lists to collect dependencies
         exporting = []
         dependencies = []
@@ -277,9 +279,11 @@ class Repackage(object):
                     f_file.write(self.xpi_zip.open(f).read())
 
         for f in self.xpi_zip.namelist():
-            if resource_dir_prefix != resource_dir_prefix_1:
-                if resource_dir_prefix_1 in f:
-                    resource_dir_prefix = resource_dir_prefix_1
+            # compatible with SDK <= 1.0b1
+            resource_dir_prefix = uri_prefix
+            # compatible with SDK > 1.0b1
+            if uri_prefix != uri_prefix_1 and uri_prefix_1 in f:
+                resource_dir_prefix = uri_prefix_1
             for name in ['lib', 'data', 'tests']:
                 _extract(f, name, resource_dir_prefix)
         # Add all dependencies to the manifest
@@ -292,7 +296,7 @@ class Repackage(object):
         package_dir = os.path.join(
                     sdk_dir, 'packages', package_name)
         if not os.path.isdir(package_dir):
-            log.warning("Package dir (%s) does not exist")
+            log.warning("Package dir (%s) does not exist" % package_dir)
             os.makedirs(package_dir)
         try:
             with open(os.path.join(package_dir, 'package.json'), 'w') as manifest:
