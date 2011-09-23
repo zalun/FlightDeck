@@ -590,6 +590,7 @@ var Attachment = new Class({
         delete packAttachments[oldUID];
 
         this.setOptions(options);
+        this.options.path = options.filename + '.' + options.type;
         packAttachments[options.uid] = this;
 
         var editorUID = this.getEditorID();
@@ -1071,7 +1072,7 @@ Package.Edit = new Class({
 			filename = filename.getFileName();
 		}
 		
-		var attachmentEl = fd.sidebar.getBranchFromFile(newName, 'data');
+		var attachmentEl = fd.sidebar.getBranchFromPath(newName, 'data');
 		var spinnerEl = attachmentEl || $(fd.sidebar.trees.data);
 		
 		new Request.JSON({
