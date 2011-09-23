@@ -29,7 +29,8 @@ class RepackageTest(TestCase):
         self.sample_addons = [
                 "sample_add-on-1.0b3.xpi",
                 "sample_add-on-1.0b4.xpi",
-                "sample_add-on-1.0rc2.xpi"]
+                "sample_add-on-1.0rc2.xpi",
+                "repackage-special_name.xpi"]
         self.sdk_source_dir = settings.REPACKAGE_SDK_SOURCE or os.path.join(
                 settings.ROOT, 'lib/addon-sdk-1.0rc2')
 
