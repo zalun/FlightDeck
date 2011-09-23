@@ -33,12 +33,12 @@ class SDKDirDoesNotExist(SimpleException):
     " No such dir "
 
 
-def create_or_update_SDK(sdk_dir_name):
+def create_or_update_SDK(sdk_dir_name, options=None):
     " call create or update depending on the current staus "
     sdk_number = SDK.objects.count()
     if sdk_number > 0:
-        return update_SDK(sdk_dir_name)
-    return create_SDK(sdk_dir_name)
+        return update_SDK(sdk_dir_name, options=options)
+    return create_SDK(sdk_dir_name, options=options)
 
 
 def get_manifest(sdk_source, core_name):
@@ -212,7 +212,7 @@ def _create_lib(author, manifest, full_name, name, id_number):
     return revision
 
 
-def update_SDK(sdk_dir_name):
+def update_SDK(sdk_dir_name, options=None):
     " add new jetpack-core revision "
 
     check_SDK_dir(sdk_dir_name)
@@ -253,11 +253,12 @@ def update_SDK(sdk_dir_name):
         version=core_manifest['version'],
         core_lib=core_revision,
         kit_lib=kit_revision if kit_manifest else None,
-        dir=sdk_dir_name
+        dir=sdk_dir_name,
+        options=options
     )
 
 
-def create_SDK(sdk_dir_name='addon-sdk'):
+def create_SDK(sdk_dir_name, options=None):
     " create first jetpack-core revision "
     print "creating core"
 
@@ -289,5 +290,6 @@ def create_SDK(sdk_dir_name='addon-sdk'):
         version=core_manifest['version'],
         core_lib=core_revision,
         kit_lib=kit_revision if kit_manifest else None,
-        dir=sdk_dir_name
+        dir=sdk_dir_name,
+        options=options
     )
