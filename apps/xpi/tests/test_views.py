@@ -90,12 +90,15 @@ class TestViews(TestCase):
         eq_(response.status_code, 404)
 
     def test_cach_hashtag(self):
+        mock_backup = os.path.exists
         os.path.exists = mock.Mock(return_value=True)
         tasks.xpi_build_task = mock.Mock()
         response = self.client.post(self.prepare_test_url, {
             'hashtag': 'abc'})
+        os.path.exists = mock_backup
         assert not tasks.xpi_build_task.called
         os.path.exists = mock.Mock(return_value=False)
         response = self.client.post(self.prepare_test_url, {
             'hashtag': 'abc'})
+        os.path.exists = mock_backup
         assert tasks.xpi_build_task.called

@@ -32,7 +32,6 @@ def info_write(path, status, message, hashtag=None):
         data['hashtag'] = hashtag
     with open(path, 'w') as info:
         info.write(simplejson.dumps(data))
-    assert os.path.exists(path)
 
 def sdk_copy(sdk_source, sdk_dir):
     log.debug("Copying SDK from (%s) to (%s)" % (sdk_source, sdk_dir))

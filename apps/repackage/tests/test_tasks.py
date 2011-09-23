@@ -65,7 +65,6 @@ class RepackageTaskTest(TestCase):
                     self.hashtag,
                     pingback='test_pingback',
                     options='--strip-xpi')
-        log.debug('checking %s.json' % self.target_basename)
         assert os.path.exists('%s.json' % self.target_basename)
         response_json = {}
         with open('%s.json' % self.target_basename) as response:
