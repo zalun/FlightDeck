@@ -37,7 +37,7 @@ def high_rebuild(*args, **kwargs):
 
 def rebuild(location, upload, sdk_source_dir, hashtag,
         package_overrides={}, filename=None, pingback=None, post=None,
-        **kwargs):
+        options=None, **kwargs):
     """creates a Repackage instance, downloads xpi and rebuilds it
 
     :params:
@@ -62,9 +62,11 @@ def rebuild(location, upload, sdk_source_dir, hashtag,
         log.info("[%s] Starting package rebuild... (%s)" % (hashtag, location))
         try:
             rep.download(location)
+            log.debug("All fine")
         except Exception, err:
+            log.debug("[%s] Saving error info to %s" % (hashtag, info_path))
             info_write(info_path, 'error', str(err), hashtag)
-            log.warning("%s: Error in downloading xpi (%s)\n%s" % (hashtag,
+            log.warning("[%s] Error in downloading xpi (%s)\n%s" % (hashtag,
                 location, str(err)))
             if pingback:
                 data['msg'] = str(err)
@@ -82,7 +84,7 @@ def rebuild(location, upload, sdk_source_dir, hashtag,
             rep.retrieve(upload)
         except Exception, err:
             info_write(info_path, 'error', str(err), hashtag)
-            log.warning("%s: Error in retrieving xpi (%s)\n%s" % (hashtag,
+            log.warning("[%s] Error in retrieving xpi (%s)\n%s" % (hashtag,
                 upload, str(err)))
             if pingback:
                 data['msg'] = str(err)
@@ -98,7 +100,8 @@ def rebuild(location, upload, sdk_source_dir, hashtag,
         raise ValueError("No location or upload provided")
 
     try:
-        response = rep.rebuild(sdk_source_dir, hashtag, package_overrides)
+        response = rep.rebuild(sdk_source_dir, hashtag, package_overrides,
+                               options=options)
     except Exception, err:
         info_write(info_path, 'error', str(err), hashtag)
         log.warning("%s: Error in rebuilding xpi (%s)" % (hashtag, str(err)))

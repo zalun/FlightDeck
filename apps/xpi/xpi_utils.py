@@ -33,7 +33,6 @@ def info_write(path, status, message, hashtag=None):
     with open(path, 'w') as info:
         info.write(simplejson.dumps(data))
 
-
 def sdk_copy(sdk_source, sdk_dir):
     log.debug("Copying SDK from (%s) to (%s)" % (sdk_source, sdk_dir))
     with statsd.timer('xpi.copy'):
@@ -50,7 +49,7 @@ def sdk_copy(sdk_source, sdk_dir):
 
 
 
-def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
+def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None):
     """Build xpi from SDK with prepared packages in sdk_dir.
 
     :params:
@@ -73,8 +72,9 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None):
     # @TODO xulrunner should be a config variable
     cfx = [settings.PYTHON_EXEC, '%s/bin/cfx' % sdk_dir,
            '--binary=/usr/bin/xulrunner',
-           '--keydir=%s/%s' % (sdk_dir, settings.KEYDIR), 'xpi',
-           '--strip-xpi']
+           '--keydir=%s/%s' % (sdk_dir, settings.KEYDIR), 'xpi']
+    if options:
+        cfx.append(options)
 
     log.debug(cfx)
 

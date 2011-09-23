@@ -63,7 +63,8 @@ class RepackageTaskTest(TestCase):
                     rebuild,
                     'file://%s' % bad_xpi.name, None, self.sdk_source_dir,
                     self.hashtag,
-                    pingback='test_pingback')
+                    pingback='test_pingback',
+                    options='--strip-xpi')
         assert os.path.exists('%s.json' % self.target_basename)
         response_json = {}
         with open('%s.json' % self.target_basename) as response:
@@ -81,7 +82,8 @@ class RepackageTaskTest(TestCase):
                     self.xpi_file_prefix, '%s.xpi' % self.sample_addons[0]),
                 None,
                 self.sdk_source_dir, self.hashtag,
-                pingback='test_pingback')
+                pingback='test_pingback',
+                options='--strip-xpi')
 
         desired_response = {
                 'msg': 'Exporting extension to sample_add-on.xpi.',

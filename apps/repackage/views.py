@@ -72,6 +72,8 @@ def rebuild(request):
         log.error("Rebuild requested with an invalid key.  Rejecting.")
         return HttpResponseForbidden('Access denied')
 
+    options = request.POST.get('options', None)
+
     location = request.POST.get('location', None)
     addons = request.POST.get('addons', None)
     upload = request.FILES.get('upload', None)
@@ -125,7 +127,7 @@ def rebuild(request):
                     location, upload, sdk_source_dir, hashtag,
                     package_overrides=package_overrides,
                     filename=filename, pingback=pingback,
-                    post=post)
+                    post=post, options=options)
             counter = counter + 1
 
     if addons:

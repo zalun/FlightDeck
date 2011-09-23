@@ -143,7 +143,8 @@ class Repackage(object):
             self.xpi_temp.write(chunk)
         self.xpi_zip = zipfile.ZipFile(self.xpi_temp)
 
-    def rebuild(self, sdk_source_dir, hashtag, package_overrides={}):
+    def rebuild(self, sdk_source_dir, hashtag, package_overrides={},
+                options=None):
         """
         Drive the rebuild process
 
@@ -158,7 +159,7 @@ class Repackage(object):
         log.debug("[%s] Rebuilding XPI" % hashtag)
         response = xpi_utils.build(sdk_dir,
                 os.path.join(sdk_dir, 'packages', self.manifest['name']),
-                self.manifest['name'], hashtag)
+                self.manifest['name'], hashtag, options=options)
         log.debug("[%s] Done rebuilding XPI; cleaning up" % hashtag)
         # clean up (sdk_dir is already removed)
         self.cleanup()

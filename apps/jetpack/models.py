@@ -1337,7 +1337,7 @@ class PackageRevision(BaseModel):
 
         # XPI: building locally and copying to NFS
         return xpi_utils.build(sdk_dir, self.get_dir_name(packages_dir),
-                self.name, hashtag, tstart=tstart)
+                self.name, hashtag, tstart=tstart, options=self.sdk.options)
 
     def export_keys(self, sdk_dir):
         """Export private and public keys to file."""
@@ -2151,6 +2151,10 @@ class SDK(BaseModel):
 
     # placement in the filesystem
     dir = models.CharField(max_length=255, unique=True)
+
+    #: xpi creation options specific to the SDK release
+    options = models.CharField(max_length=255, default=None, blank=True,
+                               null=True)
 
     class Meta:
         """Ordering of SDK instances."""
