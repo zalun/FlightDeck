@@ -45,6 +45,9 @@ tests, main** (optional)
    to repackage. Specifically ``"version": "0.1.sdk.{sdk_version}"`` will 
    be replaced with ``"version": "0.1.sdk.1.0b5"``.
    
+**sdk_version**
+   version of the SDK which should be used to rebuild the package
+
 
 Examples of data creation for POST:
 -----------------------------------
