@@ -509,7 +509,7 @@ def switch_sdk(request, id_number, revision_number):
         return HttpResponseForbidden('You are not the author of this Add-on')
 
     sdk_id = request.POST.get('id', None)
-    sdk = SDK.objects.get(id=sdk_id)
+    sdk = get_object_or_404(SDK, id=sdk_id)
     old_sdk = revision.sdk
     log.info('Addon %s (%s) switched from Add-on Kit version %s to %s' % (
         revision.package.full_name, revision.package.id_number,
