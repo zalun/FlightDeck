@@ -15,6 +15,7 @@ from utils.test import TestCase
 from django.conf import settings
 from django.core.urlresolvers import reverse
 
+from jetpack.models import SDK, PackageRevision
 from repackage import tasks
 
 log = commonware.log.getLogger('f.repackage')
@@ -140,3 +141,24 @@ class RepackageViewsTest(TestCase):
                 'secret': settings.AMO_SECRET_KEY})
         task_args = tasks.low_rebuild.delay.call_args
         eq_(task_args[1]['package_overrides']['version'], 'test-sdk-1.0')
+
+    def test_repackage_with_chosen_sdk(self):
+        SDKVERSION = 'test'
+        SDKDIR = 'not/existing/dir'
+        # create new package revision for the core lib
+        corelib = SDK.objects.latest('pk').core_lib
+        corelib.save()
+        sdk = SDK.objects.create(
+                version=SDKVERSION,
+                dir=SDKDIR,
+                core_lib=corelib)
+        file_pre = os.path.join(settings.ROOT, 'apps/xpi/tests/sample_addons/')
+        tasks.low_rebuild.delay = Mock(return_value=None)
+        with open(os.path.join(file_pre, self.sample_addons[1])) as f:
+            response = self.client.post(self.rebuild_url, {
+                'upload': f,
+                'version': 'test-sdk-{sdk_version}',
+                'secret': settings.AMO_SECRET_KEY,
+                'sdk_version': SDKVERSION})
+        task_args = tasks.low_rebuild.delay.call_args
+        eq_(task_args[0][2], sdk.get_source_dir())
