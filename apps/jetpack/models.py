@@ -255,7 +255,7 @@ class PackageRevision(BaseModel):
         :raises: IntegrityError if Package with tht name already exists
         """
         if not validator.is_valid('alphanum_plus_space', value):
-            raise ValidationError
+            raise ValidationError('Full name contains illegal characters.')
         try:
             # in FlightDeck, libraries can have the same name,
             # by different authors
