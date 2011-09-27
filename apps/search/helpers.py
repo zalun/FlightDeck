@@ -74,7 +74,11 @@ def _get_average_activity():
     # TODO: ES has statistical facet that can provide average, but I couldn't
     # get it working.
     values = Package.search().values('activity')
-    average = sum(v[1] for v in values) / len(values)
+    num = len(values)
+    if num > 0:
+        average = sum(v[1] for v in values) / len(values)
+    else:
+        average = 0.33
 
     cache.set(ACTIVITY_CACHE_KEY, average, 60*60*24)
     return average
