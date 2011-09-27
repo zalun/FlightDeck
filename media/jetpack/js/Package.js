@@ -893,7 +893,8 @@ Package.Edit = new Class({
 				}).send();
 			}.bind(this));
 		}
-		this.bind_keyboard();
+        //keyboard isn't working great, bug: 689382
+		//this.bind_keyboard();
 	},
 
 	setupSavePopupEvents: function() {

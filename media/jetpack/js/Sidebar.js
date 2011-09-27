@@ -15,7 +15,8 @@ var Sidebar = new Class({
 	initialize: function(options){
 		this.setOptions(options);
 		this.element = $('app-sidebar');
-		this.bind_keyboard();
+		//keyboard isn't working great, bug: 689382
+        //this.bind_keyboard();
 	},
 	
 	buildTree: function() {
