@@ -5,19 +5,11 @@ from django.shortcuts import render_to_response, redirect
 from django.template import RequestContext
 
 from jetpack.models import Package
-from .helpers import package_search
+from .helpers import package_search, get_activity_scale
 from .forms import SearchForm
 
 log = commonware.log.getLogger('f.search')
 
-ACTIVITY_MAP = {
-    '0': 0,   #dead
-    '1': 0.1, #stale
-    '2': 0.2, #low
-    '3': 0.4, #moderate
-    '4': 0.6, #high
-    '5': 0.8, #fresh
-}
 
 def search(request):
     form = SearchForm(request.GET)
@@ -28,6 +20,7 @@ def search(request):
     types = {'a': 'addon', 'l': 'library'}
     page = query.get('page') or 1
     limit = 20
+    activity_map = get_activity_scale()
 
 
     filters = {}
@@ -50,7 +43,7 @@ def search(request):
         query['used'] = 0
 
     if query.get('activity'):
-        filters['activity__gte'] = ACTIVITY_MAP.get(str(query['activity']), 0)
+        filters['activity__gte'] = activity_map.get(str(query['activity']), 0)
 
     results = {}
     facets = {}
