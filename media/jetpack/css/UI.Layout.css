@@ -307,6 +307,7 @@ a:hover, a:focus {
 	min-width: 120px;
 	-moz-border-radius: 3px;
 	width: 220px;
+    z-index:9999;
 }
 
 	.UI_tooltip .tip-title {
