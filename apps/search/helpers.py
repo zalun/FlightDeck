@@ -1,3 +1,5 @@
+from django.core.cache import cache
+
 from elasticutils import S, F
 from jetpack.models import Package
 
@@ -41,3 +43,42 @@ def package_query(q):
                 full_name__fuzzy={'value': q, 'boost': 2, 'prefix_length': 4},
                 full_name__startswith={'value': q, 'boost': 1.5},
                 description__text={'query': q, 'boost': 0.8})
+
+
+ACTIVITY_MAP = {
+    '0': 0,   #dead
+    '1': 0.1, #stale
+    '2': 0.2, #low
+    '3': 0.4, #moderate
+    '4': 0.6, #high
+    '5': 0.8, #fresh
+}
+
+def get_activity_scale():
+    avg = _get_average_activity()
+    # average should be considered 1/3 (middle of Low)
+    # so total percentage is triple the average
+    total = avg * 3
+
+    act_map = dict((k, v*total) for k, v in ACTIVITY_MAP.items())
+
+    return act_map
+
+
+ACTIVITY_CACHE_KEY = 'search:activity:average'
+
+def _get_average_activity():
+    average = cache.get(ACTIVITY_CACHE_KEY)
+    if average:
+        return average
+    # TODO: ES has statistical facet that can provide average, but I couldn't
+    # get it working.
+    values = Package.search().values('activity')
+    num = len(values)
+    if num > 0:
+        average = sum(v[1] for v in values) / len(values)
+    else:
+        average = 0.33
+
+    cache.set(ACTIVITY_CACHE_KEY, average, 60*60*24)
+    return average
