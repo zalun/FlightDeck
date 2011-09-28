@@ -63,7 +63,7 @@ def get_addon_details_from_amo(request, pk):
     # update amo revision data
     if ('version' in amo_meta
             and amo_meta['version'] == revision.amo_version_name):
-        revision.amo_status = amo_meta['status']
+        revision.amo_status = int(amo_meta['status'])
         super(PackageRevision, revision).save()
     return HttpResponse(simplejson.dumps(amo_meta))
                         #mimetype="application/json")
