@@ -56,9 +56,9 @@ ACTIVITY_MAP = {
 
 def get_activity_scale():
     avg = _get_average_activity()
-    # average should be considered 1/3 (middle of Low)
+    # average should be considered 1/5 (Low)
     # so total percentage is triple the average
-    total = avg * 3
+    total = avg * 5
 
     act_map = dict((k, v*total) for k, v in ACTIVITY_MAP.items())
 
@@ -78,7 +78,7 @@ def _get_average_activity():
     if num > 0:
         average = sum(v[1] for v in values) / len(values)
     else:
-        average = 0.33
+        average = 0.2
 
     cache.set(ACTIVITY_CACHE_KEY, average, 60*60*24)
     return average
