@@ -18,7 +18,7 @@ STATUS_PURGATORY = 10  # A temporary home; bug 614686
 STATUS_NAMES = {
     STATUS_UPLOAD_SCHEDULED: "Upload Scheduled",
     STATUS_UPLOAD_FAILED: "Upload Failed",
-    STATUS_NULL: "Null",
+    STATUS_NULL: "Incomplete",
     STATUS_UNREVIEWED: "Unreviewed",
     STATUS_PENDING: "Pending",
     STATUS_NOMINATED: "Nominated",
