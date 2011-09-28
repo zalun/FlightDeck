@@ -26,7 +26,7 @@ STATUS_NAMES = {
     STATUS_DISABLED: "Disabled",
     STATUS_LISTED: "Listed",
     STATUS_BETA: "Beta",
-    STATUS_LITE: "Lite",
+    STATUS_LITE: "Preliminarily Reviewed",
     STATUS_LITE_AND_NOMINATED: "Lite and Nominated",
     STATUS_PURGATORY: "Purgatory",
 }
