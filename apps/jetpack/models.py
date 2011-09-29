@@ -1541,7 +1541,7 @@ class Package(BaseModel, SearchMixin):
         " returns the url to resume an incomplete add-on "
         if not self.amo_slug:
             return ""
-        return "%s://%s/en-US/firefox/addon/%s/submit/%d/" % (
+        return "%s://%s/en-US/firefox/developers/addon/%s/submit/%d" % (
                 settings.AMOAPI_PROTOCOL, settings.AMOAPI_DOMAIN,
                 self.amo_slug, step)
 
