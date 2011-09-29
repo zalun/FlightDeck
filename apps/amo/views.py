@@ -97,5 +97,9 @@ def get_addon_details(request, pk):
                 'version': revision.amo_version_name,
                 'pk': revision.pk,
                 'uploaded': revision.amo_status != STATUS_UPLOAD_FAILED}
+    if revision.package.amo_slug:
+        amo_meta['view_on_amo_url'] = revision.package.get_view_on_amo_url()
+        amo_meta['edit_on_amo_url'] = revision.package.get_edit_on_amo_url()
+
     return HttpResponse(simplejson.dumps(amo_meta))
                         #mimetype="application/json")
