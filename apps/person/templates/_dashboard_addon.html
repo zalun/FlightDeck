@@ -27,7 +27,7 @@
         <li class="UI_AMO_Upload_New_Addon upload_link" 
             data-upload_url="{{ item.latest.get_upload_to_amo_url }}"><a>upload to AMO</a></li>
         {% endif %}
-        <li class="UI_AMO_View_On_AMO{% if not item.amo_slug %} hidden{% endif %}">
+        <li class="UI_AMO_View_On_AMO{% if not item.amo_slug and item.latest.amo_status > 0 %} hidden{% endif %}">
             <a target="_amo" href="{{ item.get_view_on_amo_url }}">view on AMO</a>
         </li>
     </ul>
