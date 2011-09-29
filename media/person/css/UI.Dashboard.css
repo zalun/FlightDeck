@@ -43,6 +43,10 @@
     color: #bbb;
 }
 
+.UI_Browser .UI_Item .UI_AMO_Info .UI_AMO_Actions li.hidden {
+    visibility: hidden;
+}
+
 .UI_Browser .UI_Item .UI_AMO_Info .UI_AMO_Actions li a {
     color: #478CDE;
     border-bottom: 1px solid #E9EDF0;

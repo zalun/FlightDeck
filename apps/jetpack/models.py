@@ -1404,6 +1404,8 @@ class Package(BaseModel, SearchMixin):
 
     #: identification in AMO
     amo_id = models.IntegerField(blank=True, null=True)
+    #: slug on the amo
+    amo_slug = models.CharField(max_length=255, blank=True, null=True)
     #: latest uploaded revision
     latest_uploaded = models.ForeignKey('PackageRevision',
             blank=True, null=True, related_name='+')
@@ -1526,6 +1528,14 @@ class Package(BaseModel, SearchMixin):
         " returns URL to delete package "
         return reverse('jp_package_delete',
                         args=[self.id_number])
+
+    def get_view_on_amo_url(self):
+        " returns the url to view the add-on on AMO "
+        if not self.amo_slug:
+            return ""
+        return "%s://%s/en-US/firefox/addon/%s/" % (
+                settings.AMOAPI_PROTOCOL, settings.AMOAPI_DOMAIN,
+                self.amo_slug)
 
     def is_addon(self):
         " returns Boolean: True if this package an Add-on "
