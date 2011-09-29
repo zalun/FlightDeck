@@ -9,6 +9,7 @@ import commonware
 import cronjobs
 
 from .models import Package
+from . import tasks
 
 log = commonware.log.getLogger('f.cron')
 
@@ -76,3 +77,8 @@ def package_activity():
             num_active = num_active + 1
 
     log.info('Finished updating daily activity. %d active today.' % num_active)
+
+
+@cronjobs.register
+def fill_package_activity():
+    tasks.fill_package_activity.delay()
