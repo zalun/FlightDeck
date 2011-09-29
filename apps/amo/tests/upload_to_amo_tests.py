@@ -8,8 +8,10 @@ from test_utils import TestCase
 
 from django.contrib.auth.models import User
 from django.conf import settings
+from django.core.urlresolvers import reverse
 
 from amo.constants import *
+from amo import helpers
 from amo.tasks import upload_to_amo
 from base.templatetags.base_helpers import hashtag
 from jetpack.models import Package, PackageRevision
@@ -50,6 +52,7 @@ class UploadTest(TestCase):
         assert self.amo.url('addon') in AMOOAuth._send.call_args[0]
 
     def test_update_amo_addon(self):
+        send_backup = AMOOAuth._send
         AMOOAuth._send = Mock(return_value={'id': self.AMO_FILE_ID})
         # set add-on as uploaded
         self.addonrev.amo_status = STATUS_PUBLIC
@@ -74,3 +77,31 @@ class UploadTest(TestCase):
         # check if right API was called
         assert 'POST' in AMOOAuth._send.call_args[0]
         assert self.amo.url('version') % self.ADDON_AMO_ID in AMOOAuth._send.call_args[0]
+        AMOOAuth._send = send_backup
+
+    def test_get_details_from_amo(self):
+        get_addon_details_backup = helpers.get_addon_details
+        # create a fake uploaded revision
+        self.addonrev.amo_status = STATUS_NULL
+        self.addonrev.amo_version_name = self.addonrev.get_version_name()
+        self.addonrev.package.amo_id = self.ADDON_AMO_ID
+        self.addonrev.package.latest_uploaded = self.addonrev
+        self.addonrev.package.save()
+        # create a new "clean" revision
+        self.addonrev.save()
+        helpers.get_addon_details = Mock(
+            return_value={'status': STATUS_NAMES[STATUS_PUBLIC],
+                          'status_code': STATUS_PUBLIC,
+                          'rating': 0,
+                          'version': self.addonrev.amo_version_name})
+        # check the AMO status of the addon
+        r = self.client.get(reverse('amo_get_addon_details',
+                                    args=[self.addonrev.pk]))
+        eq_(r.status_code, 200)
+        addonrev = Package.objects.get(name='test-addon',
+                                       author__username='john').latest
+        eq_(addonrev.pk, self.addonrev.pk)
+        eq_(addonrev.amo_status, STATUS_PUBLIC)
+
+        helpers.get_addon_details = get_addon_details_backup
+

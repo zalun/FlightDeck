@@ -15,8 +15,10 @@ def get_addon_amo_api_url(id, file_id):
     url = "%s://%s/api/%s/addon/%d" % (
         settings.AMOAPI_PROTOCOL, settings.AMOAPI_DOMAIN,
         settings.AMOAPI_VERSION, id)
-    if file_id:
-        url = "%s/%d" % (url, file_id)
+    # XXX: wait until this will be supported by AMO API
+    # BUG 690336
+    #if file_id:
+    #    url = "%s/%d" % (url, file_id)
     return url
 
 
@@ -56,9 +58,9 @@ def get_addon_details(amo_id, amo_file_id=None):
     # just debugging will be taken off soon
     log.debug(amo_xml)
     for element in amo_xml.iter():
-        if element.tag in ('rating', 'version'):
+        if element.tag in ('status', 'rating', 'version'):
             amo_data[element.tag] = element.text
         if element.tag == 'status':
-            amo_data['status'] = int(element.get('id'))
+            amo_data['status_code'] = int(element.get('id'))
     # return dict
     return amo_data
