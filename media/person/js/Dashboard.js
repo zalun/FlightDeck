@@ -122,17 +122,19 @@ FlightDeck = Class.refactor(FlightDeck, {
         if (data.status) update('.amo-review_status', data.status);
         if (data.version) update('.amo-latest_version', data.version);
         if (data.pk) status_el.set('data-revision_id', data.pk) ;
+        var edit_on_amo = status_el.getElements('.UI_AMO_Edit_On_AMO')[0];
+        var view_on_amo = status_el.getElements('.UI_AMO_View_On_AMO')[0];
         if (data.view_on_amo_url && data.status_code > 0) {
-            var view_on_amo = status_el.getElements('.UI_AMO_View_On_AMO')[0];
             view_on_amo.getElements('a')[0].set('href', data.view_on_amo_url);
             view_on_amo.removeClass('hidden');
             view_on_amo.highlight();
+            edit_on_amo.addClass('hidden');
         }
         if (data.edit_on_amo_url && data.status_code == 0) {
-            var edit_on_amo = status_el.getElements('.UI_AMO_Edit_On_AMO')[0];
             edit_on_amo.getElements('a')[0].set('href', data.edit_on_amo_url);
             edit_on_amo.removeClass('hidden');
             edit_on_amo.highlight();
+            view_on_amo.addClass('hidden');
         }
         if (data.hasOwnProperty('uploaded')) {
             status_el.set('data-uploaded', data.uploaded);
