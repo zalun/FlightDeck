@@ -44,7 +44,7 @@
 }
 
 .UI_Browser .UI_Item .UI_AMO_Info .UI_AMO_Actions li.hidden {
-    visibility: hidden;
+    display: none;
 }
 
 .UI_Browser .UI_Item .UI_AMO_Info .UI_AMO_Actions li a {
