@@ -122,6 +122,11 @@ FlightDeck = Class.refactor(FlightDeck, {
         if (data.status) update('.amo-review_status', data.status);
         if (data.version) update('.amo-latest_version', data.version);
         if (data.pk) status_el.set('data-revision_id', data.pk) ;
+        if (data.view_on_amo_url) {
+            var view_on_amo = status_el.getElements('.UI_AMO_View_On_AMO')[0];
+            view_on_amo.getElements('a')[0].set('href', data.view_on_amo_url);
+            view_on_amo.removeClass('hidden');
+        }
         if (data.hasOwnProperty('uploaded')) {
             status_el.set('data-uploaded', data.uploaded);
             if (data.uploaded) {

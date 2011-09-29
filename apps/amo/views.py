@@ -60,6 +60,16 @@ def get_addon_details_from_amo(request, pk):
     # pull info
     amo_meta = _get_addon_details(revision.package.amo_id,
                                   revision.amo_file_id)
+
+    # update amo package data
+    if (not revision.package.amo_slug
+            or revision.package.amo_slug != amo_meta['slug']):
+        revision.package.amo_slug = amo_meta['slug']
+        revision.package.save()
+
+    if amo_meta['slug']:
+        amo_meta['view_on_amo_url'] = revision.package.get_view_on_amo_url()
+
     # update amo revision data
     if ('version' in amo_meta
             and amo_meta['version'] == revision.amo_version_name):

@@ -89,11 +89,13 @@ class UploadTest(TestCase):
         self.addonrev.package.save()
         # create a new "clean" revision
         self.addonrev.save()
+        assert not self.addonrev.package.get_view_on_amo_url()
         helpers.get_addon_details = Mock(
             return_value={'status': STATUS_NAMES[STATUS_PUBLIC],
                           'status_code': STATUS_PUBLIC,
                           'rating': 0,
-                          'version': self.addonrev.amo_version_name})
+                          'version': self.addonrev.amo_version_name,
+                          'slug': 'some-slug'})
         # check the AMO status of the addon
         r = self.client.get(reverse('amo_get_addon_details',
                                     args=[self.addonrev.pk]))
@@ -102,6 +104,8 @@ class UploadTest(TestCase):
                                        author__username='john').latest
         eq_(addonrev.pk, self.addonrev.pk)
         eq_(addonrev.amo_status, STATUS_PUBLIC)
+        eq_(addonrev.package.amo_slug, 'some-slug')
+        assert addonrev.package.get_view_on_amo_url()
 
         helpers.get_addon_details = get_addon_details_backup
 
