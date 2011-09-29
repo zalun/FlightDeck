@@ -212,6 +212,7 @@ class PackageRevision(BaseModel):
                     log.debug("AMOOAUTHAPI: update response: %s " % response)
                     # XXX: not supported by API yet
                     # There is 'statuses', but it's unclear how to read that
+                    # https://bugzilla.mozilla.org/show_bug.cgi?id=690523
                     if 'status' in response:
                         self.amo_status = response['status']
                     else:
