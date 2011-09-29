@@ -30,6 +30,9 @@
         <li class="UI_AMO_View_On_AMO{% if not item.amo_slug or item.latest.amo_status <= 0 %} hidden{% endif %}">
             <a target="_amo" href="{{ item.get_view_on_amo_url }}">view on AMO</a>
         </li>
+        <li class="UI_AMO_Edit_On_AMO{% if item.latest.amo_status != 0 %} hidden{% endif %}">
+            <a target="_amo" href="{{ item.get_edit_on_amo_url }}">edit on AMO</a>
+        </li>
     </ul>
 </div>
 {% endblock %}

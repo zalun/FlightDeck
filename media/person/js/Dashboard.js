@@ -126,6 +126,13 @@ FlightDeck = Class.refactor(FlightDeck, {
             var view_on_amo = status_el.getElements('.UI_AMO_View_On_AMO')[0];
             view_on_amo.getElements('a')[0].set('href', data.view_on_amo_url);
             view_on_amo.removeClass('hidden');
+            view_on_amo.highlight();
+        }
+        if (data.edit_on_amo_url && data.status_code == 0) {
+            var edit_on_amo = status_el.getElements('.UI_AMO_Edit_On_AMO')[0];
+            edit_on_amo.getElements('a')[0].set('href', data.edit_on_amo_url);
+            edit_on_amo.removeClass('hidden');
+            edit_on_amo.highlight();
         }
         if (data.hasOwnProperty('uploaded')) {
             status_el.set('data-uploaded', data.uploaded);

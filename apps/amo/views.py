@@ -69,6 +69,7 @@ def get_addon_details_from_amo(request, pk):
 
     if amo_meta['slug']:
         amo_meta['view_on_amo_url'] = revision.package.get_view_on_amo_url()
+        amo_meta['edit_on_amo_url'] = revision.package.get_edit_on_amo_url()
 
     # update amo revision data
     if ('version' in amo_meta

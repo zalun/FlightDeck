@@ -1537,6 +1537,14 @@ class Package(BaseModel, SearchMixin):
                 settings.AMOAPI_PROTOCOL, settings.AMOAPI_DOMAIN,
                 self.amo_slug)
 
+    def get_edit_on_amo_url(self, step=5):
+        " returns the url to resume an incomplete add-on "
+        if not self.amo_slug:
+            return ""
+        return "%s://%s/en-US/firefox/addon/%s/submit/%d/" % (
+                settings.AMOAPI_PROTOCOL, settings.AMOAPI_DOMAIN,
+                self.amo_slug, step)
+
     def is_addon(self):
         " returns Boolean: True if this package an Add-on "
         return self.type == 'a'
