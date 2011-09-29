@@ -201,7 +201,6 @@ class PackageRevision(BaseModel):
                 # update addon on AMO
                 log.info('AMOOAUTHAPI: updating addon %s to version %s' % (
                     self, self.amo_version_name))
-                log.debug(data)
                 try:
                     response = amo.create_version(data, self.package.amo_id)
                 except Exception, error:
@@ -211,9 +210,12 @@ class PackageRevision(BaseModel):
                     super(PackageRevision, self).save()
                 else:
                     log.debug("AMOOAUTHAPI: update response: %s " % response)
-                    # XXX: AMO's response should contain status
-                    #self.amo_status = response['status']
-                    self.amo_status = STATUS_UNREVIEWED
+                    # XXX: not supported by API yet
+                    # There is 'statuses', but it's unclear how to read that
+                    if 'status' in response:
+                        self.amo_status = response['status']
+                    else:
+                        self.amo_status = STATUS_UNREVIEWED
                     self.amo_file_id = response['id']
                     super(PackageRevision, self).save()
                     # TODO: update jetpack ID if needed
@@ -232,6 +234,10 @@ class PackageRevision(BaseModel):
                 else:
                     log.debug("AMOOAUTHAPI: create response: %s " % response)
                     self.amo_status = response['status']
+                    # XXX: not supported by API (yet)
+                    # https://bugzilla.mozilla.org/show_bug.cgi?id=690515
+                    if 'slug' in response:
+                        self.package.amo_slug = response['slug']
                     super(PackageRevision, self).save()
                     self.package.amo_id = response['id']
 
