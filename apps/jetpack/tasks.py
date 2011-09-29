@@ -27,8 +27,9 @@ def fill_package_activity(*args, **kwargs):
             day = (now - rev.created_at).days
             activity[day] = '1'
 
+
         pkg.year_of_activity = ''.join(activity)
         pkg.save()
 
-    log.info('Finished filling year_of_activity.')
+    log.info('Finished filling year_of_activity in packages.')
 
