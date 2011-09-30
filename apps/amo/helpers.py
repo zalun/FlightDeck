@@ -49,7 +49,7 @@ def get_addon_details(amo_id, amo_file_id=None):
     req = urllib2.Request(url)
     try:
         page = urllib2.urlopen(req, timeout=settings.URLOPEN_TIMEOUT)
-    except urllib2.HttpError, error:
+    except urllib2.HTTPError, error:
         if '404' in str(error):
             return {'deleted': True}
     except Exception, error:
