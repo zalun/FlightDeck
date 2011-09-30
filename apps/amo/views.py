@@ -62,9 +62,11 @@ def get_addon_details_from_amo(request, pk):
                                   revision.amo_file_id)
 
     # update amo package data
-    if (not revision.package.amo_slug
-            or revision.package.amo_slug != amo_meta['slug']):
-        revision.package.amo_slug = amo_meta['slug']
+    amo_slug = amo_meta.get('slug', None)
+    if (amo_slug and
+            (not revision.package.amo_slug
+             or revision.package.amo_slug != amo_slug)):
+        revision.package.amo_slug = amo_slug
         revision.package.save()
 
     if amo_meta['slug']:
