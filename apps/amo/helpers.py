@@ -49,6 +49,9 @@ def get_addon_details(amo_id, amo_file_id=None):
     req = urllib2.Request(url)
     try:
         page = urllib2.urlopen(req, timeout=settings.URLOPEN_TIMEOUT)
+    except urllib2.HttpError, error:
+        if '404' in str(error):
+            return {'deleted': True}
     except Exception, error:
         msg = "AMOAPI: ERROR receiving add-on info from \"%s\"%s%s"
         log.critical(msg % (url, '\n', str(error)))

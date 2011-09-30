@@ -61,6 +61,21 @@ def get_addon_details_from_amo(request, pk):
     amo_meta = _get_addon_details(revision.package.amo_id,
                                   revision.amo_file_id)
 
+    if 'deleted' in amo_meta:
+        # remove info about the amo_addon from Package
+        revision.package.amo_id = None
+        revision.package.amo_slug = None
+        revision.package.latest_uploaded = None
+        revision.package.save()
+        # remove info about uploads from revisions
+        revisions = revision.package.revisions.all()
+        for r in revisions:
+            r.amo_status = None
+            r.amo_version_name = None
+            r.amo_file_id = None
+            super(PackageRevision, r).save()
+        return HttpResponse(simplejson.dumps(amo_meta))
+
     # update amo package data
     amo_slug = amo_meta.get('slug', None)
     if (amo_slug and
