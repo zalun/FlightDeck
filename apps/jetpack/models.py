@@ -1471,7 +1471,7 @@ class Package(BaseModel, SearchMixin):
 
     # activity
     year_of_activity = models.CharField(max_length=365, default='0'*365)
-    is_active_today = models.BooleanField(default=False, blank=True)
+    is_active_today = models.BooleanField(default=False)
 
     class Meta:
         " Set the ordering of objects "
@@ -2238,9 +2238,13 @@ def index_package(instance, **kwargs):
 
 post_save.connect(index_package, sender=Package)
 
-def mark_active_today(instance, **kw):
-    instance.is_active_today = True
-pre_save.connect(mark_active_today, sender=Package)
+def mark_active_today(instance, created, **kw):
+    if kw.get('raw', False) or created or not instance.package_id:
+        return
+
+    instance.package.is_active_today = True
+    instance.package.save()
+post_save.connect(mark_active_today, sender=PackageRevision)
 
 unindex_package = lambda instance, **kwargs: instance.remove_from_index()
 post_delete.connect(unindex_package, sender=Package)

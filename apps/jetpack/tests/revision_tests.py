@@ -12,6 +12,7 @@ from django.conf import settings
 from jetpack.models import Package, PackageRevision, Module, Attachment, SDK
 from jetpack.errors import SelfDependencyException, FilenameExistException, \
         DependencyException
+from jetpack.tasks import fill_package_activity
 from base.templatetags.base_helpers import hashtag
 
 log = commonware.log.getLogger('f.test')
@@ -389,6 +390,20 @@ class PackageRevisionTest(TestCase):
         assert old_rev.name
         assert old_package.full_name
         assert old_package.name
+
+    def test_fill_package_activity(self):
+        orig = '0'*365
+        addon = Package(type='a', author=self.author)
+        addon.save()
+
+        eq_(addon.year_of_activity, orig)
+
+        fill_package_activity.delay()
+
+        addon = Package.objects.get(pk=addon.pk)
+
+        new = '1' + orig[:-1]
+        eq_(addon.year_of_activity, new)
 
     """
     Althought not supported on view and front-end,
