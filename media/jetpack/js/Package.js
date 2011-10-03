@@ -411,6 +411,11 @@ var File = new Class({
 	
 });
 
+
+File.sanitize = function(name) {
+    return name.replace(/[^a-zA-Z0-9=!@#\$%\^&\(\)\+\-_\/\.]+/g, '-');
+};
+
 var Library = new Class({
 	
 	Extends: File,
