@@ -219,10 +219,20 @@ class Repackage(object):
         # help lists to collect dependencies
         exporting = []
         dependencies = []
+        standard_main_dir_files = [
+                'bootstrap.js', 'harness-options.json', 'install.rdf']
+        main_dir_files = []
 
         def _extract(f, name, resource_dir_prefix):
             # extract only package files
             if name not in f or resource_dir_prefix not in f:
+                if (f.count('/') == 0 and f not in standard_main_dir_files):
+                    f_name = os.path.join(
+                         sdk_dir, 'packages', package_name, f)
+                    if not os.path.exists(f_name):
+                        with open(f_name, 'w') as f_file:
+                            f_file.write(self.xpi_zip.open(f).read())
+                        main_dir_files.append(f)
                 return
             # get current package name from directory name (f)
             current_package_name = '-'.join(f.split(
@@ -285,10 +295,13 @@ class Repackage(object):
             # compatible with SDK > 1.0b1
             if uri_prefix != uri_prefix_1 and uri_prefix_1 in f:
                 resource_dir_prefix = uri_prefix_1
-            for name in ['lib', 'data', 'tests']:
+            for name in ['doc', 'lib', 'data', 'tests']:
                 _extract(f, name, resource_dir_prefix)
         # Add all dependencies to the manifest
         self.manifest['dependencies'].extend(dependencies)
+        for f in main_dir_files:
+            if 'icon' in f:
+                self.manifest[f.split('.')[0]] = f
 
         # create add-on's package.json
         log.debug('Writing manifest %s, %s' % (os.path.join(
@@ -305,6 +318,7 @@ class Repackage(object):
         except:
             log.critical("Manifest couldn't be exported to %s" % package_path)
 
+        log.debug(os.listdir(os.path.join(sdk_dir, 'packages', package_name)))
         return sdk_dir
 
     def cleanup(self):
