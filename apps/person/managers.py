@@ -9,7 +9,7 @@ from django.db.models import Q
 
 log = commonware.log.getLogger('f.profile.managers')
 
-MAX_GET_PROFILE = 4
+MAX_GET_PROFILE = 2
 class ProfileManager(models.Manager):
     " manager for Person object "
 
