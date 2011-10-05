@@ -173,9 +173,10 @@ class RepackageViewsTest(TestCase):
         resp = self.client.get(reverse('repackage_sdk_versions'))
 
         num_of_versions = SDK.objects.all().count()
+        assert num_of_versions > 1
 
         eq_(200, resp.status_code)
 
-        log.info(resp.content)
+        log.debug(resp.content)
         data = simplejson.loads(resp.content)
         eq_(num_of_versions, len(data))
