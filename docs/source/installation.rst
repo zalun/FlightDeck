@@ -29,11 +29,10 @@ code, substituting your name::
 
     git clone git@github.com:{your-username}/FlightDeck.git  # if you're not a developer, just use "mozilla" for your-username
     cd FlightDeck
-    git clone --recursive git://github.com/mozilla/FlightDeck-lib.git vendor
 
 Install submodules::
 
-    git submodule update --init
+    git submodule update --init --recursive
 
 Install any compiled libraries::
 
