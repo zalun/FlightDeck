@@ -119,7 +119,6 @@ SearchResult.setupUI = function(result) {
                 initialStep: initialStep,
                 onChange: function(step) {
                     var map = slidersMap[filter];
-                    console.log(step, map, map && map[step]);
                     valueEl.set('text', map ? map[step] : step);
                 },
                 onComplete: function(step) {
