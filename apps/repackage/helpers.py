@@ -299,6 +299,7 @@ class Repackage(object):
                 _extract(f, name, resource_dir_prefix)
         # Add all dependencies to the manifest
         self.manifest['dependencies'].extend(dependencies)
+        # Add icon files to manifest
         for f in main_dir_files:
             if 'icon' in f:
                 self.manifest[f.split('.')[0]] = f
@@ -318,7 +319,6 @@ class Repackage(object):
         except:
             log.critical("Manifest couldn't be exported to %s" % package_path)
 
-        log.debug(os.listdir(os.path.join(sdk_dir, 'packages', package_name)))
         return sdk_dir
 
     def cleanup(self):
