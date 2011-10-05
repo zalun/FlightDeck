@@ -195,37 +195,50 @@ class Repackage(object):
         """
 
         def get_package_dir(dir_name, current_package_name):
-            #returns the target path to the lib, data etc. dirs
+            "returns the target path to the lib, data etc. dirs"
             return os.path.join(sdk_dir, 'packages', current_package_name,
                     self.manifest[dir_name])
 
         # create temporary directory for SDK
         sdk_dir = tempfile.mkdtemp()
+        # copy contents of the SDK dir
         for d in os.listdir(sdk_source_dir):
             s_d = os.path.join(sdk_source_dir, d)
             if os.path.isdir(s_d):
                 shutil.copytree(s_d, os.path.join(sdk_dir, d))
             else:
                 shutil.copy(s_d, sdk_dir)
+        # do not copy these SDK packages from XPI
         sdk_dependencies = ['addon-kit', 'api-utils']
+        # these main dir files do not need to be copied from XPI
+        standard_main_dir_files = [
+                'bootstrap.js', 'harness-options.json', 'install.rdf']
         package_name = self.manifest['name']
+        # find a prefix used to create directories in the XPI
         uri_prefix = "resources/%s-" % (
                 self.manifest['id'].split('@')[0].lower())
         # SDK 1.0 changed the resource naming convention
         uri_prefix_1 = "resources/%s-" % (
                 self.manifest['id'].lower().replace('@', '-at-'))
+        # if uri prefix is not standarized it's name is placed in
+        # harness-options file
         uri_prefix_1 = (self.harness_options.get('uriPrefix', uri_prefix_1)
                 .replace('resource://', 'resources/', 1))
         # help lists to collect dependencies
         exporting = []
         dependencies = []
-        standard_main_dir_files = [
-                'bootstrap.js', 'harness-options.json', 'install.rdf']
+        # collect main dir files here
         main_dir_files = []
 
         def _extract(f, name, resource_dir_prefix):
-            # extract only package files
+            """ extract file
+
+            :attr: f (string) full path of the file within XPI
+            :attr: name (string) 'data', 'doc', 'lib' or 'tests'
+            :attr: resource_dir_prefix (string)
+            """
             if name not in f or resource_dir_prefix not in f:
+                # copy files from main directory
                 if (f.count('/') == 0 and f not in standard_main_dir_files):
                     f_name = os.path.join(
                          sdk_dir, 'packages', package_name, f)
@@ -244,15 +257,16 @@ class Repackage(object):
             # create lib, data and tests directories
             if (current_package_name, name) not in exporting:
                 # create appropriate directory
-                log.debug("Creating package directory %s" % get_package_dir(name, current_package_name))
                 os.makedirs(get_package_dir(name, current_package_name))
                 exporting.append((current_package_name, name))
 
+            # create minimal package.json for dependencies
+            # it contains only name of the package
             if (current_package_name != package_name
                     and current_package_name not in dependencies):
                 # collect info about exported dependencies
                 dependencies.append(current_package_name)
-                # export package.json
+                # create package.json
                 try:
                     p_meta = self.harness_options['metadata'].get(
                         current_package_name, None)
@@ -261,34 +275,33 @@ class Repackage(object):
                             "(%s) required by (%s)\n%s" % (
                             current_package_name, package_name, str(err)))
                     return
-                log.debug('Opening %s' % (os.path.join(sdk_dir, 'packages',
-                    current_package_name, 'package.json')))
                 with open(os.path.join(sdk_dir, 'packages',
-                    current_package_name, 'package.json'),
-                        'w') as manifest:
+                    current_package_name, 'package.json'), 'w') as manifest:
                     manifest.write(simplejson.dumps(p_meta))
 
             # create aprropriate subdirectories and export files
             resource_dir = lambda x: "%s%s-%s/" % (
                     resource_dir_prefix, current_package_name, x)
+            # proceed with files from within right directory
             if f.startswith(resource_dir(name)) and f != resource_dir(name):
+                # create target file name
                 f_name = "%s/%s" % (
                         get_package_dir(name, current_package_name),
                         f.split(resource_dir(name))[1])
-                # if f is a directory, create it only
+                # if f is a directory, create it only - needed for empty dirs
                 if f.endswith('/'):
                     if not os.path.isdir(f_name):
                         os.makedirs(f_name)
                     return
-                # if directory does not exist - cxreate it
+                # if directory containing the file does not exist - create it
                 parent_dir = '/'.join(f_name.split('/')[:-1])
                 if not os.path.isdir(parent_dir):
                     os.makedirs(parent_dir)
                 # export file
-                log.debug("Creating module %s" % f_name)
                 with open(f_name, 'w') as f_file:
                     f_file.write(self.xpi_zip.open(f).read())
 
+        # run _extract for every file and directory in the XPI
         for f in self.xpi_zip.namelist():
             # compatible with SDK <= 1.0b1
             resource_dir_prefix = uri_prefix
@@ -298,26 +311,25 @@ class Repackage(object):
             for name in ['doc', 'lib', 'data', 'tests']:
                 _extract(f, name, resource_dir_prefix)
         # Add all dependencies to the manifest
+        # This is a flat list - hierarchy might be different from original
         self.manifest['dependencies'].extend(dependencies)
         # Add icon files to manifest
         for f in main_dir_files:
             if 'icon' in f:
                 self.manifest[f.split('.')[0]] = f
 
-        # create add-on's package.json
+        # create add-on's package.json file
         log.debug('Writing manifest %s, %s' % (os.path.join(
                 sdk_dir, 'packages', package_name, 'package.json'),
                 self.manifest))
         package_dir = os.path.join(
                     sdk_dir, 'packages', package_name)
-        if not os.path.isdir(package_dir):
-            log.warning("Package dir (%s) does not exist" % package_dir)
-            os.makedirs(package_dir)
         try:
             with open(os.path.join(package_dir, 'package.json'), 'w') as manifest:
                 manifest.write(simplejson.dumps(self.manifest))
         except:
             log.critical("Manifest couldn't be exported to %s" % package_path)
+            raise
 
         return sdk_dir
 
