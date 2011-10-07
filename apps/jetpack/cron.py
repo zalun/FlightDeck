@@ -59,26 +59,9 @@ def package_activity():
 
     Should be run nightly.
     """
-    log.info('Start updating Package daily activity.')
-    pkgs = Package.objects.filter(deleted=False)
-
-    num_active = 0
-
-    # update daily_activity if is_active_today
-    # reset all Packages is_active_today to false
-    for pkg in pkgs:
-
-        bit = '1' if pkg.is_active_today else '0'
-        pkg.year_of_activity = bit + pkg.year_of_activity[-1]
-        pkg.is_active_today = False
-        pkg.save()
-
-        if bit == '1':
-            num_active = num_active + 1
-
-    log.info('Finished updating daily activity. %d active today.' % num_active)
+    tasks.fill_package_activity.delay(full_year=False)
 
 
 @cronjobs.register
 def fill_package_activity():
-    tasks.fill_package_activity.delay()
+    tasks.fill_package_activity.delay(full_year=True)
