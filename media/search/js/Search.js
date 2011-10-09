@@ -87,7 +87,18 @@ SearchResult.setupUI = function(result) {
 	var ui = { sliders: {} };
     if (result) result.ui = ui;
 
-    var filters = ['Copies', 'Used'];
+    slidersMap = {
+        'Activity': {
+            0: 'Inactive',
+            1: 'Stale',
+            2: 'Low',
+            3: 'Moderate',
+            4: 'High',
+            5: 'Rockin\''
+        }
+    }
+
+    var filters = ['Copies', 'Used', 'Activity'];
     filters.forEach(function(filter) {
         var container = $(filter + 'Filter'),
             dataKey = filter.toLowerCase();
@@ -98,7 +109,7 @@ SearchResult.setupUI = function(result) {
                 knobEl = sliderEl.getElement('.knob'),
                 valueEl = container.getElement('.slider-value'),
                 rangeEndEl = sliderEl.getElement('.range.end'),
-                end = rangeEndEl.get('text').toInt();
+                end = rangeEndEl.get('text').toInt() || rangeEndEl.get('data-value').toInt();
 
             var initialStep = Math.max(0, valueEl.get('text').toInt() || 0);
         
@@ -107,7 +118,8 @@ SearchResult.setupUI = function(result) {
                 range: [0, end],
                 initialStep: initialStep,
                 onChange: function(step) {
-                    valueEl.set('text', step);
+                    var map = slidersMap[filter];
+                    valueEl.set('text', map ? map[step] : step);
                 },
                 onComplete: function(step) {
                     if (!this.sanityCheck) return;

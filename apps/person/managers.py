@@ -23,7 +23,11 @@ class ProfileManager(models.Manager):
             try:
                 return self.get(by_nick | by_username)
             except MultipleObjectsReturned:
+
                 profiles = self.filter(by_nick | by_username)
+
+                log.debug("User (%s) has %d profiles, attempt %s" % (
+                    username, len(profiles), _get_profile.index))
 
                 for p in profiles:
                     p.update_from_AMO()
@@ -36,6 +40,9 @@ class ProfileManager(models.Manager):
                     raise
                 _get_profile.index += 1
                 return _get_profile()
+            except Exception, error:
+                log.critical("Getting profile for user (%s) failed" % username)
+                raise
 
         # a local var of `index` becomes UnboundLocalError due to the
         # `index += 1`. Storing it on an object prevents this error.

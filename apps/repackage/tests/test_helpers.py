@@ -6,9 +6,11 @@ import commonware
 import os
 import tempfile
 import urllib2
+import zipfile
 
 #from mock import Mock
 from nose.tools import eq_
+from nose import SkipTest
 from utils.test import TestCase
 
 from django.conf import settings
@@ -29,7 +31,8 @@ class RepackageTest(TestCase):
         self.sample_addons = [
                 "sample_add-on-1.0b3.xpi",
                 "sample_add-on-1.0b4.xpi",
-                "sample_add-on-1.0rc2.xpi"]
+                "sample_add-on-1.0rc2.xpi",
+                "repackage-special_name.xpi"]
         self.sdk_source_dir = settings.REPACKAGE_SDK_SOURCE or os.path.join(
                 settings.ROOT, 'lib/addon-sdk-1.0rc2')
 
@@ -63,3 +66,21 @@ class RepackageTest(TestCase):
             rep.download(os.path.join(self.xpi_file_prefix, sample))
             rep.get_manifest({'version': 'force.version'})
         eq_(rep.manifest['version'], 'force.version')
+
+    def test_main_dir_files_existence(self):
+        rep = Repackage()
+        xpi_path = os.path.join(
+            self.xpi_file_prefix, 'infocon10sdk11icons.xpi')
+        rep.download(xpi_path)
+        response = rep.rebuild(self.sdk_source_dir, self.hashtag)
+        assert not response[1]
+        with open(os.path.join(settings.XPI_TARGETDIR,
+                               "%s.xpi" % self.hashtag)) as xpi_file:
+            xpi = zipfile.ZipFile(xpi_file)
+            filenames = xpi.namelist()
+            xpi.close()
+        assert 'icon.png' in filenames
+        assert 'icon64.png' in filenames
+        raise SkipTest()
+        # I've got no idea how to copy icon16.png to main dir of the XPI
+        assert 'icon16.png' in filenames

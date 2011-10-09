@@ -1,0 +1,54 @@
+.UI_Browser .UI_Item {
+    padding-right: 340px;
+}
+
+.UI_Browser .UI_Item .UI_AMO_Info {
+    width: 320px;
+    right: 0;
+    position: absolute;
+    padding-left: 15px;
+    border-left: 1px solid #bbb;
+}
+
+.UI_Browser .UI_Item .UI_AMO_Info h2 {
+    margin-bottom: 6px;
+    font-weight: bold;
+}
+
+.UI_Browser .UI_Item .UI_AMO_Info p {
+    margin: 3px 0 0;
+    font-size: 0.8em;
+}
+
+.UI_Browser .UI_Item .UI_AMO_Info p span {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.UI_Browser .UI_Item .UI_AMO_Info p span.no-data {
+    font-weight: normal;
+    color: #ccc;
+}
+
+.UI_Browser .UI_Item .UI_AMO_Info .UI_AMO_Actions {
+    margin-top: 10px;
+}
+
+.UI_Browser .UI_Item .UI_AMO_Info .UI_AMO_Actions li {
+    font-size: 0.9em;
+    display: inline;
+    text-decoration: none;
+    margin-right: 3px;
+    border-bottom: 1px solid #eee;
+    color: #bbb;
+}
+
+.UI_Browser .UI_Item .UI_AMO_Info .UI_AMO_Actions li.hidden {
+    display: none;
+}
+
+.UI_Browser .UI_Item .UI_AMO_Info .UI_AMO_Actions li a {
+    color: #478CDE;
+    border-bottom: 1px solid #E9EDF0;
+    cursor: pointer;
+}

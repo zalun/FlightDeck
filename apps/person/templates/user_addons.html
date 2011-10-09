@@ -4,7 +4,14 @@
 
 {% block head %}
 	<link rel="stylesheet" href="/media/jetpack/css/UI.Browser.css" type="text/css" media="screen" />
+	<link rel="stylesheet" href="/media/person/css/UI.Dashboard.css" type="text/css" media="screen" />
+	<script src="/media/person/js/Dashboard.js"></script>
 	<script src="/media/jetpack/js/FlightDeck.Browser.js"></script>
+{% endblock %}
+
+{% block app_settings %}
+    amooauth_domain: '{{ settings.AMOOAUTH_DOMAIN }}',
+    amooauth_protocol: '{{ settings.AMOOAUTH_PROTOCOL }}',
 {% endblock %}
 
 {% block app_content %}
@@ -12,7 +19,7 @@
 	<ul class="UI_Browser">
 		{% for item in pager.object_list %}
 			<li class="UI_Item">
-				{% include "_package_browser_addon.html" %}
+				{% include "_dashboard_addon.html" %}
 			</li>
 		{% endfor %}
         {% if pager.has_other_pages %}

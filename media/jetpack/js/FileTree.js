@@ -212,7 +212,7 @@ FileTree = new Class({
 	    if(label.get('contenteditable') == 'true'){
 			
 			//validation
-			text = text.replace(/[^a-zA-Z0-9\-_\.]+/g, '-');
+			text = File.sanitize(text);
 		    
 		    
 			if (!text.getFileName()) {

@@ -26,6 +26,10 @@ body
 	left:0;
 	right:0;
 }
+
+    #app-sidebar {
+        bottom:-71px;
+    }
 	
 	#app-content
 	{

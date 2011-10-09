@@ -12,7 +12,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 path = lambda *a: os.path.join(ROOT, *a)
 
 # Set the project version
-PROJECT_VERSION = "0.9.10"
+PROJECT_VERSION = "0.9.13.1"
 
 # TODO: This should be handled by prod in a settings_local.  By default, we
 # shouldn't be in prod mode
@@ -148,6 +148,15 @@ AMOOAUTH_PROTOCOL = "https"
 AMOOAUTH_CONSUMERKEY = "key"
 AMOOAUTH_CONSUMERSECRET = "secret"
 AMOOAUTH_PREFIX = "/z"
+
+UPLOADTOAMO = True
+
+# AMO GENERIC API
+
+AMOAPI_VERSION = "1.5"
+AMOAPI_PROTOCOL = "https"
+AMOAPI_DOMAIN = "services.addons.mozilla.org"
+AMOAPI_PORT = 443
 
 URLOPEN_TIMEOUT = 4  # default timeout for urllib2.urlopen (seconds)
 

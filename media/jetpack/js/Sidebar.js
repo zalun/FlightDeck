@@ -15,7 +15,8 @@ var Sidebar = new Class({
 	initialize: function(options){
 		this.setOptions(options);
 		this.element = $('app-sidebar');
-		this.bind_keyboard();
+		//keyboard isn't working great, bug: 689382
+        //this.bind_keyboard();
 	},
 	
 	buildTree: function() {
@@ -229,7 +230,6 @@ var Sidebar = new Class({
 			options.nodrag = true;
 		}
 		
-		
 		var element = tree.addPath(file, options);	
 		tree.collapse.prepare();
 		
@@ -271,8 +271,6 @@ var Sidebar = new Class({
 	},
 	
 	removeFile: function(file, prefix) {
-		$log('sidebar destroy')
-	    
 	    if (file instanceof File) {
 	        file.destroy();
 	        return;
@@ -418,7 +416,6 @@ var Sidebar = new Class({
 						} else if (fileType == Module) {
 							fd.getItem().removeModules(file);
 						} else if (fileType == Attachment) {
-							$log('removing folder')
 							fd.getItem().removeAttachments(file);
 						}
 						
@@ -453,7 +450,7 @@ var Sidebar = new Class({
 				
                 // remove janky characters from filenames
                 // (from promptAttachment)
-                filename = filename.replace(/[^a-zA-Z0-9\-_\/\.]+/g, '-');
+                filename = File.sanitize(filename);
                 filename = filename.replace(/\/{2,}/g, '/');
 
 				if (filename[filename.length-1] == '/') {

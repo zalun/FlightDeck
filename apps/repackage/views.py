@@ -10,6 +10,7 @@ from django.http import (HttpResponse, HttpResponseBadRequest,
         HttpResponseForbidden)
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django.shortcuts import get_object_or_404
 
 from jetpack.models import SDK
 from utils.helpers import get_random_string
@@ -72,9 +73,12 @@ def rebuild(request):
         log.error("Rebuild requested with an invalid key.  Rejecting.")
         return HttpResponseForbidden('Access denied')
 
+    options = request.POST.get('options', None)
+
     location = request.POST.get('location', None)
     addons = request.POST.get('addons', None)
     upload = request.FILES.get('upload', None)
+
     if not location and not upload and not addons:
         log.error("Rebuild requested but files weren't specified.  Rejecting.")
         return HttpResponseBadRequest('Please provide XPI files to rebuild')
@@ -83,17 +87,24 @@ def rebuild(request):
                 "Rejecting")
         return HttpResponseBadRequest('Please provide XPI files to rebuild')
 
-    sdk_source_dir = (settings.REPACKAGE_SDK_SOURCE
-            or _get_latest_sdk_source_dir())
-    sdk_manifest = '%s/packages/%s/package.json' % (sdk_source_dir, 'addon-kit')
-    try:
-        handle = open(sdk_manifest)
-    except Exception, err:
-        log.critical("Problems loading SDK manifest\n%s" % str(err))
-        raise
+    # locate SDK source directory
+    sdk_version = request.POST.get('sdk_version', None)
+    if sdk_version:
+        sdk = get_object_or_404(SDK, version=sdk_version)
+        sdk_source_dir = sdk.get_source_dir()
     else:
-        sdk_version = simplejson.loads(handle.read())['version']
-        handle.close()
+        sdk_source_dir = (settings.REPACKAGE_SDK_SOURCE
+            or _get_latest_sdk_source_dir())
+
+        sdk_manifest = '%s/packages/%s/package.json' % (sdk_source_dir, 'addon-kit')
+        try:
+            handle = open(sdk_manifest)
+        except Exception, err:
+            log.critical("Problems loading SDK manifest\n%s" % str(err))
+            raise
+        else:
+            sdk_version = simplejson.loads(handle.read())['version']
+            handle.close()
     pingback = request.POST.get('pingback', None)
     priority = request.POST.get('priority', None)
     post = request.POST.urlencode()
@@ -125,7 +136,7 @@ def rebuild(request):
                     location, upload, sdk_source_dir, hashtag,
                     package_overrides=package_overrides,
                     filename=filename, pingback=pingback,
-                    post=post)
+                    post=post, options=options)
             counter = counter + 1
 
     if addons:

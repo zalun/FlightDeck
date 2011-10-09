@@ -3,6 +3,7 @@ import re
 import csv
 import shutil
 import time
+import datetime
 import commonware
 import tarfile
 import tempfile
@@ -31,6 +32,7 @@ from pyes.exceptions import NotFoundException as PyesNotFoundException
 
 from statsd import statsd
 
+from amo.constants import *
 from base.models import BaseModel
 from jetpack.errors import (SelfDependencyException, FilenameExistException,
                             UpdateDeniedException, SingletonCopyException,
@@ -44,24 +46,9 @@ from utils.os_utils import make_path
 from utils.amo import AMOOAuth
 from xpi import xpi_utils
 
+
 log = commonware.log.getLogger('f.jetpack')
 
-# XXX: We need to implement constants somehow
-# Flightdeck <-> AMO integration statuses
-STATUS_UPLOAD_SCHEDULED = -1
-STATUS_UPLOAD_FAILED = -2
-# Add-on and File statuses.
-STATUS_NULL = 0
-STATUS_UNREVIEWED = 1
-STATUS_PENDING = 2
-STATUS_NOMINATED = 3
-STATUS_PUBLIC = 4
-STATUS_DISABLED = 5
-STATUS_LISTED = 6
-STATUS_BETA = 7
-STATUS_LITE = 8
-STATUS_LITE_AND_NOMINATED = 9
-STATUS_PURGATORY = 10  # A temporary home; bug 614686
 
 def make_name(value=None):
     " wrap for slugify "
@@ -96,6 +83,9 @@ TYPE_CHOICES = (
 )
 
 
+FILENAME_RE = r'[^a-zA-Z0-9=!@#\$%\^&\(\)\+\-_\/\.]+'
+
+
 class PackageRevision(BaseModel):
     """
     contains data which may be changed and rolled back
@@ -121,6 +111,8 @@ class PackageRevision(BaseModel):
     amo_status = models.IntegerField(blank=True, null=True)
     #: version name used to upload to AMO
     amo_version_name = models.CharField(max_length=250, blank=True, null=True)
+    #: AMO file ID used to identify version
+    amo_file_id = models.IntegerField(blank=True, null=True)
 
     #: Libraries on which current package depends
     dependencies = models.ManyToManyField('self', blank=True, null=True,
@@ -159,6 +151,27 @@ class PackageRevision(BaseModel):
     ##################
     # AMO Integration
 
+    def is_uploaded(self):
+        """Find out if this revision has been uploaded successfuly to AMO
+        """
+        return (self.amo_version_name == self.get_version_name()
+                and self.amo_status != STATUS_UPLOAD_FAILED)
+
+    def get_amo_status_url(self):
+        """:returns: (string) url to pull amo_status view
+        """
+        return reverse('amo_get_addon_details', args=[self.pk])
+
+    def get_status_url(self):
+        """:returns: (string) url to pull get_addon_details view
+        """
+        return reverse('get_addon_status', args=[self.pk])
+
+    def get_status_name(self):
+        """:returns: (string) the name of the AMO status or None
+        """
+        return STATUS_NAMES.get(self.amo_status, None)
+
     def upload_to_amo(self, hashtag):
         """Uploads Package to AMO, updates or creates as a new Addon
 
@@ -167,6 +180,7 @@ class PackageRevision(BaseModel):
         # open XPI File
         xpi_path = os.path.join(settings.XPI_TARGETDIR,
                                 os.path.join('%s.xpi' % hashtag))
+        self.package.latest_uploaded = self
         with open(xpi_path) as xpi_file:
             # upload
             try:
@@ -187,7 +201,6 @@ class PackageRevision(BaseModel):
                 # update addon on AMO
                 log.info('AMOOAUTHAPI: updating addon %s to version %s' % (
                     self, self.amo_version_name))
-                log.debug(data)
                 try:
                     response = amo.create_version(data, self.package.amo_id)
                 except Exception, error:
@@ -197,9 +210,14 @@ class PackageRevision(BaseModel):
                     super(PackageRevision, self).save()
                 else:
                     log.debug("AMOOAUTHAPI: update response: %s " % response)
-                    # XXX: AMO's response should contain status
-                    #self.amo_status = response['status']
-                    self.amo_status = STATUS_UNREVIEWED
+                    # XXX: not supported by API yet
+                    # There is 'statuses', but it's unclear how to read that
+                    # https://bugzilla.mozilla.org/show_bug.cgi?id=690523
+                    if 'status' in response:
+                        self.amo_status = response['status']
+                    else:
+                        self.amo_status = STATUS_UNREVIEWED
+                    self.amo_file_id = response['id']
                     super(PackageRevision, self).save()
                     # TODO: update jetpack ID if needed
             else:
@@ -217,10 +235,14 @@ class PackageRevision(BaseModel):
                 else:
                     log.debug("AMOOAUTHAPI: create response: %s " % response)
                     self.amo_status = response['status']
+                    # XXX: not supported by API (yet)
+                    # https://bugzilla.mozilla.org/show_bug.cgi?id=690515
+                    if 'slug' in response:
+                        self.package.amo_slug = response['slug']
                     super(PackageRevision, self).save()
                     self.package.amo_id = response['id']
-                    self.package.save()
 
+        self.package.save()
         os.remove(xpi_path)
         if error:
             raise error
@@ -240,7 +262,7 @@ class PackageRevision(BaseModel):
         :raises: IntegrityError if Package with tht name already exists
         """
         if not validator.is_valid('alphanum_plus_space', value):
-            raise ValidationError
+            raise ValidationError('Full name contains illegal characters.')
         try:
             # in FlightDeck, libraries can have the same name,
             # by different authors
@@ -659,6 +681,8 @@ class PackageRevision(BaseModel):
         self.commit_message = ''
         self.origin = origin
         self.revision_number = self.get_next_revision_number()
+        self.amo_version_name = None
+        self.amo_status = None
 
         save_return = super(PackageRevision, self).save(**kwargs)
 
@@ -1023,7 +1047,7 @@ class PackageRevision(BaseModel):
         # linked with the same Library
         if dep.package.id_number == self.package.id_number:
             raise SelfDependencyException(
-                'A Library can not depend on itself!')
+                'A Library cannot depend on itself!')
 
         # dependency have to be unique in the PackageRevision
         # currently, the SDK can't compile with libraries with same "name"
@@ -1320,7 +1344,7 @@ class PackageRevision(BaseModel):
 
         # XPI: building locally and copying to NFS
         return xpi_utils.build(sdk_dir, self.get_dir_name(packages_dir),
-                self.name, hashtag, tstart=tstart)
+                self.name, hashtag, tstart=tstart, options=self.sdk.options)
 
     def export_keys(self, sdk_dir):
         """Export private and public keys to file."""
@@ -1387,6 +1411,11 @@ class Package(BaseModel, SearchMixin):
 
     #: identification in AMO
     amo_id = models.IntegerField(blank=True, null=True)
+    #: slug on the amo
+    amo_slug = models.CharField(max_length=255, blank=True, null=True)
+    #: latest uploaded revision
+    latest_uploaded = models.ForeignKey('PackageRevision',
+            blank=True, null=True, related_name='+')
 
     #: name of the Package
     full_name = models.CharField(max_length=255, blank=True)
@@ -1439,6 +1468,10 @@ class Package(BaseModel, SearchMixin):
     active = models.BooleanField(default=True, blank=True)
     # deleted is the limbo state
     deleted = models.BooleanField(default=False, blank=True)
+
+    # activity
+    year_of_activity = models.CharField(max_length=365, default='0'*365)
+    is_active_today = models.BooleanField(default=False)
 
     class Meta:
         " Set the ordering of objects "
@@ -1502,6 +1535,22 @@ class Package(BaseModel, SearchMixin):
         " returns URL to delete package "
         return reverse('jp_package_delete',
                         args=[self.id_number])
+
+    def get_view_on_amo_url(self):
+        " returns the url to view the add-on on AMO "
+        if not self.amo_slug:
+            return ""
+        return "%s://%s/en-US/firefox/addon/%s/" % (
+                settings.AMOAPI_PROTOCOL, settings.AMOAPI_DOMAIN,
+                self.amo_slug)
+
+    def get_edit_on_amo_url(self, step=5):
+        " returns the url to resume an incomplete add-on "
+        if not self.amo_slug:
+            return ""
+        return "%s://%s/en-US/firefox/developers/addon/%s/submit/%d" % (
+                settings.AMOAPI_PROTOCOL, settings.AMOAPI_DOMAIN,
+                self.amo_slug, step)
 
     def is_addon(self):
         " returns Boolean: True if this package an Add-on "
@@ -1732,6 +1781,43 @@ class Package(BaseModel, SearchMixin):
         if self.version_name:
             self.version_name = alphanum_plus(self.version_name)
 
+    def get_activity_rating(self):
+        """
+        Build a weighted average based on activity from daily_activity
+        and recency of that activity.
+        """
+        # slices are by week
+        # first couple weeks are weighted high
+        # rest of the weeks are super tiny points
+        slice_size = 7
+        slices = len(self.year_of_activity) / slice_size
+
+        weights = {
+            '0': 0.20,
+            '1': 0.15,
+            '2': 0.10,
+            '3': 0.05,
+        }
+
+        remaining_percentage = 1.0 - sum(weights.values())
+        standard_weight = remaining_percentage / (slices - len(weights.keys()))
+        total = 0
+
+        for i in range(slices):
+            # slice_ is like '1100101'
+            slice_start = i * slice_size
+            slice_end = slice_start + slice_size
+            points = self.year_of_activity.count('1', slice_start, slice_end)
+
+            weight = weights.get(str(i), standard_weight)
+            weighted_points = points * weight
+
+            total = total + weighted_points
+
+        rating = total / slice_size
+        return rating
+
+
     @es_required
     def refresh_index(self, es, bulk=False):
         # Don't index private/deleted things, and remove them.
@@ -1744,6 +1830,9 @@ class Package(BaseModel, SearchMixin):
             .exclude(package=self)
             .values_list('package_id', flat=True)))
         data['copies_count'] = len(data['copies'])
+
+        del data['year_of_activity']
+        data['activity'] = self.get_activity_rating()
 
         try:
             if self.latest:
@@ -1874,7 +1963,7 @@ class Module(BaseModel):
             self.filename = self.filename[:first_period]
 
         # remove illegal characters from filename
-        self.filename = re.sub('[^a-zA-Z0-9=!@#\$%\^&\(\)\+\-_\/\.]+', '-',
+        self.filename = re.sub(FILENAME_RE, '-',
                 self.filename)
         self.filename = re.sub('\/{2,}', '/', self.filename)
         self.filename = re.sub('^\/', '', self.filename)
@@ -2035,7 +2124,7 @@ class Attachment(BaseModel):
         return self
 
     def clean(self):
-        self.filename = pathify(self.filename)
+        self.filename = re.sub(FILENAME_RE, '-', self.filename)
         if self.ext:
             self.ext = alphanum(self.ext)
 
@@ -2087,6 +2176,10 @@ class SDK(BaseModel):
 
     # placement in the filesystem
     dir = models.CharField(max_length=255, unique=True)
+
+    #: xpi creation options specific to the SDK release
+    options = models.CharField(max_length=255, default=None, blank=True,
+                               null=True)
 
     class Meta:
         """Ordering of SDK instances."""
@@ -2144,6 +2237,14 @@ def index_package(instance, **kwargs):
     index_one.delay(instance.id)
 
 post_save.connect(index_package, sender=Package)
+
+def mark_active_today(instance, created, **kw):
+    if kw.get('raw', False) or created or not instance.package_id:
+        return
+
+    instance.package.is_active_today = True
+    instance.package.save()
+post_save.connect(mark_active_today, sender=PackageRevision)
 
 unindex_package = lambda instance, **kwargs: instance.remove_from_index()
 post_delete.connect(unindex_package, sender=Package)

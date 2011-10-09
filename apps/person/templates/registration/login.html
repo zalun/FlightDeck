@@ -19,7 +19,9 @@
         <p class="fd_error" title="Sign in error">
 		{% for sender,subject in form.errors.items %}
 			{% for error in subject %}
-                {{ sender|replace:"username,email address"|capitalize }}: 
+                {% if sender != '__all__' %}
+                    {{ sender|replace:"username,email address"|capitalize }}: 
+                {% endif %}
                 {{ error|escape }}<br/>
 			{% endfor %}
 		{% endfor %}

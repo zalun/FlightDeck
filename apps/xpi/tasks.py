@@ -24,6 +24,7 @@ def xpi_build_from_model(rev_pk, mod_codes={}, att_codes={}, hashtag=None, tqueu
         statsd.timing('xpi.build.queued', tinqueue)
         log.info('[xpi:%s] Addon job picked from queue (%dms)' % (hashtag, tinqueue))
     revision = PackageRevision.objects.get(pk=rev_pk)
+    log.debug('[xpi:%s] Building %s' % (hashtag, revision))
     # prepare changed modules and attachments
     modules = []
     attachments = []

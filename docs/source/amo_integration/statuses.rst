@@ -4,6 +4,10 @@
 Add-on statuses
 ===============
 
+One can check add-on status in the :ref:`modal-properties` or
+:ref:`page-dashboard`.
+
+
 Every Add-on uploaded to AMO has a status which is one of the following:
 
 * ``STATUS_NULL`` - Incomplete

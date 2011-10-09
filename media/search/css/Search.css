@@ -26,7 +26,8 @@ body {
         position:relative;
     }
         #NarrowSearch .disabled .slider {
-            background:-moz-linear-gradient(270deg, #ccc, #888);
+            background:#ccc;
+            border-color:#999;
             cursor:not-allowed;
         }
 
@@ -41,6 +42,12 @@ body {
             top:-7px;
             width:8px;
         }
+
+            #NarrowSearch .disabled .slider .knob {
+                background:#ddd;
+                border-color:#aaa;
+                box-shadow:none;
+            }
 
         #NarrowSearch .slider .range {
             color:#aaa;

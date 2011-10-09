@@ -1,4 +1,5 @@
 {% load base_helpers %}
+{% block amo_info %}{% endblock %}
 <h3>
     {{ item.full_name }}
 
@@ -8,7 +9,7 @@
     </span>
     {% endifnotequal %}
     <span class="version">
-        version <span class="version-name">{{ item.version_name }}</span>
+        version <span class="version-name">{{ item.latest.get_version_name }}</span>
     </span>
 </h3>
 <p>{{ item.description }}</p>

@@ -10,10 +10,11 @@ from django.shortcuts import render_to_response
 from django.template import RequestContext, loader
 from django.views.debug import get_safe_settings
 
-from jetpack.models import Package, SDK
-import base.tasks
-from base.models import CeleryResponse
 from elasticutils import get_es
+import base.tasks
+from search.cron import index_all, setup_mapping
+from jetpack.models import Package, SDK
+from base.models import CeleryResponse
 
 log = commonware.log.getLogger('f.monitor')
 
@@ -43,6 +44,28 @@ def site_settings(request):
         'settings.html',
         {'settings': safe},
         context_instance=RequestContext(request))
+
+@user_passes_test(lambda u: u.is_superuser)
+def admin(request):
+    msg = ''
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        log_msg = '[admin] %s by %s (id: %d)'
+        if action == 'setup_mapping':
+            msg = 'setup_mapping triggered'
+            log.info(log_msg % (msg, request.user, request.user.pk))
+            setup_mapping()
+        elif action == 'index_all':
+            msg = 'index_all triggered'
+            log.info(log_msg % (msg , request.user, request.user.pk))
+            index_all()
+        else:
+            log.warning('[TAMPERING][admin] Action "%s" tried by %s (id: %s)'
+                        % (action, request.user, request.user.pk))
+
+    return render_to_response('admin.html', {
+            'message': msg
+        }, context_instance=RequestContext(request))
 
 
 def monitor(request):
