@@ -17,6 +17,7 @@ from django.core.urlresolvers import reverse
 
 from jetpack.models import SDK, PackageRevision
 from repackage import tasks
+from jetpack.models import SDK
 
 log = commonware.log.getLogger('f.repackage')
 
@@ -162,3 +163,19 @@ class RepackageViewsTest(TestCase):
                 'sdk_version': SDKVERSION})
         task_args = tasks.low_rebuild.delay.call_args
         eq_(task_args[0][2], sdk.get_source_dir())
+
+    def test_list_versions_api(self):
+        """
+        /repackage/sdk-versions/ should return a JSON list of
+        all the SDK versions known to Builder
+        """
+
+        resp = self.client.get(reverse('repackage_sdk_versions'))
+
+        num_of_versions = SDK.objects.all().count()
+
+        eq_(200, resp.status_code)
+
+        log.debug(resp.content)
+        data = simplejson.loads(resp.content)
+        eq_(num_of_versions, len(data))
