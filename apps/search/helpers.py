@@ -73,10 +73,11 @@ def _get_average_activity():
         return average
     # TODO: ES has statistical facet that can provide average, but I couldn't
     # get it working.
-    values = Package.search().values('activity')
+    qs = Package.search().filter(activity__gt=0)
+    values = qs.values('activity')[:qs.count()]
     num = len(values)
     if num > 0:
-        average = sum(v[1] for v in values) / len(values)
+        average = sum(v[1] for v in values) / num
     else:
         average = 0.2
 

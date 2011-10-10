@@ -1,6 +1,7 @@
 import commonware
 import tempfile
 import os
+import datetime
 
 from test_utils import TestCase
 
@@ -404,6 +405,36 @@ class PackageRevisionTest(TestCase):
 
         new = '1' + orig[:-1]
         eq_(addon.year_of_activity, new)
+
+    def test_package_activity_cron(self):
+        addon = Package(type='a', author=self.author)
+        addon.save()
+        fill_package_activity.delay(full_year=True)
+
+        now = datetime.datetime.utcnow()
+
+        # Superficially creating revisions in the past
+        r2 = addon.revisions.create(author=self.author, revision_number=2)
+        r2.created_at=now-datetime.timedelta(5)
+        super(PackageRevision, r2).save()
+
+        r3 = addon.revisions.create(author=self.author, revision_number=3)
+        r3.created_at=now-datetime.timedelta(3)
+        super(PackageRevision, r3).save()
+
+        addon = Package.objects.get(pk=addon.pk)
+        addon.activity_updated_at = now - datetime.timedelta(4)
+        addon.save()
+
+
+        old = addon.year_of_activity
+        fill_package_activity.delay(full_year=False)
+
+        addon = Package.objects.get(pk=addon.pk)
+
+        eq_('1001'+old[:-4], addon.year_of_activity)
+
+
 
     """
     Althought not supported on view and front-end,

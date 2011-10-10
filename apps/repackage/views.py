@@ -191,3 +191,11 @@ def rebuild(request):
 
     return HttpResponse(simplejson.dumps(response),
             mimetype='application/json')
+
+
+def sdk_versions(r):
+    versions = SDK.objects.all().order_by('id')
+    response = [sdk.version for sdk in versions]
+
+    return HttpResponse(simplejson.dumps(response),
+            mimetype='application/json')

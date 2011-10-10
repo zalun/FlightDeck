@@ -176,17 +176,17 @@ class PackageHelperSearchTest(MappedESTestCase):
         eq_(1, len(data))
 
     def test_type_facet_filter(self):
-        """)
+        """
         Type facet should not have a type filter in it's facet_filter.
         """
         buzz = create_addon('buzz lightyear')
         buzz.latest.set_version('Infinity')
 
-        toystory = create_library('the toy story')
+        toystory = create_library('the toy story buzz')
         toystory.latest.set_version('1')
 
         self.es.refresh()
-        data = package_search(type='a')
+        data = package_search('buzz', type='a')
 
         eq_(1, len(data))
 
