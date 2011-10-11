@@ -8,8 +8,14 @@ from django.conf import settings
 import commonware
 import cronjobs
 
-from .models import Package
 from . import tasks
+
+from jetpack.models import Package
+from jetpack import tasks
+
+from celery.messaging import establish_connection
+from celeryutils import chunked
+from elasticutils import get_es
 
 log = commonware.log.getLogger('f.cron')
 
@@ -52,16 +58,10 @@ def gc():
 
 
 @cronjobs.register
-def package_activity():
-    """
-    Collect all Packages, and update their daily_activity based
-    on if they have been active today.
-
-    Should be run nightly.
-    """
-    tasks.fill_package_activity.delay(full_year=False)
-
-
-@cronjobs.register
-def fill_package_activity():
-    tasks.fill_package_activity.delay(full_year=True)
+def update_package_activity():
+    """Recalculates package activity rating for all packages"""
+    ids = Package.objects.all().values_list('id', flat=True)
+    log.info("Updating package activity for %s packages" % len(ids))
+    with establish_connection() as conn:
+        for chunk in chunked(ids, 100):
+            tasks.calculate_activity_rating.apply_async(args=[chunk], connection=conn)
