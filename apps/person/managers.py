@@ -3,7 +3,7 @@ Managers for the Profile models
 """
 import commonware
 
-from django.core.exceptions import MultipleObjectsReturned
+from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db import models
 from django.db.models import Q
 
@@ -19,15 +19,23 @@ class ProfileManager(models.Manager):
         # for AMO users
         by_nick = Q(nickname=username)
 
-        def _get_profile():
+        def _get_profile(queries):
             try:
-                return self.get(by_nick | by_username)
+                return self.get(queries[0])
+
+            except ObjectDoesNotExist:
+                queries.pop(0)
+                if not queries:
+                    raise
+                # try to find profile by the next query
+                return _get_profile(queries)
+
             except MultipleObjectsReturned:
-
-                profiles = self.filter(by_nick | by_username)
-
-                log.debug("User (%s) has %d profiles, attempt %s" % (
-                    username, len(profiles), _get_profile.index))
+                profiles = self.filter(queries[0])
+                log.debug("User (%s) has %d usernames: %s, attempt %s" % (
+                    username, len(profiles),
+                    str([(x.user.username, x.nickname) for x in profiles]),
+                    _get_profile.index))
 
                 for p in profiles:
                     p.update_from_AMO()
@@ -39,7 +47,7 @@ class ProfileManager(models.Manager):
                             ', '.join([p.user.username for p in profiles])))
                     raise
                 _get_profile.index += 1
-                return _get_profile()
+                return _get_profile(queries)
             except Exception, error:
                 log.critical("Getting profile for user (%s) failed" % username)
                 raise
@@ -49,6 +57,7 @@ class ProfileManager(models.Manager):
         # Bug: https://bugzilla.mozilla.org/show_bug.cgi?id=681098
         # PEP: http://www.python.org/dev/peps/pep-3104/
         _get_profile.index = 0
-        return _get_profile()
+        # try to get profile in given order
+        return _get_profile([by_nick, by_username])
 
 
