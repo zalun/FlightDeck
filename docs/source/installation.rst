@@ -234,3 +234,13 @@ Need to delete your Elastic Search index and start over?
     curl -XDELETE 'http://localhost:9201/flightdeck'
     ./manage.py cron setup_mapping
     ./manage.py cron index_all
+    
+    
+Create a local super user account
+---------------------------------
+
+If you imported your database then you will need to create a user.
+
+    ./manage.py createsuperuser
+    
+    
