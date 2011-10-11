@@ -78,6 +78,12 @@ If this is a brand new installation you'll need to configure a database as
 well.  This command will build the structure::
 
     ./manage.py syncdb
+    
+If you're using Elastic Search locally then be sure to setup the ES index
+mappings and index all your packages
+
+    ./manage.py cron setup_mapping
+    ./manage.py cron index_all
 
 FlightDeck needs to know about all the SDKs you have availalbe.  This command
 will make it look for them and initialize the database::
@@ -194,3 +200,37 @@ An example Apache WSGI configuration::
     import django.core.handlers.wsgi
     application = django.core.handlers.wsgi.WSGIHandler()
 
+
+Recipes
+===============
+
+
+Import live database dump
+-------------------------
+
+How to import a database dump from live
+
+    [sudo] mysql flightdeck < flightdeck_dump.sql
+    
+If you run into an error when importing large sql dump files, you may need to
+ restart your mysqld process with this parameter.  
+
+    mysqld --max_allowed_packet=32M
+    
+The database dump might be missing a row in django_sites table, so if you get a
+django error saying "Site matching query does not exist" when you hit the login
+page then insert a row into django_site.
+
+    insert into django_site (id,domain,name) values (1,'example.com','example')
+    
+After importing the data, you will need to rebuild your ES index.
+
+
+Rebuilding Elastic Search index
+-------------------------------
+
+Need to delete your Elastic Search index and start over?
+
+    curl -XDELETE 'http://localhost:9201/flightdeck'
+    ./manage.py cron setup_mapping
+    ./manage.py cron index_all
