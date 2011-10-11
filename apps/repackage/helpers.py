@@ -189,7 +189,7 @@ class Repackage(object):
         self.manifest['dependencies'] = ['addon-kit', 'api-utils']
 
     def extract_packages(self, sdk_source_dir):
-        """Builds SDK environment and calls the :method:`xpi.xpi_utils.build`
+        """Builds SDK environment and calls the :meth:`xpi.xpi_utils.build`
 
         :returns: temporary sdk_dir
         """

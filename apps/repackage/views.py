@@ -64,8 +64,8 @@ def rebuild(request):
     """Rebuild ``XPI`` file. It can be provided as POST['location']
 
     :returns: (JSON) contains one field - hashtag it is later used to download
-              the xpi using :method:`xpi.views.check_download` and
-              :method:`xpi.views.get_download`
+              the xpi using :meth:`xpi.views.check_download` and
+              :meth:`xpi.views.get_download`
     """
     # validate entries
     secret = request.POST.get('secret', None)
