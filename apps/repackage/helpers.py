@@ -25,6 +25,7 @@ def increment_version(version):
 
     :attr: version (string) version to be modified
     """
+    version = str(version)
     version_split = version.split('.')
     if len(version_split) == 2:
         return '%s.1' % version
@@ -34,8 +35,9 @@ def increment_version(version):
         int(version_split[-1])
     except ValueError:
         return '%s.1' % version
-    version_split[-1] = str(int(version_split[-1]) + 1)
-    return '.'.join(version_split)
+    else:
+        version_split[-1] = str(int(version_split[-1]) + 1)
+        return '.'.join(version_split)
 
 
 
@@ -183,6 +185,9 @@ class Repackage(object):
         log.debug("[%s] Done rebuilding XPI; cleaning up" % hashtag)
         # clean up (sdk_dir is already removed)
         self.cleanup()
+        # here find the created XPI and compare main dir list
+        # if not the same - copy the files from original XPI
+
         return response
 
     def get_manifest(self, package_overrides={}):
