@@ -27,6 +27,14 @@ class BadManifestFieldException(exceptions.SimpleException):
 
 
 def _get_package_overrides(container, sdk_version=None):
+    """
+    Prepare package overrides (from POST)
+    sdk_version is used to override the version if {sdk_version} provided in
+    optional container['version']
+
+    :attr: container (dict) list of overrides
+    :attr: sdk_version (string)
+    """
     version = container.get('version', None)
     if version and sdk_version:
         version = version.format(sdk_version=sdk_version)

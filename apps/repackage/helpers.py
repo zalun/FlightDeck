@@ -19,6 +19,25 @@ from xpi import xpi_utils
 
 log = commonware.log.getLogger('f.repackage')
 
+def increment_version(version):
+    """
+    Modify version string to indicate changes made by repacking
+
+    :attr: version (string) version to be modified
+    """
+    version_split = version.split('.')
+    if len(version_split) == 2:
+        return '%s.1' % version
+    if len(version_split) == 1:
+        return '%s.0.1' % version
+    try:
+        int(version_split[-1])
+    except ValueError:
+        return '%s.1' % version
+    version_split[-1] = str(int(version_split[-1]) + 1)
+    return '.'.join(version_split)
+
+
 
 class Extractor(object):
     """
@@ -47,7 +66,8 @@ class Extractor(object):
             'id': self.find('id'),
             'type': self.find('type') or self.ADDON_EXTENSION,
             'fullName': self.find('name'),
-            'version': self.find('version'),
+            # read version and increment the version number
+            'version': increment_version(self.find('version')),
             'url': self.find('homepageURL'),
             'description': self.find('description'),
             'author': self.find('creator'),
