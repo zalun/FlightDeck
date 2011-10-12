@@ -87,6 +87,7 @@ class RepackageTest(TestCase):
 
     def test_version_increment(self):
         eq_('2.1.1', increment_version('2.1'))
+        eq_('abc.0.1', increment_version('abc'))
         eq_('1.0.1', increment_version('1'))
         eq_('1.2pre.1', increment_version('1.2pre'))
         eq_('1.2.3pre.1', increment_version('1.2.3pre'))
