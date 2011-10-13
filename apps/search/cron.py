@@ -36,10 +36,11 @@ def setup_mapping():
     }
 
     es = get_es()
+    index = settings.ES_INDEXES['default']
     try:
-        es.create_index_if_missing(settings.ES_INDEX)
+        es.create_index_if_missing(index)
         es.put_mapping(Package._meta.db_table, package_mapping,
-                settings.ES_INDEX)
+                index)
     except ElasticSearchException, e:
         log.debug(e)
 
