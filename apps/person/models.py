@@ -61,11 +61,11 @@ class Profile(models.Model):
             SQL = ('SELECT %s FROM %s WHERE id=%%s') % (
                     ','.join(columns), settings.AUTH_DATABASE['TABLE'])
             auth_cursor.execute(SQL, [self.user.username])
-            log.debug(SQL % self.user.username)
             row = auth_cursor.fetchone()
             data = {}
-            for i in range(len(row)):
-                data[columns[i]] = row[i]
+            if row:
+                for i in range(len(row)):
+                    data[columns[i]] = row[i]
 
         if 'display_name' in data:
             if data['display_name']:
