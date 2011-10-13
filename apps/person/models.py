@@ -1,3 +1,5 @@
+import commonware
+
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
@@ -5,6 +7,9 @@ from django.db import models
 
 from amo.helpers import get_amo_cursor
 from person.managers import ProfileManager
+
+log = commonware.log.getLogger('f.profile.models')
+
 
 class Limit(models.Model):
     email = models.CharField(max_length=255)
@@ -53,13 +58,14 @@ class Profile(models.Model):
             columns = ('id', 'email', 'username', 'display_name', 'email' ,
                        'homepage')
 
-            SQL = ('SELECT %s FROM %s WHERE username=%%s') % (
+            SQL = ('SELECT %s FROM %s WHERE id=%%s') % (
                     ','.join(columns), settings.AUTH_DATABASE['TABLE'])
-            auth_cursor.execute(SQL, [self.nickname])
-            data = auth_cursor.fetchone()
+            auth_cursor.execute(SQL, [self.user.username])
+            row = auth_cursor.fetchone()
             data = {}
-            for i in range(len(data)):
-                data[columns[i]] = data[i]
+            if row:
+                for i in range(len(row)):
+                    data[columns[i]] = row[i]
 
         if 'display_name' in data:
             if data['display_name']:
@@ -71,6 +77,8 @@ class Profile(models.Model):
 
         if 'username' in data:
             self.nickname = data['username']
+            log.debug('nickname "%s" updated from AMO by id (%s)' % (
+                self.nickname, self.user.username))
         if 'homepage' in data:
             self.homepage = data['homepage']
 

@@ -26,12 +26,31 @@ site.addsitedir(path('lib'))
 site.addsitedir(path(''))
 
 # Move the new items to the front of sys.path. (via virtualenv)
-new_sys_path = []
+new_sys_path = [path('vendor'), path('vendor/lib/python'), path('apps'), path('lib')]
 for item in list(sys.path):
     if item not in prev_sys_path:
         new_sys_path.append(item)
         sys.path.remove(item)
 sys.path[:0] = new_sys_path
+
+# XXX: for some reason this fixes the AttributeError exception
+#File "[...]/FlightDeck/apps/jetpack/managers.py", line 11, in <module>
+#    log = commonware.log.getLogger('f.jetpack.managers')
+#    AttributeError: 'module' object has no attribute 'log'
+import commonware.log
+
+# Mock modules which fail on readthedocs.org
+class Mock(object):
+    def __init__(self, *args):
+        pass
+
+    def __getattr__(self, name):
+        return Mock
+
+MOCK_MODULES = ['MySQLdb']
+
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = Mock()
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
 
