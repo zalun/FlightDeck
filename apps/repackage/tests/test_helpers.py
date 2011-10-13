@@ -16,7 +16,7 @@ from utils.test import TestCase
 from django.conf import settings
 
 from base.templatetags.base_helpers import hashtag
-from repackage.helpers import Repackage
+from repackage.helpers import Repackage, increment_version
 
 log = commonware.log.getLogger('f.tests')
 
@@ -84,3 +84,13 @@ class RepackageTest(TestCase):
         raise SkipTest()
         # I've got no idea how to copy icon16.png to main dir of the XPI
         assert 'icon16.png' in filenames
+
+    def test_version_increment(self):
+        eq_('2.1.1', increment_version('2.1'))
+        eq_('abc.0.1', increment_version('abc'))
+        eq_('1.0.1', increment_version('1'))
+        eq_('1.2pre.1', increment_version('1.2pre'))
+        eq_('1.2.3pre.1', increment_version('1.2.3pre'))
+        eq_('2.1.2', increment_version('2.1.1'))
+        eq_('2.1.2.3', increment_version('2.1.2.2'))
+        eq_('1.2.3pre.2', increment_version('1.2.3pre.1'))
