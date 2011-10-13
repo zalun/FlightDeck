@@ -1,3 +1,5 @@
+import commonware
+
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
@@ -5,6 +7,9 @@ from django.db import models
 
 from amo.helpers import get_amo_cursor
 from person.managers import ProfileManager
+
+log = commonware.log.getLogger('f.profile.models')
+
 
 class Limit(models.Model):
     email = models.CharField(max_length=255)
