@@ -9,6 +9,13 @@ TYPE_CHOICES = (
     ('a', 'Add-ons'),
 )
 
+SORT_CHOICES = (
+    ('score','score'),
+    ('activity','activity'),
+    ('forked','forked'),
+    ('used','used')
+)
+
 class SearchForm(CleanForm):
     q = forms.CharField(required=False)
     page = forms.IntegerField(required=False, initial=1)
@@ -17,3 +24,4 @@ class SearchForm(CleanForm):
     copies = forms.IntegerField(required=False, initial=0)
     used = forms.IntegerField(required=False, initial=0)
     activity = forms.IntegerField(required=False, initial=0)
+    sort = forms.ChoiceField(required=False, choices=SORT_CHOICES)
