@@ -53,9 +53,9 @@ class Profile(models.Model):
             columns = ('id', 'email', 'username', 'display_name', 'email' ,
                        'homepage')
 
-            SQL = ('SELECT %s FROM %s WHERE username=%%s') % (
+            SQL = ('SELECT %s FROM %s WHERE id=%%s') % (
                     ','.join(columns), settings.AUTH_DATABASE['TABLE'])
-            auth_cursor.execute(SQL, [self.nickname])
+            auth_cursor.execute(SQL, [self.user.username])
             data = auth_cursor.fetchone()
             data = {}
             for i in range(len(data)):
@@ -71,6 +71,8 @@ class Profile(models.Model):
 
         if 'username' in data:
             self.nickname = data['username']
+            log.debug('nickname "%s" updated from AMO by id (%s)' % (
+                self.nickname, self.user.username))
         if 'homepage' in data:
             self.homepage = data['homepage']
 
