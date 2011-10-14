@@ -1,10 +1,10 @@
-var Class = require('shipyard/class'),
+var Class = require('shipyard/class/Class'),
 	Model = require('shipyard/model/Model'),
 	fields = require('shipyard/model/fields'),
 	Syncable = require('shipyard/sync/Syncable'),
 	ServerSync = require('shipyard/sync/Server');
 
-module.exports = new Class({
+var Package = module.exports = new Class({
 
 	Extends: Model,
 

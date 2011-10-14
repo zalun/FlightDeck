@@ -6,7 +6,7 @@
  * Its functionalities should be overwritten in specific classes (Bespin.js, etc.)
  * Otherwise standard textarea will be used.
  */
-var Class = require('shipyard/class'),
+var Class = require('shipyard/class/Class'),
 	Events = require('shipyard/class/Events'),
 	Options = require('shipyard/class/Options')
 	object = require('shipyard/utils/object');

@@ -4,7 +4,7 @@
  *
  * Class: FDEditor
  */
-var Class = require('shipyard/class'),
+var Class = require('shipyard/class/Class'),
 	object = require('shipyard/utils/object'),
 	ace = require('ace/ace'),
 	FDEditor = require('./FDEditor');

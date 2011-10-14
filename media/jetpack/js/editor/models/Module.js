@@ -1,4 +1,4 @@
-var Class = require('shipyard/class'),
+var Class = require('shipyard/class/Class'),
 	Model = require('shipyard/model/Model'),
 	fields = require('shipyard/model/fields'),
 	Syncable = require('shipyard/sync/Syncable'),

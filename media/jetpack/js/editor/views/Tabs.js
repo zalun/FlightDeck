@@ -1,4 +1,4 @@
-var Class = require('shipyard/class'),
+var Class = require('shipyard/class/Class'),
 	Events = require('shipyard/class/Events'),
 	Options = require('shipyard/class/Options'),
 	
