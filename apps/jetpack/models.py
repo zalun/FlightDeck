@@ -1837,9 +1837,7 @@ class Package(BaseModel, SearchMixin):
             .exclude(package=self)
             .values_list('package_id', flat=True)))
         data['copies_count'] = len(data['copies'])
-        
-        log.debug(data)
-        
+                
         # hack for ES, because a decimal is serialized as 'Decimal('0.302')'
         # so we must convert that to a float
         data['activity'] = float(self.activity_rating)
