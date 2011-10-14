@@ -341,7 +341,9 @@ ENGAGE_ROBOTS = False
 # For search:
 # Checkout flightdeck-es and run bin/elasticsearch -f
 ES_DISABLED = True
-ES_INDEX = 'flightdeck'
+ES_INDEXES = {
+    'default': 'flightdeck',
+}
 # ES_HOSTS = ['127.0.0.1:9201']
 
 # Graphite reporting
