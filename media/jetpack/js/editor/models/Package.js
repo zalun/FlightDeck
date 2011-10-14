@@ -37,8 +37,19 @@ var Package = module.exports = new Class({
 		// dependencies: ManyToManyField('self')
 	},
 
+    isAddon: function isAddon() {
+        return this.get('type') === this.constructor.TYPE_ADDON;
+    },
+
+    isLibrary: function isLibrary() {
+        return this.get('type') === this.constructor.TYPE_LIBRARY;
+    },
+
 	toString: function() {
 		return this.get('full_name');
 	}
 
 });
+
+Package.TYPE_ADDON = 'a';
+Package.TYPE_LIBRARY = 'l';

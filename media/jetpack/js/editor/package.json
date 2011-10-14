@@ -1,0 +1,10 @@
+{
+    "name": "editor",
+    
+    "shipyard": {
+        "app": "./",
+        "mini_require": true,
+        "min": "../editor-min.js",
+        "test": "./tests"
+    }
+}

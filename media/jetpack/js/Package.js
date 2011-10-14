@@ -61,8 +61,8 @@ var Package = new Class({
 			$('version_name').set('value', this.options.version_name);
 		}
         // initiate the sidebar 
-		fd.sidebar.options.editable = !this.options.readonly;
-		fd.sidebar.buildTree();
+		//fd.sidebar.options.editable = !this.options.readonly;
+		//fd.sidebar.buildTree();
 		this.instantiate_modules();
 		this.instantiate_attachments();
 		this.instantiate_folders();
