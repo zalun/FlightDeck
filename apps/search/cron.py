@@ -22,6 +22,10 @@ def index_all():
         for chunk in chunked(ids, 100):
             tasks.index_all.apply_async(args=[chunk], connection=conn)
 
+
+
+    
+
 @cronjobs.register
 def setup_mapping():
     """Create index, and setup mapping, for ES."""

@@ -2,6 +2,7 @@ import commonware
 import tempfile
 import os
 import datetime
+import decimal
 
 from test_utils import TestCase
 
@@ -10,10 +11,11 @@ from nose.tools import eq_
 from django.contrib.auth.models import User
 from django.conf import settings
 
+from jetpack.tasks import calculate_activity_rating
 from jetpack.models import Package, PackageRevision, Module, Attachment, SDK
 from jetpack.errors import SelfDependencyException, FilenameExistException, \
         DependencyException
-from jetpack.tasks import fill_package_activity
+
 from base.templatetags.base_helpers import hashtag
 
 log = commonware.log.getLogger('f.test')
@@ -391,48 +393,27 @@ class PackageRevisionTest(TestCase):
         assert old_rev.name
         assert old_package.full_name
         assert old_package.name
-
-    def test_fill_package_activity(self):
-        orig = '0'*365
+        
+    def test_update_package_activity_cron(self):
         addon = Package(type='a', author=self.author)
         addon.save()
-
-        eq_(addon.year_of_activity, orig)
-
-        fill_package_activity.delay()
-
-        addon = Package.objects.get(pk=addon.pk)
-
-        new = '1' + orig[:-1]
-        eq_(addon.year_of_activity, new)
-
-    def test_package_activity_cron(self):
-        addon = Package(type='a', author=self.author)
-        addon.save()
-        fill_package_activity.delay(full_year=True)
 
         now = datetime.datetime.utcnow()
 
-        # Superficially creating revisions in the past
-        r2 = addon.revisions.create(author=self.author, revision_number=2)
-        r2.created_at=now-datetime.timedelta(5)
-        super(PackageRevision, r2).save()
-
-        r3 = addon.revisions.create(author=self.author, revision_number=3)
-        r3.created_at=now-datetime.timedelta(3)
-        super(PackageRevision, r3).save()
-
+        # Create 1 weeks worth of revisions... should equal .30 of score
+        # see models.py def Packages for weights
+        
+        for i in range(1,8):
+            r = addon.revisions.create(author=self.author, revision_number=i)
+            r.created_at=now-datetime.timedelta(i)
+            super(PackageRevision, r).save()
+        
+        #run task on this one package
+        calculate_activity_rating([addon.pk])
+            
         addon = Package.objects.get(pk=addon.pk)
-        addon.activity_updated_at = now - datetime.timedelta(4)
-        addon.save()
-
-
-        old = addon.year_of_activity
-        fill_package_activity.delay(full_year=False)
-
-        addon = Package.objects.get(pk=addon.pk)
-
-        eq_('1001'+old[:-4], addon.year_of_activity)
+        
+        eq_(addon.activity_rating, addon.calc_activity_rating())
 
 
 

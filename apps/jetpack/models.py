@@ -10,6 +10,7 @@ import tempfile
 import markdown
 import hashlib
 import codecs
+from decimal import Decimal, getcontext
 from copy import deepcopy
 
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -23,6 +24,7 @@ from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
 from django.conf import settings
 from django.utils.translation import ugettext as _
+from django.db import connection  
 
 from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
 from ecdsa import SigningKey, NIST256p
@@ -1468,10 +1470,9 @@ class Package(BaseModel, SearchMixin):
     active = models.BooleanField(default=True, blank=True)
     # deleted is the limbo state
     deleted = models.BooleanField(default=False, blank=True)
-
-    # activity
-    year_of_activity = models.CharField(max_length=365, default='0'*365)
-    activity_updated_at = models.DateTimeField(null=True, blank=True)
+    
+    #package activity score 
+    activity_rating = models.DecimalField(default=0.0, max_digits=4, decimal_places=3)
 
     class Meta:
         " Set the ordering of objects "
@@ -1781,42 +1782,48 @@ class Package(BaseModel, SearchMixin):
         if self.version_name:
             self.version_name = alphanum_plus(self.version_name)
 
-    def get_activity_rating(self):
+    def calc_activity_rating(self):
         """
-        Build a weighted average based on activity from daily_activity
-        and recency of that activity.
+        Build a weighted average based on package revisions
         """
-        # slices are by week
-        # first couple weeks are weighted high
-        # rest of the weeks are super tiny points
-        slice_size = 7
-        slices = len(self.year_of_activity) / slice_size
-
-        weights = {
-            '0': 0.20,
-            '1': 0.15,
-            '2': 0.10,
-            '3': 0.05,
-        }
-
-        remaining_percentage = 1.0 - sum(weights.values())
-        standard_weight = remaining_percentage / (slices - len(weights.keys()))
-        total = 0
-
-        for i in range(slices):
-            # slice_ is like '1100101'
-            slice_start = i * slice_size
-            slice_end = slice_start + slice_size
-            points = self.year_of_activity.count('1', slice_start, slice_end)
-
-            weight = weights.get(str(i), standard_weight)
-            weighted_points = points * weight
-
-            total = total + weighted_points
-
-        rating = total / slice_size
-        return rating
-
+        
+        getcontext().prec = 3
+        
+        #update tests if you change this.
+        weights = [
+            { 'start': 1,     'end': 7,     'weight': Decimal('0.30') },
+            { 'start': 8,     'end': 14,    'weight': Decimal('0.20') },
+            { 'start': 15,    'end': 21,    'weight': Decimal('0.15') },
+            { 'start': 22,    'end': 52,    'weight': Decimal('0.15') },
+            { 'start': 53,    'end': 365,   'weight': Decimal('0.20') }
+        ]
+        
+        q = []
+        
+        for idx, w in enumerate(weights):
+            q.append("""
+                SELECT count(Days)/{3}, {4} as Row  FROM
+                (SELECT count(*) as Days FROM jetpack_packagerevision 
+                WHERE 
+                package_id = {0} AND
+                TO_DAYS(created_at) <= TO_DAYS(DATE_SUB(CURDATE(), INTERVAL {1} DAY)) AND 
+                TO_DAYS(created_at) >= TO_DAYS(DATE_SUB(CURDATE(), INTERVAL {2} DAY))
+                group by package_id, TO_DAYS(created_at)) x
+                """.format(self.id,w['start'],w['end'],w['end']+1 - w['start'], idx))
+            
+        query = " UNION ".join(q)
+        
+              
+        cursor = connection.cursor()        
+        cursor.execute(query)
+        
+        result = Decimal('0')
+        
+        for idx, val in enumerate([row[0] for row in cursor.fetchall()]):
+            result += weights[idx]['weight'] * val
+        
+        return result
+        
 
     @es_required
     def refresh_index(self, es, bulk=False):
@@ -1830,10 +1837,12 @@ class Package(BaseModel, SearchMixin):
             .exclude(package=self)
             .values_list('package_id', flat=True)))
         data['copies_count'] = len(data['copies'])
-
-        del data['year_of_activity']
-        data['activity'] = self.get_activity_rating()
-
+                
+        # hack for ES, because a decimal is serialized as 'Decimal('0.302')'
+        # so we must convert that to a float
+        data['activity'] = float(self.activity_rating)
+        del data['activity_rating']
+        
         try:
             if self.latest:
                 deps = self.latest.dependencies.all()

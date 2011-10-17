@@ -44,7 +44,7 @@ MAILTO=flightdeck-developers@mozilla.org
 
 #once per day
 30 1 * * * $F_CRON gc
-30 2 * * * $F_CRON package_activity
+30 2 * * * $F_CRON update_package_activity
 #every hour
 30 * * * * $F_CRON celery
 

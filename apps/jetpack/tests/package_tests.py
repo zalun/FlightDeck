@@ -1,6 +1,7 @@
 import os
 import datetime
 import commonware
+from decimal import Decimal
 
 from test_utils import TestCase
 from nose import SkipTest
@@ -332,14 +333,40 @@ class PackageTest(TestCase):
         addon_saved = Package.objects.get(author=self.author, type='a')
         eq_(addon_saved.description, description)
 
-    def test_activity_rating(self):
-        pack = Package()
+    def test_activity_rating_calculation_one_year(self):
+        addon = Package.objects.create(author=self.author, type='a')
+        
+        eq_(0, addon.calc_activity_rating())
 
-        pack.year_of_activity = '0' * 365
-        eq_(pack.get_activity_rating(), 0)
+        now = datetime.datetime.utcnow()        
+                
+        for i in range(1,366):
+            r = addon.revisions.create(author=self.author, revision_number=i)
+            r.created_at=now-datetime.timedelta(i)
+            super(PackageRevision, r).save()
+        
+        #created packages, including initial
+        eq_(366, addon.revisions.count())                
+        eq_(Decimal('1'), addon.calc_activity_rating())        
+        
+    def test_activity_rating_calculation_first_week(self):
+        addon = Package(type='a', author=self.author)
+        addon.save()
 
-        pack.year_of_activity = '1' * 365
-        eq_(pack.get_activity_rating() > 0.99, True)
+        now = datetime.datetime.utcnow()
+
+        # Create 1 weeks worth of revisions... should equal .30 of score
+        # see models.py def Packages for weights
+        
+        for i in range(1,8):
+            r = addon.revisions.create(author=self.author, revision_number=i)
+            r.created_at=now-datetime.timedelta(i)
+            super(PackageRevision, r).save()
+    
+        eq_(8, addon.revisions.count())   
+        
+        eq_(Decimal('0.300'), addon.calc_activity_rating())        
+       
 
 
 

@@ -24,7 +24,11 @@ def index_all(pks, **kw):
     else:
         log.debug('ES finished bulk action for packages: [%s]' % ids_str)
 
+
 @task
 def index_one(pk, **kw):
     package = Package.objects.get(pk=pk)
     package.refresh_index()
+
+    
+
