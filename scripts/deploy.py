@@ -90,6 +90,6 @@ def update_flightdeck(ctx):
     # manage_cmd(ctx, 'cmd')
 
     # For 0.9.15 only
-    manage_cmd(ctx, 'cron fill_package_activity')
+    manage_cmd(ctx, 'cron update_package_activity')
 
 
