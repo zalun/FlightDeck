@@ -25,6 +25,8 @@ module.exports = new Class({
     attachments: {},
 
     initialize: function PackageController(package, options) {
+        var controller = this;
+        
         this.package = package;
         this.setOptions(options);
         // reset version_name (in case of reload)
@@ -37,13 +39,15 @@ module.exports = new Class({
         
         }
 
-        		this.instantiate_modules();
+        this.instantiate_modules();
 		this.instantiate_attachments();
 		this.instantiate_folders();
 		this.instantiate_dependencies();
 		// hook event to menu items
 		this.revision_list_btn = $('revisions_list')
-        this.revision_list_btn.addEvent('click', this.showRevisionList);
+        this.revision_list_btn.addEvent('click', function(e) {
+            controller.showRevisionList();
+        });
 		if (this.package.isAddon()) {
             this.boundTestAddon = this.testAddon.bind(this);
 			this.options.test_url = $(this.options.test_el).getElement('a').get('href');
@@ -102,7 +106,7 @@ module.exports = new Class({
 	},
 
 
-    showRevisionList: function(e) {
+    showRevisionList: function() {
                   
     },
 
@@ -114,6 +118,11 @@ module.exports = new Class({
 			position: 'top',
 			balloon: true
 		});
-	}
+	},
+
+    checkIfLatest: function(failCallback) {
+        // we want to make a request each time, since the author could
+        // have created new changes while we were looking.
+    }
 
 });

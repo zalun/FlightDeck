@@ -1,5 +1,7 @@
 var dom = require('shipyard/dom'),
 
+    Spy = require('testigo/lib/spy').Spy,
+
     Package = require('../../models/Package'),
     PackageController = require('../../controllers/PackageController');
 
@@ -51,8 +53,20 @@ module.exports = {
         it('should register revisions_list click', function(expect) {
             var pc = new PackageController(pack, {});
 
+            pc.showRevisionList = new Spy;
+
             pc.revision_list_btn.fireEvent('click');
-            expect(1).toBe(1);
-        })
+            expect(pc.showRevisionList.getCallCount()).toBe(1);
+        });
+
+        it('should be able to determine if latest revision', function(expect) {
+            var pc = new PackageController(pack);
+
+            var fn = new Spy;
+
+            pc.checkIfLatest(fn);
+
+            expect(fn.getCallCount()).toBe(0);
+        });
     }
 }
