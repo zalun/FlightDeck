@@ -81,8 +81,6 @@ class RepackageTest(TestCase):
             xpi.close()
         assert 'icon.png' in filenames
         assert 'icon64.png' in filenames
-        raise SkipTest()
-        # I've got no idea how to copy icon16.png to main dir of the XPI
         assert 'icon16.png' in filenames
 
     def test_version_increment(self):
