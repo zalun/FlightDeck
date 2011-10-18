@@ -1839,7 +1839,7 @@ class Package(BaseModel, SearchMixin):
 
         # hack for ES, because a decimal is serialized as 'Decimal('0.302')'
         # so we must convert that to a float
-        data['activity'] = float(self.activity_rating)
+        data['activity'] = float(self.activity_rating or 0.0)
         del data['activity_rating']
 
         try:
