@@ -89,6 +89,7 @@ def update_flightdeck(ctx):
     # Run management commands like this:
     # manage_cmd(ctx, 'cmd')
 
-    manage_cmd(ctx, 'cron update_package_activity') 
+    manage_cmd(ctx, 'cron update_package_activity')
+    manage_cmd(ctx, 'cron setup_mapping') 
 
 
