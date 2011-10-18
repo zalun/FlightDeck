@@ -1,6 +1,6 @@
 {% extends "_package_browser_addon.html" %}
 {% block amo_info %}
-{% if settings.UPLOADTOAMO %}
+{% if settings.UPLOADTOAMO or user.is_superuser %}
 <div class='UI_AMO_Info' 
         data-revision_id="{{ item.latest_uploaded.pk }}" 
         data-uploaded="{% if item.amo_id and item.latest_uploaded and item.latest_uploaded.amo_status != -2 %}1{% endif %}"
