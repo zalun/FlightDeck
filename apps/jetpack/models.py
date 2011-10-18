@@ -24,7 +24,7 @@ from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
 from django.conf import settings
 from django.utils.translation import ugettext as _
-from django.db import connection  
+from django.db import connection
 
 from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
 from ecdsa import SigningKey, NIST256p
@@ -1470,8 +1470,8 @@ class Package(BaseModel, SearchMixin):
     active = models.BooleanField(default=True, blank=True)
     # deleted is the limbo state
     deleted = models.BooleanField(default=False, blank=True)
-    
-    #package activity score 
+
+    #package activity score
     activity_rating = models.DecimalField(default=Decimal('0.0'), max_digits=4, decimal_places=3)
 
     class Meta:
@@ -1786,9 +1786,9 @@ class Package(BaseModel, SearchMixin):
         """
         Build a weighted average based on package revisions
         """
-        
+
         getcontext().prec = 3
-        
+
         #update tests if you change this.
         weights = [
             { 'start': 1,     'end': 7,     'weight': Decimal('0.30') },
@@ -1797,32 +1797,32 @@ class Package(BaseModel, SearchMixin):
             { 'start': 22,    'end': 52,    'weight': Decimal('0.15') },
             { 'start': 53,    'end': 365,   'weight': Decimal('0.20') }
         ]
-        
+
         q = []
-        
+
         for idx, w in enumerate(weights):
             q.append("""
                 SELECT count(Days)/{3}, {4} as Row  FROM
-                (SELECT count(*) as Days FROM jetpack_packagerevision 
-                WHERE 
+                (SELECT count(*) as Days FROM jetpack_packagerevision
+                WHERE
                 package_id = {0} AND
-                TO_DAYS(created_at) <= TO_DAYS(DATE_SUB(CURDATE(), INTERVAL {1} DAY)) AND 
+                TO_DAYS(created_at) <= TO_DAYS(DATE_SUB(CURDATE(), INTERVAL {1} DAY)) AND
                 TO_DAYS(created_at) >= TO_DAYS(DATE_SUB(CURDATE(), INTERVAL {2} DAY))
                 group by package_id, TO_DAYS(created_at)) x
                 """.format(self.id,w['start'],w['end'],w['end']+1 - w['start'], idx))
-            
+
         query = " UNION ".join(q)
-              
-        cursor = connection.cursor()        
+
+        cursor = connection.cursor()
         cursor.execute(query)
-        
+
         result = Decimal('0')
-        
+
         for idx, val in enumerate([row[0] for row in cursor.fetchall()]):
             result += weights[idx]['weight'] * val
-        
+
         return result
-        
+
 
     @es_required
     def refresh_index(self, es, bulk=False):
@@ -1836,12 +1836,12 @@ class Package(BaseModel, SearchMixin):
             .exclude(package=self)
             .values_list('package_id', flat=True)))
         data['copies_count'] = len(data['copies'])
-                
+
         # hack for ES, because a decimal is serialized as 'Decimal('0.302')'
         # so we must convert that to a float
         data['activity'] = float(self.activity_rating)
         del data['activity_rating']
-        
+
         try:
             if self.latest:
                 deps = self.latest.dependencies.all()
@@ -1855,7 +1855,7 @@ class Package(BaseModel, SearchMixin):
                     .count())
 
         try:
-            es.index(data, settings.ES_INDEX, self._meta.db_table, id=self.id,
+            es.index(data, settings.ES_INDEXES['default'], self._meta.db_table, id=self.id,
                  bulk=bulk)
         except Exception, e:
             log.error("ElasticSearch errored for addon (%s): %s" % (self, e))
@@ -1873,7 +1873,7 @@ class Package(BaseModel, SearchMixin):
     @es_required
     def remove_from_index(self, es, bulk=False):
         try:
-            es.delete(settings.ES_INDEX, self._meta.db_table, id=self.id,
+            es.delete(settings.ES_INDEXES['default'], self._meta.db_table, id=self.id,
                  bulk=bulk)
         except PyesNotFoundException:
             log.debug('Package %d tried to remove from index but was not found.'
