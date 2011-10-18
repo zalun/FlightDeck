@@ -91,6 +91,6 @@ def update_flightdeck(ctx):
     manage_cmd(ctx, 'add_core_lib addon-sdk-1.2')
 
     manage_cmd(ctx, 'cron update_package_activity')
-    manage_cmd(ctx, 'cron setup_mapping') 
+    # manage_cmd(ctx, 'cron setup_mapping') 
 
 
