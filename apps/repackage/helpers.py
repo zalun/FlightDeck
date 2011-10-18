@@ -182,12 +182,24 @@ class Repackage(object):
         response = xpi_utils.build(sdk_dir,
                 os.path.join(sdk_dir, 'packages', self.manifest['name']),
                 self.manifest['name'], hashtag, options=options)
-        log.debug("[%s] Done rebuilding XPI; cleaning up" % hashtag)
-        # clean up (sdk_dir is already removed)
-        self.cleanup()
+
         # here find the created XPI and compare main dir list
         # if not the same - copy the files from original XPI
+        target = os.path.join(settings.XPI_TARGETDIR, '%s.xpi' % hashtag)
+        target_zip = zipfile.ZipFile(target, 'a')
+        target_namelist = target_zip.namelist()
+        for f in self.xpi_zip.namelist():
+            if len(f.split('/')) == 1 and f not in target_namelist:
+                log.debug(f)
+                # export file from original xpi and pack file into target xpi
+                with tempfile.NamedTemporaryFile() as extr_file:
+                    extr_file.write(self.xpi_zip.open(f).read())
+                    target_zip.write(extr_file.name, f)
+        target_zip.close()
 
+        # clean up (sdk_dir is already removed)
+        log.debug("[%s] Done rebuilding XPI; cleaning up" % hashtag)
+        self.cleanup()
         return response
 
     def get_manifest(self, package_overrides={}):
