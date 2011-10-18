@@ -1472,7 +1472,7 @@ class Package(BaseModel, SearchMixin):
     deleted = models.BooleanField(default=False, blank=True)
     
     #package activity score 
-    activity_rating = models.DecimalField(default= Decimal('0.0'), max_digits=4, decimal_places=3)
+    activity_rating = models.DecimalField(default=Decimal('0.0'), max_digits=4, decimal_places=3)
 
     class Meta:
         " Set the ordering of objects "
@@ -1812,7 +1812,6 @@ class Package(BaseModel, SearchMixin):
                 """.format(self.id,w['start'],w['end'],w['end']+1 - w['start'], idx))
             
         query = " UNION ".join(q)
-        
               
         cursor = connection.cursor()        
         cursor.execute(query)

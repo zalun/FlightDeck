@@ -398,7 +398,7 @@ class PackageRevisionTest(TestCase):
         addon = Package(type='a', author=self.author)
         addon.save()
 
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now()
 
         # Create 1 weeks worth of revisions... should equal .30 of score
         # see models.py def Packages for weights
