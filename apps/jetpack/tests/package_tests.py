@@ -141,7 +141,7 @@ class PackageTest(TestCase):
 
         p1rev2 = PackageRevision(author=self.author, revision_number=2)
         p1.revisions.add(p1rev2)
-        p1rev2.created_at = datetime.datetime.utcnow() - datetime.timedelta(60)
+        p1rev2.created_at = datetime.datetime.now() - datetime.timedelta(60)
         super(PackageRevision, p1rev2).save()
 
         p2rev = p2.revisions.all()[0]
@@ -338,22 +338,24 @@ class PackageTest(TestCase):
         
         eq_(0, addon.calc_activity_rating())
 
-        now = datetime.datetime.utcnow()        
+        now = datetime.datetime.now()        
                 
         for i in range(1,366):
             r = addon.revisions.create(author=self.author, revision_number=i)
             r.created_at=now-datetime.timedelta(i)
             super(PackageRevision, r).save()
         
+        
         #created packages, including initial
         eq_(366, addon.revisions.count())                
         eq_(Decimal('1'), addon.calc_activity_rating())        
         
     def test_activity_rating_calculation_first_week(self):
-        addon = Package(type='a', author=self.author)
-        addon.save()
-
-        now = datetime.datetime.utcnow()
+        addon = Package.objects.create(type='a', author=self.author)
+        
+        eq_(0, addon.calc_activity_rating())
+        
+        now = datetime.datetime.now()
 
         # Create 1 weeks worth of revisions... should equal .30 of score
         # see models.py def Packages for weights
