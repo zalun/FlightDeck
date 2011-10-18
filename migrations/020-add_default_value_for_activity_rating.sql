@@ -1,0 +1,1 @@
+ALTER TABLE jetpack_package CHANGE COLUMN activity_rating activity_rating decimal(4,3) DEFAULT 0 NOT NULL;
