@@ -30,7 +30,9 @@ var Package = module.exports = new Class({
 		url: fields.TextField(),
 		license: fields.TextField(),
 		version_name: fields.TextField(),
-		revision_number: fields.NumberField()
+		revision_number: fields.NumberField(),
+
+        latest: fields.NumberField(), // a FK to PackageRevision
 
 		// modules: FK from Module
 		// attachments: FK from Attachment

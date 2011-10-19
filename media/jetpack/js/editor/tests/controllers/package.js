@@ -1,8 +1,12 @@
 var dom = require('shipyard/dom'),
+    Request = require('shipyard/http/Request'),
+    typeOf = require('shipyard/utils/type').typeOf,
 
     Spy = require('testigo/lib/spy').Spy,
+    mockXHR = require('shipyard/test/mockXHR'),
 
     Package = require('../../models/Package'),
+    PackageRevision = require('../../models/PackageRevision'),
     PackageController = require('../../controllers/PackageController');
 
 function resetDom() {
@@ -14,6 +18,8 @@ function resetDom() {
     body.grab(new dom.Element('div', { id: 'revisions_list' }));
 }
 
+
+
 module.exports = {
     'PackageController': function(it, setup) {
 
@@ -23,7 +29,8 @@ module.exports = {
             resetDom();
             pack = new Package({
                 full_name: 'foo bar',
-                version_name: '0.5'
+                version_name: '0.5',
+                revision_number: 2
             });
         });
 
@@ -59,14 +66,19 @@ module.exports = {
             expect(pc.showRevisionList.getCallCount()).toBe(1);
         });
 
+        /*it('should show revisions list', function(expect) {
+            
+        });*/
+
         it('should be able to determine if latest revision', function(expect) {
             var pc = new PackageController(pack);
 
-            var fn = new Spy;
+            mockXHR({ id: 1, revision_number: 3 });
 
-            pc.checkIfLatest(fn);
+            var failCallback = new Spy;
+            pc.checkIfLatest(failCallback);
 
-            expect(fn.getCallCount()).toBe(0);
+            expect(failCallback.getCallCount()).toBe(1);
         });
     }
 }

@@ -2,7 +2,9 @@ var Class = require('shipyard/class/Class'),
     Options = require('shipyard/class/Options'),
     dom = require('shipyard/dom'),
     $ = dom.$,
+    Request = require('shipyard/http/Request'),
     
+    PackageRevision = require('../models/PackageRevision'),
     Module = require('../models/Module');
 
 module.exports = new Class({
@@ -123,6 +125,18 @@ module.exports = new Class({
     checkIfLatest: function(failCallback) {
         // we want to make a request each time, since the author could
         // have created new changes while we were looking.
+        var controller = this;
+
+        PackageRevision.find({
+            conditions: { package: this.package.get('pk') },
+            options: { limit: 1, order_by: '-revision_number' },
+            callback: function(r) {
+                r = r[0];
+                if (r.get('revision_number') > controller.package.get('revision_number')) {
+                    failCallback();
+                }
+            }
+        })
     }
 
 });
