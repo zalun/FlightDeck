@@ -18,7 +18,7 @@ def schematic(ctx):
 
 
 @task
-def update_code(ctx):
+def update_code(ctx, ref):
     with ctx.lcd(settings.SRC_DIR):
         ctx.local("git fetch && git fetch -t")
         ctx.local("git checkout -f %s" % ref)
@@ -30,7 +30,7 @@ def update_code(ctx):
 
 
 @task
-def update_info(ctx):
+def update_info(ctx, ref):
     with ctx.lcd(settings.SRC_DIR):
         ctx.local("git status")
         ctx.local("git log -1")
