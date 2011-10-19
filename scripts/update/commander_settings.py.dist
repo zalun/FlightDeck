@@ -1,9 +1,7 @@
-SRC_DIR = "/data/addons-dev/src/addons-dev.allizom.org/zamboni"
-WWW_DIR = "/data/addons-dev/www/addons-dev.allizom.org/zamboni"
+SRC_DIR = "/data/builder-addons-dev/src/addons-dev.allizom.org/flightdeck"
+WWW_DIR = "/data/builder-addons-dev/www/addons-dev.allizom.org/flightdeck"
 
-REMORA_DIR = "/data/addons-dev/src/addons-dev.allizom.org-remora"
-
-REMOTE_WSGI = "/data/www/addons-dev.allizom.org/zamboni/wsgi/zamboni.wsgi"
+REMOTE_WSGI = "/data/www/builder-addons-dev.allizom.org/zamboni/wsgi/flightdeck.wsgi"
 REMOTE_UPDATE_SCRIPT = "/data/bin/update-www.sh"
 
 CELERY_SERVICE_PREFIX = "celeryd-dev"
@@ -16,4 +14,4 @@ CELERY_HOSTGROUP = "addons-celery-dev"
 
 SSH_KEY = None
 
-CRON_NAME = "addons-dev"
+CRON_NAME = "builder-addons-dev"
