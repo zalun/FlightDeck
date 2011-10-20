@@ -5,7 +5,6 @@
 /*
  * Javascript Package/PackageRevision representation
  */
-var FDEditor = require('editor/views/FDEditor.Ace');
 var Package = new Class({
 
 	Implements: [Options, Events],
@@ -61,8 +60,8 @@ var Package = new Class({
 			$('version_name').set('value', this.options.version_name);
 		}
         // initiate the sidebar 
-		//fd.sidebar.options.editable = !this.options.readonly;
-		//fd.sidebar.buildTree();
+		//editor.sidebar.options.editable = !this.options.readonly;
+		//editor.sidebar.buildTree();
 		this.instantiate_modules();
 		this.instantiate_attachments();
 		this.instantiate_folders();
@@ -356,7 +355,7 @@ var File = new Class({
 				if (!first) {
 					first = true;
 					mod.switchTo();
-					fd.sidebar.setSelectedFile(mod);
+					editor.sidebar.setSelectedFile(mod);
 				}
 			});
 			if (!first) {
@@ -383,7 +382,7 @@ var File = new Class({
 	},
 	
 	makeTab: function() {
-		var tab = this.tab = new (require('editor/views/Tabs').Tab)(fd.tabs, {
+		var tab = this.tab = new (require('editor/views/Tabs').Tab)(editor.tabs.tabs, {
 			title: this.getShortName()
 		});
         this.addEvent('change', function() {
@@ -399,7 +398,7 @@ var File = new Class({
 		if(!this.tab) {
 			this.makeTab();
 		}
-		fd.tabs.setSelected(this.tab);
+		editor.tabs.tabs.setSelected(this.tab);
 	},
 
     setChanged: function(isChanged) {
@@ -437,7 +436,7 @@ var Library = new Class({
 	},
 	
 	append: function() {
-		fd.sidebar.addPlugin(this);
+		editor.sidebar.addPlugin(this);
 	},
 	
 	onSelect: function() {
@@ -578,7 +577,7 @@ var Attachment = new Class({
     },
 
 	append: function() {
-		fd.sidebar.addData(this);
+		editor.sidebar.addData(this);
 	},
 
     reassign: function(options) {
@@ -670,7 +669,7 @@ var Module = new Class({
 	},
 
 	append: function() {
-		fd.sidebar.addLib(this);
+		editor.sidebar.addLib(this);
     },
 	
 	loadContent: function() {
@@ -734,9 +733,9 @@ var Folder = new Class({
 	
 	append: function() {
 		if (this.options.root_dir == Folder.ROOT_DIR_LIB) {
-			fd.sidebar.addLib(this);
+			editor.sidebar.addLib(this);
 		} else if (this.options.root_dir == Folder.ROOT_DIR_DATA) {
-			fd.sidebar.addData(this);
+			editor.sidebar.addData(this);
 		}
 	},
 	
@@ -1078,8 +1077,8 @@ Package.Edit = new Class({
 			filename = filename.getFileName();
 		}
 		
-		var attachmentEl = fd.sidebar.getBranchFromPath(newName, 'data');
-		var spinnerEl = attachmentEl || $(fd.sidebar.trees.data);
+		var attachmentEl = editor.sidebar.getBranchFromPath(newName, 'data');
+		var spinnerEl = attachmentEl || $(editor.sidebar.trees.data);
 		
 		new Request.JSON({
 			url: that.options.rename_attachment_url,
@@ -1128,7 +1127,7 @@ Package.Edit = new Class({
 		new Request.JSON({
 			url: self.options.remove_attachment_url,
             useSpinner: true,
-            spinnerTarget: fd.sidebar.getBranchFromFile(attachment),
+            spinnerTarget: editor.sidebar.getBranchFromFile(attachment),
 			spinnerOptions: {
 				img: {
 					'class': 'spinner-img spinner-16'
@@ -1178,7 +1177,7 @@ Package.Edit = new Class({
 
 	renameModule: function(oldName, newName) {
 		newName = newName.replace(/\..*$/, '');
-        var el = fd.sidebar.getBranchFromPath(newName+'.js', 'lib');
+        var el = editor.sidebar.getBranchFromPath(newName+'.js', 'lib');
 		new Request.JSON({
 			url: this.options.rename_module_url,
             useSpinner: true,
@@ -1212,7 +1211,7 @@ Package.Edit = new Class({
 	},
 
 	removeModule: function(module) {
-        var el = fd.sidebar.getBranchFromFile(module);
+        var el = editor.sidebar.getBranchFromFile(module);
 		new Request.JSON({
 			url: this.options.remove_module_url,
             useSpinner: true,
@@ -1233,7 +1232,7 @@ Package.Edit = new Class({
 	},
 	
 	removeAttachments: function(path) {
-        var el = fd.sidebar.getBranchFromPath(path, 'data');
+        var el = editor.sidebar.getBranchFromPath(path, 'data');
 		new Request.JSON({
 			url: this.options.remove_folder_url,
 			data: {
@@ -1255,15 +1254,15 @@ Package.Edit = new Class({
 				    this.attachments[uid].destroy();
 				}, this);
 				response.removed_dirs.forEach(function(name) {
-				    fd.sidebar.removeFile(name, 'd')
+				    editor.sidebar.removeFile(name, 'd')
 				}, this);
-                fd.sidebar.removeFile(response.foldername, 'd')
+                editor.sidebar.removeFile(response.foldername, 'd')
 			}.bind(this)
 		}).send();
 	},
 
 	removeModules: function(path) {
-        var el = fd.sidebar.getBranchFromPath(path, 'lib');
+        var el = editor.sidebar.getBranchFromPath(path, 'lib');
 	    new Request.JSON({
 			url: this.options.remove_module_url,
 			data: {filename: path+'/'},
@@ -1282,7 +1281,7 @@ Package.Edit = new Class({
 				    this.modules[filename].destroy();
 				}, this);
 				response.removed_dirs.forEach(function(name) {
-				    fd.sidebar.removeFile(name, 'l')
+				    editor.sidebar.removeFile(name, 'l')
 				}, this);
 				
 			}.bind(this)
@@ -1326,7 +1325,7 @@ Package.Edit = new Class({
 				root_dir: folder.options.root_dir
 			},
             useSpinner: true,
-            spinnerTarget: fd.sidebar.getBranchFromFile(folder),
+            spinnerTarget: editor.sidebar.getBranchFromFile(folder),
 			spinnerOptions: {
 				img: {
 					'class': 'spinner-img spinner-16'
@@ -1410,7 +1409,7 @@ Package.Edit = new Class({
                     var lib = that.libraries[latest_revision.id_number];
 					if (!lib) return;
 					lib.storeNewVersion(latest_revision);
-					fd.sidebar.setPluginUpdate(lib);
+					editor.sidebar.setPluginUpdate(lib);
                 });
             }
         }).send();
@@ -1439,7 +1438,7 @@ Package.Edit = new Class({
 			url: this.options.remove_library_url,
 			data: {'id_number': lib.options.id_number},
             useSpinner: true,
-            spinnerTarget: fd.sidebar.getBranchFromFile(lib),
+            spinnerTarget: editor.sidebar.getBranchFromFile(lib),
 			spinnerOptions: {
 				img: {
 					'class': 'spinner-img spinner-16'
@@ -1711,7 +1710,7 @@ Package.Edit = new Class({
 				description: 'Open the New Attachment prompt.',
 				handler: function(e) {
                     e.preventDefault();
-                    fd.sidebar.promptAttachment();
+                    editor.sidebar.promptAttachment();
                 }
 			},
 			'new module': {
@@ -1719,7 +1718,7 @@ Package.Edit = new Class({
 				description: 'Open the New Module prompt.',
 				handler: function(e) {
                     e.preventDefault();
-                    fd.sidebar.promptNewFile();
+                    editor.sidebar.promptNewFile();
                 }
 			},
 			'focus tree / editor': {
@@ -1729,9 +1728,9 @@ Package.Edit = new Class({
                     e.preventDefault();
                     if(that._focused) {
 						that.blur();
-						fd.sidebar.focus();
+						editor.sidebar.focus();
 					} else {
-						//fd.sidebar.blur();
+						//editor.sidebar.blur();
 						that.focus();
 					}
                 } 
@@ -1744,11 +1743,11 @@ Package.Edit = new Class({
 				}
 			}
 		})
-		this.keyboard.manage(fd.sidebar.keyboard);
+		this.keyboard.manage(editor.sidebar.keyboard);
 		this.keyboard.activate();
-		fd.sidebar.keyboard.deactivate();
+		editor.sidebar.keyboard.deactivate();
 		this.addEvent('focus', function() {
-			fd.sidebar.blur();
+			editor.sidebar.blur();
 		});
 	},
 	
@@ -1769,7 +1768,7 @@ Package.Edit = new Class({
 		shortcuts.push('<strong>Editor</strong>');
 		this.keyboard.getShortcuts().forEach(buildLines);
 		shortcuts.push('<strong>Tree</strong>');
-		fd.sidebar.keyboard.getShortcuts().forEach(buildLines);
+		editor.sidebar.keyboard.getShortcuts().forEach(buildLines);
 		
 		this._shortcutsModal = fd.displayModal('<h3>Keyboard Shortcuts</h3>'
 						+'<div class="UI_Modal_Section"><p>'

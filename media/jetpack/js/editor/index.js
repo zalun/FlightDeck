@@ -1,20 +1,23 @@
+// requiring these now so they are included in the bundle
 var settings = require('editor/settings');
 var PackageController = require('./controllers/PackageController');
+var Package = require('./models/Package');
+var TabsController = require('./controllers/TabsController');
+var Ace = require('./views/FDEditor.Ace');
+var Sidebar = require('./views/Sidebar');
 
-// requiring these now so they are included in the bundle
+// TODO: remove this once no files outside 'editor' app need the editor
+window.editor = exports;
+
+
 //TODO: eventually, this file would connect Models and Views with some
 // controllers
-var Ace = require('./views/FDEditor.Ace');
-var editor = exports = module.exports = new Ace('editor-wrapper');
 
-exports.Sidebar = require('./views/Sidebar');
-exports.Tabs = require('./views/Tabs');
+console.log('editor/index');
 
-var Package = require('./models/Package');
-fd.sidebar.options.editable = settings.editable;
-fd.sidebar.buildTree();
+exports.tabs = new TabsController();
+exports.sidebar = new Sidebar({ editable: !settings.readonly });
+exports.ace = new Ace('editor-wrapper');
 
-
-
-var p = exports.item = new Package(settings);
-exports.controller = new PackageController(p, settings);
+var p = exports.package = new Package(settings);
+exports.controller = new PackageController(p, settings, exports.ace, exports.tabs, exports.sidebar);

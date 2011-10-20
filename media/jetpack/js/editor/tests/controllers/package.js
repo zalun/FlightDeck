@@ -17,8 +17,7 @@ var BUTTONS = {
     'package-copy': string.uniqueID(), 
     'try_in_browser': string.uniqueID(), 
     'download': string.uniqueID(),
-    'error-console': string.uniqueID(),
-    'package-save': string.uniqueID()
+    'error-console': string.uniqueID()
 }
 
 function resetDom() {
@@ -30,6 +29,8 @@ function resetDom() {
 
     body.grab(new dom.Element('input', { id: 'version_name' }));
     body.grab(new dom.Element('div', { id: 'revisions_list' }));
+    body.grab(new dom.Element('input', { id: 'revision_message' }));
+    body.grab(new dom.Element('a', { id: 'package-save' }));
     
     object.forEach(BUTTONS, function(href, id) {
         var a = new dom.Element('a', { href: href });
@@ -51,6 +52,7 @@ module.exports = {
     'PackageController': function(it, setup) {
 
         var addon;
+        var editOptions = { readonly: false };
 
         setup('beforeEach', function() {
             resetDom();
@@ -64,12 +66,7 @@ module.exports = {
 
         it('should instantiate', function(expect) {
             
-            var pc = new PackageController(addon, {
-                modules: [
-                    {id: 1, filename: 'foo'},
-                    {id: 2, filename: 'bar'}
-                ]
-            });
+            var pc = new PackageController(addon);
             expect(pc).toBeAnInstanceOf(PackageController);
             expect(pc.package).toBe(addon);
         });
@@ -86,7 +83,7 @@ module.exports = {
         });
 
         it('should register revisions_list click', function(expect) {
-            var pc = new PackageController(addon, {});
+            var pc = new PackageController(addon);
 
             pc.showRevisionList = new Spy;
 
@@ -158,10 +155,65 @@ module.exports = {
         });
 
         it('should be bound to showInfo', function(expect) {
-            var pc = new PackageController(addon);
+            var pc = new PackageController(addon, { readonly: true });
             pc.showInfo = new Spy;
             pc.packageInfoEl.fireEvent('click', new E);
             expect(pc.showInfo.getCallCount()).toBe(1);
+        });
+
+
+        // Edit Actions
+
+        it('should be bound to editInfo', function(expect) {
+            var pc = new PackageController(addon, editOptions);
+            pc.editInfo = new Spy;
+            pc.packageInfoEl.fireEvent('click', new E);
+            expect(pc.editInfo.getCallCount()).toBe(1);
+        });
+
+        it('should bind console_el to open console', function(expect) {
+            var fd = { send: new Spy };
+            dom.window.node.mozFlightDeck = fd;
+
+            var pc = new PackageController(addon, editOptions);
+            pc.console_el.fireEvent('click', new E);
+            expect(fd.send.getCallCount()).toBe(1);
+            expect(fd.send.getLastArgs()).toBeLike([{
+                cmd: 'toggleConsole',
+                contents: 'open'
+            }]);
+
+            delete dom.window.node.mozFlightDeck;
+        });
+
+        it('should bind save_el to saveAction', function(expect) {
+            var pc = new PackageController(addon, editOptions);
+            pc.saveAction = new Spy;
+            pc.save_el.fireEvent('click', new E);
+            expect(pc.saveAction.getCallCount()).toBe(1);
+        });
+
+        it('should create logical tab order in save popover', function(expect) {
+            var pc = new PackageController(addon, editOptions);
+
+            var versionFocus = new Spy,
+                saveFocus = new Spy;
+
+            // jury-rig the .focus() methods to trigger our event
+            // handlers
+            pc.versionEl.focus = function() { this.fireEvent('focus', new E); };
+            pc.save_el.focus = pc.versionEl.focus;
+
+            pc.versionEl.addEvent('focus', versionFocus);
+            pc.save_el.addEvent('focus', saveFocus);
+
+            pc.save_el.fireEvent('mouseenter', new E);
+            expect(versionFocus.getCallCount()).toBe(1);
+
+            var tab = new E;
+            tab.key = 'tab';
+            pc.revision_message_el.fireEvent('keypress', tab);
+            expect(saveFocus.getCallCount()).toBe(1);
         });
     }
 }
