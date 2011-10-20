@@ -2200,9 +2200,7 @@ class SDK(BaseModel):
         return os.path.join(settings.SDK_SOURCE_DIR, self.dir)
 
     def is_deprecated(self):
-        # TODO: This should be in the settings file as a config var (or in the
-        # db and editable on the web)
-        return self.version < '1.0'
+        return self.version < settings.LOWEST_APPROVED_SDK
 
     def delete(self, purge=True, *args, **kwargs):
         """Override delete method to allow purging
