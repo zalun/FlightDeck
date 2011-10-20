@@ -11,8 +11,7 @@ from optparse import make_option
 
 from django.core.management.commands.loaddata import Command as BaseCommand
 
-from django.db import models, IntegrityError
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from jetpack.models import SDK, PackageRevision
 
 log = commonware.log.getLogger('f.jetpack')
@@ -33,35 +32,27 @@ class Command(BaseCommand):
                 help="Don't bother about the errors")
             )
 
-    def handle(self, target_version, from_version=None, to_version=None, *args, **kwargs):
+    def handle(self, target_version, from_version, *args, **kwargs):
         """Force add-ons to use SDK with version ``target_version``
 
         :params:
             * target_version (string) Use that target_version
             * from_version (string) Choose add-ons using sdk with higher
               version
-            * to_version (string) Choose add-ons using sdk with lower version
-            * kwargs['purge'] (boolean) Should all other SDKs be purged
         """
         try:
             sdk = SDK.objects.get(version=target_version)
-        except:
+        except ObjectDoesNotExist:
             self.stderr.write("ERROR: No such version (%s)\n" % target_version)
             exit(1)
 
-        from_q = to_q = models.Q()
-        revisions = PackageRevision.objects.filter(
-                package__type='a').exclude(sdk__version=target_version)
+        revisions = (PackageRevision.objects
+                .filter(package__type='a')
+                .exclude(sdk__version=str(target_version))
+                .filter(sdk__version=str(from_version))).all()
 
-        if from_version:
-            from_q = models.Q(sdk__version__gt=from_version)
-            revisions = revisions.filter(from_q)
-        if to_version:
-            to_q = models.Q(sdk__version__lt=to_version)
-            revisions = revisions.filter(to_q)
-
-        revisions = revisions.all()
-        log.debug('changing (%d) revisions' % len(revisions))
+        if revisions:
+            log.debug('changing (%d) revisions' % len(revisions))
         failed_revisions = {}
         for revision in revisions:
             if revision.sdk != sdk:
@@ -93,18 +84,3 @@ class Command(BaseCommand):
                 self.stderr.write("\n" + serr + "\n")
                 for rev in revs:
                     self.stderr.write(rev + "\n")
-
-        if kwargs.get('purge', False):
-            if failed_revisions:
-                if kwargs.get('force_purge', False):
-                    self.stdout('Forcing the purge\n')
-                else:
-                    self.stderr.write("Couldn't purge due to above errors.\n")
-                    return
-            oldrevs = PackageRevision.objects.filter(
-                    package=sdk.core_lib.package).exclude(
-                            version_name=sdk.version)
-            oldsdks = SDK.objects.exclude(version=target_version)
-            for oldsdk in oldsdks:
-                oldsdk.delete(purge=True)
-            self.stdout.write("%d SDK(s) removed\n" % len(oldsdks))
