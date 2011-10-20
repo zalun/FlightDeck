@@ -89,7 +89,8 @@ def update_flightdeck(ctx):
     # Run management commands like this:
     # manage_cmd(ctx, 'cmd')
 
-    # 0.9.16 only
-    manage_cmd(ctx, 'cron update_package_activity')
+    # 0.9.16.1 only
+    manage_cmd(ctx, 'add_core_lib addon-sdk-1.2.1')
+    manage_cmd(ctx, 'force_sdk 1.2.1 1.2')
 
 
