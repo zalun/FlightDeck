@@ -56,8 +56,8 @@ module.exports = new Class({
 										setTimeout(function() {
 											file.content = file.original_content;
 											file.setChanged(false);
-											fd.edited--;
-											if(!fd.edited) {
+											fd.item.edited--;
+											if(!fd.item.edited) {
 												fd.fireEvent('reset');
 											}
 										}, 1);

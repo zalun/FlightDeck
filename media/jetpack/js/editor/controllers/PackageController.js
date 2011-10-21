@@ -1,5 +1,6 @@
 var Class = require('shipyard/class/Class'),
     Options = require('shipyard/class/Options'),
+    Events = require('shipyard/class/Events'),
     dom = require('shipyard/dom'),
     //Request = require('shipyard/http/Request'),
     
@@ -9,7 +10,7 @@ module.exports = new Class({
 
     //Extends: Controller?,
 
-    Implements: Options,
+    Implements: [Events, Options],
 
     options: {
         modules: [],
@@ -39,6 +40,10 @@ module.exports = new Class({
 
     modules: {},
     attachments: {},
+    folders: {},
+    dependencies: {},
+
+    edited: 0,
 
     initialize: function PackageController(package, options, editor, tabs, sidebar) {
         this.package = package;
@@ -130,6 +135,10 @@ module.exports = new Class({
     assignEditActions: function() {
         var controller = this;
 
+        dom.window.addEvent('beforeunload', function(e) {
+            controller.alertUnsavedData(e);
+        });
+
         this.packageInfoEl.addEvent('click', function(e) {
             e.preventDefault();
             controller.editInfo();
@@ -164,6 +173,8 @@ module.exports = new Class({
                 controller.save_el.focus();
             }
         });
+
+        this.attachEditor();
 
 
         if (dom.$('jetpack_core_sdk_version')) {
@@ -321,7 +332,7 @@ module.exports = new Class({
             return;
         }
         
-        if (fd.edited) {
+        if (this.edited) {
             fd.error.alert("There are unsaved changes", 
                     "To make a copy, please save your changes.");
             return;
@@ -430,12 +441,41 @@ module.exports = new Class({
     },
 
     //Package.Edit
+    attachEditor: function() {
+        var controller = this;
+
+        this.editor.addEvent('change', function() {
+            controller.onChanged();
+        });
+        
+        this.addEvent('change', this.onChanged);
+		this.addEvent('save', this.onSaved);
+		this.addEvent('reset', this.onReset);
+    },
+    
+    onChanged: function() {
+        $log('FD: INFO: document changed - onbeforeunload warning is on and save button is lit.');
+        dom.$$('li.Icon_save').addClass('Icon_save_changes');
+		this.edited++;
+	},
+
+	onSaved: function() {
+        //any save specific logic?
+		this.fireEvent('reset');
+	},
+	
+	onReset: function() {
+		$log('FD: INFO: document saved - onbeforeunload warning is off and save button is not lit.');
+        dom.$$('li.Icon_save').removeClass('Icon_save_changes');
+		this.edited = 0;
+	},
+
     downloadAddonOrSave: function(e){
 		if (e) {
 		  e.preventDefault();
         }
         var that = this;
-        if (fd.edited) {
+        if (this.edited) {
             // display message
             fd.showQuestion({
                 title: 'You\'ve got unsaved changes.',
@@ -948,7 +988,7 @@ module.exports = new Class({
 	},
     
 	removeLibrary: function(lib) {
-		new Request.JSON({
+        new Request.JSON({
 			url: this.options.remove_library_url,
 			data: {'id_number': lib.options.id_number},
             useSpinner: true,
@@ -1301,6 +1341,14 @@ module.exports = new Class({
         if (urls.download_url && $(this.options.download_el)) {
             $(this.options.download_el).set('href', urls.download_url);
         }
-	}    
+	},
+
+    alertUnsavedData: function(e) {
+        if (this.edited && fd.saving) {
+            e.preventDefault();
+            e.returnValue = "You've got unsaved changes.";
+        }
+                      
+    }
 
 });
