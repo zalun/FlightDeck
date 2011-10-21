@@ -24,7 +24,6 @@
 		<script src="/media/base/js/FlightDeck.Utils.js"></script>
         {# <script src="/media/base/js/FlightDeck.Dropdown.js"></script>#}
 		<script src="/media/base/js/FlightDeck.PickVersion.js"></script>
-		<script src="/media/jetpack/js/Create.js"></script>
         <title>{% block title %}{% endblock %}{{ settings.SITE_TITLE }}</title>
 		{% block head %}{% endblock %}
 		{% block roar_css %}
@@ -48,13 +47,6 @@
                 fd = new FlightDeck({
                     'user': '{{ user.username }}'{% block flightdeck_options %}{% endblock %}
                 });
-				{% block create_init %}{% comment %}
-					create.init(
-						['create_addon', 'create_library'],
-						['addon','library'],
-						'app-body'
-					);
-				{% endcomment %}{% endblock %}
 				{% block app_domready %}{% endblock %}
 				{% block page_domready %}{% endblock %}
 			}); // domReady
