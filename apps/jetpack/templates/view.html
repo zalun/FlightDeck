@@ -7,7 +7,6 @@
 	<link rel="stylesheet" href="/media/jetpack/css/FlightDeck.Autocomplete.css" type="text/css" media="screen" />
 	<link rel="stylesheet" href="/media/jetpack/css/tree.css" type="text/css" media="screen" />
 	<link rel="stylesheet" href="/media/jetpack/css/collapse.css" type="text/css" media="screen" />
-	<script src="/media/jetpack/js/FlightDeck.Editor.js"></script>
 	<script src="/media/lib/ace/ace.js"></script>
 	<script src="/media/lib/tree.js"></script>
 
@@ -17,6 +16,7 @@
     <script src="/media/jetpack/js/editor-min.js"></script>
     {% endif %}
 
+	<script src="/media/jetpack/js/FlightDeck.Editor.js"></script>
 	<script src="/media/lib/ace/mode-javascript.js"></script>
 	<script src="/media/lib/ace/mode-css.js"></script>
 	<script src="/media/lib/ace/mode-html.js"></script>
@@ -24,6 +24,21 @@
 	<script src="/media/base/js/FlightDeck.Autocomplete.js"></script>
 	<script src="/media/jetpack/js/Package.js"></script>
 	<script src="/media/lib/FloatingTips.js"></script>
+
+    <script type="text/javascript">
+        define('editor/settings', [], function(require, exports, module) {
+            module.exports = {
+                {% include "js/_package_initiate.js" %},
+                {% include "js/_view_package_initiate.js" %}
+            };
+        });
+    </script>
+
+    {% if settings.DEBUG %}
+    <script src="/media/lib/shipyard/scripts/require.js" data-main="/media/jetpack/js/editor/"></script>
+    {% else %}
+    <script src="/media/jetpack/js/editor-min.js"></script>
+    {% endif %}
 {% endblock %}
 
 {# switch off default menu bar #}
@@ -31,10 +46,12 @@
 
 {# initialize package view #}
 {% block app_domready %}
-  fd.item = new Package.View({
-    //{% include "js/_package_initiate.js" %},
-    {% include "js/_view_package_initiate.js" %}
-  }); // Package.View
+    
+    var editor = require('editor');
+    fd.item = editor.controller;
+
+    editor.sidebar.buildTree();
+
 {% endblock %}
 
 {# switch off the footer #}
