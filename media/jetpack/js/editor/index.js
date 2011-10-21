@@ -15,9 +15,11 @@ window.editor = exports;
 
 console.log('editor/index');
 
-exports.tabs = new TabsController();
-exports.sidebar = new Sidebar({ editable: !settings.readonly });
-exports.ace = new Ace('editor-wrapper');
+var tabs = exports.tabs = new TabsController();
+var sidebar = exports.sidebar = new Sidebar({ 
+    editable: !settings.readonly
+});
+var ace = exports.ace = new Ace('editor-wrapper');
 
 var p = exports.package = new Package(settings);
-exports.controller = new PackageController(p, settings, exports.ace, exports.tabs, exports.sidebar);
+exports.controller = new PackageController(p, settings, ace, tabs, sidebar);
