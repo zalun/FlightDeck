@@ -11,6 +11,12 @@ import commander_settings as settings
 _src_dir = lambda *p: os.path.join(settings.SRC_DIR, *p)
 
 
+def manage_cmd(ctx, command):
+    """Call a manage.py command."""
+    with ctx.lcd(settings.SRC_DIR):
+        ctx.local("python2.6 manage.py %s" % command)
+
+
 @task
 def schematic(ctx):
     with ctx.lcd(settings.SRC_DIR):
@@ -90,4 +96,9 @@ def pre_update(ctx, ref=settings.UPDATE_REF):
 
 @task
 def update(ctx):
+    with ctx.lcd(settings.SRC_DIR):
+        ctx.local("rm `find . -name '*.pyc'`")
     schematic()
+
+    # Run management commands like this:
+    # manage_cmd(ctx, 'cmd')
