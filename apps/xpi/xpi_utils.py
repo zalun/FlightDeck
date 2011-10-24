@@ -107,7 +107,15 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None):
     xpi_path = os.path.join(package_dir, "%s.xpi" % filename)
     xpi_targetfilename = "%s.xpi" % hashtag
     xpi_targetpath = os.path.join(settings.XPI_TARGETDIR, xpi_targetfilename)
-    shutil.copy(xpi_path, xpi_targetpath)
+    try:
+        shutil.copy(xpi_path, xpi_targetpath)
+    except IOError, err:
+        info_write(info_targetpath, 'error',
+                'XPI file is not creater. Possibly a bug in the code',
+                hashtag)
+        log.critical("[xpi:%s] Failed to copy xpi.\n%s" % (hashtag, str(err)))
+        raise
+
     shutil.rmtree(sdk_dir)
 
     ret = [xpi_targetfilename]
