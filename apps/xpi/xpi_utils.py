@@ -111,10 +111,11 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None):
         shutil.copy(xpi_path, xpi_targetpath)
     except IOError, err:
         info_write(info_targetpath, 'error',
-                'XPI file is not creater. Possibly a bug in the code',
+                'XPI file is not created. Possibly a bug in the code',
                 hashtag)
         log.critical("[xpi:%s] Failed to copy xpi.\n%s" % (hashtag, str(err)))
-        raise
+        shutil.rmtree(sdk_dir)
+        return response
 
     shutil.rmtree(sdk_dir)
 
