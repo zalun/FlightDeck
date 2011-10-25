@@ -50,6 +50,9 @@ class XPIBuildTest(TestCase):
                 settings.ROOT, 'apps/xpi/tests/sample_addons/')
         self.target_basename = os.path.join(
                 settings.XPI_TARGETDIR, self.hashtag)
+        self.backup_get_source_dir = SDK.get_source_dir
+        SDK.get_source_dir = Mock(return_value=os.path.join(
+            settings.ROOT, 'lib', settings.TEST_SDK))
 
     def tearDown(self):
         self.deleteCore()
@@ -61,6 +64,7 @@ class XPIBuildTest(TestCase):
             os.remove('%s.xpi' % self.target_basename)
         if os.path.exists('%s.json' % self.target_basename):
             os.remove('%s.json' % self.target_basename)
+        SDK.get_source_dir = self.backup_get_source_dir
 
     def makeSDKDir(self):
         os.mkdir('%s/packages' % self.SDKDIR)

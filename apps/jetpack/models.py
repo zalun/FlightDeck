@@ -1298,7 +1298,8 @@ class PackageRevision(BaseModel):
         # XPI: Copy files from NFS to local temp dir
         xpi_utils.sdk_copy(sdk_source, sdk_dir)
         t1 = (time.time() - tstart) * 1000
-        log.debug("[xpi:%s] SDK copied (time %dms)" % (hashtag, t1))
+        log.debug("[xpi:%s] SDK %s copied from %s (time %dms)" % (
+            hashtag, self.sdk.version, sdk_source, t1))
 
         # TODO: check if it's still needed
         self.export_keys(sdk_dir)
