@@ -3,11 +3,8 @@ import re
 import csv
 import shutil
 import time
-import datetime
 import commonware
-import tarfile
 import tempfile
-import markdown
 import hashlib
 import codecs
 from decimal import Decimal, getcontext
@@ -34,7 +31,7 @@ from pyes.exceptions import NotFoundException as PyesNotFoundException
 
 from statsd import statsd
 
-from amo.constants import *
+from amo import constants
 from base.models import BaseModel
 from jetpack.errors import (SelfDependencyException, FilenameExistException,
                             UpdateDeniedException, SingletonCopyException,
@@ -42,7 +39,6 @@ from jetpack.errors import (SelfDependencyException, FilenameExistException,
 from jetpack.managers import PackageManager
 from search.models import SearchMixin
 from utils import validator
-from utils.exceptions import SimpleException
 from utils.helpers import pathify, alphanum, alphanum_plus
 from utils.os_utils import make_path
 from utils.amo import AMOOAuth
@@ -157,7 +153,7 @@ class PackageRevision(BaseModel):
         """Find out if this revision has been uploaded successfuly to AMO
         """
         return (self.amo_version_name == self.get_version_name()
-                and self.amo_status != STATUS_UPLOAD_FAILED)
+                and self.amo_status != constants.STATUS_UPLOAD_FAILED)
 
     def get_amo_status_url(self):
         """:returns: (string) url to pull amo_status view
@@ -172,7 +168,7 @@ class PackageRevision(BaseModel):
     def get_status_name(self):
         """:returns: (string) the name of the AMO status or None
         """
-        return STATUS_NAMES.get(self.amo_status, None)
+        return constants.STATUS_NAMES.get(self.amo_status, None)
 
     def upload_to_amo(self, hashtag):
         """Uploads Package to AMO, updates or creates as a new Addon
@@ -187,7 +183,7 @@ class PackageRevision(BaseModel):
             # upload
             try:
                 amo_user_id = int(self.author.username)
-            except:
+            except Exception, err:
                 # this is not possible in live environment
                 amo_user_id = 1
             data = {'xpi': xpi_file,
@@ -198,7 +194,7 @@ class PackageRevision(BaseModel):
                            prefix=settings.AMOOAUTH_PREFIX)
             amo.set_consumer(consumer_key=settings.AMOOAUTH_CONSUMERKEY,
                              consumer_secret=settings.AMOOAUTH_CONSUMERSECRET)
-            error = None
+            iserror = None
             if self.package.amo_id:
                 # update addon on AMO
                 log.info('AMOOAUTHAPI: updating addon %s to version %s' % (
@@ -206,22 +202,30 @@ class PackageRevision(BaseModel):
                 try:
                     response = amo.create_version(data, self.package.amo_id)
                 except Exception, error:
+                    iserror = True
                     log.critical("AMOOAUTHAPI: Update failed, revision:"
                             " %s\n%s" % (self, str(error)))
-                    self.amo_status = STATUS_UPLOAD_FAILED
+                    self.amo_status = constants.STATUS_UPLOAD_FAILED
                     super(PackageRevision, self).save()
                 else:
                     log.debug("AMOOAUTHAPI: update response: %s " % response)
-                    # XXX: not supported by API yet
-                    # There is 'statuses', but it's unclear how to read that
-                    # https://bugzilla.mozilla.org/show_bug.cgi?id=690523
-                    if 'status' in response:
-                        self.amo_status = response['status']
+                    # TODO: change statuses of each file_id
+                    #       statuses contains the statuses for each file_id
+                    #       https://bugzilla.mozilla.org/show_bug.cgi?id=690523
+                    try:
+                        self.amo_status = response['statuses'][response['id']]
+                    except Exception, err:
+                        log.debug(response.get('statuses', str(err)))
+                        if 'status' in response:
+                            self.amo_status = response['status']
+                        else:
+                            self.amo_status = constants.STATUS_UNREVIEWED
                     else:
-                        self.amo_status = STATUS_UNREVIEWED
+                        log.debug('AMOOAUTHAPI: Status updated from API')
                     self.amo_file_id = response['id']
                     super(PackageRevision, self).save()
-                    # TODO: update jetpack ID if needed
+                    # TODO: update JID if updating an add-on which was
+                    #       uploaded before from an unknown source
             else:
                 # create addon on AMO
                 log.info('AMOOAUTHAPI: creating addon %s amo_version %s' % (
@@ -230,15 +234,15 @@ class PackageRevision(BaseModel):
                 try:
                     response = amo.create_addon(data)
                 except Exception, error:
+                    iserror = True
                     log.critical("AMOOAUTHAPI: Upload failed, revision:"
                             " %s\n%s" % (self, str(error)))
-                    self.amo_status = STATUS_UPLOAD_FAILED
+                    self.amo_status = constants.STATUS_UPLOAD_FAILED
                     super(PackageRevision, self).save()
                 else:
-                    log.debug("AMOOAUTHAPI: create response: %s " % response)
+                    log.debug(("AMOOAUTHAPI:"
+                               " response from create: %s " % response))
                     self.amo_status = response['status']
-                    # XXX: not supported by API (yet)
-                    # https://bugzilla.mozilla.org/show_bug.cgi?id=690515
                     if 'slug' in response:
                         self.package.amo_slug = response['slug']
                     super(PackageRevision, self).save()
@@ -246,7 +250,7 @@ class PackageRevision(BaseModel):
 
         self.package.save()
         os.remove(xpi_path)
-        if error:
+        if iserror and error:
             raise error
 
     ###############
@@ -268,9 +272,9 @@ class PackageRevision(BaseModel):
         try:
             # in FlightDeck, libraries can have the same name,
             # by different authors
-            Package.objects.get(author=revision.package.author,
-                                name=make_name(package_full_name))
-        except:
+            Package.objects.get(author=self.package.author,
+                                name=make_name(value))
+        except ObjectDoesNotExist:
             self.full_name = value
             self.package.full_name = value
             self.add_commit_message("Package name changed to \"%s\"" %
@@ -293,19 +297,15 @@ class PackageRevision(BaseModel):
             return False
 
         os.mkdir('%s/%s' % (package_dir, self.get_lib_dir()))
-        if not os.path.isdir('%s/%s' % (package_dir, self.get_data_dir())):
-            os.mkdir('%s/%s' % (package_dir, self.get_data_dir()))
+
+        data_dir = os.path.join(package_dir, settings.JETPACK_DATA_DIR)
+        if not os.path.isdir(data_dir):
+            os.mkdir(data_dir)
         return package_dir
 
     def get_lib_dir(self):
         " returns the name of the lib directory in SDK default - packages "
         return self.package.lib_dir or settings.JETPACK_LIB_DIR
-
-    def get_data_dir(self):
-        " returns the name of the data directory in SDK default - data "
-        # it stays as method as it could be saved in instance in the future
-        # TODO: YAGNI!
-        return settings.JETPACK_DATA_DIR
 
     def default_full_name(self):
         self.full_name = self.package.full_name
@@ -487,7 +487,7 @@ class PackageRevision(BaseModel):
 
     def get_dependencies_list(self, sdk=None):
         " returns a list of dependencies names extended by default core "
-        # XXX: breaking possibility to build jetpack SDK 0.6
+        # breaking possibility to build jetpack SDK 0.6
         deps = ["%s" % (dep.name) \
                      for dep in self.dependencies.all()]
         deps.append('api-utils')
@@ -695,8 +695,8 @@ class PackageRevision(BaseModel):
         for dep in origin.dependencies.all():
             self.dependencies.add(dep)
 
-        for dir in origin.folders.all():
-            self.folders.add(dir)
+        for d in origin.folders.all():
+            self.folders.add(d)
 
         for mod in origin.modules.all():
             self.modules.add(mod)
@@ -843,34 +843,34 @@ class PackageRevision(BaseModel):
             self.folders.remove(folder)
         return ([mod.filename for mod in found_modules], empty_dirs_paths)
 
-    def folder_add(self, dir, save=True):
+    def folder_add(self, directory, save=True):
         " copy to new revision, add EmptyDir "
         errorMsg = ('Sorry, there is already a folder in your add-on '
                  'with the name "%s". Each folder in your add-on '
-                 'needs to have a unique name.') % dir.name
-        dir.clean()
+                 'needs to have a unique name.') % directory.name
+        directory.clean()
 
-        if not self.validate_folder_name(dir.name, dir.root_dir):
+        if not self.validate_folder_name(directory.name, directory.root_dir):
             raise FilenameExistException(errorMsg)
 
         # don't make EmptyDir for util/ if a file exists as util/example
-        elif (dir.root_dir == 'l' and
-            self.modules.filter(filename__startswith=dir.name).count()):
+        elif (directory.root_dir == 'l' and
+            self.modules.filter(filename__startswith=directory.name).count()):
             raise FilenameExistException(errorMsg)
-        elif (dir.root_dir == 'd' and
-            self.attachments.filter(filename__startswith=dir.name).count()):
+        elif (directory.root_dir == 'd' and
+            self.attachments.filter(filename__startswith=directory.name).count()):
             raise FilenameExistException(errorMsg)
 
-        self.add_commit_message('folder (%s) added' % dir.name)
+        self.add_commit_message('folder (%s) added' % directory.name)
         if save:
             self.save()
-        return self.folders.add(dir)
+        return self.folders.add(directory)
 
-    def folder_remove(self, dir):
+    def folder_remove(self, directory):
         " copy to new revision, remove folder "
-        self.add_commit_message('folder (%s) removed' % dir.name)
+        self.add_commit_message('folder (%s) removed' % directory.name)
         self.save()
-        return self.folders.remove(dir)
+        return self.folders.remove(directory)
 
     def update(self, change, save=True):
         " to update a module, new package revision has to be created "
@@ -1027,13 +1027,11 @@ class PackageRevision(BaseModel):
             self.attachments.remove(att)
         empty_dirs = self.folders.filter(dir_query)
         removed_empty_dirs = []
-        i = 0
         while empty_dirs:
             for folder in empty_dirs:
                 removed_empty_dirs.append(folder.name)
                 self.folders.remove(folder)
             empty_dirs = self.folders.filter(dir_query)
-            i += 1
         return self, removed_attachments, removed_empty_dirs
 
     def dependency_add(self, dep, save=True):
@@ -1266,7 +1264,7 @@ class PackageRevision(BaseModel):
 
         return self.sdk.kit_lib if self.sdk.kit_lib else self.sdk.core_lib
 
-    def build_xpi(self, modules=[], attachments=[], hashtag=None, rapid=False,
+    def build_xpi(self, modules=None, attachments=None, hashtag=None, rapid=False,
             tstart=None):
         """
         prepare and build XPI for test only (unsaved modules)
@@ -1277,6 +1275,11 @@ class PackageRevision(BaseModel):
 
         This method is called from cellery task
         """
+
+        if not modules:
+            modules = []
+        if not attachments:
+            attachments = []
         if self.package.type == 'l':
             log.error("Attempt to build xpi (%s), but package is not an "
                       "add-on. Expected (l) but got (%s)." % (
@@ -1300,8 +1303,6 @@ class PackageRevision(BaseModel):
         t1 = (time.time() - tstart) * 1000
         log.debug("[xpi:%s] SDK copied (time %dms)" % (hashtag, t1))
 
-        # TODO: check if it's still needed
-        self.export_keys(sdk_dir)
 
         packages_dir = os.path.join(sdk_dir, 'packages')
         package_dir = self.make_dir(packages_dir)
@@ -1325,7 +1326,7 @@ class PackageRevision(BaseModel):
 
         # export atts with ability to use edited code (from attachments var)
         # XPI: memory/database/NFS to local
-        data_dir = os.path.join(package_dir, self.get_data_dir())
+        data_dir = os.path.join(package_dir, settings.JETPACK_DATA_DIR)
         for att in self.attachments.all():
             att_edited = False
             for e_att in attachments:
@@ -1389,7 +1390,7 @@ class PackageRevision(BaseModel):
         self.export_modules(
             os.path.join(package_dir, self.get_lib_dir()))
         self.export_attachments(
-            os.path.join(package_dir, self.get_data_dir()))
+            os.path.join(package_dir, settings.JETPACK_DATA_DIR))
 
     def export_files_with_dependencies(self, packages_dir, sdk=None):
         """Export dependency packages."""
@@ -1486,9 +1487,10 @@ class Package(BaseModel, SearchMixin):
     # Methods
 
     def save(self, **kwargs):
+        " save with finding a next id number "
         try:
             super(Package, self).save(**kwargs)
-        except IntegrityError, err:
+        except IntegrityError:
             if Package.objects.filter(id_number=self.id_number).exclude(pk=self.pk):
                 self.id_number = _get_next_id_number()
                 self.save(**kwargs)
@@ -1809,7 +1811,9 @@ class Package(BaseModel, SearchMixin):
                 TO_DAYS(created_at) <= TO_DAYS(DATE_SUB(CURDATE(), INTERVAL {1} DAY)) AND
                 TO_DAYS(created_at) >= TO_DAYS(DATE_SUB(CURDATE(), INTERVAL {2} DAY))
                 group by package_id, TO_DAYS(created_at)) x
-                """.format(self.id,w['start'],w['end'],w['end']+1 - w['start'], idx))
+                """.format(
+                    self.id, w['start'], w['end'],
+                    w['end'] + 1 - w['start'], idx))
 
         query = " UNION ".join(q)
 
@@ -1842,12 +1846,9 @@ class Package(BaseModel, SearchMixin):
         data['activity'] = float(self.activity_rating or 0.0)
         del data['activity_rating']
 
-        try:
-            if self.latest:
-                deps = self.latest.dependencies.all()
-                data['dependencies'] = [dep.package.id for dep in deps]
-        except PackageRevision.DoesNotExist:
-            pass
+        if self.latest:
+            deps = self.latest.dependencies.all()
+            data['dependencies'] = [dep.package.id for dep in deps]
 
         if self.is_library():
             data['times_depended'] = (Package.objects
@@ -1910,20 +1911,6 @@ class Module(BaseModel):
     def __unicode__(self):
         return '%s by %s (%s)' % (self.get_filename(),
                                   self.author, self.get_package_fullName())
-
-    def get_package(self):
-        " returns first package to which the module is assigned "
-        # TODO: Check if this method is used
-        try:
-            return self.revisions.all()[0].package
-        except Exception:
-            return None
-
-    def get_package_fullName(self):
-        " returns full name of the package to which the module is assigned "
-        # TODO: Check if this method is used
-        package = self.get_package()
-        return package.full_name if package else ''
 
     def get_path(self):
         """
