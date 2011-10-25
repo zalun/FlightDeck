@@ -531,6 +531,8 @@ class PackageRevision(BaseModel):
             'contributors': self.get_contributors_list(),
             'lib': self.get_lib_dir()
         }
+        if self.package.is_library() and settings.WORKAROUND_SDK_MAIN:
+            manifest['main'] = "%s/%s" % (manifest['lib'], manifest['main'])
 
         return manifest
 
@@ -1301,7 +1303,8 @@ class PackageRevision(BaseModel):
         # XPI: Copy files from NFS to local temp dir
         xpi_utils.sdk_copy(sdk_source, sdk_dir)
         t1 = (time.time() - tstart) * 1000
-        log.debug("[xpi:%s] SDK copied (time %dms)" % (hashtag, t1))
+        log.debug("[xpi:%s] SDK %s copied from %s (time %dms)" % (
+            hashtag, self.sdk.version, sdk_source, t1))
 
 
         packages_dir = os.path.join(sdk_dir, 'packages')

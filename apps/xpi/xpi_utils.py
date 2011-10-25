@@ -95,6 +95,11 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None):
                      hashtag, str(err), cfx))
         shutil.rmtree(sdk_dir)
         raise
+    if (settings.WORKAROUND_STDERR and
+            not os.path.exists(os.path.join(package_dir, '%s.xpi' % filename))):
+        badresponse = response[0]
+        response = ['', '']
+        response[1] = badresponse
     if response[1]:
         info_write(info_targetpath, 'error', response[1], hashtag)
         log.critical("[xpi:%s] Failed to build xpi." % hashtag)
@@ -107,7 +112,16 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None):
     xpi_path = os.path.join(package_dir, "%s.xpi" % filename)
     xpi_targetfilename = "%s.xpi" % hashtag
     xpi_targetpath = os.path.join(settings.XPI_TARGETDIR, xpi_targetfilename)
-    shutil.copy(xpi_path, xpi_targetpath)
+    try:
+        shutil.copy(xpi_path, xpi_targetpath)
+    except IOError, err:
+        info_write(info_targetpath, 'error',
+                'XPI file can not be copied.',
+                hashtag)
+        log.critical("[xpi:%s] Failed to copy xpi.\n%s" % (hashtag, str(err)))
+        shutil.rmtree(sdk_dir)
+        return response
+
     shutil.rmtree(sdk_dir)
 
     ret = [xpi_targetfilename]
