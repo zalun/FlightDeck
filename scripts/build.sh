@@ -42,7 +42,7 @@ from settings import *
 ROOT_PACKAGE = os.path.basename(ROOT)
 ROOT_URLCONF = '%s.urls' % ROOT_PACKAGE
 DATABASES['default']['NAME'] = 'builder_pamo'
-DATABASES['default']['HOST'] = 'sm-hudson01'
+DATABASES['default']['HOST'] = 'localhost'
 DATABASES['default']['USER'] = 'hudson'
 DATABASES['default']['TEST_NAME'] = 'test_builder_pamo'
 DATABASES['default']['TEST_CHARSET'] = 'utf8'
