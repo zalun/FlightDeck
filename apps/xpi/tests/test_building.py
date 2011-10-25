@@ -7,7 +7,7 @@ import tempfile
 import time
 
 from mock import Mock
-from nose.tools import eq_
+#from nose.tools import eq_
 from utils.test import TestCase
 
 from django.contrib.auth.models import User

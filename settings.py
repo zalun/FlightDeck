@@ -126,6 +126,10 @@ ATTACHMENT_MAX_FILESIZE = 2 * 1024 * 1024  # 2MB
 
 PYTHON_EXEC = 'python'
 
+
+WORKAROUND_SDK_MAIN = True
+WORKAROUND_STDERR = True
+
 # amo defaults
 XPI_AMO_PREFIX = "ftp://ftp.mozilla.org/pub/mozilla.org/addons/"
 

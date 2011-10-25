@@ -95,6 +95,11 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None):
                      hashtag, str(err), cfx))
         shutil.rmtree(sdk_dir)
         raise
+    if (settings.WORKAROUND_STDERR and
+            not os.path.exists(os.path.join(package_dir, '%s.xpi' % filename))):
+        badresponse = response[0]
+        response = ['', '']
+        response[1] = badresponse
     if response[1]:
         info_write(info_targetpath, 'error', response[1], hashtag)
         log.critical("[xpi:%s] Failed to build xpi." % hashtag)

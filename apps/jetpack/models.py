@@ -531,6 +531,8 @@ class PackageRevision(BaseModel):
             'contributors': self.get_contributors_list(),
             'lib': self.get_lib_dir()
         }
+        if self.package.is_library() and settings.WORKAROUND_SDK_MAIN:
+            manifest['main'] = "%s/%s" % (manifest['lib'], manifest['main'])
 
         return manifest
 
