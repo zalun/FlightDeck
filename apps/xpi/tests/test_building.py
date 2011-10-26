@@ -300,6 +300,8 @@ require('libCmodule');
         response = addon.latest.build_xpi(hashtag=self.hashtag)
         settings.CELERY_ALWAYS_EAGER = celery_eager
         assert response[1]
+        assert not os.path.isfile('%s.xpi' % self.target_basename)
+
 
     def test_addon_with_deep_dependency(self):
         # A > B, C
@@ -387,6 +389,38 @@ require('libDmodule');
         response = addon.latest.build_xpi(hashtag=self.hashtag)
         settings.CELERY_ALWAYS_EAGER = celery_eager
         assert not response[1]
+        assert os.path.isfile('%s.xpi' % self.target_basename)
+
+    def test_requiring_by_library_name(self):
+        # A depends on B
+        # so, you can do require('B'), and it should be B/lib/index.js
+
+        addon = Package.objects.create(
+                author=self.author,
+                full_name='A',
+                name='a',
+                type='a')
+        mod = addon.latest.modules.get()
+        mod.code += """
+require('b');
+"""
+        addon.latest.update(mod)
+        # creating Library B
+        libB = Package.objects.create(
+                author=self.author,
+                full_name='B',
+                name='b',
+                type='l')
+        # now assigning dependencies
+        addon.latest.dependency_add(libB.latest)
+
+        celery_eager = settings.CELERY_ALWAYS_EAGER
+        settings.CELERY_ALWAYS_EAGER = False
+        response = addon.latest.build_xpi(hashtag=self.hashtag)
+        settings.CELERY_ALWAYS_EAGER = celery_eager
+        assert not response[1]
+        assert os.path.isfile('%s.xpi' % self.target_basename)
+
 
     def test_module_with_utf(self):
 
