@@ -10,6 +10,12 @@ from .forms import SearchForm
 
 log = commonware.log.getLogger('f.search')
 
+SORT_MAPPING = {
+    'score':'_score',
+    'activity':'activity',
+    'forked':'copies_count',
+    'used':'times_depended',    
+}
 
 def search(request):
     form = SearchForm(request.GET)
@@ -21,7 +27,7 @@ def search(request):
     page = query.get('page') or 1
     limit = 20
     activity_map = get_activity_scale()
-
+    sort = SORT_MAPPING.get(query.get('sort'), '_score')
 
     filters = {}
     filters['user'] = request.user
@@ -44,16 +50,16 @@ def search(request):
 
     if query.get('activity'):
         filters['activity__gte'] = activity_map.get(str(query['activity']), 0)
-
+  
     results = {}
     facets = {}
-
+   
     copies_facet = {'terms': {'field': 'copies_count'}}
     times_depended_facet = {'terms': {'field': 'times_depended'}}
     facets_ = {'copies': copies_facet, 'times_depended': times_depended_facet}
     if type_:
-        filters['type'] = type_
-        qs = package_search(q, **filters).facet(**facets_)
+        filters['type'] = type_        
+        qs = package_search(q, **filters).order_by(sort).facet(**facets_)
         try:
             results['pager'] = Paginator(qs, per_page=limit).page(page)
         except EmptyPage:
@@ -63,9 +69,9 @@ def search(request):
         template = 'results.html'
     else:
         # combined view
-        results['addons'] = package_search(q, type='a', **filters).facet(
+        results['addons'] = package_search(q, type='a', **filters).order_by(sort).facet(
                 **facets_)[:5]
-        results['libraries'] = package_search(q, type='l', **filters).facet(
+        results['libraries'] = package_search(q, type='l', **filters).order_by(sort).facet(
                 **facets_)[:5]
         facets = _facets(results['addons'].facets)
         facets['everyone_total'] = facets['combined_total']
@@ -82,6 +88,9 @@ def search(request):
     }
     ctx.update(results)
     ctx.update(facets)
+
+    for p in results['addons']:
+        log.debug(p.__dict__)
 
     if request.is_ajax():
         template = 'ajax/' + template

@@ -1,4 +1,6 @@
 import commonware
+import random
+import datetime
 
 from django.contrib.auth.models import User
 
@@ -8,9 +10,12 @@ from pyes import StringQuery, FieldQuery, FieldParameter
 from elasticutils.tests import ESTestCase
 from elasticutils import F
 
+from jetpack.tasks import calculate_activity_rating
 from jetpack.models import Package
+from jetpack.models import PackageRevision
 from search.helpers import package_search
 from search.cron import setup_mapping
+
 
 log = commonware.log.getLogger('f.test.search')
 
@@ -212,5 +217,28 @@ class PackageHelperSearchTest(MappedESTestCase):
         and should be the first result.
         """
         eq_([p.name for p in data['pager'].object_list], [quux.name, baz.name])
-
-
+        
+    def test_sorting_by_activity(self):
+        
+        #create 10 packages and a random number of revisions
+        now = datetime.datetime.utcnow()
+        addons = []
+        for i in range(10):
+            addon = create_addon('addon-{0}'.format(i))
+            addons.append(addon)
+            for k in range(1,random.randrange(1,50)):
+                r = addon.revisions.create(author=addon.author, revision_number=k)
+                r.created_at=now-datetime.timedelta(random.randrange(1,365))
+                super(PackageRevision, r).save()
+                
+        calculate_activity_rating([a.pk for a in addons])
+        
+        self.es.refresh()
+        
+        qs = package_search().order_by('activity')
+        
+        last_score = 1
+        for r in qs:          
+            eq_(r.activity<last_score, True)
+            last_score = r.activity
+        
