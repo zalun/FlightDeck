@@ -1,16 +1,13 @@
 var Class = require('shipyard/class/Class'),
-    Model = require('shipyard/model/Model'),
     fields = require('shipyard/model/fields'),
-    Syncable = require('shipyard/sync/Syncable'),
-    ServerSync = require('shipyard/sync/Server');
+    ServerSync = require('shipyard/sync/Server'),
+    
+    File = require('./File');
 
-var EDITABLE_EXTS = ['js', 'css', 'html', 'txt', 'md', 'markdown', 'json'];
 
 module.exports = new Class({
 
-    Extends: Model,
-
-    Implements: Syncable,
+    Extends: File,
 
     Sync: {
         'default': {
@@ -20,19 +17,8 @@ module.exports = new Class({
     },
 
     fields: {
-        id: fields.NumberField(),
-        filename: fields.TextField({ required: true }),
-        ext: fields.TextField(),
         url: fields.TextField(),
-        data: fields.TextField()}
-    },
-
-    toString: function() {
-        return this.get('filename') + '.' + this.get('ext');          
-    },
-
-    isEditable: function() {
-        return EDITABLE_EXTS.indexOf(this.get('ext')) !== -1;
+        data: fields.TextField()
     }
 
 });

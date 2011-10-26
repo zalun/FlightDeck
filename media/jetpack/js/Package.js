@@ -30,9 +30,6 @@ var File = new Class({
 	},
 	
 	destroy: function() {
-		// refactor me
-		if (this.textarea) this.textarea.destroy();
-		//delete fd.editor_contents[this.get_editor_id()];
 		if (this.active) {
 			// switch editor!
 			mod = null;
@@ -41,7 +38,6 @@ var File = new Class({
 			Object.each(this.pack.modules, function(mod) {
 				if (!first) {
 					first = true;
-					mod.switchTo();
 					editor.sidebar.setSelectedFile(mod);
 				}
 			});
@@ -55,37 +51,6 @@ var File = new Class({
         
         }
 		this.fireEvent('destroy');
-	},
-
-    onSelect: function() {
-        this.fireEvent('select');
-    },
-
-	switchTo: function() {
-		this.selectTab();
-		this.pack.editor.switchTo(this);
-		this.pack.editor.focus();
-		this.fireEvent('showEditor');
-	},
-	
-	makeTab: function() {
-		var tab = this.tab = new (require('editor/views/Tabs').Tab)(editor.tabs.tabs, {
-			title: this.getShortName()
-		});
-        this.addEvent('change', function() {
-            $(tab).addClass('modified');
-        });
-        this.addEvent('reset', function() {
-            $(tab).removeClass('modified');
-        })
-		tab.file = this;
-	},
-	
-	selectTab: function() {
-		if(!this.tab) {
-			this.makeTab();
-		}
-		editor.tabs.tabs.setSelected(this.tab);
 	},
 
     setChanged: function(isChanged) {
@@ -116,20 +81,6 @@ var Library = new Class({
 		this.addEvent('destroy', function(){
 			delete pack.libraries[this.options.id_number];
 		});
-		
-		if(this.options.append) {
-			this.append();
-		}
-	},
-	
-	append: function() {
-		editor.sidebar.addPlugin(this);
-	},
-	
-	onSelect: function() {
-		this.parent();
-        //open in a new tab, of course
-        window.open(this.options.view_url);
 	},
 	
 	getID: function() {
@@ -179,56 +130,14 @@ var Attachment = new Class({
         // uid for editor items
         this.uid = this.getEditorID();
 
-		if (this.options.append) {
-			this.append();
-		}
 		this.addEvent('destroy', function(){
 			delete pack.attachments[this.options.uid];
 		});
 		// create editor
-		if (this.options.active && this.is_editable()) {
-			this.switchTo();
-		} else {
-            pack.editor.registerItem(this);
-        }
-	},
-
-	onSelect: function() {
-		this.parent();
-        if (this.is_editable()) {
-			this.switchTo();
-		} else {
-			var template_start = '<div id="attachment_view"><h3>'
-                +this.options.filename+'</h3><div class="UI_Modal_Section">';
-			var template_end = '</div><div class="UI_Modal_Actions"><ul><li>'
-                +'<input type="reset" value="Close" class="closeModal"/>'
-                +'</li></ul></div></div>';
-			var template_middle = 'Download <a href="'
-                +this.options.get_url
-                +'">'
-                +this.options.filename
-                +'</a>';
-			if (this.is_image()) {
-                template_middle += '<p></p>';
-                var img = new Element('img', { src: this.options.get_url });
-                var spinner;
-                img.addEvent('load', function() {
-                    if (spinner) spinner.destroy();
-                    modal.position();
-                });
-            }
-			var modal = this.attachmentWindow = fd.displayModal(template_start+template_middle+template_end);
-            var target = $(this.attachmentWindow).getElement('.UI_Modal_Section p');
-            if (target) {
-                spinner = new Spinner(target);
-				spinner.show();
-                target.grab(img);
-            }
-		}
+        pack.editor.registerItem(this);
 	},
 
 	loadContent: function() {
-		// load data synchronously
         var that = this,
 			spinnerEl = $(this.tab);
 		new Request({
@@ -262,10 +171,6 @@ var Attachment = new Class({
     getEditorID: function() {
         return this.options.uid + this.options.code_editor_suffix;
     },
-
-	append: function() {
-		editor.sidebar.addData(this);
-	},
 
     reassign: function(options) {
         // every revision, attachments that have changed get a new `uid`.
@@ -336,29 +241,13 @@ var Module = new Class({
 		this.addEvent('destroy', function(){
 			delete pack.modules[this.options.filename];
 		});
-		
-		if (this.options.append) {
-			this.append();
-		}
+
         // an uid for the editor
         this.uid = this.options.filename + this.options.suffix;
 		// create editor
-        if (this.options.main || this.options.active) {
-            this.switchTo();
-        } else {
-            pack.editor.registerItem(this);
-        }
+        pack.editor.registerItem(this);
 	},
 
-	onSelect: function() {
-		this.parent();
-        this.switchTo();
-	},
-
-	append: function() {
-		editor.sidebar.addLib(this);
-    },
-	
 	loadContent: function() {
 		// load data synchronously
 		var spinnerEl = $(this.tab);
@@ -412,25 +301,8 @@ var Folder = new Class({
 		this.addEvent('destroy', function(){
 			delete pack.folders[this.options.root_dir + '/' +this.options.name];
 		});
-		
-		if (this.options.append) {
-			this.append();
-		}
 	},
-	
-	append: function() {
-		if (this.options.root_dir == Folder.ROOT_DIR_LIB) {
-			editor.sidebar.addLib(this);
-		} else if (this.options.root_dir == Folder.ROOT_DIR_DATA) {
-			editor.sidebar.addData(this);
-		}
-	},
-	
-	onSelect: function() {
-		this.parent();
-        $log('selected a Folder');
-	},
-	
+
 	getFullName: function() {
 		return this.options.name;
 	},

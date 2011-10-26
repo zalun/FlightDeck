@@ -252,12 +252,6 @@ var Sidebar = module.exports = new Class({
 			element.erase('file');
 		});
 
-        file.addEvent('select', function() {
-            if (file.is_editable()) {
-                that.setSelectedFile(file);
-            }
-        });
-        
         // file.onChange should add an asterisk to the tree branch
         // file.onReset should remove the asterisk
         file.addEvent('change', function() {
@@ -356,9 +350,8 @@ var Sidebar = module.exports = new Class({
 	
 	selectFile: function(li) {
 		var file = li.retrieve('file');
-		if(file) {
-			file.onSelect();
-		}
+        this.fireEvent('select', file);
+        this.setSelectedFile(li);
 	},
     
     silentlyRemoveFolders: function(element) {

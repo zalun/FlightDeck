@@ -163,18 +163,29 @@ module.exports = new Class({
         
         // when typing in Save popover, you should be able to tab in a
         // logical order
-        this.save_el.addEvent('mouseenter', function(e) {
-            controller.versionEl.focus();
-        });
+        //TODO: this is using MooTools mouseenter
+        if (this.save_el.node.addEvent) {
+            this.save_el.node.addEvent('mouseenter', function(e) {
+                controller.versionEl.focus();
+            });
+        } else {
+            this.save_el.addEvent('mouseenter', function(e) {
+                controller.versionEl.focus();
+            })
+        }
         this.revision_message_el = dom.$('revision_message');
         this.revision_message_el.addEvent('keypress', function(e) {
-            if (e.key == 'tab') {
+            //TODO: the dom Event system should make this possible
+            //if (e.key == 'tab') {
+            if (e.keyCode = 9) {
                 e.preventDefault();
                 controller.save_el.focus();
             }
         });
 
         this.attachEditor();
+        this.attachSidebar();
+        this.attachTabs();
 
 
         if (dom.$('jetpack_core_sdk_version')) {
@@ -211,8 +222,9 @@ module.exports = new Class({
         // iterate by modules and instantiate Module
         this.options.modules.forEach(function(module) {
             module.readonly = this.options.readonly;
-            module.append = true;
-            this.modules[module.filename] = new Module(this,module);
+            var mod = this.modules[module.filename] = new Module(this,module);
+            this.sidebar.addLib(mod);
+            if (module.main) this.editFile(mod);
         }, this);
     },
 
@@ -220,8 +232,8 @@ module.exports = new Class({
         // iterate through attachments
         this.options.attachments.forEach(function(attachment) {
             attachment.readonly = this.options.readonly;
-            attachment.append = true;
-            this.attachments[attachment.uid] = new Attachment(this,attachment);
+            var att = this.attachments[attachment.uid] = new Attachment(this,attachment);
+            this.sidebar.addData(att);
         }, this);
     },
 
@@ -229,15 +241,21 @@ module.exports = new Class({
         // iterate through attachments
         this.options.dependencies.forEach(function(plugin) {
             plugin.readonly = this.options.readonly;
-            plugin.append = true;
-            this.libraries[plugin.id_number] = new Library(this,plugin);
+            var lib = this.libraries[plugin.id_number] = new Library(this,plugin);
+            this.sidebar.addPlugin(lib);
         }, this);
     },
     
     instantiate_folders: function() {
         this.options.folders.forEach(function(folder) {
             folder.append = true;
-            this.folders[folder.root_dir + '/' + folder.name] = new Folder(this, folder);
+            var key = folder.root_dir + '/' + folder.name;
+            var f = this.folders[key] = new Folder(this, folder);
+            if (folder.root_dir == Folder.ROOT_DIR_LIB) {
+                this.sidebar.addLib(f);
+            } else if (folder.root_dir == Folder.ROOT_DIR_DATA) {
+                this.sidebar.addData(f);
+            }
         }, this);
     },
 
@@ -443,6 +461,7 @@ module.exports = new Class({
     //Package.Edit
     attachEditor: function() {
         var controller = this;
+        if(!this.editor) return;
 
         this.editor.addEvent('change', function() {
             controller.onChanged();
@@ -451,6 +470,81 @@ module.exports = new Class({
         this.addEvent('change', this.onChanged);
 		this.addEvent('save', this.onSaved);
 		this.addEvent('reset', this.onReset);
+    },
+
+    attachSidebar: function() {
+        if (!this.sidebar) return;
+
+        var controller = this;
+        this.sidebar.addEvent('select', function(file) {
+            controller.onSidebarSelect(file);
+        });
+    },
+
+    attachTabs: function() {
+        if (!this.tabs) return;
+
+        var controller = this;
+        this.tabs.addEvent('select', function(tab) {
+            controller.onTabSelect(tab);
+        })
+    },
+
+    onSidebarSelect: function(file) {
+        // if file is Module or Editable Attachment
+        if ((file instanceof Module) ||
+            (file instanceof Attachment && file.isEditable())) {
+            // then open tab and editor
+            this.editFile(file);
+        }
+        // else if uneditable Attachment
+        else if (file instanceof Attachment) {
+            // then show in fd.modal
+            this.showAttachmentModal(file); 
+        }
+        // else if Library
+        else if (file instanceof Library) {
+            // then open link in new window
+            window.open(file.options.view_url);
+        }
+    },
+
+    onTabSelect: function(tab) {
+        this.editFile(tab.file);
+    },
+
+    editFile: function(file) {
+        this.tabs.selectTab(file);
+        this.editor.switchTo(file).focus();
+    },
+
+    showAttachmentModal: function(file) {
+        var template_start = '<div id="attachment_view"><h3>'
+            +file.options.filename+'</h3><div class="UI_Modal_Section">';
+        var template_end = '</div><div class="UI_Modal_Actions"><ul><li>'
+            +'<input type="reset" value="Close" class="closeModal"/>'
+            +'</li></ul></div></div>';
+        var template_middle = 'Download <a href="'
+            +file.options.get_url
+            +'">'
+            +file.options.filename
+            +'</a>';
+        if (file.is_image()) {
+            template_middle += '<p></p>';
+            var img = new Element('img', { src: file.options.get_url });
+            var spinner;
+            img.addEvent('load', function() {
+                if (spinner) spinner.destroy();
+                modal.position();
+            });
+        }
+        var modal = fd.displayModal(template_start+template_middle+template_end);
+        var target = $(modal).getElement('.UI_Modal_Section p');
+        if (target) {
+            spinner = new Spinner(target);
+            spinner.show();
+            target.grab(img);
+        }
     },
     
     onChanged: function() {
@@ -1344,11 +1438,9 @@ module.exports = new Class({
 	},
 
     alertUnsavedData: function(e) {
-        if (this.edited && fd.saving) {
+        if (this.edited && !fd.saving) {
             e.preventDefault();
-            e.returnValue = "You've got unsaved changes.";
         }
-                      
     }
 
 });

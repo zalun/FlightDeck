@@ -99,10 +99,12 @@ var FDEditor = module.exports = new Class({
             this.deactivateCurrent();
         }
         this.activateItem(item);
+        return this;
     },
 
     dumpCurrent: function() {
         this.current.content = this.getContent();
+        return this;
     },
 
     setReadOnly: function() {

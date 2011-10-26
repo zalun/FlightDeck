@@ -53,6 +53,8 @@ var Tab = new Class({
 	
 	destroy: function() {
 		this.fireEvent('destroy');
+        this.removeEvents();
+
 		this.element = this.element.destroy();
 		this.close = this.close.destroy();
 		this.file.tab = null;

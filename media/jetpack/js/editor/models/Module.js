@@ -1,14 +1,11 @@
 var Class = require('shipyard/class/Class'),
-	Model = require('shipyard/model/Model'),
+    File = require('./File'),
 	fields = require('shipyard/model/fields'),
-	Syncable = require('shipyard/sync/Syncable'),
 	ServerSync = require('shipyard/sync/Server');
 
 module.exports = new Class({
 
-	Extends: Model,
-
-	Implements: Syncable,
+	Extends: File,
 
 	Sync: {
 		'default': {
@@ -18,9 +15,6 @@ module.exports = new Class({
 	},
 
 	fields: {
-		id: fields.NumberField(),
-		filename: fields.TextField(),
-		code: fields.TextField()
 	}
 
 });

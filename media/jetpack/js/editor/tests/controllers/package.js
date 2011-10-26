@@ -218,6 +218,7 @@ module.exports = {
             expect(versionFocus.getCallCount()).toBe(1);
 
             var tab = new E;
+            tab.keyCode = 9;
             tab.key = 'tab';
             pc.revision_message_el.fireEvent('keypress', tab);
             expect(saveFocus.getCallCount()).toBe(1);
