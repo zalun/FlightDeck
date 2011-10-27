@@ -2,10 +2,10 @@
 
 
 {% block modules_sidebar %}
-	{% with revision.get_main_module as module %}
+	{% with module = revision.get_main_module()  %}		
 		{% include "_sidebar_revision_module.html" %}
 	{% endwith %}
-	{% for module in modules %}{% if revision.module_main != module.filename %}
+	{% for module in modules %}{% if revision.module_main != module.filename %}		
 		{% include "_sidebar_revision_module.html" %}
 	{% endif %}{% endfor %}
 {% endblock %}
@@ -15,12 +15,12 @@
   {% if revision.sdk %}
   <li class="UI_File_Normal Core_library"
 	  id="core_library_lib"
-	  title="{{ revision.get_sdk_revision.package.full_name }}"
-      data-id-number="{{ revision.get_sdk_revision.package.name }}">
+	  title="{{ revision.get_sdk_revision().package.full_name }}"
+      data-id-number="{{ revision.get_sdk_revision().package.name }}">
       <a class="expand" href="#"></a>
 	  <div class="holder">
-		<a href="{{ revision.get_sdk_revision.get_absolute_url }}" target="_blank">
-		  <span class="label">{{ revision.get_sdk_revision.package.full_name }}</span>
+		<a href="{{ revision.get_sdk_revision().get_absolute_url() }}" target="_blank">
+		  <span class="label">{{ revision.get_sdk_revision().package.full_name }}</span>
 		</a>
 		<span class="icon"></span>
 		<select id="jetpack_core_sdk_version">
@@ -39,16 +39,16 @@
 
 {% block app_content_menu_items %}
 	<li id="try_in_browser" title="Test" class="UI_Editor_Menu_Button Icon_try XPI_test">
-    <a data-jetpackid="{{ revision.package.get_jid }}" href="{{ revision.get_test_xpi_url }}"><span></span></a>
+    <a data-jetpackid="{{ revision.package.get_jid() }}" href="{{ revision.get_test_xpi_url() }}"><span></span></a>
 	</li>
 	<li id="download" title="Download" class="UI_Editor_Menu_Button Icon_download">
-    <a target="_new" href="{{ revision.get_download_xpi_url }}"><span></span></a>
+    <a target="_new" href="{{ revision.get_download_xpi_url() }}"><span></span></a>
 	</li>
-    {% comment %}
+    {#
 	<li id="upload_to_amo" title="Upload" class="UI_Editor_Menu_Button Icon_upload">
-    <a target="_}ew" href="{{ revision.get_upload_to_amo_url }}"><span></span></a>
+    <a target="_}ew" href="{{ revision.get_upload_to_amo_url() }}"><span></span></a>
 	</li>
-    {% endcomment %}
+    #}
 	<li class="UI_Editor_Menu_Separator"></li>
 {% endblock %}
 
@@ -60,7 +60,7 @@
 
 
 {% block editor_wrapper %}
-	{% with revision.get_main_module as module %}
+	{% with module = revision.get_main_module() %}
 		{% include "_module_code_textarea.html" %}
 	{% endwith %}
 	{% for module in revision.modules.all %}{% if module.filename != revision.module_main %}

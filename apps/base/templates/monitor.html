@@ -60,7 +60,7 @@
     {% for ip, port, result in memcached %}
     <li>
         {{ ip }}:{{ port }}
-        {{ result|yesno:"Success, FAILED"}}
+        {{ result|yesno("Success, FAILED") }}
     </li>
     {% endfor %}
 </ul>

@@ -5,5 +5,5 @@
 	"code": "{{ module.code|escapejs }}",
 	"filename": "{{ module.filename }}",
 	"author": "{{ module.author.username }}",
-	"get_url": "{% url jp_module module.pk %}"
+	"get_url": "{{ url('jp_module',module.pk) }}"
 }

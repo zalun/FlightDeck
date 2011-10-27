@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block app_sidebar %}
-	<h2 class="UI_Heading">{{ profile.get_name }}</h2>
+	<h2 class="UI_Heading">{{ profile.get_name()}}</h2>
 	
 	<div class="UI_ProfileInfo">
 		{% include "_profile_info.html" %}
@@ -18,13 +18,13 @@
 	<ul class="UI_Action_List">
 		{% if addons %}
 			<li>
-            <a title="Add-ons" href="{{ profile.get_addons_url }}">Add-ons</a> 
+            <a title="Add-ons" href="{{ profile.get_addons_url() }}">Add-ons</a> 
 				<strong>({{ addons|length }})</strong>
 			</li>
 		{% endif %}
 		{% if libraries %}
 			<li>
-            <a title="Libraries" href="{{ profile.get_libraries_url }}">Libraries</a> 
+            <a title="Libraries" href="{{ profile.get_libraries_url() }}">Libraries</a> 
 				<strong>({{ libraries|length }})</strong>
 			</li>
 		{% endif %}

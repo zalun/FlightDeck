@@ -1,10 +1,10 @@
 <h3>
 	{{ item.full_name }}
-    {% ifnotequal user item.author %}
+    {% if user != item.author %}
     <span class="author">by
-        <a title="" href="{{ item.get_author_profile_url }}">{{ item.author.get_profile }}</a>
+        <a title="" href="{{ item.get_author_profile_url()}}">{{ item.author.get_profile()}}</a>
     </span>
-    {% endifnotequal %}
+    {% endif %}
     <span class="version">
         version <span class="version-name">{{ item.version_name }}</span>
     </span>

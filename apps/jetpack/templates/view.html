@@ -54,13 +54,13 @@
 {% block footer %}{% endblock %}
 
 
-{% block create_init %}{% comment %}
+{% block create_init %}{#
 	create.init(
 		['create_addon'],
 		['addon'],
 		'app-body'
 	);
-{% endcomment %}{% endblock %}
+#}{% endblock %}
 
 {% block app_sidebar %}
 <div class="scroll-container">
@@ -76,7 +76,7 @@
 				
 			</ul>
 		</section>
-		{% if libraries or revision.package.is_addon %}
+		{% if libraries or revision.package.is_addon() %}
 		<section id="libraries">
 			<ul id="PluginsTree" class="tree collapse">
 				{% block core_library %}{% endblock %}

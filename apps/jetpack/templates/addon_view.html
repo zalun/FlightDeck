@@ -1,7 +1,7 @@
 {% extends "view.html" %}
 
 {% block modules_sidebar %}
-	{% with revision.modules.all as modules %}
+	{% with modules = revision.modules.all %}
 		<h3 class="UI_Sidebar_Toggler modules opened"><a title="Modules" href="#">
 			Modules{% if modules %} <strong id="modules-counter">({{ modules|length }})</strong>{% endif %}
 			<span class="UI_OC"></span>
@@ -9,8 +9,8 @@
 		</a></h3>
 		<div class="UI_Sidebar_ItemCont UI_File_Listing">
 			<ul id="Modules_list" class="UI_File_Listing">
-			{% with "Module_file_readonly" as readonly %}
-				{% with revision.get_main_module as module %}
+			{% with readonly = "Module_file_readonly" %}
+				{% with module = revision.get_main_module() %}
 					{% include "_sidebar_revision_module.html" %}
 				{% endwith %}
 				{% for module in modules %}{% if revision.module_main != module.filename %}
@@ -26,12 +26,12 @@
   {% if revision.sdk %}
     <li class="UI_File_Normal Core_library"
 	  id="core_library_lib"
-	  title="{{ revision.get_sdk_revision.full_name }}"
-      data-id-number="{{ revision.get_sdk_revision.name }}">
+	  title="{{ revision.get_sdk_revision().full_name }}"
+      data-id-number="{{ revision.get_sdk_revision().name }}">
       <a class="expand" href="#"></a>
 	  <div class="holder">
-		<a href="{{ revision.get_sdk_revision.get_absolute_url }}" target="_blank">
-		  <span class="label">{{ revision.get_sdk_revision.full_name }}</span>
+		<a href="{{ revision.get_sdk_revision().get_absolute_url() }}" target="_blank">
+		  <span class="label">{{ revision.get_sdk_revision().full_name }}</span>
 		</a>
 		<span class="icon"></span>
 	  </div>
@@ -41,16 +41,16 @@
 
 {% block app_content_menu_items %}
 	<li id="try_in_browser" class="UI_Editor_Menu_Button Icon_try XPI_test" title="Test">
-    <a href="{{ revision.get_test_xpi_url }}" data-jetpackid="{{ revision.package.get_jid }}"><span></span></a>
+    <a href="{{ revision.get_test_xpi_url()}}" data-jetpackid="{{ revision.package.get_jid()}}"><span></span></a>
 	</li>
 	<li id="download" class="UI_Editor_Menu_Button Icon_download" title="Download">
-    <a target="_new" href="{{ revision.get_download_xpi_url }}"><span></span></a>
+    <a target="_new" href="{{ revision.get_download_xpi_url()}}"><span></span></a>
 	</li>
 	<li class="UI_Editor_Menu_Separator"></li>
 {% endblock %}
 
 {% block editor_wrapper %}
-	{% with revision.get_main_module as module %}
+	{% with module = revision.get_main_module() %}
 		{% include "_module_code_textarea.html" %}
 	{% endwith %}
 {% endblock %}

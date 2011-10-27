@@ -15,7 +15,7 @@ from utils.test import TestCase
 
 from django.conf import settings
 
-from base.templatetags.base_helpers import hashtag
+from base.helpers import hashtag
 from repackage.helpers import Repackage, increment_version
 
 log = commonware.log.getLogger('f.tests')

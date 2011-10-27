@@ -16,7 +16,7 @@ from jetpack.models import Package, PackageRevision, Module, Attachment, SDK
 from jetpack.errors import SelfDependencyException, FilenameExistException, \
         DependencyException
 
-from base.templatetags.base_helpers import hashtag
+from base.helpers import hashtag
 
 log = commonware.log.getLogger('f.test')
 
