@@ -4,7 +4,9 @@
     "shipyard": {
         "app": "./",
         "mini_require": true,
-        "min": "../editor-min.js",
+        "target": "../editor-min.js",
+        "min": false,
+
         "test": "./tests"
     }
 }

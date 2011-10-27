@@ -1,4 +1,6 @@
-var Module = require('../../models/Module');
+var Module = require('../../models/Module'),
+    mockXHR = require('shipyard/test/mockXHR'),
+    Spy = require('shipyard/test/Spy');
 
 module.exports = {
     'Module': function(it, setup) {
@@ -14,6 +16,19 @@ module.exports = {
 
             m.set('filename', 'events/key.down');
             expect(m.get('shortName')).toBe('key.down.js');
-        })
+        });
+
+        it('should be able to loadContent', function(expect) {
+            mockXHR('test content');
+            var m = new Module();
+            var fn = new Spy;
+            m.addEvent('loadcontent', fn);
+            m.loadContent(function(content) {
+                expect(content).toBe('test content');
+                expect(m.get('content')).toBe('test content');
+                expect(fn.getCallCount()).toBe(1);
+            });
+        });
+
     }
 }

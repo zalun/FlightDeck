@@ -19,6 +19,10 @@ module.exports = new Class({
     fields: {
         url: fields.TextField(),
         data: fields.TextField()
+    },
+
+    uid: function uid() {
+        return this.get('pk');
     }
 
 });

@@ -41,7 +41,7 @@ module.exports = new Class({
 					if(file.changed) {
 						fd.showQuestion({
 							title: 'Lose unsaved changes?',
-							message: 'The tab "'+file.getShortName()+'" that you are trying to close has unsaved changes.',
+							message: 'The tab "'+file.get('shortName')+'" that you are trying to close has unsaved changes.',
 							buttons: [
 								{
 									'type': 'reset',
@@ -83,7 +83,7 @@ module.exports = new Class({
     addTab: function(file) {
         var controller = this;
         var tab = new tabs.Tab(this.tabs, {
-            title: file.getShortName()
+            title: file.get('shortName')
         });
 
         function change() {

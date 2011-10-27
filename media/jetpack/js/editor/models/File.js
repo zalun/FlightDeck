@@ -2,7 +2,9 @@
 var Class = require('shipyard/class/Class'),
     Model = require('shipyard/model/Model'),
     fields = require('shipyard/model/fields'),
-    Syncable = require('shipyard/sync/Syncable');
+    Syncable = require('shipyard/sync/Syncable'),
+    Request = require('shipyard/http/Request'),
+    string = require('shipyard/utils/string');
 
 var File = module.exports = new Class({
 
@@ -14,7 +16,12 @@ var File = module.exports = new Class({
         id: fields.NumberField(),
         filename: fields.TextField({ required: true }),
         ext: fields.TextField({ 'default': 'js' }),
-        content: fields.TextField()
+        content: fields.TextField(),
+        main: fields.BooleanField({ 'default': false, write: false }),
+        readonly: fields.BooleanField({ 'default': false, write: false }),
+
+        url: fields.TextField({ write: false }),
+        get_url: fields.TextField({ write: false })
     },
 
     shortName: function() {
@@ -32,10 +39,63 @@ var File = module.exports = new Class({
         }
     },
 
+    uid: function() {
+         //TODO: this should be the unique hash from the new API
+        return this._uid || (this._uid = string.uniqueID());
+    },
+
     isEditable: function() {
         return this.constructor.EDITABLE_EXTS.indexOf(this.get('ext')) !== -1;
+    },
+
+    //TODO: Shipyard Models should probably has a isDirty API
+    setChanged: function(isChanged) {
+        this.changed = isChanged;
+        if (isChanged) {
+            this.fireEvent('change');
+        } else {
+            this.fireEvent('reset');
+        }
+    },
+
+    loadContent: function(callback) {
+        var file = this;
+        var spinnerEl;
+        return new Request({
+			method: 'get',
+			url: this.get('get_url'),
+			useSpinner: !!spinnerEl,
+			spinnerTarget: spinnerEl,
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                },
+                maskBorder: false
+            },
+			onSuccess: function(text) {
+                var content = text || '';
+				file.original_content = content;
+                file.set('content', content);
+				file.fireEvent('loadcontent', content);
+                if (callback) callback.call(this, content);
+			}
+		}).send();
+
+    },
+
+    isLoaded: function() {
+        return this.get('content') != null;
+    },
+
+    toString: function() {
+        return this.get('fullName');
     }
 
 });
 
 File.EDITABLE_EXTS = ['js', 'html', 'css', 'txt', 'json', 'md'];
+
+var sanitizeRE = /[^a-zA-Z0-9=!@#\$%\^&\(\)\+\-_\/\.]+/g;
+File.sanitize = function(name) {
+    return name.replace(sanitizeRE, '-');
+};

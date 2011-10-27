@@ -2,8 +2,13 @@ var Class = require('shipyard/class/Class'),
     Options = require('shipyard/class/Options'),
     Events = require('shipyard/class/Events'),
     dom = require('shipyard/dom'),
+    object = require('shipyard/utils/object'),
     //Request = require('shipyard/http/Request'),
     
+    Module = require('../models/Module'),
+    Attachment = require('../models/Attachment'),
+    Folder = require('../models/Folder'),
+    Package = require('../models/Package'),
     PackageRevision = require('../models/PackageRevision');
 
 module.exports = new Class({
@@ -33,7 +38,7 @@ module.exports = new Class({
 
     },
     
-    package: null,
+    package_: null,
 
     //junk
     data: {},
@@ -45,8 +50,8 @@ module.exports = new Class({
 
     edited: 0,
 
-    initialize: function PackageController(package, options, editor, tabs, sidebar) {
-        this.package = package;
+    initialize: function PackageController(package_, options, editor, tabs, sidebar) {
+        this.package_ = package_;
         this.editor = editor;
         this.tabs = tabs;
         this.sidebar = sidebar;
@@ -66,26 +71,26 @@ module.exports = new Class({
 
     assignActions: function() {
         var controller = this,
-            package = this.package;
+            package_ = this.package_;
         
         // All actions
 
         // reset version_name (in case of reload)
         var versionEl = this.versionEl = dom.$('version_name');
         if (versionEl) {
-            versionEl.set('value', package.get('version_name'));
-            package.observe('version_name', function(name) {
+            versionEl.set('value', package_.get('version_name'));
+            package_.observe('version_name', function(name) {
                 versionEl.set('value', name);
             });
         
         }
 
-        this.revision_list_btn = dom.$('revisions_list')
+        this.revision_list_btn = dom.$('revisions_list');
         this.revision_list_btn.addEvent('click', function(e) {
             e.preventDefault();
             controller.showRevisionList();
         });
-        if (this.package.isAddon()) {
+        if (this.package_.isAddon()) {
             this.boundTestAddon = this.testAddon.bind(this);
             this.test_el = dom.$(this.options.test_el);
             this.options.test_url = this.test_el.getElement('a').get('href');
@@ -101,7 +106,7 @@ module.exports = new Class({
                 controller.downloadAddon();
             });
         }
-        this.copy_el = dom.$(this.options.copy_el)
+        this.copy_el = dom.$(this.options.copy_el);
         if (this.copy_el) {
             this.copy_el.addEvent('click', function(e) {
                 e.preventDefault();
@@ -114,7 +119,7 @@ module.exports = new Class({
             });
         }
 
-        this.packageInfoEl = dom.$(this.options.package_info_el);
+        this.package_InfoEl = dom.$(this.options.package_info_el);
 
         if (this.getOption('readonly')) {
             this.assignViewActions();
@@ -126,7 +131,7 @@ module.exports = new Class({
     assignViewActions: function() {
         var controller = this;
 
-        this.packageInfoEl.addEvent('click', function(e) {
+        this.package_InfoEl.addEvent('click', function(e) {
             e.preventDefault();
             controller.showInfo();
         });
@@ -139,12 +144,12 @@ module.exports = new Class({
             controller.alertUnsavedData(e);
         });
 
-        this.packageInfoEl.addEvent('click', function(e) {
+        this.package_InfoEl.addEvent('click', function(e) {
             e.preventDefault();
             controller.editInfo();
         });
 
-        if (this.package.isAddon()) {
+        if (this.package_.isAddon()) {
             this.console_el = dom.$(this.options.console_el);
             this.console_el.addEvent('click', function(e) {
                 e.preventDefault();
@@ -171,13 +176,13 @@ module.exports = new Class({
         } else {
             this.save_el.addEvent('mouseenter', function(e) {
                 controller.versionEl.focus();
-            })
+            });
         }
         this.revision_message_el = dom.$('revision_message');
         this.revision_message_el.addEvent('keypress', function(e) {
             //TODO: the dom Event system should make this possible
             //if (e.key == 'tab') {
-            if (e.keyCode = 9) {
+            if (e.keyCode == 9) {
                 e.preventDefault();
                 controller.save_el.focus();
             }
@@ -189,32 +194,32 @@ module.exports = new Class({
 
 
         if (dom.$('jetpack_core_sdk_version')) {
-			dom.$('jetpack_core_sdk_version').addEvent('change', function() {
-				new Request.JSON({
-					url: controller.options.switch_sdk_url,
+            dom.$('jetpack_core_sdk_version').addEvent('change', function() {
+                new Request.JSON({
+                    url: controller.options.switch_sdk_url,
                     useSpinner: true,
                     spinnerTarget: 'core_library_lib',
-					spinnerOptions: {
-						img: {
-							'class': 'spinner-img spinner-16'
-						}
-					},
-					data: {'id': dom.$('jetpack_core_sdk_version').get('value')},
-					onSuccess: function(response) {
-						// set the redirect data to view_url of the new revision
-						fd.setURIRedirect(response.view_url);
-						// set data changed by save
-						controller.registerRevision(response);
-						// change url to the SDK lib code
-						dom.$('core_library_lib').getElement('a').set(
-							'href', response.lib_url);
-						// change name of the SDK lib
-						dom.$('core_library_lib').getElement('span').set(
-							'text', response.lib_name);
-						fd.message.alert(response.message_title, response.message);
-					}
-				}).send();
-			});
+                    spinnerOptions: {
+                        img: {
+                            'class': 'spinner-img spinner-16'
+                        }
+                    },
+                    data: {'id': dom.$('jetpack_core_sdk_version').get('value')},
+                    onSuccess: function(response) {
+                        // set the redirect data to view_url of the new revision
+                        fd.setURIRedirect(response.view_url);
+                        // set data changed by save
+                        controller.registerRevision(response);
+                        // change url to the SDK lib code
+                        dom.$('core_library_lib').getElement('a').set(
+                            'href', response.lib_url);
+                        // change name of the SDK lib
+                        dom.$('core_library_lib').getElement('span').set(
+                            'text', response.lib_name);
+                        fd.message.alert(response.message_title, response.message);
+                    }
+                }).send();
+            });
         }
     },
 
@@ -222,8 +227,7 @@ module.exports = new Class({
         // iterate by modules and instantiate Module
         this.options.modules.forEach(function(module) {
             module.readonly = this.options.readonly;
-            var mod = this.modules[module.filename] = new Module(this,module);
-            this.sidebar.addLib(mod);
+            var mod = this.newModule(module);
             if (module.main) this.editFile(mod);
         }, this);
     },
@@ -232,37 +236,81 @@ module.exports = new Class({
         // iterate through attachments
         this.options.attachments.forEach(function(attachment) {
             attachment.readonly = this.options.readonly;
-            var att = this.attachments[attachment.uid] = new Attachment(this,attachment);
-            this.sidebar.addData(att);
+            this.newAttachment(attachment);
         }, this);
     },
 
     instantiate_dependencies: function() {
         // iterate through attachments
         this.options.dependencies.forEach(function(plugin) {
-            plugin.readonly = this.options.readonly;
-            var lib = this.libraries[plugin.id_number] = new Library(this,plugin);
-            this.sidebar.addPlugin(lib);
+            this.newDependency(plugin);
         }, this);
     },
     
     instantiate_folders: function() {
         this.options.folders.forEach(function(folder) {
-            folder.append = true;
-            var key = folder.root_dir + '/' + folder.name;
-            var f = this.folders[key] = new Folder(this, folder);
-            if (folder.root_dir == Folder.ROOT_DIR_LIB) {
-                this.sidebar.addLib(f);
-            } else if (folder.root_dir == Folder.ROOT_DIR_DATA) {
-                this.sidebar.addData(f);
-            }
+            this.newFolder(folder);
         }, this);
+    },
+
+    newModule: function(data) {
+        var mod = new Module(data);
+        this.modules[mod.get('uid')] = mod;
+        this.sidebar.addLib(mod);
+        this.editor.registerItem(mod.get('uid'), mod);
+        var controller =
+        mod.addEvent('destroy', function() {
+            delete controller.modules[this.get('uid')];
+        });
+        return mod;
+    },
+
+    newAttachment: function(data) {
+        if (!data.id) data.id = data.uid;
+        var att = new Attachment(data);
+        this.attachments[att.get('uid')] = att;
+        this.sidebar.addData(att);
+        this.editor.registerItem(att.get('uid'), att);
+
+        var controller = this;
+        att.addEvent('destroy', function() {
+            delete controller.attachments[this.get('uid')];
+        });
+        return att;
+    },
+
+    newFolder: function(data) {
+        var folder = new Folder(data);
+        this.folders[folder.get('uid')] = folder;
+        var rootDir = folder.get('root_dir');
+
+        if (rootDir == Folder.ROOT_DIR_LIB) {
+            this.sidebar.addLib(folder);
+        } else if (rootDir == Folder.ROOT_DIR_DATA) {
+            this.sidebar.addData(folder);
+        }
+        
+        var controller = this;
+        folder.addEvent('destroy', function() {
+            delete controller.folders[this.get('uid')];
+        });
+    },
+
+    newDependendy: function(data) {
+        var lib = new Package(plugin);
+        this.dependencies[lib.get('uid')] = lib; 
+        this.sidebar.addPlugin(lib);
+
+        var controller = this;
+        lib.addEvent('destroy', function() {
+            delete controller[this.get('uid')];
+        });
     },
 
 
     showRevisionList: function() {
-		new Request({
-			method: 'get',
+        new Request({
+            method: 'get',
             useSpinner: true,
             spinnerTarget: this.revision_list_btn.getElement('a'),
             spinnerOptions: {
@@ -271,25 +319,25 @@ module.exports = new Class({
                 },
                 maskBorder: false
             },
-			url: this.options.revisions_list_html_url.substitute(this.options),
-			onSuccess: function(html) {
-				var modal = fd.displayModal(html),
+            url: this.options.revisions_list_html_url.substitute(this.options),
+            onSuccess: function(html) {
+                var modal = fd.displayModal(html),
                     modalEl = dom.$(modal).getElement('.UI_Modal'),
-					showVersionsEl = modalEl.getElement('#versions_only');
-				//setup handler for "Show versions only" checkbox
-				function toggleVersionsOnly() {
-					if (showVersionsEl.checked) {
-						modalEl.addClass('boolean-on');
-					} else {
-						modalEl.removeClass('boolean-on');
-					}
-				}
-				showVersionsEl.addEvent('change', function(e) {
-					toggleVersionsOnly()
-				});
-				toggleVersionsOnly();
-			}
-		}).send();
+                    showVersionsEl = modalEl.getElement('#versions_only');
+                //setup handler for "Show versions only" checkbox
+                function toggleVersionsOnly() {
+                    if (showVersionsEl.checked) {
+                        modalEl.addClass('boolean-on');
+                    } else {
+                        modalEl.removeClass('boolean-on');
+                    }
+                }
+                showVersionsEl.addEvent('change', function(e) {
+                    toggleVersionsOnly();
+                });
+                toggleVersionsOnly();
+            }
+        }).send();
     },
 
     setupButtonTooltips: function() {
@@ -309,7 +357,7 @@ module.exports = new Class({
         var controller = this;
 
         /*PackageRevision.find({
-            conditions: { package: this.package.get('pk') },
+            conditions: { package: this.package_.get('pk') },
             options: { limit: 1, order_by: '-revision_number' },
             callback: function(r) {
                 r = r[0];
@@ -320,15 +368,15 @@ module.exports = new Class({
         })*/
 
         // ask backend for the latest revision number
-		new Request.JSON({
-			method: 'get',
-			url: this.options.check_latest_url,
-			onSuccess: function(response) {
-				if (failCallback && controller.package.get('revision_number') < response.revision_number) {
-					failCallback.call()
-				}
-			}.bind(this)
-		}).send();
+        new Request.JSON({
+            method: 'get',
+            url: this.options.check_latest_url,
+            onSuccess: function(response) {
+                if (failCallback && controller.package_.get('revision_number') < response.revision_number) {
+                    failCallback.call();
+                }
+            }.bind(this)
+        }).send();
 
     },
 
@@ -396,7 +444,7 @@ module.exports = new Class({
     testAddon: function(){
         if (this.getOption('readonly')) {
             this.collectData();
-		    this.data.live_data_testing = true;
+            this.data.live_data_testing = true;
         }
         var el;
         if (fd.alertIfNoAddOn()) {
@@ -432,12 +480,12 @@ module.exports = new Class({
                 'class': 'spinner-img spinner-16'
             },
             maskBorder: false
-        }).show()
+        }).show();
         fd.tests[this.options.hashtag] = {
             spinner: spinner
         };
         var data = this.data || {};
-        data['hashtag'] = this.options.hashtag;
+        data.hashtag = this.options.hashtag;
         this._test_request = new Request.JSON({
             url: this.options.test_url,
             data: data,
@@ -468,8 +516,8 @@ module.exports = new Class({
         });
         
         this.addEvent('change', this.onChanged);
-		this.addEvent('save', this.onSaved);
-		this.addEvent('reset', this.onReset);
+        this.addEvent('save', this.onSaved);
+        this.addEvent('reset', this.onReset);
     },
 
     attachSidebar: function() {
@@ -487,7 +535,7 @@ module.exports = new Class({
         var controller = this;
         this.tabs.addEvent('select', function(tab) {
             controller.onTabSelect(tab);
-        })
+        });
     },
 
     onSidebarSelect: function(file) {
@@ -515,24 +563,24 @@ module.exports = new Class({
 
     editFile: function(file) {
         this.tabs.selectTab(file);
-        this.editor.switchTo(file).focus();
+        this.editor.switchTo(file.get('uid')).focus();
     },
 
     showAttachmentModal: function(file) {
-        var template_start = '<div id="attachment_view"><h3>'
-            +file.options.filename+'</h3><div class="UI_Modal_Section">';
-        var template_end = '</div><div class="UI_Modal_Actions"><ul><li>'
-            +'<input type="reset" value="Close" class="closeModal"/>'
-            +'</li></ul></div></div>';
-        var template_middle = 'Download <a href="'
-            +file.options.get_url
-            +'">'
-            +file.options.filename
-            +'</a>';
+        var template_start = '<div id="attachment_view"><h3>'+
+            file.options.filename+'</h3><div class="UI_Modal_Section">';
+        var template_end = '</div><div class="UI_Modal_Actions"><ul><li>'+
+            '<input type="reset" value="Close" class="closeModal"/>'+
+            '</li></ul></div></div>';
+        var template_middle = 'Download <a href="'+
+            file.options.get_url+
+            '">'+
+            file.options.filename+
+            '</a>';
+        var spinner, img;
         if (file.is_image()) {
             template_middle += '<p></p>';
-            var img = new Element('img', { src: file.options.get_url });
-            var spinner;
+            img = new Element('img', { src: file.options.get_url });
             img.addEvent('load', function() {
                 if (spinner) spinner.destroy();
                 modal.position();
@@ -546,27 +594,27 @@ module.exports = new Class({
             target.grab(img);
         }
     },
-    
+                      
     onChanged: function() {
         $log('FD: INFO: document changed - onbeforeunload warning is on and save button is lit.');
         dom.$$('li.Icon_save').addClass('Icon_save_changes');
-		this.edited++;
-	},
+        this.edited++;
+    },
 
-	onSaved: function() {
+    onSaved: function() {
         //any save specific logic?
-		this.fireEvent('reset');
-	},
-	
-	onReset: function() {
-		$log('FD: INFO: document saved - onbeforeunload warning is off and save button is not lit.');
+        this.fireEvent('reset');
+    },
+    
+    onReset: function() {
+        $log('FD: INFO: document saved - onbeforeunload warning is off and save button is not lit.');
         dom.$$('li.Icon_save').removeClass('Icon_save_changes');
-		this.edited = 0;
-	},
+        this.edited = 0;
+    },
 
     downloadAddonOrSave: function(e){
-		if (e) {
-		  e.preventDefault();
+        if (e) {
+          e.preventDefault();
         }
         var that = this;
         if (this.edited) {
@@ -601,10 +649,10 @@ module.exports = new Class({
         } else {
             this.downloadAddon(e);
         }
-	},
-	
+    },
+    
     uploadAttachment: function(files, renameAfterLoad) {
-		var self = this;
+        var self = this;
         var spinner = new Spinner($('attachments')).show();
         // renameAfterLoad is falsy or callable
         var file = files[0];
@@ -613,56 +661,57 @@ module.exports = new Class({
             xhr = new XMLHttpRequest();
 
         xhr.onreadystatechange = function() {
-			if (xhr.readyState === 4) {
-				try {
-					var response = JSON.decode(xhr.responseText);
-				} catch(ex) { 
+            if (xhr.readyState === 4) {
+                var response;
+                try {
+                    response = JSON.decode(xhr.responseText);
+                } catch(ex) { 
                     $log(ex);
                     return;
                 }
-				
-				
-				if(xhr.status >= 200 && xhr.status < 300 && response) {
-					//onSuccess
-					
-					fd.message.alert(response.message_title, response.message);
-					var attachment = new Attachment(self,{
-						append: true,
-						active: true,
-						filename: response.filename,
-						ext: response.ext,
-						author: response.author,
-						code: response.code,
-						get_url: response.get_url,
-						uid: response.uid,
-						type: response.ext
-					});
-					self.registerRevision(response);
-					self.attachments[response.uid] = attachment;
-					if (spinner) spinner.destroy();
-					$log('FD: all files uploaded');
-					Function.from(renameAfterLoad)(attachment);
-				} else {
-					//onError
-					
-					if (spinner) spinner.destroy();
-					if (xhr) {
-						fd.error.alert(
-							'Error {status}'.substitute(xhr),
-							'{statusText}<br/>{responseText}'.substitute(xhr)
-						);
-					} else {
-						fd.error.alert('Error', 'File size was too big');
-					}
-				}
-			}
-		};
-        $log('FD: DEBUG: uploading ' + file.name)
-		data.append('upload_attachment', file);
-		xhr.open('POST', this.options.upload_attachment_url);
-		xhr.setRequestHeader('X-File-Name', file.name);
-		xhr.setRequestHeader('X-File-Size', file.fileSize)
-		xhr.setRequestHeader("X-CSRFToken", Cookie.read('csrftoken'));
+                
+                
+                if(xhr.status >= 200 && xhr.status < 300 && response) {
+                    //onSuccess
+                    
+                    fd.message.alert(response.message_title, response.message);
+                    var attachment = new Attachment(self,{
+                        append: true,
+                        active: true,
+                        filename: response.filename,
+                        ext: response.ext,
+                        author: response.author,
+                        code: response.code,
+                        get_url: response.get_url,
+                        uid: response.uid,
+                        type: response.ext
+                    });
+                    self.registerRevision(response);
+                    self.attachments[response.uid] = attachment;
+                    if (spinner) spinner.destroy();
+                    $log('FD: all files uploaded');
+                    Function.from(renameAfterLoad)(attachment);
+                } else {
+                    //onError
+                    
+                    if (spinner) spinner.destroy();
+                    if (xhr) {
+                        fd.error.alert(
+                            'Error {status}'.substitute(xhr),
+                            '{statusText}<br/>{responseText}'.substitute(xhr)
+                        );
+                    } else {
+                        fd.error.alert('Error', 'File size was too big');
+                    }
+                }
+            }
+        };
+        $log('FD: DEBUG: uploading ' + file.name);
+        data.append('upload_attachment', file);
+        xhr.open('POST', this.options.upload_attachment_url);
+        xhr.setRequestHeader('X-File-Name', file.name);
+        xhr.setRequestHeader('X-File-Size', file.fileSize);
+        xhr.setRequestHeader("X-CSRFToken", Cookie.read('csrftoken'));
         xhr.send(data);
     },
 
@@ -673,584 +722,599 @@ module.exports = new Class({
             this.options.add_attachment_url,
             {url: url, filename: filename});
     },
-	
-	addAttachment: function(filename) {
+    
+    addAttachment: function(filename) {
         // add empty attachment
         this.addNewAttachment(
             this.options.add_attachment_url,
             {filename: filename});
-	},
-
-    addNewAttachment: function(url, data) {
-		var that = this;
-		new Request.JSON({
-			url: url,
-			data: data,
-            useSpinner: true,
-            spinnerTarget: 'attachments',
-			spinnerOptions: {
-				img: {
-					'class': 'spinner-img spinner-16'
-				}
-			},
-			onSuccess: function(response) {
-				fd.setURIRedirect(response.view_url);
-				that.registerRevision(response);
-				fd.message.alert(response.message_title, response.message);
-				that.attachments[response.uid] = new Attachment(that, {
-					append: true,
-					active: true,
-					filename: response.filename,
-					ext: response.ext,
-					author: response.author,
-					code: response.code,
-					get_url: response.get_url,
-					uid: response.uid,
-					type: response.ext
-				});
-			}
-		}).send();
     },
 
-	renameAttachment: function(uid, newName, quiet) {
-		var that = this,
+    addNewAttachment: function(url, data) {
+        var that = this;
+        new Request.JSON({
+            url: url,
+            data: data,
+            useSpinner: true,
+            spinnerTarget: 'attachments',
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                }
+            },
+            onSuccess: function(response) {
+                fd.setURIRedirect(response.view_url);
+                that.registerRevision(response);
+                fd.message.alert(response.message_title, response.message);
+                var att = that.newAttachment({
+                    filename: response.filename,
+                    ext: response.ext,
+                    author: response.author,
+                    content: response.code,
+                    get_url: response.get_url,
+                    pk: response.uid
+                });
+                that.editFile(att);
+            }
+        }).send();
+    },
+
+    renameAttachment: function(uid, newName, quiet) {
+        var that = this,
             att = this.attachments[uid],
-			filename = newName;
-		
-		// break off an extension from the filename
-		var ext = filename.getFileExtension() || '';
-		if (ext) {
-			filename = filename.getFileName();
-		}
-		
-		var attachmentEl = this.sidebar.getBranchFromPath(newName, 'data');
-		var spinnerEl = attachmentEl || $(this.sidebar.trees.data);
-		
-		new Request.JSON({
-			url: that.options.rename_attachment_url,
+            filename = newName;
+        
+        // break off an extension from the filename
+        var ext = filename.getFileExtension() || '';
+        if (ext) {
+            filename = filename.getFileName();
+        }
+        
+        var attachmentEl = this.sidebar.getBranchFromPath(newName, 'data');
+        var spinnerEl = attachmentEl || $(this.sidebar.trees.data);
+        
+        new Request.JSON({
+            url: that.options.rename_attachment_url,
             useSpinner: true,
             spinnerTarget: spinnerEl,
-			spinnerOptions: {
-				img: {
-					'class': 'spinner-img spinner-16'
-				}
-			},
-			data: {
-				uid: uid,
-				new_filename: filename,
-				new_ext: ext
-			},
-			onSuccess: function(response) {
-				fd.setURIRedirect(response.view_url);
-				that.registerRevision(response);
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                }
+            },
+            data: {
+                uid: uid,
+                new_filename: filename,
+                new_ext: ext
+            },
+            onSuccess: function(response) {
+                fd.setURIRedirect(response.view_url);
+                that.registerRevision(response);
                 if (!quiet) {
                     fd.message.alert(response.message_title, response.message);
                 }
-				
-				var attachment = that.attachments[uid];
-                if (!attachment) {
-					$log("WARN: Attachment (" + uid + ") couldn't be found in fd.item");
-					return;
-				}
-				attachment.reassign({
-					append: !attachmentEl,
-					active: false,
-					filename: response.filename,
-					ext: response.ext,
-					author: response.author,
-					code: response.code,
-					get_url: response.get_url,
-					uid: response.uid,
-					type: response.ext
-				});
                 
-			}
-		}).send();
-	},
+                var attachment = that.attachments[uid];
+                if (!attachment) {
+                    $log("WARN: Attachment (" + uid + ") couldn't be found in fd.item");
+                    return;
+                }
+                attachment.reassign({
+                    append: !attachmentEl,
+                    active: false,
+                    filename: response.filename,
+                    ext: response.ext,
+                    author: response.author,
+                    code: response.code,
+                    get_url: response.get_url,
+                    uid: response.uid,
+                    type: response.ext
+                });
+                
+            }
+        }).send();
+    },
 
-	removeAttachment: function(attachment) {
-		var self = this;
-		new Request.JSON({
-			url: self.options.remove_attachment_url,
+    removeAttachment: function(attachment) {
+        var self = this;
+        new Request.JSON({
+            url: self.options.remove_attachment_url,
             useSpinner: true,
             spinnerTarget: this.sidebar.getBranchFromFile(attachment),
-			spinnerOptions: {
-				img: {
-					'class': 'spinner-img spinner-16'
-				}
-			},
-			data: {uid: attachment.options.uid},
-			onSuccess: function(response) {
-				fd.setURIRedirect(response.view_url);
-				self.registerRevision(response);
-				fd.message.alert(response.message_title, response.message);
-				delete self.attachments[attachment.options.uid];
-				attachment.destroy();
-			}
-		}).send();
-	},
-	
-	addModule: function(filename) {
-		new Request.JSON({
-			url: this.options.add_module_url,
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                }
+            },
+            data: {uid: attachment.options.uid},
+            onSuccess: function(response) {
+                fd.setURIRedirect(response.view_url);
+                self.registerRevision(response);
+                fd.message.alert(response.message_title, response.message);
+                delete self.attachments[attachment.options.uid];
+                attachment.destroy();
+            }
+        }).send();
+    },
+    
+    addModule: function(filename) {
+        new Request.JSON({
+            url: this.options.add_module_url,
             useSpinner: true,
             spinnerTarget: 'modules',
-			spinnerOptions: {
-				img: {
-					'class': 'spinner-img spinner-16'
-				}
-			},
-			data: {'filename': filename},
-			onSuccess: function(response) {
-				// set the redirect data to view_url of the new revision
-				fd.setURIRedirect(response.view_url);
-				// set data changed by save
-				this.registerRevision(response);
-				fd.message.alert(response.message_title, response.message);
-				// initiate new Module
-				var mod = new Module(this,{
-					append: true,
-					active: true,
-					filename: response.filename,
-					author: response.author,
-					code: response.code,
-					get_url: response.get_url
-				});
-				this.modules[response.filename] = mod;
-			}.bind(this)
-		}).send();
-	},
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                }
+            },
+            data: {'filename': filename},
+            onSuccess: function(response) {
+                // set the redirect data to view_url of the new revision
+                fd.setURIRedirect(response.view_url);
+                // set data changed by save
+                this.registerRevision(response);
+                fd.message.alert(response.message_title, response.message);
+                // initiate new Module
+                var mod = this.newModule({
+                    active: true,
+                    filename: response.filename,
+                    author: response.author,
+                    content: response.code,
+                    get_url: response.get_url
+                });
+                this.editFile(mod);
+            }.bind(this)
+        }).send();
+    },
 
-	renameModule: function(oldName, newName) {
-		newName = newName.replace(/\..*$/, '');
+    renameModule: function(oldName, newName) {
+        newName = newName.replace(/\..*$/, '');
         var el = this.sidebar.getBranchFromPath(newName+'.js', 'lib');
-		new Request.JSON({
-			url: this.options.rename_module_url,
+        new Request.JSON({
+            url: this.options.rename_module_url,
             useSpinner: true,
             spinnerTarget: el,
-			spinnerOptions: {
-				img: {
-					'class': 'spinner-img spinner-16'
-				}
-			},
-			data: {
-				old_filename: oldName,
-				new_filename: newName
-			},
-			onSuccess: function(response) {
-				fd.setURIRedirect(response.view_url);
-				this.registerRevision(response);
-				fd.message.alert(response.message_title, response.message);
-				
-				var mod = this.modules[oldName];
-				var modId = mod.getID();
-				mod.setOptions({
-					filename: response.filename,
-					get_url: response.get_url
-				});
-				this.modules[response.filename] = mod;
-				// change the id of the element
-				$(modId).set('id', mod.getID());
-				delete this.modules[oldName];
-			}.bind(this)
-		}).send();
-	},
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                }
+            },
+            data: {
+                old_filename: oldName,
+                new_filename: newName
+            },
+            onSuccess: function(response) {
+                fd.setURIRedirect(response.view_url);
+                this.registerRevision(response);
+                fd.message.alert(response.message_title, response.message);
+                
+                var mod = this.modules[oldName];
+                var modId = mod.getID();
+                mod.set({
+                    filename: response.filename,
+                    get_url: response.get_url
+                });
+                this.modules[response.filename] = mod;
+                // change the id of the element
+                $(modId).set('id', mod.getID());
+                delete this.modules[oldName];
+            }.bind(this)
+        }).send();
+    },
 
-	removeModule: function(module) {
+    removeModule: function(module) {
         var el = this.sidebar.getBranchFromFile(module);
-		new Request.JSON({
-			url: this.options.remove_module_url,
+        new Request.JSON({
+            url: this.options.remove_module_url,
             useSpinner: true,
             spinnerTarget: el,
-			spinnerOptions: {
-				img: {
-					'class': 'spinner-img spinner-16'
-				}
-			},
-			data: module.options,
-			onSuccess: function(response) {
-				fd.setURIRedirect(response.view_url);
-				this.registerRevision(response);
-				fd.message.alert(response.message_title, response.message);
-				module.destroy();
-			}.bind(this)
-		}).send();
-	},
-	
-	removeAttachments: function(path) {
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                }
+            },
+            data: module.options,
+            onSuccess: function(response) {
+                fd.setURIRedirect(response.view_url);
+                this.registerRevision(response);
+                fd.message.alert(response.message_title, response.message);
+                module.destroy();
+            }.bind(this)
+        }).send();
+    },
+    
+    removeAttachments: function(path) {
         var el = this.sidebar.getBranchFromPath(path, 'data'),
             controller = this;
-		new Request.JSON({
-			url: this.options.remove_folder_url,
-			data: {
-				name: path,
-				root_dir: 'data'
-			},
+        new Request.JSON({
+            url: this.options.remove_folder_url,
+            data: {
+                name: path,
+                root_dir: 'data'
+            },
             useSpinner: true,
             spinnerTarget: el,
-			spinnerOptions: {
-				img: {
-					'class': 'spinner-img spinner-16'
-				}
-			},
-			onSuccess: function(response) {
-				fd.setURIRedirect(response.view_url);
-				this.registerRevision(response);
-				fd.message.alert(response.message_title, response.message);
-				response.removed_attachments.forEach(function(uid) {
-				    this.attachments[uid].destroy();
-				}, this);
-				response.removed_dirs.forEach(function(name) {
-				    controller.sidebar.removeFile(name, 'd')
-				}, this);
-                controller.sidebar.removeFile(response.foldername, 'd')
-			}.bind(this)
-		}).send();
-	},
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                }
+            },
+            onSuccess: function(response) {
+                fd.setURIRedirect(response.view_url);
+                this.registerRevision(response);
+                fd.message.alert(response.message_title, response.message);
+                response.removed_attachments.forEach(function(uid) {
+                    this.attachments[uid].destroy();
+                }, this);
+                response.removed_dirs.forEach(function(name) {
+                    controller.sidebar.removeFile(name, 'd');
+                }, this);
+                controller.sidebar.removeFile(response.foldername, 'd');
+            }.bind(this)
+        }).send();
+    },
 
-	removeModules: function(path) {
+    removeModules: function(path) {
         var el = this.sidebar.getBranchFromPath(path, 'lib'),
             controller = this;
-	    new Request.JSON({
-			url: this.options.remove_module_url,
-			data: {filename: path+'/'},
+        new Request.JSON({
+            url: this.options.remove_module_url,
+            data: {filename: path+'/'},
             useSpinner: true,
             spinnerTarget: el,
-			spinnerOptions: {
-				img: {
-					'class': 'spinner-img spinner-16'
-				}
-			},
-			onSuccess: function(response) {
-				fd.setURIRedirect(response.view_url);
-				this.registerRevision(response);
-				fd.message.alert(response.message_title, response.message);
-				response.removed_modules.forEach(function(filename) {
-				    this.modules[filename].destroy();
-				}, this);
-				response.removed_dirs.forEach(function(name) {
-				    controller.sidebar.removeFile(name, 'l')
-				}, this);
-				
-			}.bind(this)
-		}).send();
-	},
-	
-	addFolder: function(name, root_dir) {
-		var el = root_dir == Folder.ROOT_DIR_LIB ?
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                }
+            },
+            onSuccess: function(response) {
+                fd.setURIRedirect(response.view_url);
+                this.registerRevision(response);
+                fd.message.alert(response.message_title, response.message);
+                response.removed_modules.forEach(function(filename) {
+                    this.modules[filename].destroy();
+                }, this);
+                response.removed_dirs.forEach(function(name) {
+                    controller.sidebar.removeFile(name, 'l');
+                }, this);
+                
+            }.bind(this)
+        }).send();
+    },
+    
+    addFolder: function(name, root_dir) {
+        var el = root_dir == Folder.ROOT_DIR_LIB ?
             'modules' : 'attachments';
         new Request.JSON({
-			url: this.options.add_folder_url,
-			data: {
-				name: name,
-				root_dir: root_dir
-			},
+            url: this.options.add_folder_url,
+            data: {
+                name: name,
+                root_dir: root_dir
+            },
             useSpinner: true,
             spinnerTarget: el,
-			spinnerOptions: {
-				img: {
-					'class': 'spinner-img spinner-16'
-				}
-			},
-			onSuccess: function(response) {
-				fd.setURIRedirect(response.view_url);
-				this.registerRevision(response);
-				fd.message.alert(response.message_title, response.message);
-				this.folders[root_dir + '/' + response.name] = new Folder(this, {
-					append: true,
-					name: response.name,
-					root_dir: root_dir
-				});
-			}.bind(this)
-		}).send();
-	},
-	
-	removeFolder: function(folder) {
-		new Request.JSON({
-			url: this.options.remove_folder_url,
-			data: {
-				name: folder.options.name,
-				root_dir: folder.options.root_dir
-			},
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                }
+            },
+            onSuccess: function(response) {
+                fd.setURIRedirect(response.view_url);
+                this.registerRevision(response);
+                fd.message.alert(response.message_title, response.message);
+                this.newFolder({
+                    name: reponse.name,
+                    root_dir: root_dir
+                });
+            }.bind(this)
+        }).send();
+    },
+    
+    removeFolder: function(folder) {
+        new Request.JSON({
+            url: this.options.remove_folder_url,
+            data: {
+                name: folder.options.name,
+                root_dir: folder.options.root_dir
+            },
             useSpinner: true,
             spinnerTarget: this.sidebar.getBranchFromFile(folder),
-			spinnerOptions: {
-				img: {
-					'class': 'spinner-img spinner-16'
-				}
-			},
-			onSuccess: function(response) {
-				fd.setURIRedirect(response.view_url);
-				this.registerRevision(response);
-				fd.message.alert(response.message_title, response.message);
-				folder.destroy();
-			}.bind(this)
-		}).send();
-	},
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                }
+            },
+            onSuccess: function(response) {
+                fd.setURIRedirect(response.view_url);
+                this.registerRevision(response);
+                fd.message.alert(response.message_title, response.message);
+                folder.destroy();
+            }.bind(this)
+        }).send();
+    },
 
-	assignLibrary: function(library_id) {
-		if (library_id) {
-			new Request.JSON({
-				url: this.options.assign_library_url,
-				data: {'id_number': library_id},
+    assignLibrary: function(library_id) {
+        if (library_id) {
+            new Request.JSON({
+                url: this.options.assign_library_url,
+                data: {'id_number': library_id},
                 useSpinner: true,
                 spinnerTarget: 'plugins',
-				spinnerOptions: {
-					img: {
-						'class': 'spinner-img spinner-16'
-					}
-				},
-				onSuccess: function(response) {
-					// set the redirect data to view_url of the new revision
-					fd.setURIRedirect(response.view_url);
-					// set data changed by save
-					this.registerRevision(response);
-					fd.message.alert(response.message_title, response.message);
-					this.libraries[response.library_id_number] = new Library(this, {
-						full_name: response.library_full_name,
-						id_number: response.library_id_number,
-						library_name: response.library_name,
-						view_url: response.library_url,
-						revision_number: response.library_revision_number
-					});
-				}.bind(this)
-			}).send();
-		} else {
-			fd.error.alert('No such Library', 'Please choose a library from the list');
-		}
-	},
-	
-	updateLibrary: function(lib, callback) {
-		new Request.JSON({
-			url: this.options.update_library_url,
-			data: {
-				'id_number': lib.options.id_number,
-				'revision': lib.retrieveNewVersion().revision
-			},
-			useSpinner: true,
-			spinnerTarget: 'libraries',
-			spinnerOptions: {
-				img: {
-					'class': 'spinner-img spinner-16'
-				}
-			},
-			onSuccess: function(response) {
-				fd.setURIRedirect(response.view_url);
-				this.registerRevision(response);
-				fd.message.alert(response.message_title, response.message);
-				lib.setOptions({
-					view_url: response.library_url
-				});
-				Function.from(callback)(response);
-			}.bind(this)
-		}).send();
-	},
+                spinnerOptions: {
+                    img: {
+                        'class': 'spinner-img spinner-16'
+                    }
+                },
+                onSuccess: function(response) {
+                    // set the redirect data to view_url of the new revision
+                    fd.setURIRedirect(response.view_url);
+                    // set data changed by save
+                    this.registerRevision(response);
+                    fd.message.alert(response.message_title, response.message);
+                    this.newDependency({
+                        full_name: response.library_full_name,
+                        id_number: response.library_id_number,
+                        library_name: response.library_name,
+                        view_url: response.library_url,
+                        revision_number: response.library_revision_number
+                    });
+                }.bind(this)
+            }).send();
+        } else {
+            fd.error.alert('No such Library', 'Please choose a library from the list');
+        }
+    },
+    
+    updateLibrary: function(lib, callback) {
+        new Request.JSON({
+            url: this.options.update_library_url,
+            data: {
+                'id_number': lib.options.id_number,
+                'revision': lib.retrieveNewVersion().revision
+            },
+            useSpinner: true,
+            spinnerTarget: 'libraries',
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                }
+            },
+            onSuccess: function(response) {
+                fd.setURIRedirect(response.view_url);
+                this.registerRevision(response);
+                fd.message.alert(response.message_title, response.message);
+                lib.setOptions({
+                    view_url: response.library_url
+                });
+                Function.from(callback)(response);
+            }.bind(this)
+        }).send();
+    },
 
     checkDependenciesVersions: function() {
         var controller = this;
         new Request.JSON({
             method: 'get',
-			url: that.options.latest_dependencies_url,
-			timeout: 5000,
+            url: that.options.latest_dependencies_url,
+            timeout: 5000,
             onSuccess: function(res) {
                 res.forEach(function(latest_revision) {
                     var lib = controller.libraries[latest_revision.id_number];
-					if (!lib) return;
-					lib.storeNewVersion(latest_revision);
-					controller.sidebar.setPluginUpdate(lib);
+                    if (!lib) return;
+                    lib.storeNewVersion(latest_revision);
+                    controller.sidebar.setPluginUpdate(lib);
                 });
             }
         }).send();
     },
-	
-	prepareDependenciesInterval: function() {
-		var that = this;
-		function setCheckInterval() {
-			unsetCheckInterval();
-			that.checkDependenciesVersions();
-			that.checkDependenciesInterval = that.checkDependenciesVersions.periodical(60000, that);
-		}
-		
-		function unsetCheckInterval() {
-			clearInterval(that.checkDependenciesInterval);
-		}
-		
-		window.addEvent('focus', setCheckInterval);
-		window.addEvent('blur', unsetCheckInterval);
-		setCheckInterval();
-		
-	},
     
-	removeLibrary: function(lib) {
+    prepareDependenciesInterval: function() {
+        var that = this;
+        function setCheckInterval() {
+            unsetCheckInterval();
+            that.checkDependenciesVersions();
+            that.checkDependenciesInterval = that.checkDependenciesVersions.periodical(60000, that);
+        }
+        
+        function unsetCheckInterval() {
+            clearInterval(that.checkDependenciesInterval);
+        }
+        
+        window.addEvent('focus', setCheckInterval);
+        window.addEvent('blur', unsetCheckInterval);
+        setCheckInterval();
+        
+    },
+    
+    removeLibrary: function(lib) {
         new Request.JSON({
-			url: this.options.remove_library_url,
-			data: {'id_number': lib.options.id_number},
+            url: this.options.remove_library_url,
+            data: {'id_number': lib.options.id_number},
             useSpinner: true,
             spinnerTarget: this.sidebar.getBranchFromFile(lib),
-			spinnerOptions: {
-				img: {
-					'class': 'spinner-img spinner-16'
-				}
-			},
-			onSuccess: function(response) {
-				fd.setURIRedirect(response.view_url);
-				this.registerRevision(response);
-				fd.message.alert(response.message_title, response.message);
-				lib.destroy();
-			}.bind(this)
-		}).send();
-	},
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                }
+            },
+            onSuccess: function(response) {
+                fd.setURIRedirect(response.view_url);
+                this.registerRevision(response);
+                fd.message.alert(response.message_title, response.message);
+                lib.destroy();
+            }.bind(this)
+        }).send();
+    },
 
-	/*
-	 * Method: makePublic
-	 * activate a package
-	 */
-	makePublic: function(e) {
-		e.stop();
-		this.savenow = false;
-		var activateButton = $('UI_ActivateLink');
-		if (activateButton.getElement('a').hasClass('inactive')) return false;
-		new Request.JSON({
-			url: activateButton.getElement('a').get('href'),
-			useSpinner: true,
-			spinnerTarget: activateButton,
-			spinnerOptions: {
-				img: {
-					class: 'spinner-img spinner-16'
-				},
-				maskBorder: false
-			},
-			onSuccess: function(response) {
-				fd.message.alert(response.message_title, response.message);
-				fd.fireEvent('activate_' + response.package_type);
-				activateButton.addClass('pressed').getElement('a').addClass('inactive');
-				$('UI_DisableLink').removeClass('pressed').getElement('a').removeClass('inactive');
-			}
-		}).send();
-	},
+    moduleExists: function(filename) {
+        return object.some(this.modules, function(mod) {
+            return mod.get('filename') === filename;
+        });
+    },
 
-	/*
-	 * Method: makePrivate
-	 * deactivate a package
-	 */
-	makePrivate: function(e) {
-		e.stop();
-		this.savenow = false;
-		var deactivateButton = $('UI_DisableLink');
-		if (deactivateButton.getElement('a').hasClass('inactive')) return false;
-		new Request.JSON({
-			url: deactivateButton.getElement('a').get('href'),
-			useSpinner: true,
-			spinnerTarget: deactivateButton,
-			spinnerOptions: {
-				img: {
-					class: 'spinner-img spinner-16'
-				},
-				maskBorder: false
-			},
-			onSuccess: function(response) {
-				fd.message.alert(response.message_title, response.message);
-				fd.fireEvent('disable_' + response.package_type);
-				$('activate').addEvent('click', this.makePublic.bind(this));
-				deactivateButton.addClass('pressed').getElement('a').addClass('inactive');
-				$('UI_ActivateLink').removeClass('pressed').getElement('a').removeClass('inactive');
-			}.bind(this)
-		}).send();
-	},
+    attachmentExists: function(filename) {
+        return object.some(this.attachments, function(att) {
+            return att.get('fullName') === filename;
+        });
+    },
 
-	/*
-	 * Method: editInfo
-	 * display the EditInfoModalWindow
-	 */
-	editInfo: function() {
-		this.savenow = false;
-		fd.editPackageInfoModal = fd.displayModal(
-				settings.edit_package_info_template.substitute(
-					Object.merge({}, this.data, this.options)));
-		$('package-info_form').addEvent('submit', this.boundSubmitInfo);
-		$('full_name').addEvent('change', function() { 
-			fd.fireEvent('change'); 
-		});
-		$('package_description').addEvent('change', function() { 
-			fd.fireEvent('change'); 
-		});
-		if ($('savenow')) {
-			$('savenow').addEvent('click', function() {
-				this.savenow = true;
-			}.bind(this));
-		}
+    folderExists: function(name, rootDir) {
+        return object.some(this.folders, function(folder) {
+            return (folder.get('root_dir') === rootDir &&
+                    folder.get('name') === name);
+        });        
+    },
 
-		$('UI_ActivateLink').getElement('a').addEvent('click', this.makePublic.bind(this));
-		$('UI_DisableLink').getElement('a').addEvent('click', this.makePrivate.bind(this));
+    /*
+     * Method: makePublic
+     * activate a package
+     */
+    makePublic: function(e) {
+        e.stop();
+        this.savenow = false;
+        var activateButton = $('UI_ActivateLink');
+        if (activateButton.getElement('a').hasClass('inactive')) return false;
+        new Request.JSON({
+            url: activateButton.getElement('a').get('href'),
+            useSpinner: true,
+            spinnerTarget: activateButton,
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                },
+                maskBorder: false
+            },
+            onSuccess: function(response) {
+                fd.message.alert(response.message_title, response.message);
+                fd.fireEvent('activate_' + response.package_type);
+                activateButton.addClass('pressed').getElement('a').addClass('inactive');
+                $('UI_DisableLink').removeClass('pressed').getElement('a').removeClass('inactive');
+            }
+        }).send();
+    },
 
-		this.validator = new Form.Validator.Inline('package-info_form');
-		self = this;
-		$$('#package-info_form input[type=submit]').each(function(el) {
-			el.addEvent('click', function(e) {
-				if (!self.validator.validate()) {
-					e.stop();
-				}
-			});
-		});
-		// Update modal from data (if not saved yet)
-		Object.each(this.data, function(value, key) {
-			if ($(key)) {
+    /*
+     * Method: makePrivate
+     * deactivate a package
+     */
+    makePrivate: function(e) {
+        e.stop();
+        this.savenow = false;
+        var deactivateButton = $('UI_DisableLink');
+        if (deactivateButton.getElement('a').hasClass('inactive')) return false;
+        new Request.JSON({
+            url: deactivateButton.getElement('a').get('href'),
+            useSpinner: true,
+            spinnerTarget: deactivateButton,
+            spinnerOptions: {
+                img: {
+                    'class': 'spinner-img spinner-16'
+                },
+                maskBorder: false
+            },
+            onSuccess: function(response) {
+                fd.message.alert(response.message_title, response.message);
+                fd.fireEvent('disable_' + response.package_type);
+                $('activate').addEvent('click', this.makePublic.bind(this));
+                deactivateButton.addClass('pressed').getElement('a').addClass('inactive');
+                $('UI_ActivateLink').removeClass('pressed').getElement('a').removeClass('inactive');
+            }.bind(this)
+        }).send();
+    },
+
+    /*
+     * Method: editInfo
+     * display the EditInfoModalWindow
+     */
+    editInfo: function() {
+        this.savenow = false;
+        fd.editPackageInfoModal = fd.displayModal(
+                settings.edit_package_info_template.substitute(
+                    Object.merge({}, this.data, this.options)));
+        $('package-info_form').addEvent('submit', this.boundSubmitInfo);
+        $('full_name').addEvent('change', function() { 
+            fd.fireEvent('change'); 
+        });
+        $('package_description').addEvent('change', function() { 
+            fd.fireEvent('change'); 
+        });
+        if ($('savenow')) {
+            $('savenow').addEvent('click', function() {
+                this.savenow = true;
+            }.bind(this));
+        }
+
+        $('UI_ActivateLink').getElement('a').addEvent('click', this.makePublic.bind(this));
+        $('UI_DisableLink').getElement('a').addEvent('click', this.makePrivate.bind(this));
+
+        this.validator = new Form.Validator.Inline('package-info_form');
+        self = this;
+        $$('#package-info_form input[type=submit]').each(function(el) {
+            el.addEvent('click', function(e) {
+                if (!self.validator.validate()) {
+                    e.stop();
+                }
+            });
+        });
+        // Update modal from data (if not saved yet)
+        Object.each(this.data, function(value, key) {
+            if ($(key)) {
                 $log(key + ': ' + value);
-				$(key).value = value;
-			}
-		})
-	},
+                $(key).value = value;
+            }
+        });
+    },
 
-	/*
-	 * Method: submitInfo
-	 * submit info from EditInfoModalWindow
-	 * if $('savenow') clicked - save the full info
-	 */
-	submitInfo: function(e) {
-		e.stop();
-		// collect data from the Modal
-		this.options.package_info_form_elements.each(function(key) {
-			if ($(key)) {
-				this.data[key] = $(key).value;
-			}
-		}, this);
-		// check if save should be called
-		if (this.savenow) {
-			return this.save();
-		}
-		fd.editPackageInfoModal.destroy();
-	},
+    /*
+     * Method: submitInfo
+     * submit info from EditInfoModalWindow
+     * if $('savenow') clicked - save the full info
+     */
+    submitInfo: function(e) {
+        e.stop();
+        // collect data from the Modal
+        this.options.package_info_form_elements.each(function(key) {
+            if ($(key)) {
+                this.data[key] = $(key).value;
+            }
+        }, this);
+        // check if save should be called
+        if (this.savenow) {
+            return this.save();
+        }
+        fd.editPackageInfoModal.destroy();
+    },
 
-	collectData: function() {
-		this.editor.dumpCurrent();
+    collectData: function() {
+        this.editor.dumpCurrent();
         this.data.version_name = $('version_name').get('value');
         this.data.revision_message = $('revision_message').get('value');
-		Object.each(this.modules, function(module, filename) {
+        Object.each(this.modules, function(module, filename) {
             var mod = this.editor.items[module.uid];
             if (mod.content && mod.changed) {
-    			this.data[filename] = mod.content;
+                this.data[filename] = mod.content;
             }
-		}, this);
-		Object.each(this.attachments, function(attachment, uid) {
-            var att = this.editor.items[uid 
-                        + attachment.options.code_editor_suffix];
+        }, this);
+        Object.each(this.attachments, function(attachment, uid) {
+            var att = this.editor.items[uid + 
+                                        attachment.options.code_editor_suffix];
             if (att.content && att.changed) {
-    			this.data[attachment.options.uid] = att.content;
+                this.data[attachment.options.uid] = att.content;
             }
-		}, this);
-	},
+        }, this);
+    },
 
-	saveAction: function(e) {
-		if (e) e.stop();
-		this.save();
-	},
+    saveAction: function(e) {
+        if (e) e.stop();
+        this.save();
+    },
 
-	save: function() {
-		this.collectData();
-		this.saving = true;
-		new Request.JSON({
-			url: this.options.save_url,
-			data: this.data,
+    save: function() {
+        this.collectData();
+        this.saving = true;
+        new Request.JSON({
+            url: this.options.save_url,
+            data: this.data,
             useSpinner: true,
             spinnerTarget: $(this.options.save_el),
             spinnerOptions: {
@@ -1259,13 +1323,13 @@ module.exports = new Class({
                 },
                 maskBorder: false
             },
-			onSuccess: function(response) {
-				// set the redirect data to view_url of the new revision
-                $log('FD: DEBUG: Save succeeded')
-				if (response.full_name) {
-					$('package-info-name').set('text', response.full_name);
-					this.options.full_name = response.full_name;
-				}
+            onSuccess: function(response) {
+                // set the redirect data to view_url of the new revision
+                $log('FD: DEBUG: Save succeeded');
+                if (response.full_name) {
+                    $('package-info-name').set('text', response.full_name);
+                    this.options.full_name = response.full_name;
+                }
                 $('revision_message').set('value', '');
                 if (response.attachments_changed) {
                     Object.forEach(response.attachments_changed, 
@@ -1279,155 +1343,156 @@ module.exports = new Class({
                         }, this
                     );
                 }
-				fd.setURIRedirect(response.view_url);
-				// set data changed by save
-				this.registerRevision(response);
-				fd.message.alert(response.message_title, response.message);
-				// clean data leaving package_info data
-				this.data = {};
-				this.options.package_info_form_elements.each(function(key) {
-					if (response[key] != null) {
-						this.data[key] = response[key]
-					}
-				}, this);
-				if (fd.editPackageInfoModal) fd.editPackageInfoModal.destroy();
-				if ($(this.options.test_el) && $(this.options.test_el).hasClass('pressed')) {
-					// only one add-on of the same id should be allowed on the Helper side
-					this.installAddon();
-				}
+                fd.setURIRedirect(response.view_url);
+                // set data changed by save
+                this.registerRevision(response);
+                fd.message.alert(response.message_title, response.message);
+                // clean data leaving package_info data
+                this.data = {};
+                this.options.package_info_form_elements.each(function(key) {
+                    if (response[key] != null) {
+                        this.data[key] = response[key];
+                    }
+                }, this);
+                if (fd.editPackageInfoModal) fd.editPackageInfoModal.destroy();
+                if ($(this.options.test_el) && $(this.options.test_el).hasClass('pressed')) {
+                    // only one add-on of the same id should be allowed on the Helper side
+                    this.installAddon();
+                }
                 this.editor.cleanChangeState();
-				fd.fireEvent('save');
-			}.bind(this),
-			addOnFailure: function() {
-				this.saving = false;
-			}.bind(this)
-		}).send();
-	},
+                fd.fireEvent('save');
+            }.bind(this),
+            addOnFailure: function() {
+                this.saving = false;
+            }.bind(this)
+        }).send();
+    },
 
     blur: function() {
         this._focused = false;
-		this.editor.blur();
+        this.editor.blur();
         this.fireEvent('blur');
-		this.editor.addEvent('focus:once', function() {
-			if (!this._focused) {
-				this.focus();
-			}
-		}.bind(this));
+        this.editor.addEvent('focus:once', function() {
+            if (!this._focused) {
+                this.focus();
+            }
+        }.bind(this));
     },
-	
-	_focused: true,
+    
+    _focused: true,
 
     focus: function() {
         if (this._focused) return;
-		this._focused = true;
-		this.keyboard.activate();
-		this.editor.focus();
-		
+        this._focused = true;
+        this.keyboard.activate();
+        this.editor.focus();
+        
         this.fireEvent('focus');
     },
 
-	bind_keyboard: function() {
-	    var that = this;
+    bind_keyboard: function() {
+        var that = this;
         this.keyboard = new FlightDeck.Keyboard();
-		if(this.options.type == 'a') {
-			this.keyboard.addShortcut('test', {
+        if(this.options.type == 'a') {
+            this.keyboard.addShortcut('test', {
                 keys:'ctrl+enter',
-				description: 'Toggle Testing',
-				handler: function(e) {
+                description: 'Toggle Testing',
+                handler: function(e) {
                     e.preventDefault();
                     that.testAddon();
                 }
-			});
-		}
-		this.keyboard.addShortcuts({
-			'save': {
-				keys:'ctrl+s',
-				description: 'Save current outstanding changes.',
-				handler: this.boundSaveAction
-			},
-			
-			'new attachment': {
+            });
+        }
+        this.keyboard.addShortcuts({
+            'save': {
+                keys:'ctrl+s',
+                description: 'Save current outstanding changes.',
+                handler: this.boundSaveAction
+            },
+            
+            'new attachment': {
                 keys: 'ctrl+n',
-				description: 'Open the New Attachment prompt.',
-				handler: function(e) {
+                description: 'Open the New Attachment prompt.',
+                handler: function(e) {
                     e.preventDefault();
                     that.sidebar.promptAttachment();
                 }
-			},
-			'new module': {
+            },
+            'new module': {
                 keys:'ctrl+shift+n',
-				description: 'Open the New Module prompt.',
-				handler: function(e) {
+                description: 'Open the New Module prompt.',
+                handler: function(e) {
                     e.preventDefault();
                     that.sidebar.promptNewFile();
                 }
-			},
-			'focus tree / editor': {
+            },
+            'focus tree / editor': {
                 keys: 'ctrl+e',
-				description: 'Switch focus between the editor and the tree',
-				handler: function(e) {
+                description: 'Switch focus between the editor and the tree',
+                handler: function(e) {
                     e.preventDefault();
                     if(that._focused) {
-						that.blur();
-						that.sidebar.focus();
-					} else {
-						//that.sidebar.blur();
-						that.focus();
-					}
+                        that.blur();
+                        that.sidebar.focus();
+                    } else {
+                        //that.sidebar.blur();
+                        that.focus();
+                    }
                 } 
-			},
-			'shortcuts': {
-				keys: 'ctrl+shift+/',
-				description: 'Show these keyboard shortcuts',
-				handler: function() {
-					that.toggleShortcutsModal();
-				}
-			}
-		})
-		this.keyboard.manage(this.sidebar.keyboard);
-		this.keyboard.activate();
-		this.sidebar.keyboard.deactivate();
-		this.addEvent('focus', function() {
-			that.sidebar.blur();
-		});
-	},
-	
-	toggleShortcutsModal: function() {
-		this._shortcutsModal ?
-			this.hideShortcuts() :
-			this.showShortcuts();
-	},
-	
-	showShortcuts: function() {
-		function buildLines(shortcut) {
-			var keys = '<kbd>'+ shortcut.keys.split('+').join('</kbd> + <kbd>').split('|').join('</kbd> or <kbd>').replace(/meta/g, 'cmd') + '</kbd>';
-			shortcuts.push(keys + ': ' + shortcut.description);
-		}
-		
-		var shortcuts = [];
-		
-		shortcuts.push('<strong>Editor</strong>');
-		this.keyboard.getShortcuts().forEach(buildLines);
-		shortcuts.push('<strong>Tree</strong>');
-		this.sidebar.keyboard.getShortcuts().forEach(buildLines);
-		
-		this._shortcutsModal = fd.displayModal('<h3>Keyboard Shortcuts</h3>'
-						+'<div class="UI_Modal_Section"><p>'
-						+shortcuts.join('</p><p>')
-						+'</p></div>'
-		);
-		this._shortcutsModal.addEvent('destroy', function() {
-			this._shortcutsModal = null
-		}.bind(this));
-	},
-	
-	hideShortcuts: function() {
-		if (this._shortcutsModal) {
-			this._shortcutsModal.destroy();
-		}
-	},
+            },
+            'shortcuts': {
+                keys: 'ctrl+shift+/',
+                description: 'Show these keyboard shortcuts',
+                handler: function() {
+                    that.toggleShortcutsModal();
+                }
+            }
+        });
+        this.keyboard.manage(this.sidebar.keyboard);
+        this.keyboard.activate();
+        this.sidebar.keyboard.deactivate();
+        this.addEvent('focus', function() {
+            that.sidebar.blur();
+        });
+    },
+    
+    toggleShortcutsModal: function() {
+        if (this._shortcutsModal) 
+            this.hideShortcuts();
+        else
+            this.showShortcuts();
+    },
+    
+    showShortcuts: function() {
+        function buildLines(shortcut) {
+            var keys = '<kbd>'+ shortcut.keys.split('+').join('</kbd> + <kbd>').split('|').join('</kbd> or <kbd>').replace(/meta/g, 'cmd') + '</kbd>';
+            shortcuts.push(keys + ': ' + shortcut.description);
+        }
+        
+        var shortcuts = [];
+        
+        shortcuts.push('<strong>Editor</strong>');
+        this.keyboard.getShortcuts().forEach(buildLines);
+        shortcuts.push('<strong>Tree</strong>');
+        this.sidebar.keyboard.getShortcuts().forEach(buildLines);
+        
+        this._shortcutsModal = fd.displayModal('<h3>Keyboard Shortcuts</h3>'+
+                        '<div class="UI_Modal_Section"><p>'+
+                        shortcuts.join('</p><p>')+
+                        '</p></div>'
+        );
+        this._shortcutsModal.addEvent('destroy', function() {
+            this._shortcutsModal = null;
+        }.bind(this));
+    },
+    
+    hideShortcuts: function() {
+        if (this._shortcutsModal) {
+            this._shortcutsModal.destroy();
+        }
+    },
 
-	registerRevision: function(urls) {
+    registerRevision: function(urls) {
         // update page title to reflect current revision and name
         document.title = document.title.replace(this.options.revision_string, urls.revision_string);
         this.setOptions(urls);
@@ -1435,7 +1500,7 @@ module.exports = new Class({
         if (urls.download_url && $(this.options.download_el)) {
             $(this.options.download_el).set('href', urls.download_url);
         }
-	},
+    },
 
     alertUnsavedData: function(e) {
         if (this.edited && !fd.saving) {

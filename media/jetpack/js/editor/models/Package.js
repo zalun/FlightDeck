@@ -32,12 +32,32 @@ var Package = module.exports = new Class({
 		version_name: fields.TextField(),
 		revision_number: fields.NumberField(),
 
-        latest: fields.NumberField(), // a FK to PackageRevision
+        latest: fields.NumberField() // a FK to PackageRevision
 
 		// modules: FK from Module
 		// attachments: FK from Attachment
 		// dependencies: ManyToManyField('self')
 	},
+
+    uid: function() {
+        return this.get('id_number');
+    },
+
+    shortName: function() {
+        return this.get('name');
+    },
+
+    fullName: function() {
+        return this.get('full_name');
+    },
+
+    storeNewVersion: function(version_data) {
+        this._latest_version = version_data;
+    },
+
+    retrieveNewVersion: function() {
+        return this._latest_version;    
+    },
 
     isAddon: function isAddon() {
         return this.get('type') === this.constructor.TYPE_ADDON;

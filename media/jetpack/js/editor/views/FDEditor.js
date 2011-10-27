@@ -8,10 +8,10 @@
  */
 var Class = require('shipyard/class/Class'),
 	Events = require('shipyard/class/Events'),
-	Options = require('shipyard/class/Options')
+	Options = require('shipyard/class/Options'),
 	object = require('shipyard/utils/object');
 
-// globals: Element, Spinner, Element.addVolatileEvent, fd
+// globals: Element, Spinner, fd
 
 var FDEditor = module.exports = new Class({
 
@@ -45,8 +45,8 @@ var FDEditor = module.exports = new Class({
         });
     },
 
-    registerItem: function(item){
-        this.items[item.uid] = item; 
+    registerItem: function(uid, item){
+        this.items[uid] = item; 
     },
 
     getItem: function(uid){
@@ -62,38 +62,39 @@ var FDEditor = module.exports = new Class({
 
     activateItem: function(item){
         // activate load and hook events
+        var editor = this;
         this.current = item;
         this.current.active = true;
         if (!this.current.isLoaded()) {
             this.spinner.show();
 			this.setContent('', true);
-			this.current.addVolatileEvent('loadcontent', function(content) {
-                //if item == this.current still
-                if (item == this.current) {
-                    this.setContent(content);
-					this.spinner.hide();
+            this.current.loadContent(function(content) {
+                if (item == editor.current) {
+                    editor.setContent(content);
+                    editor.spinner.hide();
                 }
                 //else another file has become active
-            }.bind(this));
-            this.current.loadContent();
+            });
         } else {
-            this.setContent(this.current.content);
+            this.setContent(this.current.get('content'));
 			this.spinner.hide();
         }
-        if (this.current.options.readonly) {
+        if (this.current.get('readonly')) {
             this.setReadOnly();
         } else {
             this.setEditable();
         }
-        this.setSyntax(this.current.options.type);
+        this.setSyntax(this.current.get('ext'));
     },
 
-    switchTo: function(item){
-        $log('FD: DEBUG: FDEditor.switchTo ' + item.uid);
+    switchTo: function(uid){
+        $log('FD: DEBUG: FDEditor.switchTo ' + uid);
         var self = this;
         this.switching = true;
-        if (!this.getItem(item.uid)) {
-            this.registerItem(item);
+        var item = this.getItem(uid);
+        if (!item) {
+            //this.registerItem(item);
+            $log('no item wtf');
         }
         if (this.current) {
             this.deactivateCurrent();
@@ -103,7 +104,7 @@ var FDEditor = module.exports = new Class({
     },
 
     dumpCurrent: function() {
-        this.current.content = this.getContent();
+        this.current.set('content', this.getContent());
         return this;
     },
 
@@ -126,13 +127,13 @@ var FDEditor = module.exports = new Class({
             item.setChanged(false);
             item.change_hooked = false;
             // refresh original content
-            item.original_content = item.content;
+            item.original_content = item.get('content');
         });
         this.hookChangeIfNeeded();
     },
 
     hookChangeIfNeeded: function() {
-        if (!this.current.options.readonly) {
+        if (!this.current.get('readonly')) {
             if (!this.current.changed && !this.change_hooked) {
                 this.hookChange();
             } else if (this.current.changed && this.change_hooked) {
@@ -156,8 +157,8 @@ var FDEditor = module.exports = new Class({
         if (!this.switching && this.getContent() != this.current.original_content) {
             this.current.setChanged(true);
             this.fireEvent('change');
-            $log('FD: DEBUG: changed, code is considered dirty and will remain'
-                    +'be treated as such even if changes are reverted');
+            $log('DEBUG: changed, code is considered dirty and will remain'+
+                    'be treated as such even if changes are reverted');
             this.unhookChange();
         } else if (!this.switching && this.current.changed) {
             this.current.setChanged(false);
