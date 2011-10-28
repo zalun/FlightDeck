@@ -15,7 +15,7 @@ def search(request):
     form = SearchForm(request.GET)
     form.is_valid()
     query = form.cleaned_data
-    q = query.get('q')
+    q = query.get('q').lower()
     type_ = query.get('type') or None
     types = {'a': 'addon', 'l': 'library'}
     page = query.get('page') or 1
