@@ -258,7 +258,7 @@ module.exports = new Class({
         this.modules[mod.get('uid')] = mod;
         this.sidebar.addLib(mod);
         this.editor.registerItem(mod.get('uid'), mod);
-        var controller =
+        var controller = this;
         mod.addEvent('destroy', function() {
             delete controller.modules[this.get('uid')];
         });
@@ -306,7 +306,6 @@ module.exports = new Class({
             delete controller[this.get('uid')];
         });
     },
-
 
     showRevisionList: function() {
         new Request({
@@ -432,7 +431,7 @@ module.exports = new Class({
         };
         data = {
             hashtag: this.options.hashtag, 
-            filename: this.options.name
+            filename: this.package_.get('name')
         };
         new Request.JSON({
             url: this.options.download_url,
@@ -498,7 +497,7 @@ module.exports = new Class({
 
     generateHashtag: function() {
         if (this.getOption('readonly')) return;
-        this.options.hashtag = fd.generateHashtag(this.options.id_number);
+        this.options.hashtag = fd.generateHashtag(this.package_.get('id_number'));
     },
 
     //Package.View
@@ -551,9 +550,9 @@ module.exports = new Class({
             this.showAttachmentModal(file); 
         }
         // else if Library
-        else if (file instanceof Library) {
+        else if (file instanceof Package) {
             // then open link in new window
-            window.open(file.options.view_url);
+            window.open(file.get('view_url'));
         }
     },
 
@@ -568,19 +567,19 @@ module.exports = new Class({
 
     showAttachmentModal: function(file) {
         var template_start = '<div id="attachment_view"><h3>'+
-            file.options.filename+'</h3><div class="UI_Modal_Section">';
+            file.get('shortName')+'</h3><div class="UI_Modal_Section">';
         var template_end = '</div><div class="UI_Modal_Actions"><ul><li>'+
             '<input type="reset" value="Close" class="closeModal"/>'+
             '</li></ul></div></div>';
         var template_middle = 'Download <a href="'+
-            file.options.get_url+
+            file.get('get_url')+
             '">'+
-            file.options.filename+
+            file.get('shortName')+
             '</a>';
         var spinner, img;
-        if (file.is_image()) {
+        if (file.isImage()) {
             template_middle += '<p></p>';
-            img = new Element('img', { src: file.options.get_url });
+            img = new Element('img', { src: file.get('get_url') });
             img.addEvent('load', function() {
                 if (spinner) spinner.destroy();
                 modal.position();
@@ -675,19 +674,15 @@ module.exports = new Class({
                     //onSuccess
                     
                     fd.message.alert(response.message_title, response.message);
-                    var attachment = new Attachment(self,{
-                        append: true,
-                        active: true,
+                    var attachment = self.newAttachment({
                         filename: response.filename,
                         ext: response.ext,
                         author: response.author,
-                        code: response.code,
+                        content: response.code,
                         get_url: response.get_url,
-                        uid: response.uid,
-                        type: response.ext
+                        id: response.uid
                     });
                     self.registerRevision(response);
-                    self.attachments[response.uid] = attachment;
                     if (spinner) spinner.destroy();
                     $log('FD: all files uploaded');
                     Function.from(renameAfterLoad)(attachment);
@@ -826,12 +821,11 @@ module.exports = new Class({
                     'class': 'spinner-img spinner-16'
                 }
             },
-            data: {uid: attachment.options.uid},
+            data: {uid: attachment.get('uid')},
             onSuccess: function(response) {
                 fd.setURIRedirect(response.view_url);
                 self.registerRevision(response);
                 fd.message.alert(response.message_title, response.message);
-                delete self.attachments[attachment.options.uid];
                 attachment.destroy();
             }
         }).send();
@@ -913,7 +907,7 @@ module.exports = new Class({
                     'class': 'spinner-img spinner-16'
                 }
             },
-            data: module.options,
+            data: module.toJSON(),
             onSuccess: function(response) {
                 fd.setURIRedirect(response.view_url);
                 this.registerRevision(response);
@@ -1013,10 +1007,7 @@ module.exports = new Class({
     removeFolder: function(folder) {
         new Request.JSON({
             url: this.options.remove_folder_url,
-            data: {
-                name: folder.options.name,
-                root_dir: folder.options.root_dir
-            },
+            data: folder.toJSON(),
             useSpinner: true,
             spinnerTarget: this.sidebar.getBranchFromFile(folder),
             spinnerOptions: {
@@ -1069,7 +1060,7 @@ module.exports = new Class({
         new Request.JSON({
             url: this.options.update_library_url,
             data: {
-                'id_number': lib.options.id_number,
+                'id_number': lib.get('id_number'),
                 'revision': lib.retrieveNewVersion().revision
             },
             useSpinner: true,
@@ -1129,7 +1120,7 @@ module.exports = new Class({
     removeLibrary: function(lib) {
         new Request.JSON({
             url: this.options.remove_library_url,
-            data: {'id_number': lib.options.id_number},
+            data: {'id_number': lib.get('id_number')},
             useSpinner: true,
             spinnerTarget: this.sidebar.getBranchFromFile(lib),
             spinnerOptions: {
@@ -1290,16 +1281,15 @@ module.exports = new Class({
         this.data.version_name = $('version_name').get('value');
         this.data.revision_message = $('revision_message').get('value');
         Object.each(this.modules, function(module, filename) {
-            var mod = this.editor.items[module.uid];
-            if (mod.content && mod.changed) {
-                this.data[filename] = mod.content;
+            var mod = this.editor.items[module.get('uid')];
+            if (mod.get('content') && mod.changed) {
+                this.data[filename] = mod.get('content');
             }
         }, this);
         Object.each(this.attachments, function(attachment, uid) {
-            var att = this.editor.items[uid + 
-                                        attachment.options.code_editor_suffix];
-            if (att.content && att.changed) {
-                this.data[attachment.options.uid] = att.content;
+            var att = this.editor.getItem(uid);
+            if (att.get('content') && att.changed) {
+                this.data[attachment.get('uid')] = att.get('content');
             }
         }, this);
     },
@@ -1329,6 +1319,7 @@ module.exports = new Class({
                 if (response.full_name) {
                     $('package-info-name').set('text', response.full_name);
                     this.options.full_name = response.full_name;
+                    this.package_.set('full_name', response.full_name);
                 }
                 $('revision_message').set('value', '');
                 if (response.attachments_changed) {
@@ -1393,7 +1384,7 @@ module.exports = new Class({
     bind_keyboard: function() {
         var that = this;
         this.keyboard = new FlightDeck.Keyboard();
-        if(this.options.type == 'a') {
+        if(this.package_.isAddon()) {
             this.keyboard.addShortcut('test', {
                 keys:'ctrl+enter',
                 description: 'Toggle Testing',

@@ -19,23 +19,22 @@ module.exports = new Class({
 		this.tabs = new tabs.TabBar('editor-tabs', {
 			arrows: false,
 			onTabDown: function(tab) {
+                console.log('Tab Down', tab);
 				if (!tab.hasClass('selected')) {
 					controller.fireEvent('select', tab.retrieve('tab:instance'));
 				}
 			},
 			onCloseDown: function(tabClose) {
 				var tabEl = tabClose.getParent('.tab');
-				var nextTab = tabEl.hasClass('selected') ?
-					tabEl.getPrevious('.tab') || tabEl.getNext('.tab') :
-					$(controller.tabs).getElement('.tab.selected');
-				if(nextTab) {
+				var isMoreTabs = controller.$tabs.length > 1;
+				if(isMoreTabs) {
+                    //TODO: allow user to delete all Tabs
 					var tab = tabEl.retrieve('tab:instance'),
 						that = this,
 						file = tab.file;
 						
 					function closeTab() {
 						tab.destroy();
-						that.fireEvent('tabDown', nextTab);
 					}
 					
 					if(file.changed) {
@@ -94,12 +93,19 @@ module.exports = new Class({
             $(tab).removeClass('modified');
         }
 
+        function destroy() {
+            tab.destroy();
+        }
+
         file.addEvent('change', change);
         file.addEvent('reset', reset); 
+        file.addEvent('destroy', destroy);
 
         tab.addEvent('destroy', function() {
             file.removeEvent('change', change);
             file.removeEvent('reset', reset);
+            file.removeEvent('destroy', destroy);
+            delete tab.file;
             controller.removeTab(tab);
         });
 		tab.file = file;
@@ -117,6 +123,17 @@ module.exports = new Class({
         var index = this.$tabs.indexOf(tab);
         if (index) {
             this.$tabs.splice(index, 1);
+        }
+
+        //we need to switch to another tab
+        var tabEl = $(tab);
+        var nextTab = tabEl.hasClass('selected') ?
+					tabEl.getPrevious('.tab') || tabEl.getNext('.tab') :
+					$(this.tabs).getElement('.tab.selected');
+        if (nextTab) {
+            this.tabs.fireEvent('tabDown', nextTab);
+        } else {
+            //TODO: this should just show a "Open a file on the left"
         }
     },
 

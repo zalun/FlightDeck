@@ -5,7 +5,10 @@ var Class = require('shipyard/class/Class'),
     string = require('shipyard/utils/string'),
     
     File = require('../models/File'),
+    Module = require('../models/Module'),
+    Attachment = require('../models/Attachment'),
     Folder = require('../models/Folder'),
+    Package = require('../models/Package'),
     FileTree = require('./FileTree');
 
 // globals: $, FlightDeck.Keyboard, fd.item
@@ -42,10 +45,10 @@ var Sidebar = module.exports = new Class({
                     isSibling = this.current.getSiblings().contains(el);
                     
                 return (
-                        ((drop.isSubnode || isSibling) && isFile)
-                        || el.hasClass('top_branch')
-                        || isSibling && !isFile && !drop.isSubnode
-                        || !isFile && drop.isSubnode && this.current.getParent().getParent() == el
+                        ((drop.isSubnode || isSibling) && isFile) ||
+                        el.hasClass('top_branch') ||
+                        isSibling && !isFile && !drop.isSubnode ||
+                        !isFile && drop.isSubnode && this.current.getParent().getParent() == el
                     ) ? false : true;
             },
             onChange: function(){
@@ -77,7 +80,7 @@ var Sidebar = module.exports = new Class({
                 return element.get('path') || element.get('id');
             },
             getIdentifier: function(element) {
-                return addon_or_lib_url + '_collapse_' + element.get('id')
+                return addon_or_lib_url + '_collapse_' + element.get('id');
             }
         };
         
@@ -138,7 +141,7 @@ var Sidebar = module.exports = new Class({
     attach: function() {
         var that = this,
             sidebarEl = $(this);
-            
+
         // highlight branch on click
         sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .label:not([contenteditable="true"]))'.substitute(this.options), function(e, label) {
             that.selectFile($(e.target).getParent('li'));
@@ -177,11 +180,11 @@ var Sidebar = module.exports = new Class({
                 file = li.retrieve('file'),
                 isModules = li.getParent('.tree').get('id') == 'LibTree';
             if (file) {
-                if (!file.options.readonly) {
+                if (!that.options.readonly) {
                     that.promptRemoval(file);
                 }
             } else {
-                that.promptRemoval(li.get('path'), isModules ? Module : Attachment)
+                that.promptRemoval(li.get('path'), isModules ? Module : Attachment);
                 $log('a non-empty folder');
             }
             
@@ -204,15 +207,14 @@ var Sidebar = module.exports = new Class({
     renameFile: function(file, fullpath) {
         var pack = fd.item;
         if (file instanceof Module) {
-            pack.renameModule(file.options.filename, fullpath);
+            pack.renameModule(file.get('uid'), fullpath);
         } else if (file instanceof Attachment) {
-            pack.renameAttachment(file.options.uid, fullpath);
+            pack.renameAttachment(file.get('uid'), fullpath);
         }
     },
     
     removeFileFromTree: function(treeName, file) {
         var tree = this.trees[treeName],
-            that = this,
             el;
             
         el = this.getBranchFromFile(file);
@@ -222,7 +224,9 @@ var Sidebar = module.exports = new Class({
         }
     },
 
-    uids: {},
+    uids: {
+        // uid: element ID
+    },
     
     addFileToTree: function(treeName, file) {
         var tree = this.trees[treeName],
@@ -249,7 +253,7 @@ var Sidebar = module.exports = new Class({
         };
     
         if (!this.options.editable || (isFile && file.get('main'))) {
-            options.add = false
+            options.add = false;
             options.edit = false;
             options.remove = false;
             options.nodrag = true;
@@ -290,6 +294,7 @@ var Sidebar = module.exports = new Class({
     },
     
     removeFile: function(file, prefix) {
+        //TODO: wtf
         if (file instanceof File) {
             file.destroy();
             return;
@@ -312,26 +317,10 @@ var Sidebar = module.exports = new Class({
     },
     
     getBranchFromFile: function(file) {
-        var branch,
-            title,
-            tree;
+        var branch;
         
-        if(file instanceof Library) {
-            title = file.getID();
-            tree = 'plugins';
-        } else if (file instanceof Folder) {
-            title = file.options.name;
-            tree = file.options.root_dir == Folder.ROOT_DIR_LIB
-                ? 'lib' : 'data';
-        } else if (file instanceof Module 
-                || file instanceof Attachment) {
-            title = file.options.filename + '.' + file.options.type;
-            tree = file instanceof Module ? 'lib' : 'data';
-        } else {
-            return null; //throw Error? this is a bad case!
-        }
-        
-        branch = this.getBranchFromPath(title, tree);   
+        var id = this.uids[file.get('uid')];
+        if (id) branch = $(id);
         return branch;
     },
 
@@ -390,21 +379,12 @@ var Sidebar = module.exports = new Class({
         if (fileType != null) {
             titleOpts.name = file + " and all its files";
         } else {
-            if (file.options.filename && file.options.type) {
-                titleOpts.name = file.options.filename + "." + file.options.type;
-            } else if (file.options.full_name) {
-                titleOpts.name = file.options.full_name;
-            } else if (file.getFullName) {
+            titleOpts.name = file.get('fullName');
+            if (file instanceof Folder) {
                 titleOpts.type = "an empty folder ";
-                titleOpts.name = file.getFullName();
             }
         }
         
-        if (fileType == Attachment) {
-            $log('FD: TODO: remove entire attachment folders');
-            //fd.alertNotImplemented('Deleting a Data folder with subcontent is under construction. A work around, is to manually delete every single attachment inside the folder before removing the folder. Ya, we know.');
-            //return;
-        }
         
         titleOpts.name = titleOpts.name.split('/').getLast();
         fd.showQuestion({
@@ -531,17 +511,17 @@ var Sidebar = module.exports = new Class({
         if (path) path += '/';
         fd.showQuestion({
             title: 'Create or Upload an Attachment',
-            message: ''
-                + '<form id="upload_attachment_form" method="post" enctype="multipart/form-data" action="'
-                    + pack.options.upload_attachment_url + '">'
-                    + '<input type="file" name="upload_attachment" id="upload_attachment"/></p>'
-                + '</form>'
-                + '<p style="text-align:center">&mdash; OR &mdash;</p><p>'
-                + '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>'
-                + '<a href="#" id="new_type_folder" class="radio_btn"><span>Folder</span></a>'
-                + '<input type="text" name="new_attachment" id="new_attachment" placeholder="New Attachment name..." />'
-                + '<p style="text-align:center">&mdash; OR &mdash;</p><p>'
-                + '<input type="text" name="external_attachment" id="external_attachment" placeholder="http:// (URI of an Attachment to download)"/></p>',
+            message: ''+
+                '<form id="upload_attachment_form" method="post" enctype="multipart/form-data" action="'+
+                    pack.options.upload_attachment_url + '">'+
+                    '<input type="file" name="upload_attachment" id="upload_attachment"/></p>'+
+                '</form>'+
+                '<p style="text-align:center">&mdash; OR &mdash;</p><p>'+
+                '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>'+
+                '<a href="#" id="new_type_folder" class="radio_btn"><span>Folder</span></a>'+
+                '<input type="text" name="new_attachment" id="new_attachment" placeholder="New Attachment name..." />'+
+                '<p style="text-align:center">&mdash; OR &mdash;</p><p>'+
+                '<input type="text" name="external_attachment" id="external_attachment" placeholder="http:// (URI of an Attachment to download)"/></p>',
             ok: 'Create Attachment',
             id: 'new_attachment_button',
             callback: function() {
@@ -556,7 +536,7 @@ var Sidebar = module.exports = new Class({
                 if (url && !filename) {
                     // extract filename from URL
                     url_o = new URI(url);
-                    filename = url_o.get('file')
+                    filename = url_o.get('file');
                 }
                 
                 //validation
@@ -667,7 +647,7 @@ var Sidebar = module.exports = new Class({
                     return;
                 }
                 
-                fd.item.assignLibrary(lib_id)
+                fd.item.assignLibrary(lib_id);
                 prompt.destroy();
             }
         });
