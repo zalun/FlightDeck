@@ -6,6 +6,8 @@ var Class = require('shipyard/class/Class'),
     Request = require('shipyard/http/Request'),
     string = require('shipyard/utils/string');
 
+var idCounter = 1;
+
 var File = module.exports = new Class({
 
     Extends: Model,
@@ -22,6 +24,11 @@ var File = module.exports = new Class({
 
         url: fields.TextField({ write: false }),
         get_url: fields.TextField({ write: false })
+    },
+
+    initialize: function File(data) {
+        if (!data.id) data.id = idCounter++;
+        this.parent(data);
     },
 
     shortName: function() {
