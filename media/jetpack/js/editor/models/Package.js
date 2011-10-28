@@ -2,7 +2,7 @@ var Class = require('shipyard/class/Class'),
 	Model = require('shipyard/model/Model'),
 	fields = require('shipyard/model/fields'),
 	Syncable = require('shipyard/sync/Syncable'),
-	ServerSync = require('shipyard/sync/Server');
+	DummySync = require('shipyard/sync/Dummy');
 
 var Package = module.exports = new Class({
 
@@ -12,8 +12,7 @@ var Package = module.exports = new Class({
 
 	Sync: {
 		'default': {
-			driver: ServerSync,
-			route: '/api/0/packages'
+			driver: DummySync
 		}
 	},
 

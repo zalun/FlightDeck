@@ -1,6 +1,6 @@
 var Class = require('shipyard/class/Class'),
     fields = require('shipyard/model/fields'),
-    ServerSync = require('shipyard/sync/Server'),
+    DummySync = require('shipyard/sync/Dummy'),
     
     File = require('./File');
 
@@ -11,8 +11,7 @@ module.exports = new Class({
 
     Sync: {
         'default': {
-            driver: ServerSync,
-            route: '/api/0/attachments'
+            driver: DummySync
         }
     },
 
