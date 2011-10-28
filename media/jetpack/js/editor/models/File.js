@@ -55,6 +55,10 @@ var File = module.exports = new Class({
         return this.constructor.EDITABLE_EXTS.indexOf(this.get('ext')) !== -1;
     },
 
+    isImage: function() {
+        return this.constructor.IMAGE_EXTS.indexOf(this.get('ext')) !== -1;
+    },
+
     //TODO: Shipyard Models should probably has a isDirty API
     setChanged: function(isChanged) {
         this.changed = isChanged;
@@ -101,6 +105,7 @@ var File = module.exports = new Class({
 });
 
 File.EDITABLE_EXTS = ['js', 'html', 'css', 'txt', 'json', 'md'];
+File.IMAGE_EXTS = ['png', 'jpg', 'gif'];
 
 var sanitizeRE = /[^a-zA-Z0-9=!@#\$%\^&\(\)\+\-_\/\.]+/g;
 File.sanitize = function(name) {
