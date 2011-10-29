@@ -272,6 +272,7 @@ var FileTree = module.exports = new Class({
             elements = Array.clone(splitted),
             end = splitted.length - 1,
             selector = '',
+            tree = this,
             el,
             url = options.url,
             target = options.target,
@@ -284,6 +285,7 @@ var FileTree = module.exports = new Class({
             id_prefix += '-';
         }
         
+        //TODO: my eyes!
         elements.each(function(name, i){
             var path = splitted.slice(0, i + 1).join('/');
             if (i == end){
@@ -310,6 +312,23 @@ var FileTree = module.exports = new Class({
             }
             
         }, this);
+        
+        //slap a dirty bind onto that branch
+        obj.observe('filename', function() {
+            if (el) {
+                var label = el.getElement('.label');
+                var shortname = this.get('shortName');
+                label.set({
+                    title: shortname,
+                    text: shortname
+                });
+                el.set({
+                    title: shortname,
+                    name: shortname
+                });
+                tree.setFullPath(el);
+            }
+        });
         
         return el;
     },

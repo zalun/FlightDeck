@@ -144,7 +144,7 @@ var Sidebar = module.exports = new Class({
 
         // highlight branch on click
         sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .label:not([contenteditable="true"]))'.substitute(this.options), function(e, label) {
-            that.selectFile($(e.target).getParent('li'));
+            that.selectBranch($(e.target).getParent('li'));
         });
         
         //adding modules to Lib
@@ -274,7 +274,7 @@ var Sidebar = module.exports = new Class({
 
         // file.onChange should add an asterisk to the tree branch
         // file.onReset should remove the asterisk
-        file.addEvent('change', function() {
+        file.addEvent('dirty', function() {
             element.addClass(that.options.file_modified_class);
         });
         file.addEvent('reset', function() {
@@ -353,10 +353,15 @@ var Sidebar = module.exports = new Class({
         return this;
     },
     
-    selectFile: function(li) {
+    selectBranch: function(li) {
         var file = li.retrieve('file');
         this.fireEvent('select', file);
         this.setSelectedFile(li);
+    },
+
+    selectFile: function(file) {
+        var el = this.getBranchFromFile(file);
+        this.setSelectedFile(el);
     },
     
     silentlyRemoveFolders: function(element) {
@@ -567,10 +572,10 @@ var Sidebar = module.exports = new Class({
                             el.destroy();
                         }
 
-                        var new_name = path + att.options.filename;
+                        var new_name = path + att.get('filename');
                         // rename attachment (quietly) to place in the right
                         // folder 
-                        pack.renameAttachment(att.options.uid, new_name, true);
+                        pack.renameAttachment(att.get('uid'), new_name, true);
                     };
                 }
                 
@@ -832,7 +837,7 @@ var Sidebar = module.exports = new Class({
                     if(that._current_focus) {
                         var rel = that._current_focus.get('rel');
                         if(rel == 'file' || (!that._current_focus.hasClass('top_branch') && that._current_focus.getParent('#PluginsTree'))) {
-                            that.selectFile(that._current_focus);
+                            that.selectBranch(that._current_focus);
                         } else {
                             that.toggleFocused();
                         }

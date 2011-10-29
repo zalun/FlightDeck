@@ -19,7 +19,6 @@ module.exports = new Class({
 		this.tabs = new tabs.TabBar('editor-tabs', {
 			arrows: false,
 			onTabDown: function(tab) {
-                console.log('Tab Down', tab);
 				if (!tab.hasClass('selected')) {
 					controller.fireEvent('select', tab.retrieve('tab:instance'));
 				}
@@ -97,14 +96,20 @@ module.exports = new Class({
             tab.destroy();
         }
 
-        file.addEvent('change', change);
-        file.addEvent('reset', reset); 
-        file.addEvent('destroy', destroy);
+        function changeName() {
+            tab.setLabel(this.get('shortName'));
+        }
+
+        var changePtr = file.addEvent('dirty', change);
+        var resetPtr = file.addEvent('reset', reset); 
+        var destroyPtr = file.addEvent('destroy', destroy);
+        var observePtr = file.observe('filename', changeName);
 
         tab.addEvent('destroy', function() {
-            file.removeEvent('change', change);
-            file.removeEvent('reset', reset);
-            file.removeEvent('destroy', destroy);
+            changePtr.remove();
+            resetPtr.remove();
+            destroyPtr.remove();
+            observePtr.remove();
             delete tab.file;
             controller.removeTab(tab);
         });

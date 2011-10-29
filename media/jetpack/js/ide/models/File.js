@@ -63,7 +63,7 @@ var File = module.exports = new Class({
     setChanged: function(isChanged) {
         this.changed = isChanged;
         if (isChanged) {
-            this.fireEvent('change');
+            this.fireEvent('dirty');
         } else {
             this.fireEvent('reset');
         }

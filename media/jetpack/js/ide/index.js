@@ -1,5 +1,5 @@
 // requiring these now so they are included in the bundle
-var settings = require('editor/settings');
+var settings = require('ide/settings');
 var PackageController = require('./controllers/PackageController');
 var Package = require('./models/Package');
 var TabsController = require('./controllers/TabsController');
@@ -21,5 +21,5 @@ var sidebar = exports.sidebar = new Sidebar({
 });
 var ace = exports.ace = new Ace('editor-wrapper');
 
-var p = exports.package = new Package(settings);
+var p = exports.item = new Package(settings);
 exports.controller = new PackageController(p, settings, ace, tabs, sidebar);

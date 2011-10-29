@@ -557,6 +557,7 @@ module.exports = new Class({
     },
 
     onTabSelect: function(tab) {
+        this.sidebar.selectFile(tab.file);
         this.editFile(tab.file);
     },
 
@@ -795,16 +796,16 @@ module.exports = new Class({
                     return;
                 }
                 attachment.reassign({
-                    append: !attachmentEl,
-                    active: false,
                     filename: response.filename,
                     ext: response.ext,
                     author: response.author,
-                    code: response.code,
+                    content: response.code,
                     get_url: response.get_url,
-                    uid: response.uid,
-                    type: response.ext
+                    uid: response.uid
                 });
+                if (!attachmentEl) {
+                    that.sidebar.addData(attachment);
+                }
                 
             }
         }).send();
@@ -1351,7 +1352,7 @@ module.exports = new Class({
                     this.installAddon();
                 }
                 this.editor.cleanChangeState();
-                fd.fireEvent('save');
+                this.fireEvent('save');
             }.bind(this),
             addOnFailure: function() {
                 this.saving = false;

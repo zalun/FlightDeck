@@ -24,7 +24,7 @@
 	<script src="/media/lib/FloatingTips.js"></script>
 
     <script type="text/javascript">
-        define('editor/settings', [], function(require, exports, module) {
+        define('ide/settings', [], function(require, exports, module) {
             module.exports = {
                 {% include "js/_package_initiate.js" %},
                 {% include "js/_view_package_initiate.js" %}
@@ -33,9 +33,9 @@
     </script>
 
     {% if settings.DEBUG %}
-    <script src="/media/lib/shipyard/scripts/require.js" data-main="/media/jetpack/js/editor/"></script>
+    <script src="/media/lib/shipyard/scripts/require.js" data-main="/media/jetpack/js/ide/"></script>
     {% else %}
-    <script src="/media/jetpack/js/editor-min.js"></script>
+    <script src="/media/jetpack/js/ide-min.js"></script>
     {% endif %}
 {% endblock %}
 
@@ -45,8 +45,8 @@
 {# initialize package view #}
 {% block app_domready %}
     
-    var editor = require('editor');
-    fd.item = editor.controller;
+    var ide = require('ide');
+    fd.item = ide.controller;
 
 {% endblock %}
 
