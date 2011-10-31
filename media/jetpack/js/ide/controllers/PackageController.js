@@ -119,7 +119,7 @@ module.exports = new Class({
             });
         }
 
-        this.package_InfoEl = dom.$(this.options.package_info_el);
+        this.packageInfoEl = dom.$(this.options.package_info_el);
 
         if (this.getOption('readonly')) {
             this.assignViewActions();
@@ -131,7 +131,7 @@ module.exports = new Class({
     assignViewActions: function() {
         var controller = this;
 
-        this.package_InfoEl.addEvent('click', function(e) {
+        this.packageInfoEl.addEvent('click', function(e) {
             e.preventDefault();
             controller.showInfo();
         });
@@ -144,7 +144,7 @@ module.exports = new Class({
             controller.alertUnsavedData(e);
         });
 
-        this.package_InfoEl.addEvent('click', function(e) {
+        this.packageInfoEl.addEvent('click', function(e) {
             e.preventDefault();
             controller.editInfo();
         });

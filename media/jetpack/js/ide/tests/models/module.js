@@ -7,7 +7,7 @@ module.exports = {
 
         it('should be able to get fullName (filename + ext)', function(expect) {
             var m = new Module({ filename: 'events/key.press' });
-            expect(m.get('fullName')).toBe('events/key.press.js')
+            expect(m.get('fullName')).toBe('events/key.press.js');
         });
 
         it('should be able to get shortName', function(expect) {
@@ -19,16 +19,17 @@ module.exports = {
         });
 
         it('should be able to loadContent', function(expect) {
-            mockXHR('test content');
+            var mod = { code: 'test content' };
+            mockXHR(mod);
             var m = new Module();
-            var fn = new Spy;
+            var fn = new Spy();
             m.addEvent('loadcontent', fn);
             m.loadContent(function(content) {
-                expect(content).toBe('test content');
-                expect(m.get('content')).toBe('test content');
+                expect(content).toBe(mod.code);
+                expect(m.get('content')).toBe(mod.code);
                 expect(fn.getCallCount()).toBe(1);
             });
         });
 
     }
-}
+};

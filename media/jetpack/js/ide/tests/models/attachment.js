@@ -18,7 +18,7 @@ module.exports = {
         });
 
         it('should be editable if a text type', function(expect) {
-            var att = new Attachment;
+            var att = new Attachment();
             expect(att.isEditable()).toBe(true);
             att.set('ext', 'css');
             expect(att.isEditable()).toBe(true);
@@ -29,4 +29,4 @@ module.exports = {
             expect(att.isEditable()).toBe(false);
         });
     }
-}
+};

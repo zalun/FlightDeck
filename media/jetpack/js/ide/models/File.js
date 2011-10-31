@@ -27,7 +27,7 @@ var File = module.exports = new Class({
     },
 
     initialize: function File(data) {
-        if (!data.id) data.id = idCounter++;
+        if (data && !data.id) data.id = idCounter++;
         this.parent(data);
     },
 
