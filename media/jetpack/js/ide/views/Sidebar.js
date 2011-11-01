@@ -412,7 +412,7 @@ var Sidebar = module.exports = new Class({
                             fd.item.removeModule(file);
                         } else if (file instanceof Attachment) {
                             fd.item.removeAttachment(file);
-                        } else if (file instanceof Library) {
+                        } else if (file instanceof Package) {
                             fd.item.removeLibrary(file);
                         } else if (file instanceof Folder) {
                             fd.item.removeFolder(file);
@@ -653,7 +653,6 @@ var Sidebar = module.exports = new Class({
                 }
                 
                 fd.item.assignLibrary(lib_id);
-                prompt.destroy();
             }
         });
         

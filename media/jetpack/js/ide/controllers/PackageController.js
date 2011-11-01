@@ -115,7 +115,7 @@ module.exports = new Class({
         }
         if (this.options.check_if_latest) {
             dom.window.addEvent('focus', function() {
-                controller.checkIfLatest(this.askForReload);
+                controller.checkIfLatest(controller.askForReload);
             });
         }
 
@@ -153,10 +153,15 @@ module.exports = new Class({
             this.console_el = dom.$(this.options.console_el);
             this.console_el.addEvent('click', function(e) {
                 e.preventDefault();
-                dom.window.get('mozFlightDeck').send({
-                    cmd: 'toggleConsole',
-                    contents: 'open'
-                });
+                var FD = dom.window.get('mozFlightDeck');
+                if (FD) {
+                    FD.send({
+                        cmd: 'toggleConsole',
+                        contents: 'open'
+                    });
+                } else {
+                    $log('WARN: No mozFlightDeck.');
+                }
             });
         }
 
@@ -296,8 +301,8 @@ module.exports = new Class({
         });
     },
 
-    newDependendy: function(data) {
-        var lib = new Package(plugin);
+    newDependency: function(data) {
+        var lib = new Package(data);
         this.dependencies[lib.get('uid')] = lib; 
         this.sidebar.addPlugin(lib);
 
@@ -372,7 +377,7 @@ module.exports = new Class({
             url: this.options.check_latest_url,
             onSuccess: function(response) {
                 if (failCallback && controller.package_.get('revision_number') < response.revision_number) {
-                    failCallback.call();
+                    failCallback.call(this);
                 }
             }.bind(this)
         }).send();
@@ -445,14 +450,9 @@ module.exports = new Class({
             this.collectData();
             this.data.live_data_testing = true;
         }
-        var el;
+        var el = this.test_el;
         if (fd.alertIfNoAddOn()) {
-            if (e) {
-                el = e.target;
-            } else {
-                el = $(this.options.test_el);
-            }
-            if (el.getParent('li').hasClass('pressed')) {
+            if (el.hasClass('pressed')) {
                 fd.uninstallXPI(el.get('data-jetpackid'));
             } else {
                 this.installAddon();
@@ -593,6 +593,9 @@ module.exports = new Class({
             spinner.show();
             target.grab(img);
         }
+        setTimeout(function() {
+            modal.position();
+        }, 1);
     },
                       
     onChanged: function() {
@@ -884,14 +887,15 @@ module.exports = new Class({
                 fd.message.alert(response.message_title, response.message);
                 
                 var mod = this.modules[oldName];
-                var modId = mod.getID();
+                var modId = mod.get('uid');
                 mod.set({
                     filename: response.filename,
                     get_url: response.get_url
                 });
                 this.modules[response.filename] = mod;
                 // change the id of the element
-                $(modId).set('id', mod.getID());
+                this.sidebar.uids[mod.get('uid')] = this.sidebar.uids[modId];
+                delete this.sidebar.uids[modId];
                 delete this.modules[oldName];
             }.bind(this)
         }).send();
@@ -1219,11 +1223,15 @@ module.exports = new Class({
      * display the EditInfoModalWindow
      */
     editInfo: function() {
+        var controller = this;
         this.savenow = false;
         fd.editPackageInfoModal = fd.displayModal(
                 settings.edit_package_info_template.substitute(
                     Object.merge({}, this.data, this.options)));
-        $('package-info_form').addEvent('submit', this.boundSubmitInfo);
+        $('package-info_form').addEvent('submit', function(e) {
+            e.stop();
+            controller.submitInfo();
+        });
         $('full_name').addEvent('change', function() { 
             fd.fireEvent('change'); 
         });
@@ -1262,8 +1270,7 @@ module.exports = new Class({
      * submit info from EditInfoModalWindow
      * if $('savenow') clicked - save the full info
      */
-    submitInfo: function(e) {
-        e.stop();
+    submitInfo: function() {
         // collect data from the Modal
         this.options.package_info_form_elements.each(function(key) {
             if ($(key)) {
@@ -1488,6 +1495,7 @@ module.exports = new Class({
         // update page title to reflect current revision and name
         document.title = document.title.replace(this.options.revision_string, urls.revision_string);
         this.setOptions(urls);
+        this.package_.set(urls);
         // this only for the right display href
         if (urls.download_url && $(this.options.download_el)) {
             $(this.options.download_el).set('href', urls.download_url);

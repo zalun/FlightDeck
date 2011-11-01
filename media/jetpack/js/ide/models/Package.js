@@ -16,10 +16,9 @@ var Package = module.exports = new Class({
 		}
 	},
 
-	//pk: 'id_number',
+	pk: 'id_number',
 
 	fields: {
-		id: fields.NumberField(),
 		id_number: fields.NumberField(), // the real PK?
 		full_name: fields.TextField(),
 		name: fields.TextField(),
@@ -30,6 +29,7 @@ var Package = module.exports = new Class({
 		license: fields.TextField(),
 		version_name: fields.TextField(),
 		revision_number: fields.NumberField(),
+        view_url: fields.TextField(),
 
         latest: fields.NumberField() // a FK to PackageRevision
 
@@ -43,7 +43,11 @@ var Package = module.exports = new Class({
     },
 
     shortName: function() {
-        return this.get('name');
+        //TODO: it might be nice to show the `name` in the tree,
+        //so people don't try to require('Twitter Lib'), but instead
+        //think require('twitter-lib');
+        //return this.get('name');
+        return this.get('full_name');
     },
 
     fullName: function() {

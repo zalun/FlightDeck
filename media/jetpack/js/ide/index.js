@@ -5,15 +5,13 @@ var Package = require('./models/Package');
 var TabsController = require('./controllers/TabsController');
 var Ace = require('./views/FDEditor.Ace');
 var Sidebar = require('./views/Sidebar');
+var object = require('shipyard/utils/object');
 
 // TODO: remove this once no files outside 'editor' app need the editor
 window.editor = exports;
 
 
-//TODO: eventually, this file would connect Models and Views with some
-// controllers
-
-console.log('editor/index');
+if (window.console) console.log('editor/index');
 
 var tabs = exports.tabs = new TabsController();
 var sidebar = exports.sidebar = new Sidebar({ 
@@ -21,5 +19,10 @@ var sidebar = exports.sidebar = new Sidebar({
 });
 var ace = exports.ace = new Ace('editor-wrapper');
 
-var p = exports.item = new Package(settings);
+var data = object.merge({}, settings, {
+    description: settings.package_description,
+    author: settings.package_author,
+    version_name: settings.package_version_name
+});
+var p = exports.item = new Package(data);
 exports.controller = new PackageController(p, settings, ace, tabs, sidebar);
