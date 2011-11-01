@@ -1,5 +1,6 @@
 {% load base_helpers %}
   hashtag: '{% hashtag %}',
+  readonly: false,
 // Actions
   switch_sdk_url: '{{ revision.get_switch_sdk_url }}',
   save_url: '{{ revision.get_save_url }}',

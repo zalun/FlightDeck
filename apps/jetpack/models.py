@@ -1202,7 +1202,7 @@ class PackageRevision(BaseModel):
                 'uid': a.get_uid,
                 'filename': escape(a.filename),
                 'author': escape(a.author.username),
-                'type': escape(a.ext),
+                'ext': escape(a.ext),
                 'get_url': reverse('jp_attachment', args=[a.get_uid])
                 } for a in self.attachments.all()
             ] if self.attachments.count() > 0 else []
