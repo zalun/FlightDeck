@@ -35,7 +35,7 @@
     {% if settings.DEBUG %}
     <script src="/media/lib/shipyard/scripts/require.js" data-main="/media/jetpack/js/ide/"></script>
     {% else %}
-    <script src="/media/jetpack/js/ide-min.js"></script>
+    <script src="/media/jetpack/js/ide-min.js?{{ settings.BUILD_ID }}"></script>
     {% endif %}
 {% endblock %}
 
