@@ -267,11 +267,13 @@ class Repackage(object):
         # collect main dir files here
         main_dir_files = []
 
+        os.makedirs(os.path.join(sdk_dir, 'packages', package_name))
+
         def _extract(f, name, resource_dir_prefix):
             """ extract file
 
             :attr: f (string) full path of the file within XPI
-            :attr: name (string) 'data', 'doc', 'lib' or 'tests'
+            :attr: name (string) 'data', 'docs', 'lib' or 'tests'
             :attr: resource_dir_prefix (string)
             """
             if name not in f or resource_dir_prefix not in f:
@@ -345,7 +347,7 @@ class Repackage(object):
             # compatible with SDK > 1.0b1
             if uri_prefix != uri_prefix_1 and uri_prefix_1 in f:
                 resource_dir_prefix = uri_prefix_1
-            for name in ['doc', 'lib', 'data', 'tests']:
+            for name in ['docs', 'lib', 'data', 'tests']:
                 _extract(f, name, resource_dir_prefix)
         # Add all dependencies to the manifest
         # This is a flat list - hierarchy might be different from original
