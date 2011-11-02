@@ -297,7 +297,9 @@ class Repackage(object):
             # create lib, data and tests directories
             if (current_package_name, name) not in exporting:
                 # create appropriate directory
-                os.makedirs(get_package_dir(name, current_package_name))
+                somedir = get_package_dir(name, current_package_name)
+                if not os.path.isdir(somedir):
+                    os.makedirs(somedir)
                 exporting.append((current_package_name, name))
 
             # create minimal package.json for dependencies
