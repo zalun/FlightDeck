@@ -267,8 +267,6 @@ class Repackage(object):
         # collect main dir files here
         main_dir_files = []
 
-        os.makedirs(os.path.join(sdk_dir, 'packages', package_name))
-
         def _extract(f, name, resource_dir_prefix):
             """ extract file
 
