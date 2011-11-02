@@ -75,6 +75,24 @@ def update_celery(ctx):
     ctx.remote("/sbin/service %s-bulk restart" % settings.CELERY_SERVICE_PREFIX)
 
 
+_shipyard_cmd = 'node ./media/lib/shipyard/bin/shipyard build %s -d ./media/jetpack/js/ide'
+
+
+@task
+def shipyard_build(ctx):
+    " This is for -dev only "
+    manage_cmd(ctx, 'cache_bust')
+    with ctx.lcd(settings.SR"_DIR):
+        ctx.local(_shipyard_cmd % '--non-minify')
+
+
+@task
+def shipyard_min(ctx):
+    manage_cmd(ctx, 'cache_bust')
+    with ctx.lcd(settings.SRC_DIR):
+        ctx.local(_shipyard_cmd % '--minify')
+
+
 @task
 def deploy(ctx):
     install_cron()
@@ -96,6 +114,7 @@ def update(ctx):
     with ctx.lcd(settings.SRC_DIR):
         ctx.local("rm `find . -name '*.pyc'`")
     schematic()
+    shipyard_min()
 
     # Run management commands like this:
     # manage_cmd(ctx, 'cmd')
