@@ -237,6 +237,7 @@ MIDDLEWARE_CLASSES = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'utils.cookies.HttpOnlyMiddleware',
+    'waffle.middleware.WaffleMiddleware',
     'commonware.middleware.FrameOptionsHeader',
     'commonware.middleware.HidePasswordOnException',
 ]
@@ -248,6 +249,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'base.context_processors.uri',
     'django.contrib.messages.context_processors.messages',
     'person.context_processors.profile',
+    'django.core.context_processors.request',
 )
 
 ROOT_URLCONF = 'urls'
@@ -302,6 +304,7 @@ INSTALLED_APPS = [
 
 # 3RD PARTY APPS
     'djcelery',
+    'waffle',
 ]
 
 # Which from above apps should be removed if in PRODUCTION
