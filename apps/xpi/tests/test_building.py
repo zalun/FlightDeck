@@ -5,7 +5,7 @@ import shutil
 import simplejson
 import tempfile
 import time
-import waffle
+from waffle.models import Switch
 
 from mock import Mock
 #from nose.tools import eq_
@@ -396,8 +396,8 @@ require('libDmodule');
         # A depends on B
         # so, you can do require('B'), and it should be B/lib/index.js
 
-        backup = waffle.switch_is_active
-        waffle.switch_is_active = Mock(return_value = True)
+        Switch.objects.create(name='LibDirInMainAttributeWorkaround',
+                              active=True)
         addon = Package.objects.create(
                 author=self.author,
                 full_name='A',
@@ -420,7 +420,6 @@ require('b');
         celery_eager = settings.CELERY_ALWAYS_EAGER
         settings.CELERY_ALWAYS_EAGER = False
         response = addon.latest.build_xpi(hashtag=self.hashtag)
-        waffle.switch_is_active = backup
         settings.CELERY_ALWAYS_EAGER = celery_eager
         assert not response[1]
         assert os.path.isfile('%s.xpi' % self.target_basename)
