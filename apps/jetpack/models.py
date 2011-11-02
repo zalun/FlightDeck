@@ -536,7 +536,7 @@ class PackageRevision(BaseModel):
                 and waffle.switch_is_active(
                     'LibDirInMainAttributeWorkaround')):
             manifest['main'] = "%s/%s" % (manifest['lib'], manifest['main'])
-            log.warning('Lib dis added to main attribute')
+            log.warning('Lib dir added to main attribute')
         return manifest
 
     def get_manifest_json(self, sdk=None, **kwargs):
