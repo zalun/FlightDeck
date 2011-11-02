@@ -19,3 +19,6 @@ importlib
 
 # Repackage
 rdflib
+
+# features management
+-e git://github.com/jsocol/django-waffle.git#egg=waffle
