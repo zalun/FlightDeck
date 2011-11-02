@@ -271,14 +271,17 @@ class Repackage(object):
             """ extract file
 
             :attr: f (string) full path of the file within XPI
-            :attr: name (string) 'data', 'doc', 'lib' or 'tests'
+            :attr: name (string) 'data', 'docs', 'lib' or 'tests'
             :attr: resource_dir_prefix (string)
             """
             if name not in f or resource_dir_prefix not in f:
                 # copy files from main directory
                 if (f.count('/') == 0 and f not in standard_main_dir_files):
-                    f_name = os.path.join(
-                         sdk_dir, 'packages', package_name, f)
+                    f_dir = os.path.join(
+                         sdk_dir, 'packages', package_name)
+                    if not os.path.isdir(f_dir):
+                        os.makedirs(f_dir)
+                    f_name = os.path.join(f_dir, f)
                     if not os.path.exists(f_name):
                         with open(f_name, 'w') as f_file:
                             f_file.write(self.xpi_zip.open(f).read())
@@ -294,7 +297,9 @@ class Repackage(object):
             # create lib, data and tests directories
             if (current_package_name, name) not in exporting:
                 # create appropriate directory
-                os.makedirs(get_package_dir(name, current_package_name))
+                somedir = get_package_dir(name, current_package_name)
+                if not os.path.isdir(somedir):
+                    os.makedirs(somedir)
                 exporting.append((current_package_name, name))
 
             # create minimal package.json for dependencies
@@ -345,7 +350,7 @@ class Repackage(object):
             # compatible with SDK > 1.0b1
             if uri_prefix != uri_prefix_1 and uri_prefix_1 in f:
                 resource_dir_prefix = uri_prefix_1
-            for name in ['doc', 'lib', 'data', 'tests']:
+            for name in ['docs', 'lib', 'data', 'tests']:
                 _extract(f, name, resource_dir_prefix)
         # Add all dependencies to the manifest
         # This is a flat list - hierarchy might be different from original
