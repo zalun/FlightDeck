@@ -7,6 +7,7 @@ import commonware
 import tempfile
 import hashlib
 import codecs
+import waffle
 from decimal import Decimal, getcontext
 from copy import deepcopy
 
@@ -531,9 +532,11 @@ class PackageRevision(BaseModel):
             'contributors': self.get_contributors_list(),
             'lib': self.get_lib_dir()
         }
-        if self.package.is_library() and settings.WORKAROUND_SDK_MAIN:
+        if (self.package.is_library()
+                and waffle.switch_is_active(
+                    'LibDirInMainAttributeWorkaround')):
             manifest['main'] = "%s/%s" % (manifest['lib'], manifest['main'])
-
+            log.warning('Lib dir added to main attribute')
         return manifest
 
     def get_manifest_json(self, sdk=None, **kwargs):

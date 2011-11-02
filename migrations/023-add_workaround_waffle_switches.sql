@@ -1,0 +1,2 @@
+INSERT INTO `waffle_switch` VALUES (1,'LibDirInMainAttributeWorkaround',1,'Should library directory name (\'lib\') be added to the \'index\' in main attribute?\r\nIf not active manifest will contain attribute \'main\': \'index\'\r\nIf active it will be \'main\': \'lib/index\'\r\n\r\nThis should be switched off after following bug is resolved:\r\nhttps://bugzilla.mozilla.org/show_bug.cgi?id=697274\r\n');
+

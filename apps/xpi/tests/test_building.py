@@ -5,6 +5,7 @@ import shutil
 import simplejson
 import tempfile
 import time
+from waffle.models import Switch
 
 from mock import Mock
 #from nose.tools import eq_
@@ -395,6 +396,8 @@ require('libDmodule');
         # A depends on B
         # so, you can do require('B'), and it should be B/lib/index.js
 
+        Switch.objects.create(name='LibDirInMainAttributeWorkaround',
+                              active=True)
         addon = Package.objects.create(
                 author=self.author,
                 full_name='A',
