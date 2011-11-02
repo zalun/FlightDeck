@@ -279,8 +279,11 @@ class Repackage(object):
             if name not in f or resource_dir_prefix not in f:
                 # copy files from main directory
                 if (f.count('/') == 0 and f not in standard_main_dir_files):
-                    f_name = os.path.join(
-                         sdk_dir, 'packages', package_name, f)
+                    f_dir = os.path.join(
+                         sdk_dir, 'packages', package_name)
+                    if not os.path.isdir(f_dir):
+                        os.makedirs(f_dir)
+                    f_name = os.path.join(f_dir, f)
                     if not os.path.exists(f_name):
                         with open(f_name, 'w') as f_file:
                             f_file.write(self.xpi_zip.open(f).read())
