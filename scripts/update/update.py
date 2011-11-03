@@ -79,18 +79,11 @@ _shipyard_cmd = 'node ./media/lib/shipyard/bin/shipyard build %s -d ./media/jetp
 
 
 @task
-def shipyard_build(ctx):
-    " This is for -dev only "
-    manage_cmd(ctx, 'cache_bust')
-    with ctx.lcd(settings.SRC_DIR):
-        ctx.local(_shipyard_cmd % '--non-minify')
-
-
-@task
 def shipyard_min(ctx):
     manage_cmd(ctx, 'cache_bust')
+    minify = '--non-minify' if getattr(settings, 'BUILDER_DEV', False) else '--minify'
     with ctx.lcd(settings.SRC_DIR):
-        ctx.local(_shipyard_cmd % '--minify')
+        ctx.local(_shipyard_cmd % minify)
 
 
 @task

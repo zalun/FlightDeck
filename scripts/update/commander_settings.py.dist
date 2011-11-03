@@ -14,3 +14,5 @@ CELERY_HOSTGROUP = "addons-celery-dev"
 SSH_KEY = None
 
 CRON_NAME = "builder-addons-dev"
+
+BUILDER_DEV = False
