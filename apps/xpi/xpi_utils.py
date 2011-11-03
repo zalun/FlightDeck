@@ -1,25 +1,18 @@
 """ a set of defs used to manage xpi
 """
 
-import collections
 import os
-import rdflib
-import re
 import shutil
 import simplejson
 import subprocess
-import tempfile
 import time
-import urllib
-import zipfile
+import waffle
 
 import commonware.log
 from statsd import statsd
 
-from django.http import Http404, HttpResponseServerError, HttpResponseForbidden
 from django.conf import settings
-from django.template.defaultfilters import slugify
-from django.utils.translation import ugettext as _
+#from django.utils.translation import ugettext as _
 
 log = commonware.log.getLogger('f.xpi_utils')
 
@@ -33,6 +26,7 @@ def info_write(path, status, message, hashtag=None):
     with open(path, 'w') as info:
         info.write(simplejson.dumps(data))
 
+
 def sdk_copy(sdk_source, sdk_dir):
     log.debug("Copying SDK from (%s) to (%s)" % (sdk_source, sdk_dir))
     with statsd.timer('xpi.copy'):
@@ -45,8 +39,6 @@ def sdk_copy(sdk_source, sdk_dir):
                     shutil.copy(s_d, sdk_dir)
         else:
             shutil.copytree(sdk_source, sdk_dir)
-
-
 
 
 def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None):
@@ -69,9 +61,8 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None):
     # create XPI
     os.chdir(package_dir)
 
-    # @TODO xulrunner should be a config variable
     cfx = [settings.PYTHON_EXEC, '%s/bin/cfx' % sdk_dir,
-           '--binary=/usr/bin/xulrunner',
+           '--binary=%s' % settings.XULRUNNER_BINARY,
            '--keydir=%s/%s' % (sdk_dir, settings.KEYDIR), 'xpi']
     if options:
         cfx.append(options)
@@ -95,7 +86,7 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None):
                      hashtag, str(err), cfx))
         shutil.rmtree(sdk_dir)
         raise
-    if (settings.WORKAROUND_STDERR and
+    if (waffle.switch_is_active('SDKErrorInStdOutWorkaround') and
             not os.path.exists(os.path.join(package_dir, '%s.xpi' % filename))):
         badresponse = response[0]
         response = ['', '']

@@ -113,6 +113,7 @@ HOMEPAGE_PACKAGES_NUMBER = 3
 
 SDKDIR_PREFIX = tempfile.gettempdir()   # removed after xpi is created
 XPI_TARGETDIR = tempfile.gettempdir()   # target dir - in shared directory
+XULRUNNER_BINARY = '/usr/bin/xulrunner'
 
 LIBRARY_AUTOCOMPLETE_LIMIT = 20
 KEYDIR = 'keydir'
@@ -126,12 +127,8 @@ ATTACHMENT_MAX_FILESIZE = 2 * 1024 * 1024  # 2MB
 
 PYTHON_EXEC = 'python'
 
-
-WORKAROUND_STDERR = True
-
 # amo defaults
 XPI_AMO_PREFIX = "ftp://ftp.mozilla.org/pub/mozilla.org/addons/"
-
 
 LOWEST_APPROVED_SDK = "1.2.1"
 TEST_SDK = 'addon-sdk-1.2.1'

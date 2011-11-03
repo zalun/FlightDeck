@@ -1,0 +1,1 @@
+INSERT INTO `waffle_switch` (name, active, note) VALUES ('SDKErrorInStdOutWorkaround',1,'Should system check if XPI file has been created even though the STDERR was empty?\r\nShould be switched off after this bug is fixed: https://bugzilla.mozilla.org/show_bug.cgi?id=697272\r\n');
