@@ -371,3 +371,9 @@ CACHES = {
         'KEY_PREFIX': 'bamo',
     }
 }
+
+
+try:
+    from build import BUILD_ID
+except ImportError:
+    BUILD_ID = 'dev'

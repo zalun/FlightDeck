@@ -1,5 +1,7 @@
 adminmedia
 build
+build.py
+ide-min.js
 flightdeckenv
 flightdeck/media/jetpack
 flightdeck/media/tutorial
