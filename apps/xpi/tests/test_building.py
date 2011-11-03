@@ -297,11 +297,20 @@ require('libCmodule');
         libB.latest.dependency_add(libC.latest)
         addon.latest.dependency_add(libB.latest)
         celery_eager = settings.CELERY_ALWAYS_EAGER
+        # if workaround is needed
+        # STDERR will be empty and XPI file doesn't exist
         settings.CELERY_ALWAYS_EAGER = False
         response = addon.latest.build_xpi(hashtag=self.hashtag)
-        settings.CELERY_ALWAYS_EAGER = celery_eager
+        assert response[0] and not response[1]
+        assert not os.path.isfile('%s.xpi' % self.target_basename)
+        # if workaround is working STDERR isn't empty and XPI is still
+        # not buillt
+        Switch.objects.create(name='SDKErrorInStdOutWorkaround',
+                              active=True)
+        response = addon.latest.build_xpi(hashtag=self.hashtag)
         assert response[1]
         assert not os.path.isfile('%s.xpi' % self.target_basename)
+        settings.CELERY_ALWAYS_EAGER = celery_eager
 
 
     def test_addon_with_deep_dependency(self):
