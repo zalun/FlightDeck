@@ -434,7 +434,7 @@ module.exports = new Class({
                 maskBorder: false
             }).show()
         };
-        data = {
+        var data = {
             hashtag: this.options.hashtag, 
             filename: this.package_.get('name')
         };
@@ -1002,7 +1002,7 @@ module.exports = new Class({
                 this.registerRevision(response);
                 fd.message.alert(response.message_title, response.message);
                 this.newFolder({
-                    name: reponse.name,
+                    name: response.name,
                     root_dir: root_dir
                 });
             }.bind(this)
@@ -1091,7 +1091,7 @@ module.exports = new Class({
         var controller = this;
         new Request.JSON({
             method: 'get',
-            url: that.options.latest_dependencies_url,
+            url: this.options.latest_dependencies_url,
             timeout: 5000,
             onSuccess: function(res) {
                 res.forEach(function(latest_revision) {
