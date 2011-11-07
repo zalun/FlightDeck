@@ -1,8 +1,8 @@
-{% load safe_csrf %}
+
 <div id='upload-package-modal'>
 	<h3>Upload Package</h3>
-    <form id='upload-package-form' method='post' action='{% url jp_upload_xpi %}' enctype="multipart/form-data">
-      {% safe_csrf_token %}
+    <form id='upload-package-form' method='post' action='{{ url('jp_upload_xpi') }}' enctype="multipart/form-data">
+      {{ safe_csrf_token()|safe }}
       <div class="UI_Modal_Section">
         <p>
           <label>Upload XPI</label>

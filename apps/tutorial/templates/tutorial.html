@@ -16,7 +16,7 @@
 
 	<ul id="new-addon">
 		<li>
-			<a id="create_addon" title="" target="_new" href="{% url jp_addon_create %}"><span>Create Add-on</span></a>
+			<a id="create_addon" title="" target="_new" href="{{ url('jp_addon_create') }}"><span>Create Add-on</span></a>
 		</li>
 	</ul>
 
@@ -140,7 +140,7 @@ require("widget").Widget({
 
 	<p>From here, you can check out the <a href="/docs/packages/addon-kit/addon-kit.html">core
 	library documentation</a> to discover new ways to extend the
-	browser. Alternatively, you can browse <a href="{% url jp_browser_addons %}">other
+	browser. Alternatively, you can browse <a href="{{ url('jp_browser_addons') }}">other
 	people's add-ons</a>, view their source code and see how they work.</p>
 
 	<p>Whatever you choose, we hope you enjoy making add-ons! Don't forget

@@ -1725,11 +1725,11 @@ class Package(BaseModel, SearchMixin):
         return super(Package, self).delete()
 
     def get_jid(self):
-        jid = self.jid
-        if '@' in jid:
+        jid = self.jid        
+        if jid and '@' in jid:
             return jid
         else:
-            return jid + '@jetpack'
+            return '%s@jetpack' % jid
 
     def create_revision_from_xpi(self, packed, manifest, author, jid,
             new_revision=False):
@@ -1867,6 +1867,7 @@ class Package(BaseModel, SearchMixin):
         # hack for ES, because a decimal is serialized as 'Decimal('0.302')'
         # so we must convert that to a float
         data['activity'] = float(self.activity_rating or 0.0)
+        
         del data['activity_rating']
 
         if self.latest:

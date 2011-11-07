@@ -13,7 +13,7 @@ from django.core.urlresolvers import reverse
 from amo.constants import *
 from amo import helpers
 from amo.tasks import upload_to_amo
-from base.templatetags.base_helpers import hashtag
+from base.helpers import hashtag
 from jetpack.models import Package, PackageRevision
 from utils.amo import AMOOAuth
 

@@ -4,10 +4,10 @@
 	"message": "Attachment {{ attachment.filename }} renamed",
 	"filename": "{{ attachment.filename }}",
 	"ext": "{{ attachment.ext }}",
-	"basename": "{{ attachment.get_filename }}",
+	"basename": "{{ attachment.get_filename() }}",
 	"author": "{{ attachment.author.username }}",
-	"display_url": "{{ attachment.get_display_url }}",
-	"get_url": "{% url jp_attachment attachment.get_uid %}",
+	"display_url": "{{ attachment.get_display_url() }}",
+	"get_url": "{{ url('jp_attachment', attachment.get_uid) }}",
 	"uid": "{{ attachment.pk }}"
 }
 

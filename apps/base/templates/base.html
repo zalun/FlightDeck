@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 {# Base HTML, every page will use #}
-{% load base_helpers %}
+
 <html lang="en">
 	<head>
         <link rel="icon" href="/media/base/img/favicon.png"/>
@@ -38,15 +38,15 @@
 				{% block app_settings %}{% endblock %}{% block page_settings %}{% endblock %}
 				addons_helper: '{{ settings.ADDONS_HELPER_URL }}',
 				person_login_url: '{{ login_url }}',
-				jp_addon_create_url: '{% url jp_addon_create %}',
-				jp_library_create_url: '{% url jp_library_create %}',
+				jp_addon_create_url: '{{ url('jp_addon_create') }}',
+				jp_library_create_url: '{{ url('jp_library_create') }}',
 				user: '{{ user.username }}',
-				DEBUG: {{ settings.DEBUG|yesno:"true,false" }}
+				DEBUG: {{ settings.DEBUG|yesno("true,false") }}
 			};
 			window.addEvent('domready', function() {
-                fd = new FlightDeck({
-                    'user': '{{ user.username }}'{% block flightdeck_options %}{% endblock %}
-                });
+				fd = new FlightDeck({
+				    'user': '{{ user.username }}'{% block flightdeck_options %}{% endblock %}
+				});
 				{% block app_domready %}{% endblock %}
 				{% block page_domready %}{% endblock %}
 			}); // domReady
@@ -67,13 +67,13 @@
 				{% block header %}{% include "_header.html" %}{% endblock %}
 			</header> <!-- /app-header -->
 
-			{% block app_menu %}{% comment %}
+			{% block app_menu %}{#
 				<div id="editor-menu-wrapper">
 					<ul class="UI_Editor_Menu minimal">
 						{% include "_base_app_menu_items.html" %}
 					</ul>
 				</div><!-- /editor-menu-wrapper -->
-			{% endcomment %}{% endblock %}
+			#}{% endblock %}
 
 			<div id="app-body">
 				{% block app_body %}

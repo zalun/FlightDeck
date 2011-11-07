@@ -16,7 +16,7 @@ from django.conf import settings
 
 from base.shortcuts import get_object_with_related_or_404
 
-from base.templatetags.base_helpers import hashtag
+from base.helpers import hashtag
 from xpi import tasks
 from jetpack.models import PackageRevision
 

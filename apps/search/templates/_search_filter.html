@@ -1,23 +1,23 @@
-{% load base_helpers %}
+
 <section id="NarrowSearch">
     <h2 class="UI_Heading">Narrow Search</h2>
 
     <h3 class="UI_SubHeading">Types</h3>
     <ul class="UI_Action_List">
         <li {% if not type  %}class="selected"{% endif %}>
-            <a href="?{% querystring type=None %}">
+            <a href="?{{ querystring('type=') }}">
                 Combined
             </a>
             <strong>({{ combined_total }})</strong>
         </li>
-        <li {% ifequal type 'addon' %}class="selected"{% endifequal %}>
-        <a href="?{% querystring type='a' %}">
+        <li {% if type == 'addon' %}class="selected"{% endif %}>
+        <a href="?{{ querystring('type=a') }}">
                 Add-ons
             </a>
             <strong>({{ addon_total }})</strong>
         </li>
-        <li {% ifequal type 'library' %}class="selected"{% endifequal %}>
-            <a href="?{% querystring type='l' %}">
+        <li {% if type == 'library' %}class="selected"{% endif %}>
+            <a href="?{{ querystring('type=l') }}">
                 Libraries
             </a>
             <strong>({{ library_total }})</strong>
@@ -28,11 +28,11 @@
     <h3 class="UI_SubHeading">Owners</h3>
     <ul class="UI_Action_List">
         <li {% if not query.author %}class="selected" {% endif %}>
-            <a href="?{% querystring author=None %}">By Everyone</a>
+            <a href="?{{ querystring('author=') }}">By Everyone</a>
             <strong>({{ everyone_total }})</strong>
         </li>
-        <li {% ifequal query.author user %}class="selected"{% endifequal %}>
-            <a href="?{% querystring author=user.id %}">By Me</a>
+        <li {% if query.author == user %}class="selected"{% endif %}>
+            <a href="?{{ querystring('author=%s' % user.id) }}">By Me</a>
             <strong>({{ my_total }})</strong>
         </li>
     </ul>

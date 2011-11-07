@@ -1,6 +1,6 @@
 <ul class="piWrapper">
-	{% if profile.get_fullname %}
-		<li class="name"><span></span> {{ profile.get_fullname }}</li>
+	{% if profile.get_fullname() %}
+		<li class="name"><span></span> {{ profile.get_fullname() }}</li>
 	{% endif %}
 	<li class="mail">
 		<span></span> <a title="" href="mailto:{{ user.email }}">{{ user.email }}</a>
@@ -18,6 +18,6 @@
 <ul class="seeProfile">
 	<li>
 		See your 
-		<a title="" href="{% url person_public_profile profile.nickname %}">public profile</a>
+		<a title="" href="{{ url('person_public_profile', profile.nickname or user.username) }}">public profile</a>
 	</li>
 </ul>		

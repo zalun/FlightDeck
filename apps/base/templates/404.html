@@ -25,6 +25,6 @@
 	<p>Or you can just jump over to some of the popular pages on our website.</p>
 
 	<ul>
-		<li>Are you interested in a <a href="{% url jp_browser_addons %}">list of add-ons</a>?</li>
-		<li>If you prefer to start over, just go to our <a href="{% url home %}">front page</a>
+		<li>Are you interested in a <a href="{{ url('jp_browser_addons') }}">list of add-ons</a>?</li>
+		<li>If you prefer to start over, just go to our <a href="{{ url('home') }}">front page</a>
 {% endblock %}

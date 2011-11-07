@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% load base_helpers %}
+
 
 {% block flightdeck_options %},
-'upload_package_modal': '{% escape_template "_upload_package.html" %}'
+'upload_package_modal': '{{ escape_template("_upload_package.html") }}'
 {% endblock %}
 
 {% block head %}
@@ -11,39 +11,39 @@
 
 {% block app_sidebar %}
   <h2 class="UI_Heading">
-    {{ profile.get_name }}
+    {{ profile.get_name()}}
   </h2>
   
   <div class="UI_ProfileInfo">
     {% include '_dashboard_info.html' %}
   </div>
 
-  {% comment %}
+  {#
   <ul class="UI_Action_List">
       <li>
         <a title="Upload Package" id="upload-package" href="#">Upload XPI</a>
       </li>
   </ul>
-  {% endcomment %}
+  #}
 
   <ul class="UI_Action_List">
     <li>
-      <a title="Public Add-ons" href="{% url person_addons %}">Public Add-ons</a> 
+      <a title="Public Add-ons" href="{{ url('person_addons') }}">Public Add-ons</a> 
       <strong>(<span id="public_addons_no">{{ addons|length }}</span>)</strong>
     </li>
     <li>
-      <a title="Public Libraries" href="{% url person_libraries %}">Public Libraries</a> 
+      <a title="Public Libraries" href="{{ url('person_libraries') }}">Public Libraries</a> 
       <strong>(<span id="public_libs_no">{{ libraries|length }}</span>)</strong>
     </li>
   </ul>
 
   <ul class="UI_Action_List">
     <li>
-      <a title="Private Add-ons" href="{% url person_disabled_addons %}">Private Add-ons</a> 
+      <a title="Private Add-ons" href="{{ url('person_disabled_addons') }}">Private Add-ons</a> 
       <strong>(<span id="private_addons_no">{{ disabled_addons|length }}</span>)</strong>
     </li>
     <li>
-      <a title="Private Libraries" href="{% url person_disabled_libraries %}">Private Libraries</a> 
+      <a title="Private Libraries" href="{{ url('person_disabled_libraries') }}">Private Libraries</a> 
       <strong>(<span id="private_libs_no">{{ disabled_libraries|length }}</span>)</strong>
     </li>
   </ul>

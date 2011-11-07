@@ -16,7 +16,7 @@ from django.conf import settings
 
 from jetpack.models import Module, Package, PackageRevision, SDK
 from xpi import xpi_utils
-from base.templatetags.base_helpers import hashtag
+from base.helpers import hashtag
 
 log = commonware.log.getLogger('f.tests')
 

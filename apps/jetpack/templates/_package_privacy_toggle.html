@@ -1,10 +1,10 @@
         <li{% if single %} id="UI_ActivateLink"{% endif%} class="UI_Activate{% if item.active %} pressed{% endif %}">
-        <a title="Let the world use it" href="{{ item.get_activate_url }}"{% if item.active %} class="inactive"{% endif %}>
+        <a title="Let the world use it" href="{{ item.get_activate_url()}}"{% if item.active %} class="inactive"{% endif %}>
                 Public
             </a>
         </li>
         <li{% if single %} id="UI_DisableLink"{% endif %} class="UI_Disable{% if not item.active %} pressed{% endif %}">
-        <a title="My preciousss!" href="{{ item.get_disable_url }}"{% if not item.active %} class="inactive"{% endif %}>
+        <a title="My preciousss!" href="{{ item.get_disable_url()}}"{% if not item.active %} class="inactive"{% endif %}>
                 Private
             </a>
         </li>

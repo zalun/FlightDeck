@@ -1,9 +1,9 @@
 <div id="display-package-info">
-	<h3>{{ revision.package.get_type_name }}: {{ revision.full_name }}</h3>
+	<h3>{{ revision.package.get_type_name()}}: {{ revision.full_name }}</h3>
 	<div class="UI_Modal_Section">
 		<p><strong>Author</strong>
-			<a href="{% url person_public_profile revision.package.author.username %}">
-				{{ revision.package.author.get_profile }}
+			<a href="{{ url('person_public_profile', revision.package.author.username) }}">
+				{{ revision.package.author.get_profile()}}
 			</a>
 		</p>
 		{% if revision.revision_number == revision.package.version.revision_number %}
@@ -11,20 +11,20 @@
 		{% else %}
 			<p><strong>Revision</strong> {{ revision.revision_number }}</p>
 			<p><strong>Latest version</strong>
-				<a href="{{ revision.package.version.get_absolute_url|safe }}">
+				<a href="{{ revision.package.version.get_absolute_url()|safe }}">
 					{{ revision.package.version_name }}
 				</a>
 			</p>
 		{% endif %}
 		{% if revision.package.latest.revision_number != revision.revision_number %}
 			<p><strong>Latest revision</strong>
-				<a href="{{ revision.package.latest.get_absolute_url|safe }}">
+				<a href="{{ revision.package.latest.get_absolute_url()|safe }}">
 					{{ revision.package.latest.revision_number }}
 				</a>
 			</p>
 		{% endif %}
 		<div class="description">
-			{{ revision.get_full_description }}
+			{{ revision.get_full_description() }}
 		</div>
 	</div>
 	<div class="UI_Modal_Actions">

@@ -12,7 +12,7 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
 from jetpack.models import Package, PackageRevision, Module
-from base.templatetags.base_helpers import hashtag
+from base.helpers import hashtag
 
 log = commonware.log.getLogger('f.test')
 

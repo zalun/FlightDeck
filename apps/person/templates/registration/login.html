@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% load base_helpers %}
-{% load safe_csrf %}
+
+
 {# default django template for login page #}
 
 {% block title %}Sign In - {% endblock %}
@@ -17,10 +17,10 @@
 {% block app_content %}
 	{% if form.errors %}
         <p class="fd_error" title="Sign in error">
-		{% for sender,subject in form.errors.items %}
+		{% for sender,subject in form.errors.items() %}
 			{% for error in subject %}
                 {% if sender != '__all__' %}
-                    {{ sender|replace:"username,email address"|capitalize }}: 
+                    {{ sender|replace("username,email","address")|capfirst }}: 
                 {% endif %}
                 {{ error|escape }}<br/>
 			{% endfor %}
@@ -30,8 +30,8 @@
 
 	<div class="UI_Login">
 		
-		<form class="UI_Forms" id="login_form" method="post" action="{% url django.contrib.auth.views.login %}" accept-charset="utf-8">
-			{% safe_csrf_token %}
+		<form class="UI_Forms" id="login_form" method="post" action="{{ url('django.contrib.auth.views.login') }}" accept-charset="utf-8">
+			{{ safe_csrf_token()|safe }}
 			<fieldset>
 				<legend>Login</legend>
 				
@@ -47,14 +47,14 @@
 				</div>
 				
 				<p class="UI_Field">
-					{{ form.username.label_tag }}
+					{{ form.username.label_tag()|safe }}
 					{# form.username #}
                     <input id="id_username" type="text" autofocus name="username" maxlength="255" />
 				</p> <!-- /UI_Field -->
 
 				<p class="UI_Field">
-					{{ form.password.label_tag }}
-					{{ form.password }}
+					{{ form.password.label_tag()|safe }}
+					{{ form.password|safe }}
 				</p> <!-- /UI_Field -->
 			</fieldset>
 

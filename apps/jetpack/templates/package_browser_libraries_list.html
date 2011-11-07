@@ -11,7 +11,7 @@
 		{% if pager.has_previous %}
 			<li class="UI_Pagin_Action prev">
 				<span></span>
-				<a title="" href="{% url jp_browser_addons_page pager.previous_page_number %}">
+				<a title="" href="{{ url('jp_browser_addons_page', pager.previous_page_number() ) }}">
 					Previous
 				</a>
 			</li>
@@ -19,7 +19,7 @@
 		<li class='current'>{{ pager.number }}</li>
 		{% if pager.has_next %}
 			<li class="UI_Pagin_Action next">
-				<a title="" href="{% url jp_browser_addons_page pager.next_page_number %}">Next</a>
+				<a title="" href="{{ url('jp_browser_addons_page', pager.next_page_number() ) }}">Next</a>
 				<span></span>
 			</li>
 		{% endif %}
