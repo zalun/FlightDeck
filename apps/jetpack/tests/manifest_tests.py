@@ -52,6 +52,14 @@ class ManifestsTest(TestCase):
         del first_manifest['id']
         self.assertEqual(manifest, first_manifest)
 
+    def test_overriding_manifest(self):
+        " test if self.manifest is created for the clean addon "
+        first = self.addon.latest
+
+        manifest = first.get_manifest(
+                package_overrides={'version': 'test_version'})
+        eq_(manifest['version'], 'test_version')
+
     def test_manifest_from_not_current_revision(self):
         """
         test if the version in the manifest changes after 'updating'

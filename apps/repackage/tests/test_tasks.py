@@ -8,9 +8,10 @@ import simplejson
 import tempfile
 import urllib2
 import urlparse
-import zipfile
+#import zipfile
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
 from mock import Mock
@@ -18,7 +19,9 @@ from nose.tools import eq_
 from utils.test import TestCase
 
 from base.templatetags.base_helpers import hashtag
-from repackage.tasks import rebuild
+from jetpack.models import SDK
+from repackage.tasks import rebuild, rebuild_addon
+from repackage.helpers import increment_version
 
 log = commonware.log.getLogger('f.repackage')
 
@@ -49,11 +52,10 @@ class RepackageTaskTest(TestCase):
             os.remove('%s.json' % self.target_basename)
 
     def test_download_and_rebuild(self):
-        rep_response = rebuild(
-                os.path.join(
-                    self.xpi_file_prefix, '%s.xpi' % self.sample_addons[0]),
-                None,
-                self.sdk_source_dir, self.hashtag)
+        test_file = os.path.join(
+                    self.xpi_file_prefix, '%s.xpi' % self.sample_addons[0])
+        rep_response = rebuild(test_file, None, self.sdk_source_dir,
+            self.hashtag)
         assert not rep_response[1]
 
     def test_download_and_failed_rebuild(self):
@@ -98,3 +100,29 @@ class RepackageTaskTest(TestCase):
         eq_(desired_response['secret'], params['secret'][0])
         eq_(desired_response['location'], params['location'][0])
         eq_(desired_response['result'], params['result'][0])
+
+
+class RebuildAddonTest(TestCase):
+
+    fixtures = ['mozilla_user', 'core_sdk', 'users', 'packages']
+
+    def setUp(self):
+        self.hashtag = hashtag()
+        self.author = User.objects.get(username='john')
+        self.addon = self.author.packages_originated.addons()[0:1].get()
+        self.core_sdk = SDK.objects.latest('pk')
+        self.createTestSDK()
+
+    def test_rebuild_addon(self):
+        urllib2.urlopen = Mock()
+        rev = self.addon.latest
+        pingback_url = 'http://example.com/pingback'
+        assert rebuild_addon(rev.pk, self.hashtag,
+                             self.test_sdk.version,
+                             pingback=pingback_url)
+        call_args = urllib2.urlopen.call_args
+        eq_(pingback_url, call_args[0][0])
+        assert 'success' in call_args[1]['data']
+        assert self.hashtag in call_args[1]['data']
+        assert rev.package.name in call_args[1]['data']
+        assert increment_version(rev.get_version_name_only()) in call_args[1]['data']

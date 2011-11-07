@@ -20,6 +20,7 @@ from base.templatetags.base_helpers import hashtag
 
 log = commonware.log.getLogger('f.tests')
 
+OLDXPIBUILD = xpi_utils.build
 
 class XPIBuildTest(TestCase):
 
@@ -56,6 +57,7 @@ class XPIBuildTest(TestCase):
             settings.ROOT, 'lib', settings.TEST_SDK))
 
     def tearDown(self):
+        xpi_utils.build = OLDXPIBUILD
         self.deleteCore()
         if os.path.exists(self.SDKDIR):
             shutil.rmtree(self.SDKDIR)
@@ -459,4 +461,11 @@ require('b');
         self.librev.dependency_add(packrev)
         self.addonrev.dependency_add(packrev)
         self.addonrev.dependency_add(self.librev)
-        self.addonrev.build_xpi(hashtag=self.hashtag, rapid=True)
+        self.addonrev.build_xpi(hashtag=self.hashtag)
+
+    def test_pk_in_harness(self):
+        xpi_utils.build = Mock()
+        Switch.objects.create(name='AddRevisionPkToXPI',
+                              active=True)
+        self.addonrev.build_xpi(hashtag=self.hashtag)
+        assert 'harness-option' in xpi_utils.build.call_args[1]['options']

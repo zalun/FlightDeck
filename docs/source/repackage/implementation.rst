@@ -9,10 +9,6 @@ Implementation
    :members:
    :undoc-members:
 
-.. automodule:: repackage.models
-   :members:
-   :undoc-members:
-
 .. automodule:: repackage.tasks
    :members:
    :undoc-members:

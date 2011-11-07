@@ -10,7 +10,7 @@ import zipfile
 
 #from mock import Mock
 from nose.tools import eq_
-from nose import SkipTest
+#from nose import SkipTest
 from utils.test import TestCase
 
 from django.conf import settings
@@ -57,8 +57,12 @@ class RepackageTest(TestCase):
 
     def test_not_existing_location(self):
         rep = Repackage()
-        self.assertRaises(urllib2.HTTPError,
-                rep.download,
+        # different versions raise different exception
+        if hasattr(urllib2, 'URLError'):
+            exc = urllib2.URLError
+        else:
+            exc = urllib2.HTTPError
+        self.assertRaises(exc, rep.download,
                 'http://builder.addons.mozilla.org/wrong_file.xpi')
 
     def test_forcing_version(self):

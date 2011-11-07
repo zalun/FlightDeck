@@ -47,7 +47,7 @@ class Mock(object):
     def __getattr__(self, name):
         return Mock
 
-MOCK_MODULES = ['MySQLdb']
+MOCK_MODULES = ['MySQLdb', 'waffle']
 
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()

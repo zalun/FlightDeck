@@ -175,8 +175,8 @@ class Repackage(object):
         :param: target_version (String)
         """
         self.get_manifest(package_overrides=package_overrides)
-        log.debug('[%s] Manifest: %s' % (hashtag, self.manifest))
         sdk_dir = self.extract_packages(sdk_source_dir)
+        log.debug('[%s] Manifest: %s' % (hashtag, self.manifest))
         # build xpi
         log.debug("[%s] Rebuilding XPI" % hashtag)
         response = xpi_utils.build(sdk_dir,
