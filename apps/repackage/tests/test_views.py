@@ -41,6 +41,7 @@ class RepackageViewsTest(TestCase):
                 "sample_add-on-1.0b4.xpi",
                 "sample_add-on-1.0rc2.xpi"]
         self.rebuild_url = reverse('repackage_rebuild')
+        self.rebuild_url_addons = reverse('repackage_rebuild_addons')
 
     def test_repackage_bad_request(self):
         # POST request is required
@@ -179,3 +180,21 @@ class RepackageViewsTest(TestCase):
         log.debug(resp.content)
         data = simplejson.loads(resp.content)
         eq_(num_of_versions, len(data))
+
+    def test_bulk_repackage_addon(self):
+        tasks.low_rebuild.delay = Mock(return_value=None)
+        response = self.client.post(self.rebuild_url_addons, {
+            'sdk_version': 'test_version',
+            'addons': simplejson.dumps([
+                {'revision_pk': 1},
+                {'revision_pk': 2}]),
+            'secret': settings.AMO_SECRET_KEY})
+
+        eq_(response.status_code, 200)
+        content = simplejson.loads(response.content)
+        eq_(content['status'], 'success')
+        eq_(tasks.low_rebuild.delay.call_count, 2)
+        # is callback to the right test provided?
+        assert 'callback' in tasks.low_rebuild.delay.call_args[1]
+        # is sdk version provided?
+        eq_('test_version', tasks.low_rebuild.delay.call_args[0][2])

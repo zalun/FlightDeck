@@ -507,11 +507,14 @@ class PackageRevision(BaseModel):
         " return description prepared for rendering "
         return "<p>%s</p>" % self.get_full_description().replace("\n", "<br/>")
 
-    def get_manifest(self, test_in_browser=False, sdk=None):
+    def get_manifest(self, test_in_browser=False, sdk=None,
+            package_overrides=None):
         " returns manifest dictionary "
         version = self.get_version_name()
         if test_in_browser:
             version = "%s - test" % version
+        if not package_overrides:
+            package_overrides = {}
 
         name = self.name
         #if not self.package.is_addon():
@@ -537,11 +540,16 @@ class PackageRevision(BaseModel):
                     'LibDirInMainAttributeWorkaround')):
             manifest['main'] = "%s/%s" % (manifest['lib'], manifest['main'])
             log.warning('Lib dir added to main attribute')
+        # override manifest with package_overrides
+        for key, value in manifest.items():
+            if value or package_overrides.get(key, None):
+                manifest[key] = package_overrides.get(key, None) or value
         return manifest
 
-    def get_manifest_json(self, sdk=None, **kwargs):
+    def get_manifest_json(self, sdk=None, package_overrides=None, **kwargs):
         " returns manifest as JSOIN object "
-        return simplejson.dumps(self.get_manifest(sdk=sdk, **kwargs))
+        return simplejson.dumps(self.get_manifest(sdk=sdk,
+            package_overrides=package_overrides, **kwargs))
 
     def get_main_module(self):
         " return executable Module "
@@ -1269,18 +1277,21 @@ class PackageRevision(BaseModel):
 
         return self.sdk.kit_lib if self.sdk.kit_lib else self.sdk.core_lib
 
-    def build_xpi(self, modules=None, attachments=None, hashtag=None, rapid=False,
-            tstart=None):
+    def build_xpi(self, modules=None, attachments=None, hashtag=None,
+            tstart=None, sdk=None, package_overrides=None):
         """
         prepare and build XPI for test only (unsaved modules)
 
         :param modules: list of modules from editor - potentially unsaved
-        :param rapid: if True - do not use celery to produce xpi
+        :param attachments: list of aatachments from editor - potentially
+                            unsaved
         :rtype: dict containing load xpi information if rapid else AsyncResult
 
         This method is called from cellery task
         """
 
+        if not package_overrides:
+            package_overrides = {}
         if not modules:
             modules = []
         if not attachments:
@@ -1299,21 +1310,23 @@ class PackageRevision(BaseModel):
         if not tstart:
             tstart = time.time()
 
-        # sdk_dir = self.get_sdk_dir(hashtag)
         sdk_dir = tempfile.mkdtemp()
-        sdk_source = self.sdk.get_source_dir()
+        if not sdk:
+            sdk = self.sdk
+        sdk_source = sdk.get_source_dir()
 
         # XPI: Copy files from NFS to local temp dir
         xpi_utils.sdk_copy(sdk_source, sdk_dir)
         t1 = (time.time() - tstart) * 1000
         log.debug("[xpi:%s] SDK %s copied from %s (time %dms)" % (
-            hashtag, self.sdk.version, sdk_source, t1))
+            hashtag, sdk.version, sdk_source, t1))
 
 
         packages_dir = os.path.join(sdk_dir, 'packages')
         package_dir = self.make_dir(packages_dir)
         # XPI: create manifest (from memory to local)
-        self.export_manifest(package_dir)
+        self.export_manifest(package_dir, sdk=sdk,
+                package_overrides=package_overrides)
 
         # export modules with ability to use edited code (from modules var)
         # XPI: memory/database to local
@@ -1346,14 +1359,17 @@ class PackageRevision(BaseModel):
         log.debug("[xpi:%s] attachments exported (time %dms)" % (hashtag, t3))
 
         # XPI: copying to local from memory/db/files
-        self.export_dependencies(packages_dir, sdk=self.sdk)
+        self.export_dependencies(packages_dir, sdk=sdk)
         t4 = (time.time() - (t3 / 1000) - tstart) * 1000
         statsd.timing('xpi.build.dependencies', t4)
         log.debug("[xpi:%s] dependencies exported (time %dms)" % (hashtag, t4))
 
         # XPI: building locally and copying to NFS
+        options = sdk.options or ''
+        if waffle.switch_is_active('AddRevisionPkToXPI'):
+            options = '%s --harness-option builderVersion=%s' % (options, self.pk)
         return xpi_utils.build(sdk_dir, self.get_dir_name(packages_dir),
-                self.name, hashtag, tstart=tstart, options=self.sdk.options)
+                self.name, hashtag, tstart=tstart, options=options)
 
     def export_keys(self, sdk_dir):
         """Export private and public keys to file."""
@@ -1366,11 +1382,12 @@ class PackageRevision(BaseModel):
             f.write('private-key:%s\n' % self.package.private_key)
             f.write('public-key:%s' % self.package.public_key)
 
-    def export_manifest(self, package_dir, sdk=None):
+    def export_manifest(self, package_dir, sdk=None, package_overrides=None):
         """Creates a file with an Add-on's manifest."""
         manifest_file = "%s/package.json" % package_dir
         with codecs.open(manifest_file, mode='w', encoding='utf-8') as f:
-            f.write(self.get_manifest_json(sdk=sdk))
+            f.write(self.get_manifest_json(sdk=sdk,
+                package_overrides=package_overrides))
 
     def export_modules(self, lib_dir):
         """Creates a module file for each module."""
