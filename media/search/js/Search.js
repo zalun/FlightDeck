@@ -139,9 +139,16 @@ SearchResult.setupUI = function(result) {
 
             ui.sliders[dataKey] = slider;
         } else {
+            // If a slider is disabled, it's because it's facet no
+            // longer has results. So, we should remove the facet from
+            // the URL
             var loc = new URI(String(window.location));
-            loc.setData(dataKey, 0);
-            SearchResult.page(loc);
+
+            var oldData = Number(loc.getData(dataKey));
+            if (oldData) {
+                loc.setData(dataKey, 0);
+                SearchResult.page(loc);
+            }
         }
     });
 };
