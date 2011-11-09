@@ -4,11 +4,15 @@ var dom = require('shipyard/dom'),
     typeOf = require('shipyard/utils/type').typeOf,
     object = require('shipyard/utils/object'),
     string = require('shipyard/utils/string'),
+    Cookie = require('shipyard/utils/Cookie'),
 
     Spy = require('testigo/lib/spy').Spy,
     mockXHR = require('shipyard/test/mockXHR');
 
 var fd = new Events();
+fd.message = {};
+fd.setURIRedirect = new Spy();
+
 dom.window.set('fd', fd);
 
 var Package = require('../../models/Package'),
@@ -29,8 +33,8 @@ function resetDom() {
     dom.$$('body *').dispose();
 
 
-    dom.window.$events = {};
     fd.removeEvents();
+    dom.window.removeEvents();
 
     var body = dom.document.body;
 
@@ -47,13 +51,22 @@ function resetDom() {
         body.grab(li);
     });
     
+    fd.message.alert = new Spy();
+
+    Cookie.write('csrftoken', string.uniqueID());
 }
 
 function E(type) {
-    this.type = type;
     this.preventDefault = new Spy();
     this.stopPropagation = new Spy();
+    if (type) {
+        this.type = type;
+    }
 }
+
+E.prototype = {
+    type: 'click'
+};
 
 
 
@@ -247,9 +260,32 @@ module.exports = {
 
             var tab = new E('keypress');
             tab.keyCode = 9;
-            tab.key = 'tab';
+            //tab.key = 'tab';
             pc.revision_message_el.fireEvent('keypress', tab);
             expect(saveFocus.getCallCount()).toBe(1);
+        });
+
+        it('should be able to upload Files as Attachments', function(expect) {
+            var pc = new PackageController(addon, editOptions);
+            var file = {
+                name: 'a.js',
+                fileSize: 4
+            };
+
+            mockXHR(function(data) {
+                return {
+                    filename: 'a',
+                    ext: 'js',
+                    author: 'Sean',
+                    code: 'test',
+                    get_url: string.uniqueID(),
+                    uid: 5,
+                    revision_string: 'Rev 5'
+                };
+            });
+
+            pc.uploadAttachment([file]);
+            expect(pc.attachments[5]).not.toBeUndefined();
         });
     }
 };

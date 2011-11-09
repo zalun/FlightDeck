@@ -3,7 +3,9 @@ var Class = require('shipyard/class/Class'),
     Events = require('shipyard/class/Events'),
     dom = require('shipyard/dom'),
     object = require('shipyard/utils/object'),
-    //Request = require('shipyard/http/Request'),
+    log = require('shipyard/utils/log'),
+    Cookie = require('shipyard/utils/Cookie'),
+    _Request = require('shipyard/http/Request'),
     
     Module = require('../models/Module'),
     Attachment = require('../models/Attachment'),
@@ -11,6 +13,7 @@ var Class = require('shipyard/class/Class'),
     Package = require('../models/Package'),
     PackageRevision = require('../models/PackageRevision'),
     
+    //TODO: this is bad practice
     fd = dom.window.get('fd');
 
 module.exports = new Class({
@@ -90,6 +93,13 @@ module.exports = new Class({
         if (packageInfoNameEl) {
             package_.observe('full_name', function(name) {
                 packageInfoNameEl.set('text', name);
+            });
+        }
+
+        var packageNameEl = this.packageNameEl = dom.$('package-info-name');
+        if (packageNameEl) {
+            package_.observe('full_name', function(name) {
+                packageNameEl.set('text', name);
             });
         }
 
@@ -176,7 +186,7 @@ module.exports = new Class({
                         contents: 'open'
                     });
                 } else {
-                    $log('WARN: No mozFlightDeck.');
+                    log.warn('No mozFlightDeck.');
                 }
             });
         }
@@ -202,8 +212,8 @@ module.exports = new Class({
         this.revision_message_el = dom.$('revision_message');
         this.revision_message_el.addEvent('keypress', function(e) {
             //TODO: the dom Event system should make this possible
-            //if (e.key == 'tab') {
-            if (e.keyCode == 9) {
+            if (e.key == 'tab') {
+            //if (e.keyCode === 9) {
                 e.preventDefault();
                 controller.save_el.focus();
             }
@@ -211,9 +221,9 @@ module.exports = new Class({
 
         this.prepareDependenciesInterval();
 
-
-        if (dom.$('jetpack_core_sdk_version')) {
-            dom.$('jetpack_core_sdk_version').addEvent('change', function() {
+        this.sdkVersionEl = dom.$('jetpack_core_sdk_version');
+        if (this.sdkVersionEl) {
+            this.sdkVersionEl.addEvent('change', function() {
                 new Request.JSON({
                     url: controller.options.switch_sdk_url,
                     useSpinner: true,
@@ -223,7 +233,9 @@ module.exports = new Class({
                             'class': 'spinner-img spinner-16'
                         }
                     },
-                    data: {'id': dom.$('jetpack_core_sdk_version').get('value')},
+                    data: {
+                        'id': controller.sdkVersionEl.get('value')
+                    },
                     onSuccess: function(response) {
                         // set the redirect data to view_url of the new revision
                         fd.setURIRedirect(response.view_url);
@@ -247,7 +259,9 @@ module.exports = new Class({
         this.options.modules.forEach(function(module) {
             module.readonly = this.options.readonly;
             var mod = this.newModule(module);
-            if (module.main) this.editFile(mod);
+            if (module.main) {
+                this.editFile(mod);
+            }
         }, this);
     },
 
@@ -293,8 +307,15 @@ module.exports = new Class({
 			controller.attachments[updated] = att;
 			delete controller.attachments[old];
 		});
-        this.sidebar.addData(att);
-        this.editor.registerItem(att.get('uid'), att);
+
+        if (this.sidebar) {
+            // if check is for tests
+            this.sidebar.addData(att);
+        }
+        if (this.editor) {
+            // if check is for tests
+            this.editor.registerItem(att.get('uid'), att);
+        }
 
         var controller = this;
         att.addEvent('destroy', function() {
@@ -308,9 +329,9 @@ module.exports = new Class({
         this.folders[folder.get('uid')] = folder;
         var rootDir = folder.get('root_dir');
 
-        if (rootDir == Folder.ROOT_DIR_LIB) {
+        if (rootDir === Folder.ROOT_DIR_LIB) {
             this.sidebar.addLib(folder);
-        } else if (rootDir == Folder.ROOT_DIR_DATA) {
+        } else if (rootDir === Folder.ROOT_DIR_DATA) {
             this.sidebar.addData(folder);
         }
         
@@ -322,7 +343,7 @@ module.exports = new Class({
 
     newDependency: function(data) {
         var lib = new Package(data);
-        this.dependencies[lib.get('uid')] = lib; 
+        this.dependencies[lib.get('uid')] = lib;
         this.sidebar.addPlugin(lib);
 
         var controller = this;
@@ -405,8 +426,8 @@ module.exports = new Class({
 
     askForReload: function() {
         fd.warning.alert(
-            'New revision detected', 
-            'There is a newer revision available. <a href="'+ 
+            'New revision detected',
+            'There is a newer revision available. <a href="'+
             this.options.latest_url +'">Click this link to go to it now.</a>'
         );
     },
@@ -427,7 +448,7 @@ module.exports = new Class({
         }
         
         if (this.edited) {
-            fd.error.alert("There are unsaved changes", 
+            fd.error.alert("There are unsaved changes",
                     "To make a copy, please save your changes.");
             return;
         }
@@ -444,7 +465,7 @@ module.exports = new Class({
                 maskBorder: false
             },
             onSuccess: function(response) {
-                window.location.href = response.view_url;
+                dom.window.set('location', response.view_url);
             },
 			onComplete: function() {
 				controller._is_copying = false;
@@ -504,7 +525,7 @@ module.exports = new Class({
 
     installAddon: function() {
         if (this._test_request && this._test_request.isRunning()) {
-            $log('FD: DEBUG: Test request already running. Cancelling second attempt');
+            log.debug('Test request already running. Cancelling second attempt');
             return;
         }
         
@@ -530,7 +551,9 @@ module.exports = new Class({
     },
 
     generateHashtag: function() {
-        if (this.getOption('readonly')) return;
+        if (this.getOption('readonly')) {
+            return;
+        }
         this.options.hashtag = fd.generateHashtag(this.package_.get('id_number'));
     },
 
@@ -542,7 +565,9 @@ module.exports = new Class({
     //Package.Edit
     attachEditor: function() {
         var controller = this;
-        if(!this.editor) return;
+        if(!this.editor) {
+            return;
+        }
 
         this.editor.addEvent('change', function() {
             controller.onChanged();
@@ -554,7 +579,9 @@ module.exports = new Class({
     },
 
     attachSidebar: function() {
-        if (!this.sidebar) return;
+        if (!this.sidebar) {
+            return;
+        }
 
         var controller = this;
         this.sidebar.addEvent('select', function(file) {
@@ -563,7 +590,9 @@ module.exports = new Class({
     },
 
     attachTabs: function() {
-        if (!this.tabs) return;
+        if (!this.tabs) {
+            return;
+        }
 
         var controller = this;
         this.tabs.addEvent('select', function(tab) {
@@ -581,12 +610,12 @@ module.exports = new Class({
         // else if uneditable Attachment
         else if (file instanceof Attachment) {
             // then show in fd.modal
-            this.showAttachmentModal(file); 
+            this.showAttachmentModal(file);
         }
         // else if Library
         else if (file instanceof Package) {
             // then open link in new window
-            window.open(file.get('view_url'));
+            dom.window.node.open(file.get('view_url'));
         }
     },
 
@@ -612,20 +641,22 @@ module.exports = new Class({
             file.get('shortName')+
             '</a>';
         var spinner, img;
+        var modal = fd.displayModal(template_start+template_middle+template_end);
         if (file.isImage()) {
             template_middle += '<p></p>';
-            img = new Element('img', { src: file.get('get_url') });
+            img = new dom.Element('img', { src: file.get('get_url') });
             img.addEvent('load', function() {
-                if (spinner) spinner.destroy();
+                if (spinner) {
+                    spinner.destroy();
+                }
                 modal.position();
             });
         }
-        var modal = fd.displayModal(template_start+template_middle+template_end);
         var target = $(modal).getElement('.UI_Modal_Section p');
         if (target) {
             spinner = new Spinner(target);
             spinner.show();
-            target.grab(img);
+            img.inject(target);
         }
         setTimeout(function() {
             modal.position();
@@ -633,7 +664,7 @@ module.exports = new Class({
     },
                       
     onChanged: function() {
-        $log('FD: INFO: document changed - onbeforeunload warning is on and save button is lit.');
+        log.info('document changed - onbeforeunload warning is on and save button is lit.');
         dom.$$('li.Icon_save').addClass('Icon_save_changes');
         this.edited++;
     },
@@ -644,7 +675,7 @@ module.exports = new Class({
     },
     
     onReset: function() {
-        $log('FD: INFO: document saved - onbeforeunload warning is off and save button is not lit.');
+        log.info('document saved - onbeforeunload warning is off and save button is not lit.');
         dom.$$('li.Icon_save').removeClass('Icon_save_changes');
         this.edited = 0;
     },
@@ -831,7 +862,7 @@ module.exports = new Class({
                 
                 var attachment = that.attachments[uid];
                 if (!attachment) {
-                    $log("WARN: Attachment (" + uid + ") couldn't be found in fd.item");
+                    log.warn("Attachment (" + uid + ") couldn't be found in fd.item");
                     return;
                 }
                 attachment.set({
@@ -1018,7 +1049,7 @@ module.exports = new Class({
     },
     
     addFolder: function(name, root_dir) {
-        var el = root_dir == Folder.ROOT_DIR_LIB ?
+        var el = root_dir === Folder.ROOT_DIR_LIB ?
             'modules' : 'attachments';
         new Request.JSON({
             url: this.options.add_folder_url,
@@ -1133,7 +1164,9 @@ module.exports = new Class({
             onSuccess: function(res) {
                 res.forEach(function(latest_revision) {
                     var lib = controller.dependencies[latest_revision.id_number];
-                    if (!lib) return;
+                    if (!lib) {
+                        return;
+                    }
                     lib.storeNewVersion(latest_revision);
                     controller.sidebar.setPluginUpdate(lib);
                 });
@@ -1157,6 +1190,7 @@ module.exports = new Class({
         
         dom.window.addEvent('focus', setCheckInterval);
         dom.window.addEvent('blur', unsetCheckInterval);
+        setCheckInterval();
         
     },
     
@@ -1196,7 +1230,7 @@ module.exports = new Class({
         return object.some(this.folders, function(folder) {
             return (folder.get('root_dir') === rootDir &&
                     folder.get('name') === name);
-        });        
+        });
     },
 
     /*
@@ -1207,7 +1241,9 @@ module.exports = new Class({
         e.stop();
         this.savenow = false;
         var activateButton = $('UI_ActivateLink');
-        if (activateButton.getElement('a').hasClass('inactive')) return false;
+        if (activateButton.getElement('a').hasClass('inactive')) {
+            return false;
+        }
         new Request.JSON({
             url: activateButton.getElement('a').get('href'),
             useSpinner: true,
@@ -1235,7 +1271,9 @@ module.exports = new Class({
         e.stop();
         this.savenow = false;
         var deactivateButton = $('UI_DisableLink');
-        if (deactivateButton.getElement('a').hasClass('inactive')) return false;
+        if (deactivateButton.getElement('a').hasClass('inactive')) {
+            return false;
+        }
         new Request.JSON({
             url: deactivateButton.getElement('a').get('href'),
             useSpinner: true,
@@ -1270,11 +1308,11 @@ module.exports = new Class({
             e.stop();
             controller.submitInfo();
         });
-        $('full_name').addEvent('change', function() { 
-            fd.fireEvent('change'); 
+        $('full_name').addEvent('change', function() {
+            fd.fireEvent('change');
         });
-        $('package_description').addEvent('change', function() { 
-            fd.fireEvent('change'); 
+        $('package_description').addEvent('change', function() {
+            fd.fireEvent('change');
         });
         if ($('savenow')) {
             $('savenow').addEvent('click', function() {
@@ -1286,8 +1324,8 @@ module.exports = new Class({
         $('UI_DisableLink').getElement('a').addEvent('click', this.makePrivate.bind(this));
 
         this.validator = new Form.Validator.Inline('package-info_form');
-        self = this;
-        $$('#package-info_form input[type=submit]').each(function(el) {
+        var self = this;
+        dom.$$('#package-info_form input[type=submit]').forEach(function(el) {
             el.addEvent('click', function(e) {
                 if (!self.validator.validate()) {
                     e.stop();
@@ -1295,9 +1333,9 @@ module.exports = new Class({
             });
         });
         // Update modal from data (if not saved yet)
-        Object.each(this.data, function(value, key) {
+        object.forEach(this.data, function(value, key) {
             if ($(key)) {
-                $log(key + ': ' + value);
+                log.debug(key + ': ' + value);
                 $(key).value = value;
             }
         });
@@ -1349,7 +1387,9 @@ module.exports = new Class({
     },
 
     saveAction: function(e) {
-        if (e) e.stop();
+        if (e) {
+            e.stop();
+        }
         this.save();
     },
 
@@ -1369,15 +1409,15 @@ module.exports = new Class({
             },
             onSuccess: function(response) {
                 // set the redirect data to view_url of the new revision
-                $log('FD: DEBUG: Save succeeded');
+                log.debug('Save succeeded');
                 if (response.full_name) {
                     this.packageInfoNameEl.set('text', response.full_name);
                     this.options.full_name = response.full_name;
                     this.package_.set('full_name', response.full_name);
                 }
-                $('revision_message').set('value', '');
+                dom.$('revision_message').set('value', '');
                 if (response.attachments_changed) {
-                    Object.forEach(response.attachments_changed, 
+                    object.forEach(response.attachments_changed,
                         function(options, uid) {
                             if (this.attachments[uid]) {
                                 // updating attachment's uid
@@ -1399,7 +1439,9 @@ module.exports = new Class({
                         this.data[key] = response[key];
                     }
                 }, this);
-                if (fd.editPackageInfoModal) fd.editPackageInfoModal.destroy();
+                if (fd.editPackageInfoModal) {
+                    fd.editPackageInfoModal.destroy();
+                }
                 if ($(this.options.test_el) && $(this.options.test_el).hasClass('pressed')) {
                     // only one add-on of the same id should be allowed on the Helper side
                     this.installAddon();
@@ -1427,15 +1469,17 @@ module.exports = new Class({
     _focused: true,
 
     focus: function() {
-        if (this._focused) return;
+        if (this._focused) {
+            return;
+        }
         this._focused = true;
-        this.keyboard.activate();
+        //this.keyboard.activate();
         this.editor.focus();
         
         this.fireEvent('focus');
     },
 
-    bind_keyboard: function() {
+    /*bind_keyboard: function() {
         var that = this;
         this.keyboard = new FlightDeck.Keyboard();
         if(this.package_.isAddon()) {
@@ -1483,7 +1527,7 @@ module.exports = new Class({
                         //that.sidebar.blur();
                         that.focus();
                     }
-                } 
+                }
             },
             'shortcuts': {
                 keys: 'ctrl+shift+/',
@@ -1502,19 +1546,20 @@ module.exports = new Class({
     },
     
     toggleShortcutsModal: function() {
-        if (this._shortcutsModal) 
+        if (this._shortcutsModal) {
             this.hideShortcuts();
-        else
+        } else {
             this.showShortcuts();
+        }
     },
     
     showShortcuts: function() {
+        var shortcuts = [];
         function buildLines(shortcut) {
             var keys = '<kbd>'+ shortcut.keys.split('+').join('</kbd> + <kbd>').split('|').join('</kbd> or <kbd>').replace(/meta/g, 'cmd') + '</kbd>';
             shortcuts.push(keys + ': ' + shortcut.description);
         }
         
-        var shortcuts = [];
         
         shortcuts.push('<strong>Editor</strong>');
         this.keyboard.getShortcuts().forEach(buildLines);
@@ -1535,16 +1580,17 @@ module.exports = new Class({
         if (this._shortcutsModal) {
             this._shortcutsModal.destroy();
         }
-    },
+    },*/
 
     registerRevision: function(urls) {
         // update page title to reflect current revision and name
-        document.title = document.title.replace(this.options.revision_string, urls.revision_string);
+        var title = dom.document.get('title');
+        dom.document.set('title', title.replace(this.options.revision_string, urls.revision_string));
         this.setOptions(urls);
         this.package_.set(urls);
         // this only for the right display href
-        if (urls.download_url && $(this.options.download_el)) {
-            $(this.options.download_el).set('href', urls.download_url);
+        if (urls.download_url && this.download_el) {
+            this.download_el.set('href', urls.download_url);
         }
     },
 
