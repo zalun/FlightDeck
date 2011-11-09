@@ -466,7 +466,7 @@ module.exports = new Class({
             }).show()
         };
         var data = {
-            hashtag: this.options.hashtag, 
+            hashtag: this.options.hashtag,
             filename: this.package_.get('name')
         };
         new Request.JSON({
