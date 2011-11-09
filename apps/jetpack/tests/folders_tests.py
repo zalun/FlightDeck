@@ -2,7 +2,7 @@ import os
 import json
 
 from test_utils import TestCase
-from nose import SkipTest
+#from nose import SkipTest
 from nose.tools import eq_
 
 from django.conf import settings
@@ -23,7 +23,7 @@ class FolderTest(TestCase):
 
     def setUp(self):
         self.author = User.objects.get(username='john')
-        self.path = 'util';
+        self.path = 'util'
 
     def test_folder_removed_when_modules_added(self):
         " EmptyDir's shouldn't exist if there are modules inside the 'dir' "
@@ -75,14 +75,14 @@ class FolderTest(TestCase):
 
     def test_folder_removed_when_attachments_added(self):
         " EmptyDir's shouldn't exist if there are attachments inside the 'dir' "
-        addon = Package(author=self.author, type='a')
-        addon.save()
-        revision = PackageRevision.objects.filter(package__name=addon.name)[0]
+        addon = Package.objects.create(author=self.author, type='a')
+        revision = addon.latest
 
-        folder = EmptyDir(name=self.path, author=self.author, root_dir='d')
-        folder.save()
+        folder = EmptyDir.objects.create(name=self.path, author=self.author,
+                root_dir='d')
         revision.folder_add(folder)
         self.assertEqual(1, revision.folders.count())
+        assert False
 
         att = Attachment(
             filename='/'.join([self.path, 'helpers']),
@@ -138,7 +138,7 @@ class TestViews(TestCase):
         self.client.login(username=self.author.username, password='password')
 
     def post(self, url, data):
-        return self.client.post(url, data);
+        return self.client.post(url, data)
 
     def add_one(self, name='tester', root_dir='l'):
         self.post(self.get_add_url(self.revision.revision_number),
@@ -173,14 +173,14 @@ class TestViews(TestCase):
 
         revision = newest(self.revision)
         eq_(revision.folders.count(), 0)
-    
+
     def test_remove_fake_folder(self):
         self.add_one()
         res = self.post(self.get_delete_url(self.revision.revision_number), {
             'name': 'im_not_a_folder',
             'root_dir': 'l'
         })
-        
+
         eq_(res.status_code, 403)
 
     def test_folder_sanitization(self):
