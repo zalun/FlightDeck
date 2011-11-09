@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load jetpack_extras %}
+
 
 {% block head %}
 	<link rel="stylesheet" href="/media/jetpack/css/UI.Browser.css" type="text/css" media="screen" />
@@ -23,31 +23,31 @@
 
                 <div class="left_column">
                     <div class="fd_button">
-						<a id="create_addon" title="" href="{% url tutorial %}"><span>How to Get Started</span></a>
+						<a id="create_addon" title="" href="{{ url('tutorial') }}"><span>How to Get Started</span></a>
                     </div>
                 </div>
                 <div class="right_column">
                     <div class="fd_button">
-                        <a title="" href="{% url jp_addon_create %}"><span>Create an Add-on Now </span></a>
+                        <a title="" href="{{ url('jp_addon_create') }}"><span>Create an Add-on Now </span></a>
                     </div>
                   </div>
-                {% comment %}
+                {#
                 <div class="right_column">
                     <div class="fd_dropdown">
                         <div class="left">
-                            <a title="" href="{% url jp_addon_create %}"><span>Create an Add-on Now </span></a>
+                            <a title="" href="{{ url('jp_addon_create') }}"><span>Create an Add-on Now </span></a>
                         </div>
                         <div class="right">
                             <ul>
                                 <li class="first"><a href="#">&darr;</a>
                                 <ul>
-                                    <li class="first"><a href="{% url jp_library_create %}">Create a Library</a></li>
+                                    <li class="first"><a href="{{ url('jp_library_create') }}">Create a Library</a></li>
                                 </ul>
                             </ul>
                         </div>
                     </div>
                   </div>
-                  {% endcomment %}
+                  #}
             </div>
             <div class="UI_Feature_Side">
                 <h3>Learn</h3>
@@ -58,8 +58,8 @@
                 </ul>
                 <h3 class="second">Explore</h3>
                 <ul>
-                    <li><a href="{% url search %}?type=a">Public Add-ons</a></li>
-                    <li><a href="{% url search %}?type=l">Third-Party Libraries</a></li>
+                    <li><a href="{{ url('search') }}?type=a">Public Add-ons</a></li>
+                    <li><a href="{{ url('search') }}?type=l">Third-Party Libraries</a></li>
                 </ul>
 			</div>
         </div>
@@ -79,7 +79,7 @@
 					</ul> <!-- /UI_Browser -->
 
 					<ul class="UI_SeeMore">
-						<li><a title="Browse More Add-ons" href="{% url search %}?type=a">Browse More Add-ons</a></li>
+						<li><a title="Browse More Add-ons" href="{{ url('search') }}?type=a">Browse More Add-ons</a></li>
 					</ul> <!-- /UI_SeeMore -->
 				{% endif %}
 			</div> <!-- /UI_LE_Col -->
@@ -95,7 +95,7 @@
 					</ul> <!-- /UI_Browser -->
 
 					<ul class="UI_SeeMore">
-						<li><a title="Browse More Libraries" href="{% url search %}?type=l">Browse More Libraries</a></li>
+						<li><a title="Browse More Libraries" href="{{ url('search') }}?type=l">Browse More Libraries</a></li>
 					</ul> <!-- /UI_SeeMore -->
 				{% endif %}
 			</div> <!-- /UI_LE_Col -->
@@ -121,7 +121,7 @@
 						<p>Want to make an API for add-ons to use?</p>
 
 						<ul>
-							<li class="UI_Mini_Button grey"><a title="Create Library" href="{% url jp_library_create %}"><span>Create Library</span></a></li>
+							<li class="UI_Mini_Button grey"><a title="Create Library" href="{{ url('jp_library_create') }}"><span>Create Library</span></a></li>
 						</ul>
 					</div>
 				</div> <!-- /UI_LE_Col -->

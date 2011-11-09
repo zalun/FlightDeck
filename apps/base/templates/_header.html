@@ -1,5 +1,5 @@
 <div class="UI_middleWrapper centerSection">
-	<h1 id="flightdeck-logo"><a title="Mozilla Labs &minus; Add-on Builder" href="{% url home %}">Mozilla Labs &minus; Add-on Builder</a></h1>
+	<h1 id="flightdeck-logo"><a title="Mozilla Labs &minus; Add-on Builder" href="{{ url('home') }}">Mozilla Labs &minus; Add-on Builder</a></h1>
 	<a id="brand" title="Mozilla" href="http://www.mozilla.com/en-US/">Mozilla</a>	
 	<nav>
 		<ul>
@@ -8,21 +8,21 @@
 				<div class="pointytip">
 					<span class="pointer"></span>
 					<ul>
-						<li><a href="{% url jp_addon_create %}" target="_blank">Add-on</a></li>
-						<li><a href="{% url jp_library_create %}" target="_blank">Library</a></li>
+						<li><a href="{{ url('jp_addon_create') }}" target="_blank">Add-on</a></li>
+						<li><a href="{{ url('jp_library_create') }}" target="_blank">Library</a></li>
 					</ul>
 				</div>
 			</li>
-			<li {% ifequal page "search" %}class="active"{% endifequal %}>
-				<span><a title="Search" href="{% url search %}">Search</a></span>
+			<li {% if page == "search" %}class="active"{% endif %}>
+				<span><a title="Search" href="{{ url('search') }}">Search</a></span>
 			</li>
-			{#<li {% ifequal page "packages" %}class="active"{% endifequal %}><span><a title="Package Browser" href="{% url jp_browser_addons %}">Package Browser</a></span></li>#}
+			{#<li {% if page == "packages" %}class="active"{% endif %}><span><a title="Package Browser" href="{{ url('jp_browser_addons') }}">Package Browser</a></span></li>#}
 			<li><span><a title="Documentation" href="/docs/" target="new">Documentation</a></span></li>
-			{% if user.is_authenticated %}
-				<li {% ifequal page "dashboard" %}class="active"{% endifequal %}>
+			{% if user.is_authenticated() %}
+				<li {% if page == "dashboard" %}class="active"{% endif %}>
 					<span>
-						<a title="My Account" href="{% url person_dashboard %}">My Account</a>
-						(<a class="logout" title="Sign Out" href="{% url logout %}">Sign Out</a>)
+						<a title="My Account" href="{{ url('person_dashboard') }}">My Account</a>
+						(<a class="logout" title="Sign Out" href="{{ url('logout') }}">Sign Out</a>)
 					</span>
 				</li>
 			{% else %}

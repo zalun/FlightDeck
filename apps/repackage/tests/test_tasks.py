@@ -18,7 +18,7 @@ from mock import Mock
 from nose.tools import eq_
 from utils.test import TestCase
 
-from base.templatetags.base_helpers import hashtag
+from base.helpers import hashtag
 from jetpack.models import SDK
 from repackage.tasks import rebuild, rebuild_addon
 from repackage.helpers import increment_version

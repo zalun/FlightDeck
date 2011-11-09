@@ -1,23 +1,23 @@
-{% load base_helpers %}
+
 {% block amo_info %}{% endblock %}
 <h3>
     {{ item.full_name }}
 
-    {% ifnotequal user item.author  %}
+    {% if user != item.author  %}
     <span class="author">by
-        <a title="" href="{{ item.get_author_profile_url }}">{{ item.author.get_profile }}</a>
+        <a title="" href="{{ item.get_author_profile_url()}}">{{ item.author.get_profile()}}</a>
     </span>
-    {% endifnotequal %}
+    {% endif %}
     <span class="version">
-        version <span class="version-name">{{ item.latest.get_version_name }}</span>
+        version <span class="version-name">{{ item.latest.get_version_name()}}</span>
     </span>
 </h3>
 <p>{{ item.description }}</p>
 
 <ul class="UI_Actions">
 	<li class="UI_Try_in_Browser XPI_test">
-    <a title="Test Add-on" href="{{ item.latest.get_test_xpi_url }}" 
-        data-jetpackid="{{ item.get_jid }}" data-hashtag="{{ item.latest.get_cache_hashtag }}">Test</a>
+    <a title="Test Add-on" href="{{ item.latest.get_test_xpi_url()}}" 
+        data-jetpackid="{{ item.get_jid()}}" data-hashtag="{{ item.latest.get_cache_hashtag()}}">Test</a>
 	</li>
 	{% include "_package_edit_view_source_bar.html" %}
 </ul>
