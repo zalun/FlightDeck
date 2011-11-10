@@ -674,7 +674,7 @@ class PackageRevision(BaseModel):
     def save(self, create_new_revision=True, **kwargs):
         """
         overloading save is needed to prevent from updating the same revision
-        use super(PackageRevision, self).save(**kwargs) if needed
+        use create_new_revision=False if needed
         """
         if self.id and create_new_revision:
             # create new revision
@@ -1725,7 +1725,7 @@ class Package(BaseModel, SearchMixin):
         return super(Package, self).delete()
 
     def get_jid(self):
-        jid = self.jid        
+        jid = self.jid
         if jid and '@' in jid:
             return jid
         else:
@@ -1867,7 +1867,7 @@ class Package(BaseModel, SearchMixin):
         # hack for ES, because a decimal is serialized as 'Decimal('0.302')'
         # so we must convert that to a float
         data['activity'] = float(self.activity_rating or 0.0)
-        
+
         del data['activity_rating']
 
         if self.latest:
