@@ -1,6 +1,7 @@
 from django.conf.urls.defaults import patterns, url
 
 urlpatterns = patterns('',
+    url('^builder.webapp$', 'base.views.app_manifest'),
     url('^robots.txt$', 'base.views.robots'),
     url('^services/graphite/(prod|stage|trunk)$', 'base.views.graphite',
         name='graphite'),
