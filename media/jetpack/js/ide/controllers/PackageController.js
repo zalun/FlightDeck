@@ -768,7 +768,7 @@ module.exports = new Class({
         if (ext) {
             filename = filename.getFileName();
         }
-        
+
         var attachmentEl = this.sidebar.getBranchFromPath(newName, 'data');
         var spinnerEl = attachmentEl || $(this.sidebar.trees.data);
         
@@ -804,7 +804,7 @@ module.exports = new Class({
                     author: response.author,
                     content: response.code,
                     get_url: response.get_url,
-                    uid: response.uid
+                    id: response.uid
                 });
                 if (!attachmentEl) {
                     that.sidebar.addData(attachment);

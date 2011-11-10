@@ -41,12 +41,14 @@ module.exports = new Class({
 
         this.set(data);
 
-        packAttachments[data.uid] = this;
+        var newUID = this.get('uid');
 
-        editorItems[data.uid] = editorItems[oldUID];
-        delete editorItems[this.uid];
+        packAttachments[newUID] = this;
 
-        this.fireEvent('reassign', this.get('uid'));
+        editorItems[newUID] = editorItems[oldUID];
+        delete editorItems[oldUID];
+
+        this.fireEvent('reassign', newUID);
     }
 
 });
