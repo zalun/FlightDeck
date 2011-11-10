@@ -19,10 +19,11 @@ Fields:
 
 **addons**
    JSON string - a list of dicts containing addons data.
-   ``[{"revision_pk": 1234, "version": "force.version", ... }]``.
+   ``[{"paclkage_key": 1234, "version": "force.version", ... }]``.
    All of the ``package.json`` may be overwritten.
 
-   **revision_pk** is the unique identifier of the PackageRevision in
+   **paclkage_key** is the unique identifier of the
+   :class:`~jetpack.models.PackageRevision` in
    the Builder
 
    **version** (optional) is the way to force the version with which the

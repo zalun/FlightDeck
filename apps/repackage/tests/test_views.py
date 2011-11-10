@@ -6,7 +6,7 @@ repackage.tests.test_views
 import commonware
 import os
 import simplejson
-import tempfile
+#import tempfile
 
 from mock import Mock
 from nose.tools import eq_
@@ -15,7 +15,7 @@ from utils.test import TestCase
 from django.conf import settings
 from django.core.urlresolvers import reverse
 
-from jetpack.models import SDK, PackageRevision
+from jetpack.models import SDK  #, PackageRevision
 from repackage import tasks
 from jetpack.models import SDK
 
@@ -141,6 +141,7 @@ class RepackageViewsTest(TestCase):
                 'upload': f,
                 'version': 'test-sdk-{sdk_version}',
                 'secret': settings.AMO_SECRET_KEY})
+        eq_(response.status_code, 200)
         task_args = tasks.low_rebuild.delay.call_args
         eq_(task_args[1]['package_overrides']['version'], 'test-sdk-1.0')
 
@@ -162,6 +163,7 @@ class RepackageViewsTest(TestCase):
                 'version': 'test-sdk-{sdk_version}',
                 'secret': settings.AMO_SECRET_KEY,
                 'sdk_version': SDKVERSION})
+        eq_(response.status_code, 200)
         task_args = tasks.low_rebuild.delay.call_args
         eq_(task_args[0][2], sdk.get_source_dir())
 
@@ -186,8 +188,8 @@ class RepackageViewsTest(TestCase):
         response = self.client.post(self.rebuild_url_addons, {
             'sdk_version': 'test_version',
             'addons': simplejson.dumps([
-                {'revision_pk': 1},
-                {'revision_pk': 2}]),
+                {'package_key': 1},
+                {'package_key': 2}]),
             'secret': settings.AMO_SECRET_KEY})
 
         eq_(response.status_code, 200)
