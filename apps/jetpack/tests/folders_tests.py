@@ -82,7 +82,6 @@ class FolderTest(TestCase):
                 root_dir='d')
         revision.folder_add(folder)
         self.assertEqual(1, revision.folders.count())
-        assert False
 
         att = Attachment(
             filename='/'.join([self.path, 'helpers']),
