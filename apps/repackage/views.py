@@ -155,7 +155,7 @@ def rebuild_addons(request):
                 error = True
             if not error:
                 rebuild_task.delay(
-                    addon['revision_pk'], hashtag, sdk_version,
+                    addon['package_key'], hashtag, sdk_version,
                     callback=tasks.rebuild_addon,
                     package_overrides=package_overrides,
                     pingback=pingback,
