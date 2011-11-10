@@ -13,7 +13,8 @@ SORT_CHOICES = (
     ('score','score'),
     ('activity','activity'),
     ('forked','forked'),
-    ('used','used')
+    ('used','used'),
+    ('new','new')
 )
 
 class SearchForm(CleanForm):
