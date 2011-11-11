@@ -30,9 +30,7 @@ def search(request):
     limit = 20
     activity_map = get_activity_scale()
     
-    sort = SORT_MAPPING.get(query.get('sort'), '_score' if len(q) > 0 else '-activity')
-
-    print "q:", q, "sort:", sort
+    sort = SORT_MAPPING.get(query.get('sort'), '_score' if q else '-activity')
 
     filters = {}
     filters['user'] = request.user
