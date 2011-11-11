@@ -23,7 +23,7 @@ var Tab = new Class({
         this.container = $(container);
         
         this.element = new Element(this.options.tag, {
-            'class': 'tab',
+            'class': 'tab small',
             'styles': {
                 'position': 'relative',
                 'display': 'inline-block',

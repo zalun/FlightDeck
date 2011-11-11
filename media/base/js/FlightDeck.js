@@ -188,17 +188,17 @@ var FlightDeck = new Class({
     },
 
     /*
-     * Method: downloadXPI it's running in Request's scope
+     * Method: downloadXPI
      */
-    downloadXPI: function(response) {
-        var time = fd.options.request_interval;
+    downloadXPI: function(data) {
+        var time = this.options.request_interval
         
         $log('FD: DEBUG: XPI delayed ... try to load every ' + time/1000 + ' seconds' );
-        var hashtag = this.options.data.hashtag;
-        var filename = this.options.data.filename;
-        fd.tests[hashtag].download_request_number = 0;
+        var hashtag = data.hashtag;
+        var filename = data.filename;
+        this.tests[hashtag].download_request_number = 0;
         
-        fd.tests[hashtag].download_ID = fd.tryDownloadXPI.periodical(
+        this.tests[hashtag].download_ID = fd.tryDownloadXPI.periodical(
                 time, fd, [hashtag, filename]);
     },
 
@@ -224,7 +224,7 @@ var FlightDeck = new Class({
                 onSuccess: function(response) {
                     if (response.ready || test_request.download_request_number > 50) {
                         clearInterval(test_request.download_ID);
-                        test_request.spinner.destroy();
+                        test_request.spinner.removeClass('loading');
                         if (!response.ready) {
                             fd.error.alert('XPI download failed', 
                                 'XPI is not yet prepared, giving up');
@@ -238,23 +238,21 @@ var FlightDeck = new Class({
                 },
                 addOnFailure: function() {
                     clearInterval(test_request.download_ID);
-                    test_request.spinner.destroy();
+                    test_request.spinner.removeClass('loading');
                 }
             }).send();
         }
     },
 
     /*
-     * Method: testXPI 
-     *
-     * it's running in Request's scope
+     * Method: testXPI
      */
-    testXPI: function(response) {
+    testXPI: function(data) {
         $log('FD: DEBUG: XPI delayed ... try to load every ' + fd.options.request_interval/1000 + ' seconds' );
-        var hashtag = this.options.data.hashtag;
-        fd.tests[hashtag].request_number = 0;
-        fd.tryInstallXPI.delay(1000, fd, hashtag);
-        fd.tests[hashtag].install_ID = fd.tryInstallXPI.periodical(
+        var hashtag = data.hashtag;
+        this.tests[hashtag].request_number = 0;
+        this.tryInstallXPI.delay(1000, fd, hashtag);
+        this.tests[hashtag].install_ID = fd.tryInstallXPI.periodical(
                 fd.options.request_interval, fd, hashtag);
     },
 
@@ -279,7 +277,7 @@ var FlightDeck = new Class({
                 $log('FD: installing from ' + url);
                 var cancel_callback = function() {
                     clearInterval(test_request.install_ID);
-                    test_request.spinner.destroy();
+                    test_request.spinner.removeClass('loading');
                 };
                 test_request.install_xpi_request = new XPIRequest(
                     cancel_callback, {

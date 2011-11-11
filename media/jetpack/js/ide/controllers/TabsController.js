@@ -101,16 +101,30 @@ module.exports = new Class({
             tab.setLabel(this.get('shortName'));
         }
 
+        function loadStart() {
+            $(tab).addClass('loading');
+        }
+
+        function loaded() {
+            $(tab).removeClass('loading');
+        }
+
         var changePtr = file.addEvent('dirty', change);
         var resetPtr = file.addEvent('reset', reset); 
         var destroyPtr = file.addEvent('destroy', destroy);
         var observePtr = file.observe('filename', changeName);
+        var loadStartPtr = file.addEvent('loadstart', loadStart);
+        var loadedPtr = file.addEvent('loadcontent', loaded);
+
+        log.debug('tab created');
 
         tab.addEvent('destroy', function() {
             changePtr.detach();
             resetPtr.detach();
             destroyPtr.detach();
             observePtr.detach();
+            loadStartPtr.detach();
+            loadedPtr.detach();
             delete tab.file;
             controller.removeTab(tab);
         });

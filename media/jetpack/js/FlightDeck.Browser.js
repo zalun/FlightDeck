@@ -8,16 +8,19 @@
             e.stop();
             var hashtag = this.get('data-hashtag');
             var testThisXpi = function() {
+                var loader = this.getParent('li.UI_Item');
                 fd.tests[hashtag] = {
-                    'spinner': new Spinner(
-                                this.getParent('li.UI_Item')).show()
+                    'spinner': loader.addClass('loading')
                 };
+                var data = { hashtag: hashtag };
                 new Request.JSON({
                     url: el.get('href'),
-                    data: {'hashtag': hashtag},
-                    onSuccess: fd.testXPI,
+                    data: data,
+                    onSuccess: function() {
+                        fd.testXPI(data);
+                    },
                     addOnFailure: function() {
-                        fd.tests[hashtag].spinner.destroy();
+                        fd.tests[hashtag].spinner.removeClass('loading');
                     }
                 }).send();
             }.bind(this);

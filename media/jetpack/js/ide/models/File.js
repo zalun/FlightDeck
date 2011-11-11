@@ -74,6 +74,7 @@ var File = module.exports = new Class({
     loadContent: function(callback) {
         var file = this;
         var spinnerEl;
+        this.fireEvent('loadstart');
         return new Request({
 			method: 'get',
 			url: this.get('get_url'),

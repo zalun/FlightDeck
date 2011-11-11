@@ -3,7 +3,8 @@ var Class = require('shipyard/class/Class'),
     property = require('shipyard/class/Observable').property,
 	fields = require('shipyard/model/fields'),
 	DummySync = require('shipyard/sync/Dummy'),
-    Request = require('shipyard/http/Request');
+    Request = require('shipyard/http/Request'),
+    log = require('shipyard/utils/log');
 
 module.exports = new Class({
 
@@ -26,6 +27,10 @@ module.exports = new Class({
     loadContent: function(callback) {
         var spinnerEl,
             file = this;
+
+        log.debug('loading content');
+
+        this.fireEvent('loadstart');
 		return new Request({
             method: 'get',
 			url: this.get('get_url'),
