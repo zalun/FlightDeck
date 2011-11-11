@@ -143,14 +143,16 @@ body {
         border-bottom:1px solid #ccc;
         min-height:35px;
         overflow:hidden;
-        padding:10px 120px 10px 0;
+        padding:7px 120px 10px 0;
         position:relative;
     }
         
     
-    #SearchResults .package h3 > a {
-        color:#478CDE;
-        font-size:12pt;
+    #SearchResults .package h3 > a {        
+        color:#2854BB;
+        /*color:#478CDE;*/
+        font-size:1.3em;
+        letter-spacing: -0.5px;        
     }
     
     #SearchResults .package h3 span {
@@ -158,7 +160,7 @@ body {
     }
     
     #SearchResults .package .description {
-        color:#7B7B7B;
+        color:#555;
     }
     
     #SearchResults .package .UI_Actions {
@@ -169,10 +171,38 @@ body {
         right:0px;
         opacity:0.5;
     }
-    
         #SearchResults .package:hover .UI_Actions {
-            opacity:1;
+                opacity:1;
         }
+    
+    #SearchResults .package ul.search_meta{
+        color: #666;
+        margin: 6px 0 0;
+        font-size: 0.8em;
+        text-transform:lowercase;
+        
+    }   
+    #SearchResults .package ul.search_meta li{
+        float:left;
+        color:#444;
+        margin-right:10px;
+    }
+    
+    #SearchResults .package ul.search_meta li span{
+        color:#666;
+    }
+    
+#SearchResults .UI_Sorting{    
+    float:right;
+    font-size:0.8em;
+    margin:1px 8px 0 0;    
+}
+#SearchResults select{
+    font-size:0.8em;
+}
+
+    
+        
 
 #SearchResults .see-more {
     margin:10px 0;

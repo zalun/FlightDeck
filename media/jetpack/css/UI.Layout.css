@@ -1,7 +1,7 @@
 body {
 	font-family: 'Lucida Grande', 'Lucida Sans', 'Lucida Sans Unicode', 'Myriad', Tahoma, Verdana, Arial, sans-serif;
 	font-size: .8em;
-	color: #4D5860;
+	color: #333333;
 	overflow-x: hidden;
 }
 
@@ -72,21 +72,21 @@ a:hover, a:focus {
 
 	#app-header nav {
 		float: right;
-		margin: 9px 9px 0 0;
-		line-height: 18px;
+		margin: 13px 9px 0 0;
+		line-height: 15px;
 	}
    
 	#app-header nav li {
 		float: left;
 		color: #fff;
 		cursor:default;
-		padding: 5px 2px;
+		padding: 2px;
 		margin: 0 4px;
 		position:relative;
 	}
    		
 		#app-header nav li a, #app-header nav li span {
-			font-size: .9em;
+			font-size: 0.9em;
 			color: #fff;
 			text-shadow: 0 1px 0 #153877;
 		}      
@@ -112,7 +112,7 @@ a:hover, a:focus {
 		#app-header nav li.active span {
 			background: -moz-linear-gradient(top, #555, #666);
 			-moz-border-radius: 2px;
-			padding: 4px 8px;
+			padding: 2px 8px;
 			display: inline-block;
 		}
 
@@ -137,7 +137,7 @@ a:hover, a:focus {
 			background:rgba(0,0,0, 0.7);
 			-moz-border-radius:5px;
 			overflow:hidden;
-			padding:10px;
+			padding:5px;
 		}
 		
 		#app-header nav li .pointytip .pointer {
@@ -244,16 +244,16 @@ a:hover, a:focus {
 /*
  =========================================================================== */
 .UI_Heading {
-	border-bottom: solid 1px #E9EDF0;
+	border-bottom: solid 1px #CCC;
 	padding: 0 0 5px;
-	margin: 0 0 15px;
-	color: #666;
-	font-size: 1.4em;
+	margin: 0 0 4px;
+	color: #333;
+	font-size: 1.5em;
 	font-family: Helvetica, Arial, Tahoma, sans-serif;
 }
 
 #apibrowser .UI_Sidebar .UI_Heading {
-	border-top: solid 1px #E9EDF0;
+	border-top: solid 1px #CCC;
 	border-bottom: 0px;
 	padding: 15px 0 0;
 }
@@ -265,16 +265,17 @@ a:hover, a:focus {
 }
 
 .UI_SubHeading {
-    margin:15px 0 5px;
-    padding:0 0 2px;
-    color:#696;
+	margin:15px 0 5px;
+	padding:0 0 2px;
+	color:#696;
+	font-weight:bold;
 	font-size:1.1em;
 	text-transform:uppercase;
 
 }
 
 	.UI_Action_List + .UI_SubHeading {
-		border-top:1px solid #eee;
+		border-top:1px solid #CCC;
 		padding-top:15px;
 	}
 
@@ -287,7 +288,7 @@ a:hover, a:focus {
 	display: inline-block;
 	color: #478CDE;
 	padding-bottom: 1px;
-	border-bottom: solid 1px #E9EDF0;
+	border-bottom: solid 1px #CCC;
 }
 
 .UI_SeeMore a:hover {
@@ -334,7 +335,7 @@ a:hover, a:focus {
 		.UI_Action_List li a {
 			color: #478CDE;
 			padding-bottom: 1px;
-			border-bottom: solid 1px #E9EDF0;
+			border-bottom: solid 1px #CCC;
 		}
 
 		.UI_Action_List li a:hover,
@@ -345,7 +346,7 @@ a:hover, a:focus {
 		}
 
 		.UI_Action_List li strong {
-			color: #CCC;
+			color: #999;
 			font-size: .9em;
 			margin-left: 5px;
 		}
@@ -355,7 +356,7 @@ a:hover, a:focus {
     overflow: hidden;
 }
 .UI_Actions {
-	margin: 14px 10px 14px 0;
+	margin: 11px 10px 14px 0;
     float: left;
 }
 
@@ -578,7 +579,7 @@ kbd {
 			display: inline-block;
 			color: #478CDE;
 			padding-bottom: 1px;
-			border-bottom: solid 1px #E9EDF0;
+			border-bottom: solid 1px #CCC;
 		}
 
 		.UI_Pagination li a:hover,

@@ -13,9 +13,10 @@ log = commonware.log.getLogger('f.search')
 
 SORT_MAPPING = {
     'score':'_score',
-    'activity':'activity',
-    'forked':'copies_count',
-    'used':'times_depended',    
+    'activity':'-activity',
+    'forked':'-copies_count',
+    'used':'-times_depended',
+    'new':'-created_at',
 }
 
 def search(request):
@@ -28,7 +29,8 @@ def search(request):
     page = query.get('page') or 1
     limit = 20
     activity_map = get_activity_scale()
-    sort = SORT_MAPPING.get(query.get('sort'), '_score')
+    
+    sort = SORT_MAPPING.get(query.get('sort'), '_score' if q else '-activity')
 
     filters = {}
     filters['user'] = request.user

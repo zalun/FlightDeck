@@ -37,7 +37,7 @@ var SearchResult = new Class({
 			newSidebar = this.content[0],
 			newResults = this.content[1];
 		if (results) {
-			newResults.replaces(results).fade('in');
+			newResults.replaces(results);
 		}
 
 		if (sidebar) {
@@ -48,11 +48,11 @@ var SearchResult = new Class({
 			SearchResult.setupUI(this);
 		} else {
 			var loc = new URI(this.url);
-		    Object.each(this.ui.sliders, function(slider, name) {
-                slider.sanityCheck = false;
-			    slider.set(loc.getData(name) || 0);
-			    slider.sanityCheck = true;
-            });	
+			Object.each(this.ui.sliders, function(slider, name) {
+				slider.sanityCheck = false;
+				slider.set(loc.getData(name) || 0);
+				slider.sanityCheck = true;
+			});	
             
 		}
 
@@ -179,6 +179,23 @@ window.addEvent('domready', function() {
 
 	window.addEvent('popstate', function(e) {
 		SearchResult.fetch(String(window.location));
+	});
+	
+	$('app-body').addEvent('change:relay(#SortSelect)',function(e){
+		var u = new URI(window.location);
+		var oldValue = u.getData('sort');		
+		u.setData('sort',this.getSelected().get('value')[0])
+		SearchResult.page(u.toString());
+		// Since we cache these pages, we need to set the select
+		// value back to the original value. Otherwise,
+		// when this page is pulled from the cache the selected
+		// option will not match the querystring
+		Array.from(this.options).each(function(o,i){			
+			if(o.value == oldValue){
+				o.selected = true;
+				this.selectedIndex = i;
+			}
+		});
 	});
 
 	SearchResult.setupUI();
