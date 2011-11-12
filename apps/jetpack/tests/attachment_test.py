@@ -17,7 +17,7 @@ from django.conf  import settings
 from django.core.urlresolvers import reverse
 
 from jetpack.models import Package, PackageRevision, Attachment
-from jetpack.tests.test_views import next
+from jetpack.tests.test_views import next_revision
 from jetpack.errors import FilenameExistException
 
 log = commonware.log.getLogger('f.test')
@@ -129,7 +129,7 @@ class TestViews(TestCase):
 
     def add_one(self, data = 'foo', filename='some.txt'):
         self.upload(self.get_upload_url(self.revision.revision_number), data, filename)
-        self.revision = next(self.revision)
+        self.revision = next_revision(self.revision)
         return self.revision
 
     def get_upload_url(self, revision):
@@ -338,7 +338,7 @@ class TestViews(TestCase):
         assert response.has_key('uid')
         assert response['uid'] != old_uid
 
-        revision = next(revision)
+        revision = next_revision(revision)
         eq_(revision.attachments.count(), 1)
 
     def test_attachment_save(self):
