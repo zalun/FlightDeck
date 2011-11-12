@@ -2,6 +2,8 @@
 
 from django.conf.urls.defaults import url, patterns
 
+username = '(?P<username>[-\w]+)'
+
 urlpatterns = patterns('jetpack.views',
 
     # browsing packages
@@ -14,14 +16,14 @@ urlpatterns = patterns('jetpack.views',
     url(r'^libraries/(?P<page_number>\d+)/$',
         'browser', {'type_id': 'l'}, name='jp_browser_libraries_page'),
     # by user
-    url(r'^addons/by/(?P<username>\w+)/$',
+    url(r'^addons/by/%s/$' % username,
         'browser', {'type_id': 'a'}, name='jp_browser_user_addons'),
-    url(r'^libraries/by/(?P<username>\w+)/$',
+    url(r'^libraries/by/%s/$' % username,
         'browser', {'type_id': 'l'}, name='jp_browser_user_libraries'),
-    url(r'^addons/by/(?P<username>\w+)/(?P<page_number>\d+)/$',
+    url(r'^addons/by/%s/(?P<page_number>\d+)/$' % username,
         'browser', {'type_id': 'a'},
         name='jp_browser_user_addons_page'),
-    url(r'^libraries/by/(?P<username>\w+)/(?P<page_number>\d+)/$',
+    url(r'^libraries/by/%s/(?P<page_number>\d+)/$' % username,
         'browser', {'type_id': 'l'},
         name='jp_browser_user_libraries_page'),
 

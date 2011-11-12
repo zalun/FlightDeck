@@ -17,7 +17,7 @@ from base.helpers import hashtag
 log = commonware.log.getLogger('f.test')
 
 
-def next(revision):
+def next_revision(revision):
     number = revision.revision_number
     return (PackageRevision.objects.filter(revision_number__gt=number,
                                            package=revision.package)
@@ -43,11 +43,11 @@ class TestPackage(TestCase):
         eq_(r.status_code, 200)
         eq_(r.content, '{"ready": true}')
 
-    def test_package_browser_no_use(self):
+    def test_package_browser_no_user(self):
         """If user does not exist raise 404
         """
         r = self.client.get(
-                reverse('jp_browser_user_addons', args=['not_a_user']))
+                reverse('jp_browser_user_addons', args=['not_a-user']))
         eq_(r.status_code, 404)
 
     def test_author_can_edit_package(self):
@@ -162,7 +162,7 @@ class TestEmptyDirs(TestCase):
     def add_one(self, name='tester', root_dir='l'):
         self.post(self.get_add_url(self.revision.revision_number),
                   {'name': name, 'root_dir': root_dir})
-        self.revision = next(self.revision)
+        self.revision = next_revision(self.revision)
         return self.revision
 
     def get_add_url(self, revision):
@@ -179,7 +179,7 @@ class TestEmptyDirs(TestCase):
         eq_(res.status_code, 200)
         json.loads(res.content)
 
-        revision = next(self.revision)
+        revision = next_revision(self.revision)
         folder = revision.folders.all()[0]
         eq_(folder.name, 'tester')
 
@@ -190,7 +190,7 @@ class TestEmptyDirs(TestCase):
         eq_(res.status_code, 200)
         json.loads(res.content)
 
-        revision = next(self.revision)
+        revision = next_revision(self.revision)
         eq_(revision.folders.count(), 0)
 
     def test_folder_sanitization(self):
