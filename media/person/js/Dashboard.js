@@ -31,7 +31,6 @@ FlightDeck = Class.refactor(FlightDeck, {
             return
         }
         var el = e.target.getParent('li');
-        $log(el);
 
 		new Request.JSON({
 			url: el.get('data-upload_url'),
@@ -51,6 +50,7 @@ FlightDeck = Class.refactor(FlightDeck, {
                                  '://' + settings.amooauth_domain + 
                                  '/en-US/developers/addons" target="amo_dashboard">AMO dashboard</a>');
                 this.getStatus.delay(5000, this, el.getParent('.UI_AMO_Info'));
+                this.updateStatus(el, {'status': 'Upload Scheduled'})
 			}.bind(this),
             addOnFailure: function() {
                 this.getStatus.delay(500, this, el.getParent('.UI_AMO_Info'));
@@ -87,7 +87,6 @@ FlightDeck = Class.refactor(FlightDeck, {
      * pull Add-o status and update data on the page
      */
     getStatus: function(status_el) {
-        var pk = status_el.get('data-revision_id');
         new Request.JSON({
             url: status_el.get('data-get_addon_info_url'),
             useSpinner: true,
@@ -121,7 +120,8 @@ FlightDeck = Class.refactor(FlightDeck, {
         };
         if (data.status) update('.amo-review_status', data.status);
         if (data.version) update('.amo-latest_version', data.version);
-        if (data.pk) status_el.set('data-revision_id', data.pk) ;
+        if (data.get_addon_info_url status_el.set('data-get_addon_info_url', data.get_addon_info_url)
+        //if (data.pk) status_el.set('data-revision_id', data.pk) ;
         var edit_on_amo = status_el.getElements('.UI_AMO_Edit_On_AMO');
         edit_on_amo = edit_on_amo ? edit_on_amo[0] : false;
         var view_on_amo = status_el.getElements('.UI_AMO_View_On_AMO');
