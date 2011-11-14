@@ -31,7 +31,6 @@ FlightDeck = Class.refactor(FlightDeck, {
             return
         }
         var el = e.target.getParent('li');
-        $log(el);
 
 		new Request.JSON({
 			url: el.get('data-upload_url'),
@@ -51,6 +50,7 @@ FlightDeck = Class.refactor(FlightDeck, {
                                  '://' + settings.amooauth_domain + 
                                  '/en-US/developers/addons" target="amo_dashboard">AMO dashboard</a>');
                 this.getStatus.delay(5000, this, el.getParent('.UI_AMO_Info'));
+                this.updateStatus(el, {'status': 'Upload Scheduled'})
 			}.bind(this),
             addOnFailure: function() {
                 this.getStatus.delay(500, this, el.getParent('.UI_AMO_Info'));
