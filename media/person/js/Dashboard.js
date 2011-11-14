@@ -87,7 +87,6 @@ FlightDeck = Class.refactor(FlightDeck, {
      * pull Add-o status and update data on the page
      */
     getStatus: function(status_el) {
-        var pk = status_el.get('data-revision_id');
         new Request.JSON({
             url: status_el.get('data-get_addon_info_url'),
             useSpinner: true,
@@ -121,7 +120,8 @@ FlightDeck = Class.refactor(FlightDeck, {
         };
         if (data.status) update('.amo-review_status', data.status);
         if (data.version) update('.amo-latest_version', data.version);
-        if (data.pk) status_el.set('data-revision_id', data.pk) ;
+        if (data.get_addon_info_url status_el.set('data-get_addon_info_url', data.get_addon_info_url)
+        //if (data.pk) status_el.set('data-revision_id', data.pk) ;
         var edit_on_amo = status_el.getElements('.UI_AMO_Edit_On_AMO');
         edit_on_amo = edit_on_amo ? edit_on_amo[0] : false;
         var view_on_amo = status_el.getElements('.UI_AMO_View_On_AMO');

@@ -1,14 +1,14 @@
 import commonware.log
 import simplejson
 
-from django.shortcuts import render_to_response, get_object_or_404
-from django.http import HttpResponse, HttpResponseNotAllowed, HttpResponseBadRequest
+from django.shortcuts import get_object_or_404 #  render_to_response,
+from django.http import HttpResponse, HttpResponseBadRequest
 
 from amo import tasks
-from amo.constants import *
+from amo.constants import STATUS_UPLOAD_FAILED, STATUS_UPLOAD_SCHEDULED
 from amo.helpers import get_addon_details as _get_addon_details
 from jetpack.models import PackageRevision
-from utils.exceptions import SimpleException
+#from utils.exceptions import SimpleException
 
 log = commonware.log.getLogger('f.amo')
 
@@ -33,7 +33,7 @@ def upload_to_amo(request, pk):
         PackageRevision.objects.get(
             package=revision.package, amo_version_name=version,
             amo_status=STATUS_UPLOAD_SCHEDULED)
-    except:
+    except PackageRevision.DoesNotExist:
         pass
     else:
         log.debug("This Add-on is currently scheduled to upload")
@@ -105,18 +105,21 @@ def get_addon_details(request, pk):
     """
     # get PackageRevision
     revision = get_object_or_404(PackageRevision, pk=pk)
-    # check if Package is synced with the AMO and last update was successful
-    if not (revision.package.amo_id or revision.amo_status != None):
-        return HttpResponse('{}')# mimetype="application/json")
+
+    # check if Package was scheduled for upload
+    if revision.amo_status == None:
+        return HttpResponse('{}', mimetype="application/json")
 
     amo_meta = {'status': revision.get_status_name(),
                 'status_code': revision.amo_status,
                 'version': revision.amo_version_name,
+                'get_addon_info_url': revision.get_addon_info_url(),
                 'pk': revision.pk,
                 'uploaded': revision.amo_status != STATUS_UPLOAD_FAILED}
+
     if revision.package.amo_slug:
         amo_meta['view_on_amo_url'] = revision.package.get_view_on_amo_url()
         amo_meta['edit_on_amo_url'] = revision.package.get_edit_on_amo_url()
 
-    return HttpResponse(simplejson.dumps(amo_meta))
-                        #mimetype="application/json")
+    return HttpResponse(simplejson.dumps(amo_meta),
+                        mimetype="application/json")
