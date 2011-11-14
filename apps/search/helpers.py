@@ -2,6 +2,7 @@ from django.core.cache import cache
 
 from elasticutils import S, F
 from jetpack.models import Package
+from jingo import register
 
 
 def package_search(searchq='', user=None, score_on=None, **filters):
@@ -10,8 +11,8 @@ def package_search(searchq='', user=None, score_on=None, **filters):
     # This is a filtered query, that says we want to do a query, but not have
     # to deal with version_text='initial' or 'copy'
     notInitialOrCopy = ~(F(version_name='initial') | F(version_name='copy'))
-
-    qs = Package.search().filter(notInitialOrCopy, **filters)
+#.values('copies_count', 'activity')
+    qs = Package.search().values_obj('copies_count','times_depended','activity').filter(notInitialOrCopy, **filters)
 
     # Add type facet (minus any type filter)
     facetFilter = dict((k, v) for k, v in filters.items() if k != 'type')
@@ -29,8 +30,7 @@ def package_search(searchq='', user=None, score_on=None, **filters):
         qs = qs.facet(author={'terms': {
             'field': 'author',
             'script':'term == %d ? true : false' % user.id}
-        })
-
+        })    
     return qs
 
 
@@ -53,6 +53,28 @@ ACTIVITY_MAP = {
     '4': 0.6, #high
     '5': 0.8, #fresh
 }
+
+ACTIVITY_MAP_UI = {
+    '0': 'Inactive',
+    '1': 'Stale',
+    '2': 'Low',
+    '3': 'Moderate',
+    '4': 'High',
+    '5': 'Rockin\''
+}
+
+@register.function
+def get_activity_level_UI(activity):
+    """ Takes activity score and turns it into UI value """    
+    if not activity:
+        return 'Inactive'
+    
+    scale = get_activity_scale();
+    last = 0
+    for i,v in scale.iteritems():    
+        if activity > v and i >= last:    
+            last = i    
+    return ACTIVITY_MAP_UI.get(last)
 
 def get_activity_scale():
     avg = _get_average_activity()
