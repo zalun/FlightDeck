@@ -13,7 +13,8 @@
 		{% if type == 'library' %}
 		    <option value="used" {{ select_selected('sort=used') }}>Uses</option>
 		{% endif %}
-		<option value="new" {{ select_selected('sort=new') }}>Newest</option>		
+		<option value="new" {{ select_selected('sort=new') }}>Newest</option>
+		<option value="size" {{ select_selected('sort=size') }}>Size</option>
 	    </select></span>
 	</h2>
     {% for package in pager.object_list %}

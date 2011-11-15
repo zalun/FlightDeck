@@ -17,6 +17,7 @@ SORT_MAPPING = {
     'forked':'-copies_count',
     'used':'-times_depended',
     'new':'-created_at',
+    'size':'-size',
 }
 
 def search(request):

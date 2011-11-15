@@ -13,9 +13,11 @@
         {% if package.is_library() %}
             <li><span>used:</span>
                 {{ package.search_meta.times_depended }} times</li>
-        {% endif %}
+        {% endif %}        
         <li><span>activity:</span>
-            {{ get_activity_level_UI(package.search_meta['activity']) }}</li>
+            {{ get_activity_level_UI(package.search_meta.activity) }}</li>
+        <li><span>size:</span>
+            {{ package.search_meta.size|filesizeformat }}</li>   
     </ul>
     <ul class="UI_Actions">        
         {% if package.is_addon() %}
