@@ -18,6 +18,34 @@ from base.models import CeleryResponse
 
 log = commonware.log.getLogger('f.monitor')
 
+
+def app_manifest(request):
+    # @TODO: Fill out more of this as we can (ie. widget, icons)
+    data = {'version': settings.PROJECT_VERSION,
+            'name': settings.SITE_TITLE,
+            'description': ('Add-on Builder makes it easy to write, build and '
+                            'test Firefox extensions using common web '
+                            'technologies.'),
+            #'icons': { },
+            #'widget': { },
+            'developer': {
+                'name': 'Mozilla Flightdeck Team',
+                'url': 'https://builder.addons.mozilla.org/',
+            },
+            'installs_allowed_from': [
+                 'https://apps-preview-dev.allizom.org',
+                 'https://apps-preview.allizom.org',
+                 'https://apps-preview.mozilla.org',
+                 'https://addons-dev.allizom.org',
+                 'https://addons.allizom.org',
+                 'https://addons.mozilla.org',
+            ],
+            'default_locale': 'en',
+           }
+    return HttpResponse(simplejson.dumps(data),
+                        mimetype="application/x-web-app-manifest+json")
+
+
 def graphite(request, site):
     # This code (and the template) is ugly as hell.  Since we aren't on Jinja
     # yet we can't use the same views/templates as the other projects, so we
