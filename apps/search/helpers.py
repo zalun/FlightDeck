@@ -11,8 +11,9 @@ def package_search(searchq='', user=None, score_on=None, **filters):
     # This is a filtered query, that says we want to do a query, but not have
     # to deal with version_text='initial' or 'copy'
     notInitialOrCopy = ~(F(version_name='initial') | F(version_name='copy'))
-#.values('copies_count', 'activity')
-    qs = Package.search().values_obj('copies_count','times_depended','activity').filter(notInitialOrCopy, **filters)
+
+    qs = Package.search().values_obj('copies_count','times_depended',
+            'activity','size').filter(notInitialOrCopy, **filters)
 
     # Add type facet (minus any type filter)
     facetFilter = dict((k, v) for k, v in filters.items() if k != 'type')

@@ -1873,6 +1873,11 @@ class Package(BaseModel, SearchMixin):
         if self.latest:
             deps = self.latest.dependencies.all()
             data['dependencies'] = [dep.package.id for dep in deps]
+            size = 0
+            for m in self.latest.modules.all():
+                size += len(m.code)
+            data['size'] = size
+
 
         if self.is_library():
             data['times_depended'] = (Package.objects
