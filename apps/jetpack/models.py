@@ -2107,7 +2107,7 @@ class Attachment(BaseModel):
                 self.pk, str(err)))
             raise AttachmentWriteException(
                 'Attachment failed to save properly<br/>'
-                'Unknown unicode in file')
+                'Unknown Unicode in file')
 
 
     def export_code(self, static_dir):
