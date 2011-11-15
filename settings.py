@@ -367,6 +367,7 @@ ES_DISABLED = True
 ES_INDEXES = {
     'default': 'flightdeck',
 }
+ES_TIMEOUT = 5
 # ES_HOSTS = ['127.0.0.1:9201']
 
 # Graphite reporting
