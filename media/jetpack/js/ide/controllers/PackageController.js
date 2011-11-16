@@ -12,6 +12,8 @@ var Class = require('shipyard/class/Class'),
     Folder = require('../models/Folder'),
     Package = require('../models/Package'),
     PackageRevision = require('../models/PackageRevision'),
+
+    FloatingTips = require('../views/FloatingTips'),
     
     //TODO: this is bad practice
     fd = dom.window.get('fd');
@@ -207,16 +209,9 @@ module.exports = new Class({
         
         // when typing in Save popover, you should be able to tab in a
         // logical order
-        //TODO: this is using MooTools mouseenter
-        if (this.save_el.node.addEvent) {
-            this.save_el.node.addEvent('mouseenter', function(e) {
-                controller.versionEl.focus();
-            });
-        } else {
-            this.save_el.addEvent('mouseenter', function(e) {
-                controller.versionEl.focus();
-            });
-        }
+        this.save_el.addEvent('mouseenter', function(e) {
+            controller.versionEl.focus();
+        });
         this.revision_message_el = dom.$('revision_message');
         this.revision_message_el.addEvent('keypress', function(e) {
             if (e.key === 'tab') {
@@ -612,7 +607,7 @@ module.exports = new Class({
         // else if Library
         else if (file instanceof Package) {
             // then open link in new window
-            dom.window.node.open(file.get('view_url'));
+            dom.window.getNode().open(file.get('view_url'));
         }
     },
 
