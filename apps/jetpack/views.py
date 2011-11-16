@@ -14,7 +14,7 @@ from django.views.static import serve
 from django.shortcuts import get_object_or_404
 from django.http import (HttpResponseRedirect, HttpResponse,
                         HttpResponseForbidden, HttpResponseServerError,
-                        HttpResponseNotAllowed, Http404)  # , QueryDict
+                        Http404)  # , QueryDict
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator, EmptyPage, InvalidPage
 from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
@@ -821,6 +821,7 @@ def save(request, id_number, type_id, revision_number=None,
     Save package and modules
     @TODO: check how dynamic module loading affects save
     """
+
     revision = get_package_revision(id_number, type_id, revision_number,
                                     version_name)
     if request.user.pk != revision.author.pk:
@@ -843,7 +844,7 @@ def save(request, id_number, type_id, revision_number=None,
 
     if version_name and not validator.is_valid(
         'alphanum_plus', version_name):
-        return HttpResponseNotAllowed(escape(
+        return HttpResponseForbidden(escape(
             validator.get_validation_message('alphanum_plus')))
 
     # here we're checking if the *current* full_name is different than the
@@ -852,7 +853,7 @@ def save(request, id_number, type_id, revision_number=None,
         try:
             revision.set_full_name(package_full_name)
         except ValidationError:
-            return HttpResponseNotAllowed(escape(
+            return HttpResponseForbidden(escape(
                 validator.get_validation_message('alphanum_plus_space')))
         except IntegrityError:
             return HttpResponseForbidden(
