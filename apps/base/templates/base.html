@@ -37,6 +37,10 @@
 			var settings = {
 				{% block app_settings %}{% endblock %}{% block page_settings %}{% endblock %}
 				addons_helper: '{{ settings.ADDONS_HELPER_URL }}',
+                {% if waffle.switch('checkAddonsHelperVersion') %}
+                    addons_helper_version: '{{
+                        settings.ADDONS_HELPER_VERSION }}',
+                {% endif %}
 				person_login_url: '{{ login_url }}',
 				jp_addon_create_url: '{{ url('jp_addon_create') }}',
 				jp_library_create_url: '{{ url('jp_library_create') }}',

@@ -12,14 +12,14 @@ Request = Class.refactor(Request, {
             if (this.options.addOnFailure) {
               this.options.addOnFailure();
             }
-			if (xhr.status != 0 && xhr.responseText) {
+			if (xhr.status !== 0 && xhr.responseText) {
                 response = xhr.responseText;
                 if (this.headers['X-Request'] == 'JSON') {
                     try {
                         response = JSON.decode(response);
                     } catch(err) {
                         // u'some string' is not valid JSON
-                    };
+                    }
                 }
 				fd.error.alert(xhr.statusText, response);
 			}
@@ -29,7 +29,7 @@ Request = Class.refactor(Request, {
     processScripts: function(text){
         if (this.options.evalResponse) return Browser.exec(text);
         return text.stripScripts(this.options.evalScripts);
-    },
+    }
 });
 
 XPIRequest = new Class({
@@ -44,7 +44,7 @@ XPIRequest = new Class({
                 if (this.options.addOnFailure) {
                   this.options.addOnFailure();
                 }
-                if (xhr.status != 0 && xhr.responseText) {
+                if (xhr.status !== 0 && xhr.responseText) {
                     fd.error.alert(
                         '{statusText}'.substitute(xhr),
                         '{responseText}'.substitute(xhr)
@@ -54,7 +54,7 @@ XPIRequest = new Class({
         }
     },
     initialize: function(cancel_callback, options) {
-        this.cancel_callback = cancel_callback,
+        this.cancel_callback = cancel_callback;
         this.parent(options);
     }
 });
@@ -72,7 +72,7 @@ Events.implement({
             if(counter < 1) {
                 this.removeEvent(type, volatileFn);
             }
-        }
+        };
         this.addEvent(type, volatileFn, internal);
     }
 });
@@ -162,7 +162,7 @@ var FlightDeck = new Class({
     whenAddonInstalled: function(callback) {
         var removeListener = function() {
             document.body.removeEventListener('addonbuilderhelperstart', callback, false);
-        }
+        };
         document.body.addEventListener('addonbuilderhelperstart', callback, false);
         (function() {
             $log('FD: Warning: not listening to addonbuilderhelperstart, is Helper installed?');
@@ -187,7 +187,7 @@ var FlightDeck = new Class({
      * Method: downloadXPI it's running in Request's scope
      */
     downloadXPI: function(response) {
-        var time = fd.options.request_interval
+        var time = fd.options.request_interval;
         
         $log('FD: DEBUG: XPI delayed ... try to load every ' + time/1000 + ' seconds' );
         var hashtag = this.options.data.hashtag;
@@ -236,7 +236,9 @@ var FlightDeck = new Class({
     },
 
     /*
-     * Method: testXPI it's running in Request's scope
+     * Method: testXPI 
+     *
+     * it's running in Request's scope
      */
     testXPI: function(response) {
         $log('FD: DEBUG: XPI delayed ... try to load every ' + fd.options.request_interval/1000 + ' seconds' );
@@ -269,7 +271,7 @@ var FlightDeck = new Class({
                 var cancel_callback = function() {
                     clearInterval(test_request.install_ID);
                     test_request.spinner.destroy();
-                }
+                };
                 test_request.install_xpi_request = new XPIRequest(
                     cancel_callback, {
                     method: 'get',
@@ -338,9 +340,27 @@ var FlightDeck = new Class({
     },
 
     /*
+     * Method: alertIfOldHelper
+     * Show a warning if old add-on builder helper is installed
+     */
+    alertIfOldHelper: function() {
+        if (settings.addons_helper_version && window.mozFlightDeck) {
+            response = window.mozFlightDeck.send({cmd: 'version'});
+            if (!response.success || response.msg < settings.addons_helper_version) {
+                fd.warning.alert(
+                        'Upgrade Add-on Builder Helper',
+                        'There is a newer version ({addons_helper_version}) available.<br/> Please install <a href="{addons_helper}">the current one</a>.'.substitute(settings));
+            } else alert('WTF?')
+        }
+    },
+
+
+
+    /*
      * Method: alertIfNoAddOn
      */
     alertIfNoAddOn: function(callback, text, title) {
+        this.alertIfOldHelper();
         if (this.isAddonInstalled()) return true;
         text = [text,
                 "To test this add-on, please install the <a id='install_addon_helper' href='{addons_helper}'>Add-on Builder Helper add-on</a>".substitute(settings)].pick();
@@ -432,9 +452,8 @@ Element.implement({
     isHidden: function(){
         var w = this.offsetWidth, h = this.offsetHeight,
         force = (this.tagName.toLowerCase() === 'tr');
-        return (w===0 && h===0 && !force)
-            ? true
-            : (w!==0 && h!==0 && !force) ? false : this.getStyle('display') === 'none';
+        return (w===0 && h===0 && !force) ? 
+            true : (w!==0 && h!==0 && !force) ? false : this.getStyle('display') === 'none';
     },
     isVisible: function(){
         return !this.isHidden();
@@ -500,7 +519,7 @@ Form.Validator.addAllThese([
             return text;
         },
         escapeAll: function() {
-            return this.escapeHTML()//.escapeJS();
+            return this.escapeHTML(); //.escapeJS();
         }
     });
 })();
@@ -528,5 +547,5 @@ window.addEvent('load', function() {
 window.addEvent('domready', function() {
     $$('.emptyreset').forEach(function(el) {
         el.set('value', '');
-    })
-})
+    });
+});

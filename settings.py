@@ -217,7 +217,7 @@ SESSION_COOKIE_NAME = "bamo_sessionid"
 TEMPLATE_LOADERS = (
     'jingo.Loader',
     'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader',    
+    'django.template.loaders.app_directories.Loader',
 )
 
 JINGO_EXCLUDE_APPS = [
@@ -267,6 +267,7 @@ ROOT_URLCONF = 'urls'
 
 ADDONS_HELPER_URL = ('https://addons.mozilla.org/firefox/downloads/latest/'
                     '182410?src=external-builder')
+ADDONS_HELPER_VERSION = '1.2.2'
 
 TEMPLATE_DIRS = ()
 

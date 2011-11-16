@@ -1,0 +1,1 @@
+INSERT INTO `waffle_switch` (name, active, note) VALUES ('checkAddonsHelperVersion',0,'Should system check if the Add-ons Builder Helper is the current one?\r\nShould be switched on after this bug is fixed: https://bugzilla.mozilla.org/show_bug.cgi?id=687138\r\n');
