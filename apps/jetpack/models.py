@@ -45,6 +45,8 @@ from utils.os_utils import make_path
 from utils.amo import AMOOAuth
 from xpi import xpi_utils
 
+from elasticutils.utils import retry_on_timeout
+
 
 log = commonware.log.getLogger('f.jetpack')
 
@@ -1885,8 +1887,15 @@ class Package(BaseModel, SearchMixin):
                     .count())
 
         try:
-            es.index(data, settings.ES_INDEXES['default'], self._meta.db_table, id=self.id,
-                 bulk=bulk)
+                        
+            retries = getattr(settings, 'ES_RETRY', 0)
+            retry_wait = getattr(settings, "ES_RETRY_INTERVAL", 0)
+        
+            args = [data, settings.ES_INDEXES['default'],
+                    self._meta.db_table, self.id, bulk ]
+            
+            retry_on_timeout(es.index, args, retries, retry_wait)
+            
         except Exception, e:
             log.error("ElasticSearch errored for addon (%s): %s" % (self, e))
         else:
@@ -1903,8 +1912,15 @@ class Package(BaseModel, SearchMixin):
     @es_required
     def remove_from_index(self, es, bulk=False):
         try:
-            es.delete(settings.ES_INDEXES['default'], self._meta.db_table, id=self.id,
-                 bulk=bulk)
+
+            retries = getattr(settings, 'ES_RETRY', 0)
+            retry_wait = getattr(settings, "ES_RETRY_INTERVAL", 0)
+            
+            args = [settings.ES_INDEXES['default'], self._meta.db_table,
+                    self.id, bulk]
+            
+            retry_on_timeout(es.delete, args, retries, retry_wait)
+            
         except PyesNotFoundException:
             log.debug('Package %d tried to remove from index but was not found.'
                       % self.id)
