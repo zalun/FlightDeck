@@ -4,6 +4,8 @@ var Class = require('shipyard/class/Class'),
     Options = require('shipyard/class/Options'),
     Events = require('shipyard/class/Events'),
     dom = require('shipyard/dom'),
+    Anim = require('shipyard/anim/Animation'),
+    Sine = require('shipyard/anim/transitions/Sine'),
     _dim = require('shipyard/dom/element/dimensions');
 
 var AVAILABLE_POSITIONS = ['top', 'right', 'bottom', 'left', 'inside'];
@@ -34,8 +36,14 @@ module.exports = new Class({
         showDelay: 0,
         hideDelay: 0,
         className: 'floating-tip',
-        offset: {x: 0, y: 0},
-        fx: { 'duration': 'short' }
+        offset: {
+            x: 0,
+            y: 0
+        },
+        fx: {
+            'duration': 'short',
+            'transition': Sine
+        }
     },
 
     initialize: function FloatingTips(elements, options) {
@@ -210,7 +218,8 @@ module.exports = new Class({
             }
         }
         
-        tip.set('morph', o.fx).store('position', pos);
+        var anim = new Anim(tip, o.fx);
+        tip.store('anim', anim).store('position', pos);
         tip.setStyles({ 'top': pos.y, 'left': pos.x });
         
         return tip;
@@ -218,14 +227,12 @@ module.exports = new Class({
     },
     
     _animate: function _animate(tip, d) {
-                  return;
-        
         clearTimeout(tip.retrieve(STORE_TIMEOUT));
         var delay = (d === 'in') ? this.options.showDelay : this.options.hideDelay;
+        var o = this.options, din = (d === 'in');
 
         var t = setTimeout(function() {
             
-            var o = this.options, din = (d === 'in');
             var m = { 'opacity': din ? 1 : 0 };
             
             if ((o.motionOnShow && din) || (o.motionOnHide && !din)) {
@@ -242,9 +249,10 @@ module.exports = new Class({
                 }
             }
             
-            tip.morph(m);
+            var anim = tip.retrieve('anim');
+            anim.start(m);
             if (!din) {
-                tip.get('morph').chain(function() {
+                anim.once('complete', function() {
                     tip.dispose();
                 });
             }
