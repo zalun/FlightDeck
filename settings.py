@@ -368,8 +368,9 @@ ES_DISABLED = True
 ES_INDEXES = {
     'default': 'flightdeck',
 }
-ES_TIMEOUT = 5
-# ES_HOSTS = ['127.0.0.1:9201']
+ES_TIMEOUT = 5                  #timeout duration
+ES_RETRY = 2                    #times to retry on timeout
+ES_RETRY_INTERVAL = 0.25        #wait between attempts
 
 # Graphite reporting
 STATSD_HOST = "localhost"
