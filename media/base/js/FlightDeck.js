@@ -344,13 +344,14 @@ var FlightDeck = new Class({
      * Show a warning if old add-on builder helper is installed
      */
     alertIfOldHelper: function() {
+        var response;
         if (settings.addons_helper_version && window.mozFlightDeck) {
             response = window.mozFlightDeck.send({cmd: 'version'});
             if (!response.success || response.msg < settings.addons_helper_version) {
                 fd.warning.alert(
                         'Upgrade Add-on Builder Helper',
                         'There is a newer version ({addons_helper_version}) available.<br/> Please install <a href="{addons_helper}">the current one</a>.'.substitute(settings));
-            } else alert('WTF?')
+            }
         }
     },
 
