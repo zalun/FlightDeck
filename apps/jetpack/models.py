@@ -1887,12 +1887,11 @@ class Package(BaseModel, SearchMixin):
                     .count())
 
         try:
-            
-            
+                        
             retries = getattr(settings, 'ES_RETRY', 0)
             retry_wait = getattr(settings, "ES_RETRY_INTERVAL", 0)
         
-            args = [data, settings.ES_INDEXES['default'], \
+            args = [data, settings.ES_INDEXES['default'],
                     self._meta.db_table, self.id, bulk ]
             
             retry_on_timeout(es.index, args, retries, retry_wait)
@@ -1913,11 +1912,11 @@ class Package(BaseModel, SearchMixin):
     @es_required
     def remove_from_index(self, es, bulk=False):
         try:
-            
+
             retries = getattr(settings, 'ES_RETRY', 0)
             retry_wait = getattr(settings, "ES_RETRY_INTERVAL", 0)
             
-            args = [settings.ES_INDEXES['default'], self._meta.db_table, \
+            args = [settings.ES_INDEXES['default'], self._meta.db_table,
                     self.id, bulk]
             
             retry_on_timeout(es.delete, args, retries, retry_wait)
