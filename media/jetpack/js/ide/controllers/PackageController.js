@@ -18,6 +18,7 @@ var Class = require('shipyard/class/Class'),
     Validator = require('../views/Validator'),
     
     //TODO: this is bad practice
+    settings = dom.window.get('settings'),
     fd = dom.window.get('fd');
 
 var LOADING_CLASS = 'loading';

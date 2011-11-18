@@ -6,15 +6,17 @@ var TabsController = require('./controllers/TabsController');
 var Ace = require('./views/FDEditor.Ace');
 var Sidebar = require('./views/Sidebar');
 var object = require('shipyard/utils/object');
+var log = require('shipyard/utils/log');
+require('./utils/request');
 
 // TODO: remove this once no files outside 'editor' app need the editor
 window.editor = exports;
 
 
-if (window.console) console.log('editor/index');
+log.debug('ide/index loaded');
 
 var tabs = exports.tabs = new TabsController();
-var sidebar = exports.sidebar = new Sidebar({ 
+var sidebar = exports.sidebar = new Sidebar({
     editable: !settings.readonly
 });
 var ace = exports.ace = new Ace('editor-wrapper');
