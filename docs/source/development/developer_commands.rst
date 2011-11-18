@@ -1,7 +1,7 @@
 
 
-Typical git commands used by developer
-======================================
+Cheatsheet - Typical git commands used by developer
+===================================================
 
 Developer has a set of commands which are common for that workflow.
 Please take these advices as a starting point. They do not cover whole
@@ -13,7 +13,7 @@ Syncing master branch
 Master branch has to be usually in sync with the main master branch::
 
     git checkout master
-    git pull main master
+    git pull upstream master
 
 Fixing a bug
 ------------
@@ -26,12 +26,6 @@ Create a branch with a bug number::
     git checkout -b bug-12345-bug_description
 
 .. note::
-    ``-b`` tells git to create a new branch. You may switch back to
-    ``master`` or other already created branch by::
-
-        git checkout branch_name`
-
-.. note::
     If the bug is a hotfix it will be called hotfix-12345-branch_description
 
 Make some changes, publish the bug to the ``origin`` repository::
@@ -39,11 +33,7 @@ Make some changes, publish the bug to the ``origin`` repository::
     git commit [ list_of_files | -a ] -v
     git push origin bug-12345-bug_description
 
-.. note::
-    ``-v`` switch is to tell git to use ''verbose'' mode which opens an
-    editor and displays a diff.
-
-Send a pull request to the `Repository Manager <repository-manager>`.
+Send a pull request.
 
 After the bug has been succesfully resolved the branch may be
 removed::
@@ -74,7 +64,3 @@ If you'd like later to load changes done by "fellow" - pull them from
 the remote branch::
 
     git pull fellow/bug-12345-bug_description
-
-.. note:: 
-    Remember to checkout the ``bug-12345-bug_description`` before
-
