@@ -8,7 +8,7 @@ body {
 
 #app-sidebar {
     float:left;
-    position:static;
+    width:22%;
 }
 
     #NarrowSearch .disabled {
@@ -130,9 +130,8 @@ body {
 
 
 #SearchResults {
-    float:left;
-    margin-left:20px;
-    width:725px;
+    float:right;    
+    width:75%;
 }
     
     #SearchResults .result + h2 {
