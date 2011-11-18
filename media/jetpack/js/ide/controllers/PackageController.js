@@ -14,6 +14,7 @@ var Class = require('shipyard/class/Class'),
     PackageRevision = require('../models/PackageRevision'),
 
     FloatingTips = require('../views/FloatingTips'),
+    Validator = require('../views/Validator'),
     
     //TODO: this is bad practice
     fd = dom.window.get('fd');
@@ -1278,10 +1279,6 @@ module.exports = new Class({
         fd.editPackageInfoModal = fd.displayModal(
                 settings.edit_package_info_template.substitute(
                     object.merge({}, this.data, this.options)));
-        dom.$('package-info_form').addEvent('submit', function(e) {
-            e.stop();
-            controller.submitInfo();
-        });
         dom.$('full_name').addEvent('change', function() {
             fd.fireEvent('change');
         });
@@ -1298,15 +1295,19 @@ module.exports = new Class({
         dom.$('UI_ActivateLink').getElement('a').addEvent('click', this.makePublic.bind(this));
         dom.$('UI_DisableLink').getElement('a').addEvent('click', this.makePrivate.bind(this));
 
-        this.validator = new Form.Validator.Inline('package-info_form');
-        var self = this;
-        dom.$$('#package-info_form input[type=submit]').forEach(function(el) {
-            el.addEvent('click', function(e) {
-                if (!self.validator.validate()) {
-                    e.stop();
-                }
-            });
+        var validator = new Validator('full_name', {
+            pattern: /^[A-Za-z0-9\s\-_\.\(\)]*$/,
+            message: 'Please use only letters, numbers, spaces, or "_().-" in this field.'
         });
+        dom.$('package-info_form').addEvent('submit', function(e) {
+            e.stop();
+            if (validator.validate()) {
+                controller.submitInfo();
+            } else {
+                log.debug('Form field full_name field has invalid characters.');
+            }
+        });
+
         // Update modal from data (if not saved yet)
         object.forEach(this.data, function(value, key) {
             var el = dom.$(key);
