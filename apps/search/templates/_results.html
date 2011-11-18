@@ -17,32 +17,56 @@
 		<option value="size" {{ select_selected('sort=size') }}>Size</option>
 	    </select></span>
 	</h2>
+	
     {% for package in pager.object_list %}
-			{% include "_package_result.html" %}
+	    {% include "_package_result.html" %}
 	{% else %}
-		<p>No results were found for the term "{{ query.q }}".</p>
-	{% endfor %}
-
-	{% if pager.has_other_pages() %}
-    <ul class="UI_Pagination">
-			{% if pager.has_previous() %}
-				<li class="UI_Pagin_Action prev">
-					<span></span>
-					<a href="?{{ querystring('page=%s' % pager.previous_page_number() ) }}">
-						Previous
-					</a>
-				</li>
-			{% endif %}
-			<li class='current'>{{ pager.number }}</li>
-			{% if pager.has_next() %}
-				<li class="UI_Pagin_Action next">
-                    <a href="?{{ querystring('page=%s' % pager.next_page_number() ) }}">
-						Next
-					</a>
-					<span></span>
-				</li>
-			{% endif %}
-		</ul>
-	{% endif %}
+	    <p>No results were found for the term "{{ query.q }}".</p>
+    {% endfor %}
+    
+    {% if pager.has_other_pages() %}
+	<ul class="UI_Pagination">
+	    <li class="pageof">
+		Page {{pager.number}} of {{ pager.paginator.num_pages }}
+	    </li>	    
+	    {% if pager.number != pager.start_index() %}
+		<li>
+		    <a href="?{{ querystring('page=1') }}">
+			First
+		    </a>
+		</li>
+	    {% endif %}
+	    {% if pager.has_previous() %}
+		<li class="UI_Pagin_Action prev">
+		    <span></span>
+		    <a href="?{{ querystring('page=%s' % pager.previous_page_number() ) }}">
+			Previous
+		    </a>
+		</li>
+	    {% endif %}
+	    <li class='current'>{{ pager.number }}</li>
+	    {% if pager.has_next() %}
+		<li class="UI_Pagin_Action next">
+		    <a href="?{{ querystring('page=%s' % pager.next_page_number() ) }}">
+			Next
+		    </a>
+		    <span></span>
+		</li>
+	    {% endif %}
+	    {% if pager.number != pager.paginator.num_pages %}
+		<li>
+		    <a href="?{{ querystring('page=%s' % pager.paginator.num_pages ) }}">
+			Last
+		    </a>
+		</li>
+	    {% endif %}
+	    <li class="showing">
+		Showing
+		<b>
+{{( pager.paginator.per_page * (pager.number -1))+1 }}-{{ pager.paginator.per_page * pager.number if (pager.paginator.per_page * pager.number) < pager.paginator.count else pager.paginator.count }}
+		</b>of <b>{{ pager.paginator.count }}</b>
+	    </li>
+	</ul>
+    {% endif %}
 {% endif %}
 </section>

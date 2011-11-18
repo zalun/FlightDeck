@@ -212,5 +212,21 @@ body {
     }
 
 #SearchResults .UI_Pagination {
-    margin-top:40px;
+    margin-top:20px;
+    text-align:center;
 }
+
+    #SearchResults .UI_Pagination .current{
+        color:#666;
+        font-weight:bold;
+    }
+
+    #SearchResults .UI_Pagination .pageof{
+        float:left;
+        color:#666;
+    }
+    
+    #SearchResults .UI_Pagination .showing{
+        float:right;
+        color:#666;
+    }

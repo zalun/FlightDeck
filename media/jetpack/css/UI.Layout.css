@@ -567,10 +567,8 @@ kbd {
 	margin: 0 0 40px;
 }
 
-	.UI_Pagination li {
-		font-weight: bold;
-		display: inline-block;
-		color: #ccc;
+	.UI_Pagination li {		
+		display: inline-block;		
 		font-size: .9em;
 		margin: 0 2px;
 	}
