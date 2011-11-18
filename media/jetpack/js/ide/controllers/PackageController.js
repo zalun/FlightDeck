@@ -121,6 +121,10 @@ module.exports = new Class({
 
         this.packageInfoEl = dom.$(this.options.package_info_el);
 
+        this.attachEditor();
+        this.attachSidebar();
+        this.attachTabs();
+
         if (this.getOption('readonly')) {
             this.assignViewActions();
         } else {
@@ -192,10 +196,6 @@ module.exports = new Class({
                 controller.save_el.focus();
             }
         });
-
-        this.attachEditor();
-        this.attachSidebar();
-        this.attachTabs();
 
 
         if (dom.$('jetpack_core_sdk_version')) {
