@@ -3,6 +3,7 @@ var Class = require('shipyard/class/Class'),
     Events = require('shipyard/class/Events'),
     dom = require('shipyard/dom'),
     object = require('shipyard/utils/object'),
+    string = require('shipyard/utils/string'),
     log = require('shipyard/utils/log'),
     Cookie = require('shipyard/utils/Cookie'),
     _Request = require('shipyard/http/Request'),
@@ -358,7 +359,7 @@ module.exports = new Class({
         loader.addClass(LOADING_CLASS).addClass('small');
         new _Request({
             method: 'get',
-            url: this.options.revisions_list_html_url.substitute(this.options),
+            url: string.subsitute(this.options.revisions_list_html_url, this.options),
             onSuccess: function(html) {
                 var modal = fd.displayModal(html),
                     modalEl = dom.$(modal).getElement('.UI_Modal'),
@@ -758,8 +759,8 @@ module.exports = new Class({
             },
             onFailure: function(text) {
                 fd.error.alert(
-                    'Error {status}'.substitute(this.xhr),
-                    '{statusText}<br/>{responseText}'.substitute(this.xhr)
+                    string.substitute('Error {status}', this.xhr),
+                    string.substitute('{statusText}<br/>{responseText}', this.xhr)
                 );
             }
         });
@@ -1277,7 +1278,7 @@ module.exports = new Class({
         var controller = this;
         this.savenow = false;
         fd.editPackageInfoModal = fd.displayModal(
-                settings.edit_package_info_template.substitute(
+                string.substitute(settings.edit_package_info_template,
                     object.merge({}, this.data, this.options)));
         dom.$('full_name').addEvent('change', function() {
             fd.fireEvent('change');
