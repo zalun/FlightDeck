@@ -250,11 +250,11 @@ MIDDLEWARE_CLASSES = [
     'utils.cookies.HttpOnlyMiddleware',
     'waffle.middleware.WaffleMiddleware',
     'commonware.middleware.FrameOptionsHeader',
-    'commonware.middleware.HidePasswordOnException',
+    'commonware.middleware.ScrubRequestOnException',
 ]
 
 TEMPLATE_CONTEXT_PROCESSORS = (
-    'django.core.context_processors.auth',
+    'django.contrib.auth.context_processors.auth',
     'django.core.context_processors.request',
     'base.context_processors.settings',
     'base.context_processors.uri',

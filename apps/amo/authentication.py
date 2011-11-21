@@ -15,6 +15,10 @@ log = commonware.log.getLogger('f.authentication')
 
 class AMOAuthentication:
 
+    supports_object_permissions = False
+    supports_anonymous_user = False
+    supports_inactive_user = False
+
     def authenticate(self, username, password):
         """
             Authenticate user by contacting with AMO
