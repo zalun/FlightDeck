@@ -158,6 +158,7 @@ a:hover, a:focus {
 	float: left;
 	font-size: 2.0em;
 	margin: 5px 0 0;
+	padding-left:2px;
 }
 
 	#flightdeck-logo a {
