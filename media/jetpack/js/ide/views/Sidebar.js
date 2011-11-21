@@ -1,8 +1,10 @@
 var Class = require('shipyard/class/Class'),
     Events = require('shipyard/class/Events'),
     Options = require('shipyard/class/Options'),
+    dom = require('shipyard/dom'),
     object = require('shipyard/utils/object'),
     string = require('shipyard/utils/string'),
+    log = require('shipyard/utils/log'),
     
     File = require('../models/File'),
     Module = require('../models/Module'),
@@ -38,17 +40,17 @@ var Sidebar = module.exports = new Class({
         var that = this;
         var treeOptions = {
             checkDrag: function(el){
-                return (el.get('rel') == 'file') && !el.hasClass('nodrag') && that.options.editable && !el.getElement('> .holder > .label[contenteditable="true"]');
+                return (el.get('rel') === 'file') && !el.hasClass('nodrag') && that.options.editable && !el.getElement('> .holder > .label[contenteditable="true"]');
             },
             checkDrop: function(el, drop){
-                var isFile = el.get('rel') == 'file',
+                var isFile = el.get('rel') === 'file',
                     isSibling = this.current.getSiblings().contains(el);
                     
                 return (
                         ((drop.isSubnode || isSibling) && isFile) ||
                         el.hasClass('top_branch') ||
                         isSibling && !isFile && !drop.isSubnode ||
-                        !isFile && drop.isSubnode && this.current.getParent().getParent() == el
+                        !isFile && drop.isSubnode && this.current.getParent().getParent() === el
                     ) ? false : true;
             },
             onChange: function(){
@@ -112,7 +114,7 @@ var Sidebar = module.exports = new Class({
             trees.data.collapse.prepare();
         }
             
-        if($('PluginsTree') && !trees.plugins) {    
+        if($('PluginsTree') && !trees.plugins) {
             trees.plugins = new FileTree('PluginsTree', Object.merge({}, treeOptions, { actions: {
                 add: false,
                 edit: false,
@@ -178,14 +180,14 @@ var Sidebar = module.exports = new Class({
         sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .actions .delete)'.substitute(this.options), function(e) {
             var li = $(e.target).getParent('li'),
                 file = li.retrieve('file'),
-                isModules = li.getParent('.tree').get('id') == 'LibTree';
+                isModules = li.getParent('.tree').get('id') === 'LibTree';
             if (file) {
                 if (!that.options.readonly) {
                     that.promptRemoval(file);
                 }
             } else {
                 that.promptRemoval(li.get('path'), isModules ? Module : Attachment);
-                $log('a non-empty folder');
+                log.debug('a non-empty folder');
             }
             
         });
@@ -196,7 +198,7 @@ var Sidebar = module.exports = new Class({
                     var file = li.retrieve('file');
                     if (file) {
                         that.renameFile(li.retrieve('file'), fullpath);
-                    }                   
+                    }
                 }
             });
         });
@@ -263,7 +265,7 @@ var Sidebar = module.exports = new Class({
             options.nodrag = true;
         }
         
-        var element = tree.addPath(file, options);  
+        var element = tree.addPath(file, options);
         tree.collapse.prepare();
         
         
@@ -692,8 +694,6 @@ var Sidebar = module.exports = new Class({
         fd.item.updateLibrary(file, function(response) {
             that.removePluginUpdate(file);
             // XXX: Somehow here rename the item
-            // $log(li);
-            // $log(response);
         });
     },
     
