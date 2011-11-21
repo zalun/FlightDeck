@@ -33,12 +33,6 @@ for item in list(sys.path):
         sys.path.remove(item)
 sys.path[:0] = new_sys_path
 
-# XXX: for some reason this fixes the AttributeError exception
-#File "[...]/FlightDeck/apps/jetpack/managers.py", line 11, in <module>
-#    log = commonware.log.getLogger('f.jetpack.managers')
-#    AttributeError: 'module' object has no attribute 'log'
-import commonware.log
-
 # Mock modules which fail on readthedocs.org
 class Mock(object):
     def __init__(self, *args):
@@ -47,7 +41,7 @@ class Mock(object):
     def __getattr__(self, name):
         return Mock
 
-MOCK_MODULES = ['MySQLdb', 'waffle']
+MOCK_MODULES = ['MySQLdb', 'waffle', 'celery', 'celery.decorators', 'django.db.backends.mysql.base', 'django.shortcuts', 'django.db.models.signals']
 
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
