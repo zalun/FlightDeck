@@ -197,6 +197,8 @@ module.exports = new Class({
             }
         });
 
+        this.prepareDependenciesInterval();
+
 
         if (dom.$('jetpack_core_sdk_version')) {
             dom.$('jetpack_core_sdk_version').addEvent('change', function() {
@@ -308,7 +310,7 @@ module.exports = new Class({
 
         var controller = this;
         lib.addEvent('destroy', function() {
-            delete controller[this.get('uid')];
+            delete controller.dependencies[this.get('uid')];
         });
     },
 
@@ -1079,7 +1081,7 @@ module.exports = new Class({
                 fd.setURIRedirect(response.view_url);
                 this.registerRevision(response);
                 fd.message.alert(response.message_title, response.message);
-                lib.setOptions({
+                lib.set({
                     view_url: response.library_url
                 });
                 Function.from(callback)(response);
@@ -1095,7 +1097,7 @@ module.exports = new Class({
             timeout: 5000,
             onSuccess: function(res) {
                 res.forEach(function(latest_revision) {
-                    var lib = controller.libraries[latest_revision.id_number];
+                    var lib = controller.dependencies[latest_revision.id_number];
                     if (!lib) return;
                     lib.storeNewVersion(latest_revision);
                     controller.sidebar.setPluginUpdate(lib);
