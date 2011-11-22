@@ -385,10 +385,6 @@ module.exports = new Class({
     },
 
     setupButtonTooltips: function() {
-        if(typeof FloatingTips === 'undefined') {
-            return false;
-        }
-
         this.tips = new FloatingTips('.UI_Editor_Menu .UI_Editor_Menu_Button', {
             position: 'top',
             balloon: true

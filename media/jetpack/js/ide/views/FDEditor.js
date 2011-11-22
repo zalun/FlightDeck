@@ -7,49 +7,48 @@
  * Otherwise standard textarea will be used.
  */
 var Class = require('shipyard/class/Class'),
-	Events = require('shipyard/class/Events'),
-	Options = require('shipyard/class/Options'),
-	object = require('shipyard/utils/object');
+    Events = require('shipyard/class/Events'),
+    Options = require('shipyard/class/Options'),
+    dom = require('shipyard/dom'),
+    object = require('shipyard/utils/object'),
+    log = require('shipyard/utils/log');
 
-// globals: Element, Spinner, fd
+var LOADING_CLASS = 'loading';
 
 var FDEditor = module.exports = new Class({
 
-	Implements: [Options, Events],
+    Implements: [Options, Events],
 
     options: {
         element_type: 'textarea'
     },
 
-	$name: 'FlightDeckEditor',
-
     items: {},
 
     current: false,
 
-	initialize: function(wrapper, options) {
-		this.setOptions(options);
+    initialize: function(wrapper, options) {
+        this.setOptions(options);
+        wrapper = this.spinner = dom.$(wrapper);
         // create empty editor
-        this.element = new Element(this.options.element_type,{
+        this.element = new dom.Element(this.options.element_type,{
             'text': '',
             'class': 'UI_Editor_Area'
         });
-        this.element.inject(wrapper);
-		this.spinner = new Spinner('editor-wrapper');
-		this.changed = false;
+        wrapper.appendChild(this.element);
+        this.changed = false;
         // prepare change events
         this.boundWhenItemChanged = this.whenItemChanged.bind(this);
         this.boundSetContent = this.setContent.bind(this);
-        this.addEvent('setContent', function(c) {
+        this.emit('setContent', function(c) {
             this.switching = false;
         });
     },
 
     registerItem: function(uid, item){
-        this.items[uid] = item; 
+        this.items[uid] = item;
         var editor = this;
         item.observe('uid', function(updated, old) {
-            $log('uid changed for registed item:' + updated);
             editor.items[updated] = item;
             delete editor[old];
         });
@@ -60,7 +59,7 @@ var FDEditor = module.exports = new Class({
     },
 
     deactivateCurrent: function(){
-        // deactivate and store changes                   
+        // deactivate and store changes
         this.current.active = false;
         // store changes
         this.dumpCurrent();
@@ -72,10 +71,10 @@ var FDEditor = module.exports = new Class({
         this.current = item;
         this.current.active = true;
         if (!this.current.isLoaded()) {
-            this.spinner.show();
-			this.setContent('', true);
+            this.spinner.addClass(LOADING_CLASS);
+            this.setContent('', true);
             this.current.loadContent(function(content) {
-                if (item == editor.current) {
+                if (item === editor.current) {
                     editor.setContent(content);
                     editor.spinner.hide();
                 }
@@ -83,7 +82,7 @@ var FDEditor = module.exports = new Class({
             });
         } else {
             this.setContent(this.current.get('content'));
-			this.spinner.hide();
+            this.spinner.removeClass(LOADING_CLASS);
         }
         if (this.current.get('readonly')) {
             this.setReadOnly();
@@ -94,13 +93,13 @@ var FDEditor = module.exports = new Class({
     },
 
     switchTo: function(uid){
-        $log('FD: DEBUG: FDEditor.switchTo ' + uid);
+        log.debug('FDEditor.switchTo ' + uid);
         var self = this;
         this.switching = true;
         var item = this.getItem(uid);
         if (!item) {
             //this.registerItem(item);
-            $log('no item wtf');
+            log.error('No item found in Editor with uid:', uid);
         }
         if (this.current) {
             this.deactivateCurrent();
@@ -122,8 +121,8 @@ var FDEditor = module.exports = new Class({
     },
 
     setEditable: function() {
-        if (this.element.get('readonly')) { 
-            this.element.erase('readonly');
+        if (this.element.get('readonly')) {
+            this.element.set('readonly', null);
         }
         this.hookChangeIfNeeded();
     },
@@ -149,21 +148,21 @@ var FDEditor = module.exports = new Class({
     },
 
     hookChange: function(){
-        this.element.addEvent('keyup', this.boundWhenItemChanged);
+        this.element.addListener('keyup', this.boundWhenItemChanged);
         this.change_hooked = true;
-	},
+    },
 
     unhookChange: function(){
         this.element.removeEvent('keyup', this.boundWhenItemChanged);
         this.change_hooked = false;
-        $log('FD: INFO: No longer following changes');
+        log.info('No longer following changes');
     },
 
     whenItemChanged: function() {
-        if (!this.switching && this.getContent() != this.current.original_content) {
+        if (!this.switching && this.getContent() !== this.current.original_content) {
             this.current.setChanged(true);
-            this.fireEvent('change');
-            $log('DEBUG: changed, code is considered dirty and will remain'+
+            this.emit('change');
+            log.debug('changed, code is considered dirty and will remain'+
                     'be treated as such even if changes are reverted');
             this.unhookChange();
         } else if (!this.switching && this.current.changed) {
@@ -171,19 +170,21 @@ var FDEditor = module.exports = new Class({
         }
     },
 
-	getContent: function() {
-		return this.element.value;
-	},
+    getContent: function() {
+        return this.element.value;
+    },
 
-	setContent: function(value, quiet) {
+    setContent: function(value, quiet) {
         this._setContent(value);
-        if (!quiet) this.fireEvent('setContent', value);
-		return this;
-	},
-	
-	_setContent: function(value) {
-		this.element.set('value', value);
-	},
+        if (!quiet) {
+            this.emit('setContent', value);
+        }
+        return this;
+    },
+    
+    _setContent: function(value) {
+        this.element.set('value', value);
+    },
 
     isChanged: function() {
         return this.items.some(function(item) {
@@ -192,14 +193,14 @@ var FDEditor = module.exports = new Class({
     },
 
     setSyntax: function(){},
-	
-	focus: function() {
-		this.editor.focus();
-		this.fireEvent('focus');
-	},
-	
-	blur: function() {
-		this.editor.blur();
-		this.fireEvent('blur');
-	}
+    
+    focus: function() {
+        this.editor.focus();
+        this.emit('focus');
+    },
+    
+    blur: function() {
+        this.editor.blur();
+        this.emit('blur');
+    }
 });
