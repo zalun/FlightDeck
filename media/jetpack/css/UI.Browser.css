@@ -116,8 +116,7 @@ body {
 /*
 =========================================================================== */
 .UI_ProfileInfo {
-	position: relative;
-	top: -15px;
+	position: relative;	
 	margin: 0 0 10px;
 }
 
