@@ -1,13 +1,17 @@
 var dom = require('shipyard/dom'),
     Request = require('shipyard/http/Request'),
+    Events = require('shipyard/class/Events'),
     typeOf = require('shipyard/utils/type').typeOf,
     object = require('shipyard/utils/object'),
     string = require('shipyard/utils/string'),
 
     Spy = require('testigo/lib/spy').Spy,
-    mockXHR = require('shipyard/test/mockXHR'),
+    mockXHR = require('shipyard/test/mockXHR');
 
-    Package = require('../../models/Package'),
+var fd = new Events();
+dom.window.set('fd', fd);
+
+var Package = require('../../models/Package'),
     PackageRevision = require('../../models/PackageRevision'),
     PackageController = require('../../controllers/PackageController');
 
@@ -20,10 +24,13 @@ var BUTTONS = {
     'error-console': string.uniqueID()
 };
 
+
 function resetDom() {
     dom.$$('body *').dispose();
 
+
     dom.window.$events = {};
+    fd.removeEvents();
 
     var body = dom.document.body;
 
@@ -41,7 +48,8 @@ function resetDom() {
     
 }
 
-function E() {
+function E(type) {
+    this.type = type;
     this.preventDefault = new Spy();
     this.stopPropagation = new Spy();
 }
@@ -87,7 +95,7 @@ module.exports = {
 
             pc.showRevisionList = new Spy();
 
-            pc.revision_list_btn.fireEvent('click', new E());
+            pc.revision_list_btn.fireEvent('click', new E('click'));
             expect(pc.showRevisionList.getCallCount()).toBe(1);
         });
 
@@ -117,7 +125,7 @@ module.exports = {
         it('should be bound to testAddon', function(expect) {
             var pc = new PackageController(addon);
             pc.testAddon = new Spy();
-            pc.test_el.fireEvent('click', new E());
+            pc.test_el.fireEvent('click', new E('click'));
             expect(pc.testAddon.getCallCount()).toBe(1);
         });
 
@@ -129,35 +137,35 @@ module.exports = {
         it('should be bound to downloadAddon', function(expect) {
             var pc = new PackageController(addon);
             pc.downloadAddon = new Spy();
-            pc.download_el.fireEvent('click', new E());
+            pc.download_el.fireEvent('click', new E('click'));
             expect(pc.downloadAddon.getCallCount()).toBe(1);
         });
 
         it('should be bound to copyPackage', function(expect) {
             var pc = new PackageController(addon);
             pc.copyPackage = new Spy();
-            pc.copy_el.fireEvent('click', new E());
+            pc.copy_el.fireEvent('click', new E('click'));
             expect(pc.copyPackage.getCallCount()).toBe(1);
         });
 
         it('should be bound to checkIfLatest on window.focus', function(expect) {
             var pc = new PackageController(addon);
             pc.checkIfLatest = new Spy();
-            dom.window.fireEvent('focus', new E());
+            dom.window.fireEvent('focus', new E('focus'));
             expect(pc.checkIfLatest.getCallCount()).toBe(1);
         });
 
         it('should not be bound to checkIfLatest when viewing versions', function(expect) {
             var pc = new PackageController(addon, { check_if_latest: false });
             pc.checkIfLatest = new Spy();
-            dom.window.fireEvent('focus', new E());
+            dom.window.fireEvent('focus', new E('focus'));
             expect(pc.checkIfLatest.getCallCount()).toBe(0);
         });
 
         it('should be bound to showInfo', function(expect) {
             var pc = new PackageController(addon, { readonly: true });
             pc.showInfo = new Spy();
-            pc.packageInfoEl.fireEvent('click', new E());
+            pc.packageInfoEl.fireEvent('click', new E('click'));
             expect(pc.showInfo.getCallCount()).toBe(1);
         });
 
@@ -167,7 +175,7 @@ module.exports = {
         it('should be bound to editInfo', function(expect) {
             var pc = new PackageController(addon, editOptions);
             pc.editInfo = new Spy();
-            pc.packageInfoEl.fireEvent('click', new E());
+            pc.packageInfoEl.fireEvent('click', new E('click'));
             expect(pc.editInfo.getCallCount()).toBe(1);
         });
 
@@ -176,7 +184,7 @@ module.exports = {
             dom.window.node.mozFlightDeck = fd;
 
             var pc = new PackageController(addon, editOptions);
-            pc.console_el.fireEvent('click', new E());
+            pc.console_el.fireEvent('click', new E('click'));
             expect(fd.send.getCallCount()).toBe(1);
             expect(fd.send.getLastArgs()).toBeLike([{
                 cmd: 'toggleConsole',
@@ -189,15 +197,24 @@ module.exports = {
         it('should bind save_el to saveAction', function(expect) {
             var pc = new PackageController(addon, editOptions);
             pc.saveAction = new Spy();
-            pc.save_el.fireEvent('click', new E());
+            pc.save_el.fireEvent('click', new E('click'));
             expect(pc.saveAction.getCallCount()).toBe(1);
         });
 
         it('should bind to onbeforeunload', function(expect) {
             var pc = new PackageController(addon, editOptions);
             pc.alertUnsavedData = new Spy();
-            dom.window.fireEvent('beforeunload', new E());
+            dom.window.fireEvent('beforeunload', new E('beforeunload'));
             expect(pc.alertUnsavedData.getCallCount()).toBe(1);
+        });
+
+        it('should generate a new hashtag when xpi is downloaded', function(expect) {
+            var pc = new PackageController(addon, editOptions);
+            pc.generateHashtag = new Spy();
+
+            fd.emit('xpi_downloaded');
+
+            expect(pc.generateHashtag.getCallCount()).toBe(1);
         });
 
         it('should create logical tab order in save popover', function(expect) {
@@ -208,16 +225,16 @@ module.exports = {
 
             // jury-rig the .focus() methods to trigger our event
             // handlers
-            pc.versionEl.focus = function() { this.fireEvent('focus', new E()); };
+            pc.versionEl.focus = function() { this.fireEvent('focus', new E('focus')); };
             pc.save_el.focus = pc.versionEl.focus;
 
             pc.versionEl.addEvent('focus', versionFocus);
             pc.save_el.addEvent('focus', saveFocus);
 
-            pc.save_el.fireEvent('mouseenter', new E());
+            pc.save_el.fireEvent('mouseenter', new E('mouseenter'));
             expect(versionFocus.getCallCount()).toBe(1);
 
-            var tab = new E();
+            var tab = new E('keypress');
             tab.keyCode = 9;
             tab.key = 'tab';
             pc.revision_message_el.fireEvent('keypress', tab);

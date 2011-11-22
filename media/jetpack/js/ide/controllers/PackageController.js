@@ -9,7 +9,9 @@ var Class = require('shipyard/class/Class'),
     Attachment = require('../models/Attachment'),
     Folder = require('../models/Folder'),
     Package = require('../models/Package'),
-    PackageRevision = require('../models/PackageRevision');
+    PackageRevision = require('../models/PackageRevision'),
+    
+    fd = dom.window.get('fd');
 
 module.exports = new Class({
 
@@ -69,7 +71,7 @@ module.exports = new Class({
         this.setupButtonTooltips();
     },
 
-    assignActions: function() {
+    assignActions: function assignActions() {
         var controller = this,
             package_ = this.package_;
         
@@ -118,6 +120,10 @@ module.exports = new Class({
                 controller.checkIfLatest(controller.askForReload);
             });
         }
+
+        fd.addEvent('xpi_downloaded', function() {
+            controller.generateHashtag();
+        });
 
         this.packageInfoEl = dom.$(this.options.package_info_el);
 
@@ -1090,6 +1096,7 @@ module.exports = new Class({
     },
 
     checkDependenciesVersions: function() {
+        if (typeof Request === 'undefined') return;
         var controller = this;
         new Request.JSON({
             method: 'get',
@@ -1111,16 +1118,17 @@ module.exports = new Class({
         function setCheckInterval() {
             unsetCheckInterval();
             that.checkDependenciesVersions();
-            that.checkDependenciesInterval = that.checkDependenciesVersions.periodical(60000, that);
+            that.checkDependenciesInterval = setInterval(function() {
+                that.checkDependenciesVersions();
+            }, 1000 * 60);
         }
         
         function unsetCheckInterval() {
             clearInterval(that.checkDependenciesInterval);
         }
         
-        window.addEvent('focus', setCheckInterval);
-        window.addEvent('blur', unsetCheckInterval);
-        setCheckInterval();
+        dom.window.addEvent('focus', setCheckInterval);
+        dom.window.addEvent('blur', unsetCheckInterval);
         
     },
     
