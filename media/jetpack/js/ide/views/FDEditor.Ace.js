@@ -10,10 +10,10 @@ var Class = require('shipyard/class/Class'),
     ace = require('ace/ace'),
     FDEditor = require('./FDEditor');
 
-var JSMode = require('ace/modes/javascript').Mode,
-    CSSMode = require('ace/modes/css').Mode,
-    HTMLMode = require('ace/modes/html').Mode,
-    TextMode = require('ace/modes/txt').Mode;
+var JSMode = require('ace/mode/javascript').Mode,
+    CSSMode = require('ace/mode/css').Mode,
+    HTMLMode = require('ace/mode/html').Mode,
+    TextMode = require('ace/mode/text').Mode;
 
 var Modes = {
     'javascript': new JSMode(),
