@@ -74,7 +74,7 @@ module.exports = {
     'PackageController': function(it, setup) {
 
         var addon;
-        var editOptions = { readonly: false };
+        var editOptions = { readonly: false, check_dependencies: false };
 
         setup('beforeEach', function() {
             resetDom();
@@ -88,13 +88,13 @@ module.exports = {
 
         it('should instantiate', function(expect) {
             
-            var pc = new PackageController(addon);
+            var pc = new PackageController(addon, editOptions);
             expect(pc).toBeAnInstanceOf(PackageController);
             expect(pc.package_).toBe(addon);
         });
 
         it('should bind the package version_name', function(expect) {
-            var pc = new PackageController(addon, {});
+            var pc = new PackageController(addon, editOptions);
 
             expect(pc.versionEl.get('value')).toBe(addon.get('version_name'));
 
@@ -115,7 +115,7 @@ module.exports = {
         });
 
         it('should register revisions_list click', function(expect) {
-            var pc = new PackageController(addon);
+            var pc = new PackageController(addon, editOptions);
 
             pc.showRevisionList = new Spy();
 
@@ -142,45 +142,48 @@ module.exports = {
         });*/
         
         it('should get the test_url from the dom', function(expect) {
-            var pc = new PackageController(addon);
+            var pc = new PackageController(addon, editOptions);
             expect(pc.getOption('test_url')).toBe(BUTTONS.try_in_browser);
         });
 
         it('should be bound to testAddon', function(expect) {
-            var pc = new PackageController(addon);
+            var pc = new PackageController(addon, editOptions);
             pc.testAddon = new Spy();
             pc.test_el.fireEvent('click', new E('click'));
             expect(pc.testAddon.getCallCount()).toBe(1);
         });
 
         it('should get the download_url from the dom', function(expect) {
-            var pc = new PackageController(addon);
+            var pc = new PackageController(addon, editOptions);
             expect(pc.getOption('download_url')).toBe(BUTTONS.download);
         });
 
         it('should be bound to downloadAddon', function(expect) {
-            var pc = new PackageController(addon);
+            var pc = new PackageController(addon, editOptions);
             pc.downloadAddon = new Spy();
             pc.download_el.fireEvent('click', new E('click'));
             expect(pc.downloadAddon.getCallCount()).toBe(1);
         });
 
         it('should be bound to copyPackage', function(expect) {
-            var pc = new PackageController(addon);
+            var pc = new PackageController(addon, editOptions);
             pc.copyPackage = new Spy();
             pc.copy_el.fireEvent('click', new E('click'));
             expect(pc.copyPackage.getCallCount()).toBe(1);
         });
 
         it('should be bound to checkIfLatest on window.focus', function(expect) {
-            var pc = new PackageController(addon);
+            var pc = new PackageController(addon, editOptions);
             pc.checkIfLatest = new Spy();
             dom.window.fireEvent('focus', new E('focus'));
             expect(pc.checkIfLatest.getCallCount()).toBe(1);
         });
 
         it('should not be bound to checkIfLatest when viewing versions', function(expect) {
-            var pc = new PackageController(addon, { check_if_latest: false });
+            var pc = new PackageController(addon, {
+                check_if_latest: false,
+                check_dependencies: false
+            });
             pc.checkIfLatest = new Spy();
             dom.window.fireEvent('focus', new E('focus'));
             expect(pc.checkIfLatest.getCallCount()).toBe(0);

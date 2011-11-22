@@ -6,7 +6,7 @@ var Class = require('shipyard/class/Class'),
     string = require('shipyard/utils/string'),
     log = require('shipyard/utils/log'),
     Cookie = require('shipyard/utils/Cookie'),
-    _Request = require('shipyard/http/Request'),
+    Request = require('shipyard/http/Request'),
     
     Module = require('../models/Module'),
     Attachment = require('../models/Attachment'),
@@ -45,7 +45,7 @@ module.exports = new Class({
 
         package_info_form_elements: ['full_name', 'package_description'],
         
-
+        check_dependencies: true,
         check_if_latest: true  // switch to false if displaying revisions
 
     },
@@ -176,7 +176,7 @@ module.exports = new Class({
         });
     },
 
-    assignEditActions: function() {
+    assignEditActions: function assignEditActions() {
         var controller = this;
 
         dom.window.addEvent('beforeunload', function(e) {
@@ -223,14 +223,16 @@ module.exports = new Class({
             }
         });
 
-        this.prepareDependenciesInterval();
+        if (this.getOptions('check_dependencies')) {
+            this.prepareDependenciesInterval();
+        }
 
         this.sdkVersionEl = dom.$('jetpack_core_sdk_version');
         if (this.sdkVersionEl) {
             this.sdkVersionEl.addEvent('change', function() {
                 var loader = dom.$('core_library_lib');
                 loader.addClass(LOADING_CLASS).addClass('small');
-                new _Request({
+                new Request({
                     url: controller.options.switch_sdk_url,
                     data: {
                         'id': controller.sdkVersionEl.get('value')
@@ -358,7 +360,7 @@ module.exports = new Class({
     showRevisionList: function() {
         var loader = this.revision_list_btn.getElement('a');
         loader.addClass(LOADING_CLASS).addClass('small');
-        new _Request({
+        new Request({
             method: 'get',
             url: string.subsitute(this.options.revisions_list_html_url, this.options),
             onSuccess: function(html) {
@@ -408,7 +410,7 @@ module.exports = new Class({
         })*/
 
         // ask backend for the latest revision number
-        new _Request({
+        new Request({
             method: 'get',
             url: this.options.check_latest_url,
             onSuccess: function(text) {
@@ -453,7 +455,7 @@ module.exports = new Class({
 		var controller = this;
         var loader = this.copy_el.getElement('a');
         loader.addClass(LOADING_CLASS).addClass('small');
-        new _Request({
+        new Request({
             url: this.options.copy_url,
             method: 'post',
             onSuccess: function(text) {
@@ -481,7 +483,7 @@ module.exports = new Class({
             hashtag: this.options.hashtag,
             filename: this.package_.get('name')
         };
-        new _Request({
+        new Request({
             url: this.options.download_url,
             method: 'get',
             data: data,
@@ -529,7 +531,7 @@ module.exports = new Class({
         };
         var data = this.data || {};
         data.hashtag = this.options.hashtag;
-        this._test_request = new _Request({
+        this._test_request = new Request({
             url: this.options.test_url,
             data: data,
             onSuccess: function() {
@@ -714,7 +716,7 @@ module.exports = new Class({
         //var spinner = new Spinner($('attachments')).show();
         var file = files[0];
         
-        var req = new _Request({
+        var req = new Request({
             method: 'post',
             url: this.getOption('upload_attachment_url'),
             data: {
@@ -785,7 +787,7 @@ module.exports = new Class({
         var controller = this;
         var loader = dom.$('attachments');
         loader.addClass(LOADING_CLASS);
-        new _Request({
+        new Request({
             url: url,
             data: data,
             method: 'post',
@@ -827,7 +829,7 @@ module.exports = new Class({
         var spinnerEl = attachmentEl || dom.$(this.sidebar.trees.data);
         spinnerEl.addClass(LOADING_CLASS).addClass('small');
 
-        new _Request({
+        new Request({
             url: that.options.rename_attachment_url,
             data: {
                 uid: uid,
@@ -870,7 +872,7 @@ module.exports = new Class({
         var controller = this;
         var loader = this.sidebar.getBranchFromFile(attachment);
         loader.addClass(LOADING_CLASS).addClass('small');
-        return new _Request({
+        return new Request({
             url: this.options.remove_attachment_url,
             data: {uid: attachment.get('uid')},
             onSuccess: function(text) {
@@ -887,7 +889,7 @@ module.exports = new Class({
         var controller = this;
         var loader = dom.$('module');
         loader.addClass(LOADING_CLASS).addClass('small');
-        return new _Request({
+        return new Request({
             url: this.options.add_module_url,
             data: {'filename': filename},
             onSuccess: function(text) {
@@ -918,7 +920,7 @@ module.exports = new Class({
         var controller = this;
         var el = this.sidebar.getBranchFromPath(newName+'.js', 'lib');
         el.addClass(LOADING_CLASS).addClass('small');
-        return new _Request({
+        return new Request({
             url: this.options.rename_module_url,
             method: 'post',
             data: {
@@ -953,7 +955,7 @@ module.exports = new Class({
         var controller = this;
         var el = this.sidebar.getBranchFromFile(module);
         el.addClass(LOADING_CLASS).addClass('small');
-        return new _Request({
+        return new Request({
             url: this.options.remove_module_url,
             method: 'post',
             data: module.toJSON(),
@@ -974,7 +976,7 @@ module.exports = new Class({
         var el = this.sidebar.getBranchFromPath(path, 'data'),
             controller = this;
         el.addClass(LOADING_CLASS).addClass('small');
-        return new _Request({
+        return new Request({
             url: this.options.remove_folder_url,
             data: {
                 name: path,
@@ -1003,7 +1005,7 @@ module.exports = new Class({
         var el = this.sidebar.getBranchFromPath(path, 'lib'),
             controller = this;
         el.addClass(LOADING_CLASS).addClass('small');
-        new _Request({
+        new Request({
             url: this.options.remove_module_url,
             data: {filename: path+'/'},
             onSuccess: function(text) {
@@ -1031,7 +1033,7 @@ module.exports = new Class({
             'modules' : 'attachments';
         el = dom.$(el);
         el.addClass(LOADING_CLASS).addClass('small');
-        return new _Request({ url: this.options.add_folder_url,
+        return new Request({ url: this.options.add_folder_url,
             data: {
                 name: name,
                 root_dir: root_dir
@@ -1056,7 +1058,7 @@ module.exports = new Class({
         var controller = this,
             el = this.sidebar.getBranchFromFile(folder);
         el.addClass(LOADING_CLASS).addClass('small');
-        return new _Request({
+        return new Request({
             url: this.options.remove_folder_url,
             data: folder.toJSON(),
             onSuccess: function(text) {
@@ -1077,7 +1079,7 @@ module.exports = new Class({
             var controller = this,
                 el = dom.$('plugins');
             el.addClass(LOADING_CLASS).addClass('small');
-            return new _Request({
+            return new Request({
                 url: this.options.assign_library_url,
                 data: {'id_number': library_id},
                 onSuccess: function(text) {
@@ -1108,7 +1110,7 @@ module.exports = new Class({
         var controller = this,
             el = dom.$('libraries');
         el.addClass(LOADING_CLASS).addClass('small');
-        return new _Request({
+        return new Request({
             url: this.options.update_library_url,
             data: {
                 'id_number': lib.get('id_number'),
@@ -1133,10 +1135,9 @@ module.exports = new Class({
         }).send();
     },
 
-    checkDependenciesVersions: function() {
-        if (typeof Request === 'undefined') return;
+    checkDependenciesVersions: function checkDependenciesVersions() {
         var controller = this;
-        return new _Request({
+        return new Request({
             method: 'get',
             url: this.options.latest_dependencies_url,
             onSuccess: function(text) {
@@ -1153,7 +1154,7 @@ module.exports = new Class({
         }).send();
     },
     
-    prepareDependenciesInterval: function() {
+    prepareDependenciesInterval: function prepareDependenciesInterval() {
         var that = this;
         function setCheckInterval() {
             clearInterval(that.checkDependenciesInterval);
@@ -1177,7 +1178,7 @@ module.exports = new Class({
         var controller = this,
             loader = this.sidebar.getBranchFromFile(lib);
         loader.addClass(LOADING_CLASS).addClass('small');
-        return new _Request({
+        return new Request({
             url: this.options.remove_library_url,
             data: {'id_number': lib.get('id_number')},
             onSuccess: function(text) {
@@ -1224,7 +1225,7 @@ module.exports = new Class({
             return false;
         }
         activateButton.addClass(LOADING_CLASS).addClass('small');
-        return new _Request({
+        return new Request({
             url: activateButton.getElement('a').get('href'),
             onSuccess: function(text) {
                 var response = JSON.parse(text);
@@ -1252,7 +1253,7 @@ module.exports = new Class({
             return false;
         }
         deactivateButton.addClass(LOADING_CLASS).addClass('small');
-        return new _Request({
+        return new Request({
             url: deactivateButton.getElement('a').get('href'),
             onSuccess: function(response) {
                 fd.message.alert(response.message_title, response.message);
@@ -1376,7 +1377,7 @@ module.exports = new Class({
 
         var loader = this.save_el;
         loader.addClass(LOADING_CLASS).addClass('small');
-        return new _Request({
+        return new Request({
             url: this.options.save_url,
             data: this.data,
             onSuccess: function(text) {
