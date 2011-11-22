@@ -27,7 +27,7 @@
     {% if pager.has_other_pages() %}
 	<ul class="UI_Pagination">
 	    <li class="pageof">
-		Page {{pager.number}} of {{ pager.paginator.num_pages }}
+		Page <b>{{pager.number}}</b> of <b>{{ pager.paginator.num_pages }}</b>
 	    </li>	    
 	    {% if pager.number != pager.start_index() %}
 		<li>
@@ -63,8 +63,14 @@
 	    <li class="showing">
 		Showing
 		<b>
-{{( pager.paginator.per_page * (pager.number -1))+1 }}-{{ pager.paginator.per_page * pager.number if (pager.paginator.per_page * pager.number) < pager.paginator.count else pager.paginator.count }}
+	    {% with start = (pager.paginator.per_page * (pager.number -1))+1 %}   
+		{% if (pager.paginator.per_page * pager.number) < pager.paginator.count %}
+		    {{ '{0}-{1}'.format(start, pager.paginator.per_page * pager.number) }}
+		{%else%}
+		    {{ '{0}-{1}'.format(start, pager.paginator.count) }}
+		{%endif%}
 		</b>of <b>{{ pager.paginator.count }}</b>
+	    {% endwith %}
 	    </li>
 	</ul>
     {% endif %}
