@@ -123,23 +123,26 @@ module.exports = {
             expect(pc.showRevisionList.getCallCount()).toBe(1);
         });
 
-        /*it('should show revisions list', function(expect) {
+        /*
+        This method currently uses fd.displayModel...
+        it('should show revisions list', function(expect) {
             
         });*/
 
-        /*it('should be able to determine if latest revision', function(expect) {
-            var pc = new PackageController(addon);
+        
+        it('should be able to determine if latest revision', function(expect) {
+            var pc = new PackageController(addon, editOptions);
 
             mockXHR({ id: 1, revision_number: 3 });
 
-            var failCallback = new Spy;
+            var failCallback = new Spy();
             pc.checkIfLatest(failCallback);
 
             mockXHR({ id: 2, revision_number: 1 });
             pc.checkIfLatest(failCallback);
 
             expect(failCallback.getCallCount()).toBe(1);
-        });*/
+        });
         
         it('should get the test_url from the dom', function(expect) {
             var pc = new PackageController(addon, editOptions);

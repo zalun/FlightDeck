@@ -76,7 +76,7 @@ var FDEditor = module.exports = new Class({
             this.current.loadContent(function(content) {
                 if (item === editor.current) {
                     editor.setContent(content);
-                    editor.spinner.hide();
+                    editor.spinner.removeClass(LOADING_CLASS);
                 }
                 //else another file has become active
             });

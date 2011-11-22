@@ -885,14 +885,14 @@ module.exports = new Class({
         }).send();
     },
     
-    addModule: function(filename) {
+    addModule: function addModule(filename) {
         var controller = this;
-        var loader = dom.$('module');
+        var loader = dom.$('modules');
         loader.addClass(LOADING_CLASS).addClass('small');
         return new Request({
             url: this.options.add_module_url,
             data: {'filename': filename},
-            onSuccess: function(text) {
+            onSuccess: function addModule_onSuccess(text) {
                 var response = JSON.parse(text);
                 // set the redirect data to view_url of the new revision
                 fd.setURIRedirect(response.view_url);
@@ -909,7 +909,7 @@ module.exports = new Class({
                 });
                 controller.editFile(mod);
             },
-            onComplete: function() {
+            onComplete: function addModule_onComplete() {
                 loader.removeClass(LOADING_CLASS);
             }
         }).send();
@@ -1027,7 +1027,7 @@ module.exports = new Class({
         }).send();
     },
     
-    addFolder: function(name, root_dir) {
+    addFolder: function addFolder(name, root_dir) {
         var controller = this;
         var el = root_dir === Folder.ROOT_DIR_LIB ?
             'modules' : 'attachments';

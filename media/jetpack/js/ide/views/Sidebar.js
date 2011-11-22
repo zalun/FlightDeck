@@ -445,7 +445,7 @@ var Sidebar = module.exports = new Class({
                 '<input type="text" name="new_file" id="new_file" placeholder="Enter name..." />',
             ok: 'Create',
             id: 'create_new_file',
-            callback: function() {
+            callback: function promptNewFile_callback() {
                 // get data
                 var filename = path + $('new_file').value,
                     pack = fd.item;
