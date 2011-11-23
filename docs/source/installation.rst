@@ -120,130 +120,30 @@ and password you entered while running ``./manage.py syncdb``.
 
 You're all done!
 
+Recipes
+=======
+
+
+Create a local super user account
+---------------------------------
+
+If you imported your database then you will need to create a user::
+
+    ./manage.py createsuperuser
+    
+    
 Building documentation
 ----------------------
 
-FlightDeck uses `Sphinx <http://sphinx.pocoo.org/contents.html>`_-based documentation,
-so you have to install sphinx in order to build the docs::
+FlightDeck uses `Sphinx <http://sphinx.pocoo.org/contents.html>`_-based 
+documentation, so you have to install sphinx in order to build the docs::
 
     pip install sphinx
     make -C docs html
 
 .. note::
-    If you get ``ValueError: unknown locale: UTF-8``, run ``export LC_ALL=en_US.UTF-8``
-    before ``make``.
-
-Using Apache
-------------
-
-.. note::
-    This isn't needed to run it locally. Simply use ``./manage.py
-    runserver``
-
-Production environments will expect to be running through another webserver.
-Some example Apache configurations follow.
-
-An example Apache .conf
-
-..code-block::
-
-    <VirtualHost *:80>
-        ServerAdmin your@mail.com
-        ServerName flightdeck.some.domain
-
-        <Directory /path/to/FlightDeck/apache/>
-            Order deny,allow
-            Allow from all
-            Options Indexes FollowSymLinks
-        </Directory>
-
-        <Location "/adminmedia">
-            SetHandler default
-        </Location>
-        Alias /adminmedia /path/to/FlightDeck/flightdeck/vendor/lib/python/django/contrib/admin/media
-
-        <Location "/media/tutorial">
-            SetHandler default
-        </Location>
-        Alias /media/tutorial /path/to/FlightDeck/flightdeck/apps/tutorial/media
-
-        <Location "/media/api">
-            SetHandler default
-        </Location>
-        Alias /media/api /path/to/FlightDeck/flightdeck/apps/api/media
-
-        <Location "/media/jetpack">
-            SetHandler default
-        </Location>
-        Alias /media/jetpack /path/to/FlightDeck/flightdeck/jetpack/media
-
-        <Location "/media">
-            SetHandler default
-        </Location>
-        Alias /media /path/to/FlightDeck/flightdeck/media
-
-        LogLevel warn
-        ErrorLog  /path/to/FlightDeck/logs/apache_error.log
-        CustomLog /path/to/FlightDeck/logs/apache_access.log combined
-
-        WSGIDaemonProcess flightdeck user=www-data group=www-data threads=25
-        WSGIProcessGroup flightdeck
-
-        WSGIScriptAlias / /path/to/FlightDeck/apache/config_local.wsgi
-    </VirtualHost>
-
-
-An example Apache WSGI configuration
-
-.. code-block:: python
-
-    import sys
-    import os
-    import site
-
-    VIRTUAL_ENV = '/path/to/virtual/environment'
-    PROJECT_PATH = '/path/to/projects/FlightDeck'
-
-    # All directories which should on the PYTHONPATH
-    ALLDIRS = [
-        os.path.join(VIRTUAL_ENV, 'lib/python2.6/site-packages'),
-        PROJECT_PATH,
-        os.path.join(PROJECT_PATH, 'flightdeck'),
-    ]
-
-    # Remember original sys.path.
-    prev_sys_path = list(sys.path)
-
-    # Add each new site-packages directory.
-    for directory in ALLDIRS:
-        site.addsitedir(directory)
-
-    # add the app's directory to the PYTHONPATH
-    # apache_configuration= os.path.dirname(__file__)
-    # project = os.path.dirname(apache_configuration)
-    # workspace = os.path.dirname(project)
-    # sys.path.append(workspace)
-
-    for s in ALLDIRS:
-        sys.path.append(s)
-
-    # reorder sys.path so new directories from the addsitedir show up first
-    new_sys_path = [p for p in sys.path if p not in prev_sys_path]
-    for item in new_sys_path:
-        sys.path.remove(item)
-        sys.path[:0] = new_sys_path
-
-    os.environ['VIRTUAL_ENV'] = VIRTUAL_ENV
-    os.environ['CUDDLEFISH_ROOT'] = VIRTUAL_ENV
-    os.environ['PATH'] = "%s:%s/bin" % (os.environ['PATH'], VIRTUAL_ENV)
-    os.environ['DJANGO_SETTINGS_MODULE'] = 'flightdeck.settings'
-
-    import django.core.handlers.wsgi
-    application = django.core.handlers.wsgi.WSGIHandler()
-
-
-Recipes
-=======
+    If you get ``ValueError: unknown locale: UTF-8``, run 
+    ``export LC_ALL=en_US.UTF-8`` before ``make``.
 
 
 Import live database dump
@@ -267,22 +167,44 @@ page then insert a row into django_site::
 After importing the data, you will need to rebuild your ES index.
 
 
-Rebuilding Elastic Search index
--------------------------------
+Elastic Search
+--------------
+
+`ElasticSearch <http://elasticsearch.org/>`_  is a Lucene based search engine
+that powers FlightDeck search. We also use 
+`pyes <https://github.com/aparo/pyes>`_ a pythonic interface to ElasticSearch.
+
+**Running**
+
+You will need to point it at a config file that we've
+included in ``scripts/es.yml``::
+
+    elasticsearch -f -Des.config=./scripts/es.yml
+
+This configuraion can be overridden if necessary.  More details are 
+`here <http://www.elasticsearch.org/guide/reference/setup/configuration.html>`_.
+
+
+**Development**
+
+``settings.py`` needs to be overridden in order to use ElasticSearch.  Both
+``ES_DISABLED`` needs to be ``False`` and ``ES_HOSTS`` needs to be set.  This
+can be done in ``settings_local.py``.
+
+**Testing**
+
+In order for testing to work ``ES_HOSTS`` needs to be defined (otherwise
+SkipTest will be raised) and ElasticSearch needs to be running.  We
+specifically look at a single index, ``test_flightdeck``, in order to avoid
+conflicts with development data.
+
+**Rebuilding Elastic Search index**
 
 Need to delete your Elastic Search index and start over?::
 
     curl -XDELETE 'http://localhost:9201/flightdeck'
     ./manage.py cron setup_mapping
     ./manage.py cron index_all
-    
-    
-Create a local super user account
----------------------------------
-
-If you imported your database then you will need to create a user::
-
-    ./manage.py createsuperuser
     
     
 Using with Celery
@@ -326,4 +248,13 @@ From project directory run::
     ./manage.py celeryd -l INFO
 
 
-.. _RabbitMQ: http://www.rabbitmq.com/
+Using Apache
+------------
+
+Production environments will expect to be running through another webserver.
+An example :download:`apache.conf
+</_static/apache.conf>`
+
+An example Apache WSGI configuration :download:`apache.wsgi 
+</_static/apache.wsgi>`
+
