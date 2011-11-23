@@ -9,7 +9,9 @@ var Class = require('shipyard/class/Class'),
     Attachment = require('../models/Attachment'),
     Folder = require('../models/Folder'),
     Package = require('../models/Package'),
-    PackageRevision = require('../models/PackageRevision');
+    PackageRevision = require('../models/PackageRevision'),
+    
+    fd = dom.window.get('fd');
 
 module.exports = new Class({
 
@@ -69,7 +71,7 @@ module.exports = new Class({
         this.setupButtonTooltips();
     },
 
-    assignActions: function() {
+    assignActions: function assignActions() {
         var controller = this,
             package_ = this.package_;
         
@@ -118,6 +120,10 @@ module.exports = new Class({
                 controller.checkIfLatest(controller.askForReload);
             });
         }
+
+        fd.addEvent('xpi_downloaded', function() {
+            controller.generateHashtag();
+        });
 
         this.packageInfoEl = dom.$(this.options.package_info_el);
 
@@ -196,6 +202,8 @@ module.exports = new Class({
                 controller.save_el.focus();
             }
         });
+
+        this.prepareDependenciesInterval();
 
 
         if (dom.$('jetpack_core_sdk_version')) {
@@ -308,7 +316,7 @@ module.exports = new Class({
 
         var controller = this;
         lib.addEvent('destroy', function() {
-            delete controller[this.get('uid')];
+            delete controller.dependencies[this.get('uid')];
         });
     },
 
@@ -1079,7 +1087,7 @@ module.exports = new Class({
                 fd.setURIRedirect(response.view_url);
                 this.registerRevision(response);
                 fd.message.alert(response.message_title, response.message);
-                lib.setOptions({
+                lib.set({
                     view_url: response.library_url
                 });
                 Function.from(callback)(response);
@@ -1088,6 +1096,7 @@ module.exports = new Class({
     },
 
     checkDependenciesVersions: function() {
+        if (typeof Request === 'undefined') return;
         var controller = this;
         new Request.JSON({
             method: 'get',
@@ -1095,7 +1104,7 @@ module.exports = new Class({
             timeout: 5000,
             onSuccess: function(res) {
                 res.forEach(function(latest_revision) {
-                    var lib = controller.libraries[latest_revision.id_number];
+                    var lib = controller.dependencies[latest_revision.id_number];
                     if (!lib) return;
                     lib.storeNewVersion(latest_revision);
                     controller.sidebar.setPluginUpdate(lib);
@@ -1109,16 +1118,17 @@ module.exports = new Class({
         function setCheckInterval() {
             unsetCheckInterval();
             that.checkDependenciesVersions();
-            that.checkDependenciesInterval = that.checkDependenciesVersions.periodical(60000, that);
+            that.checkDependenciesInterval = setInterval(function() {
+                that.checkDependenciesVersions();
+            }, 1000 * 60);
         }
         
         function unsetCheckInterval() {
             clearInterval(that.checkDependenciesInterval);
         }
         
-        window.addEvent('focus', setCheckInterval);
-        window.addEvent('blur', unsetCheckInterval);
-        setCheckInterval();
+        dom.window.addEvent('focus', setCheckInterval);
+        dom.window.addEvent('blur', unsetCheckInterval);
         
     },
     
