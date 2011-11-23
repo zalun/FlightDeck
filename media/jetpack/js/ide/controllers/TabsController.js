@@ -5,6 +5,7 @@
 var Class = require('shipyard/class/Class'),
     Events = require('shipyard/class/Events'),
     Options = require('shipyard/class/Options'),
+    log = require('shipyard/utils/log'),
     
     tabs = require('../views/Tabs');
 
@@ -126,7 +127,7 @@ module.exports = new Class({
         //happens, instead of that massive indent-monster in the
         //initialize method
         var index = this.$tabs.indexOf(tab);
-        if (index) {
+        if (index >= 0) {
             this.$tabs.splice(index, 1);
         }
 
@@ -139,6 +140,7 @@ module.exports = new Class({
             this.tabs.fireEvent('tabDown', nextTab);
         } else {
             //TODO: this should just show a "Open a file on the left"
+            log.error('Another tab couldn\'t be found !');
         }
     },
 
