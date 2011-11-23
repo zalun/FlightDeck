@@ -74,7 +74,8 @@ var Sidebar = module.exports = new Class({
             collapsed: false
         };
         
-        var addon_or_lib_url = window.location.pathname.match(/\/[a-z]+\/\d+\//g)[0]
+        var location = window.location;
+        var addon_or_lib_url = location.pathname.match(/\/[a-z]+\/\d+\//g)[0]
                 .replace(/\//g, '_');
         
         var collapseOptions = {
@@ -141,25 +142,25 @@ var Sidebar = module.exports = new Class({
     },
     
     attach: function() {
-        var that = this,
+        var sidebar = this,
             sidebarEl = $(this);
 
         // highlight branch on click
         sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .label:not([contenteditable="true"]))'.substitute(this.options), function(e, label) {
-            that.selectBranch($(e.target).getParent('li'));
+            sidebar.selectBranch($(e.target).getParent('li'));
         });
         
         //adding modules to Lib
         if(this.trees.lib) {
             $(this.trees.lib).addEvent('click:relay(.add)', function(e) {
-                that.promptNewFile(e.target.getParent('li'));
+                sidebar.promptNewFile(e.target.getParent('li'));
             });
         }
         
         //adding attachments to Data
         if(this.trees.data) {
             $(this.trees.data).addEvent('click:relay(.add)', function(e) {
-                that.promptAttachment(e.target.getParent('li'));
+                sidebar.promptAttachment(e.target.getParent('li'));
             });
         }
         
@@ -167,11 +168,11 @@ var Sidebar = module.exports = new Class({
         if(this.trees.plugins) {
             $(this.trees.plugins).addEvents({
                 'click:relay(li.top_branch > .holder .add)': function(e) {
-                    that.promptPlugin();
+                    sidebar.promptPlugin();
                 },
                 'click:relay(li.update > .holder .icon)': function(e) {
                     e.stop();
-                    that.promptPluginUpdate(e.target.getParent('li.update'));
+                    sidebar.promptPluginUpdate(e.target.getParent('li.update'));
                 }
             });
         }
@@ -182,22 +183,22 @@ var Sidebar = module.exports = new Class({
                 file = li.retrieve('file'),
                 isModules = li.getParent('.tree').get('id') === 'LibTree';
             if (file) {
-                if (!that.options.readonly) {
-                    that.promptRemoval(file);
+                if (!sidebar.options.readonly) {
+                    sidebar.promptRemoval(file);
                 }
             } else {
-                that.promptRemoval(li.get('path'), isModules ? Module : Attachment);
+                sidebar.promptRemoval(li.get('path'), isModules ? Module : Attachment);
                 log.debug('a non-empty folder');
             }
             
         });
         
-        Object.each(this.trees, function(tree, name) {
+        object.forEach(this.trees, function(tree, name) {
             tree.addEvents({
                 'renameComplete': function(li, fullpath) {
                     var file = li.retrieve('file');
                     if (file) {
-                        that.renameFile(li.retrieve('file'), fullpath);
+                        sidebar.renameFile(li.retrieve('file'), fullpath);
                     }
                 }
             });

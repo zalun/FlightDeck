@@ -40,7 +40,7 @@ var FDEditor = module.exports = new Class({
         // prepare change events
         this.boundWhenItemChanged = this.whenItemChanged.bind(this);
         this.boundSetContent = this.setContent.bind(this);
-        this.emit('setContent', function(c) {
+        this.addListener('setContent', function(c) {
             this.switching = false;
         });
     },
@@ -163,7 +163,7 @@ var FDEditor = module.exports = new Class({
             this.current.setChanged(true);
             this.emit('change');
             log.debug('changed, code is considered dirty and will remain'+
-                    'be treated as such even if changes are reverted');
+                    ' as such even if changes are reverted');
             this.unhookChange();
         } else if (!this.switching && this.current.changed) {
             this.current.setChanged(false);
