@@ -36,6 +36,7 @@ This feature is available for all add-ons build with Jetpack SDK.
    :maxdepth: 2
 
    api.rst
+   scope.rst
    strategy.rst
    structure.rst
 
