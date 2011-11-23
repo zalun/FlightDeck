@@ -141,7 +141,7 @@ module.exports = new Class({
         //happens, instead of that massive indent-monster in the
         //initialize method
         var index = this.$tabs.indexOf(tab);
-        if (index >= 0) {
+        if (index) {
             this.$tabs.splice(index, 1);
         }
 
@@ -154,7 +154,6 @@ module.exports = new Class({
             this.tabs.fireEvent('tabDown', nextTab);
         } else {
             //TODO: this should just show a "Open a file on the left"
-            log.error('Another tab couldn\'t be found !');
         }
     },
 
