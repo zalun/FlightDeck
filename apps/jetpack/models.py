@@ -1887,15 +1887,15 @@ class Package(BaseModel, SearchMixin):
                     .count())
 
         try:
-                        
+
             retries = getattr(settings, 'ES_RETRY', 0)
             retry_wait = getattr(settings, "ES_RETRY_INTERVAL", 0)
-        
+
             args = [data, settings.ES_INDEXES['default'],
                     self._meta.db_table, self.id, bulk ]
-            
+
             retry_on_timeout(es.index, args, retries, retry_wait)
-            
+
         except Exception, e:
             log.error("ElasticSearch errored for addon (%s): %s" % (self, e))
         else:
@@ -1915,12 +1915,12 @@ class Package(BaseModel, SearchMixin):
 
             retries = getattr(settings, 'ES_RETRY', 0)
             retry_wait = getattr(settings, "ES_RETRY_INTERVAL", 0)
-            
+
             args = [settings.ES_INDEXES['default'], self._meta.db_table,
                     self.id, bulk]
-            
+
             retry_on_timeout(es.delete, args, retries, retry_wait)
-            
+
         except PyesNotFoundException:
             log.debug('Package %d tried to remove from index but was not found.'
                       % self.id)

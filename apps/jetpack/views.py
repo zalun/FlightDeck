@@ -654,7 +654,6 @@ def revision_add_attachment(request, pk):
                 revision.package.get_type_name()))
     url = request.POST.get('url', None)
     filename = request.POST.get('filename', None)
-    log.debug(filename)
     if not filename or filename == "":
         log.error('Trying to create an attachment without name')
         return HttpResponseForbidden('Path not found.')
@@ -662,6 +661,7 @@ def revision_add_attachment(request, pk):
     if url:
         # validate url
         field = URLField(verify_exists=True)
+        encoding = request.POST.get('force_contenttype', False)
         try:
             url = field.clean(url)
         except ValidationError, err:
@@ -683,12 +683,16 @@ def revision_add_attachment(request, pk):
         # download attachment's content
         log.info('Downloading (%s)' % url)
         content = att.read(settings.ATTACHMENT_MAX_FILESIZE + 1)
+        if not encoding:
+            encoding = att.headers['content-type'].split('charset=')[-1]
+        if encoding in ('utf-8',):
+            content = unicode(content, encoding)
         if len(content) >= settings.ATTACHMENT_MAX_FILESIZE + 1:
             log.debug('Downloaded file (%s) is too big' % url)
             return HttpResponseForbidden("Loading attachment failed<br/>"
                     "File is too big")
-        log.debug('Downloaded %d, max %d' % (len(content),
-            settings.ATTACHMENT_MAX_FILESIZE))
+        log.debug('Downloaded (%s) %db, encoding: %s' % (url, len(content),
+                                                         encoding))
         att.close()
     try:
         attachment = revision.attachment_create_by_filename(
