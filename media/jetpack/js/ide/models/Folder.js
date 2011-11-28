@@ -24,7 +24,9 @@ var Folder = module.exports = new Class({
     },
 
     shortName: function() {
-        return this.get('name');
+        var name = this.get('name');
+        var parts = name.split('/');
+        return parts[parts.length - 1];
     },
 
     fullName: function() {
