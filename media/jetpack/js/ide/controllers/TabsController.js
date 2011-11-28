@@ -107,10 +107,10 @@ module.exports = new Class({
         var observePtr = file.observe('filename', changeName);
 
         tab.addEvent('destroy', function() {
-            changePtr.remove();
-            resetPtr.remove();
-            destroyPtr.remove();
-            observePtr.remove();
+            changePtr.detach();
+            resetPtr.detach();
+            destroyPtr.detach();
+            observePtr.detach();
             delete tab.file;
             controller.removeTab(tab);
         });
