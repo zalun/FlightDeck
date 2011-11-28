@@ -279,7 +279,7 @@ module.exports = new Class({
     },
 
     newAttachment: function(data) {
-        if (!data.id) data.id = data.uid;
+        if (!data.id && !data.pk) data.pk = data.uid;
         var att = new Attachment(data);
         this.attachments[att.get('uid')] = att;
         this.sidebar.addData(att);

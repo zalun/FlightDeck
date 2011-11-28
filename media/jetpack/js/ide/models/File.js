@@ -27,8 +27,10 @@ var File = module.exports = new Class({
     },
 
     initialize: function File(data) {
-        if (data && !data.id) data.id = idCounter++;
         this.parent(data);
+        if (!this.get('pk')) {
+            this.set('pk', idCounter++);
+        }
     },
 
     shortName: function() {
