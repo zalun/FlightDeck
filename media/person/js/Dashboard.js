@@ -116,6 +116,7 @@ FlightDeck = Class.refactor(FlightDeck, {
      */
     updateStatus: function(status_el, data, created) {
         var update = function(className, content) {
+            $log(status_el);
             $log('FD: setting ' + className + ' ' + content);
             status_el.getElements(className)[0].set('text', content).highlight();
         };
