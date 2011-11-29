@@ -116,6 +116,7 @@ FlightDeck = Class.refactor(FlightDeck, {
      */
     updateStatus: function(status_el, data, created) {
         var update = function(className, content) {
+            $log('FD: setting ' + className + ' ' + content);
             status_el.getElements(className)[0].set('text', content).highlight();
         };
         if (data.status) update('.amo-review_status', data.status);
