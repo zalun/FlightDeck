@@ -30,7 +30,8 @@ FlightDeck = Class.refactor(FlightDeck, {
                     'FlightDeck.uploadToAMO needs to be called with event');
             return
         }
-        var el = e.target.getParent('li');
+        var el = e.target.getParent('li'),
+            amo_info = el.getParent('.UI_AMO_Info');
 
 		new Request.JSON({
 			url: el.get('data-upload_url'),
@@ -49,11 +50,11 @@ FlightDeck = Class.refactor(FlightDeck, {
                                  '<a href="' + settings.amooauth_protocol + 
                                  '://' + settings.amooauth_domain + 
                                  '/en-US/developers/addons" target="amo_dashboard">AMO dashboard</a>');
-                this.getStatus.delay(5000, this, el.getParent('.UI_AMO_Info'));
-                this.updateStatus(el.getParent('.UI_AMO_INFO'), {'status': 'Upload Scheduled'})
+                this.getStatus.delay(5000, this, amo_info);
+                this.updateStatus(amo_info, {'status': 'Upload Scheduled'})
 			}.bind(this),
             addOnFailure: function() {
-                this.getStatus.delay(500, this, el.getParent('.UI_AMO_Info'));
+                this.getStatus.delay(500, this, amo_info);
             }.bind(this)
 		}).send();
     },
