@@ -45,12 +45,12 @@ class Mock(object):
         return Mock
 
 
-MOCK_MODULES = ['statsd', 'commonware', 'commonware.log']
+MOCK_MODULES = ['MySQLdb', 'MySQLdb.constants', 'statsd', 'commonware', 'commonware.log']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
-#setattr(sys.modules['MySQLdb'], 'version_info', (1, 2, 2))
-#setattr(sys.modules['MySQLdb.constants'], 'FIELDTYPE', Mock())
+setattr(sys.modules['MySQLdb'], 'version_info', (1, 2, 2))
+setattr(sys.modules['MySQLdb.constants'], 'FIELDTYPE', Mock())
 setattr(sys.modules['commonware'], 'log', Mock())
 setattr(sys.modules['commonware.log'], 'getLogger', Mock())
 
