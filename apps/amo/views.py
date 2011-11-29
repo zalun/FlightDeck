@@ -113,7 +113,7 @@ def get_addon_details(request, pk):
     amo_meta = {'status': revision.get_status_name(),
                 'status_code': revision.amo_status,
                 'version': revision.amo_version_name,
-                'get_addon_info_url': revision.get_addon_info_url(),
+                'get_addon_info_url': revision.get_status_url(),
                 'pk': revision.pk,
                 'uploaded': revision.amo_status != STATUS_UPLOAD_FAILED}
 
