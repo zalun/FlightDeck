@@ -19,14 +19,17 @@ PROJECTROOT = os.path.abspath(
         os.path.join(os.path.dirname(os.path.abspath(__file__)),'../../'))
 path = lambda *a: os.path.join(PROJECTROOT, *a)
 
-site.addsitedir(path('vendor'))
-site.addsitedir(path('vendor/lib/python'))
-site.addsitedir(path('apps'))
-site.addsitedir(path('lib'))
+new_sys_path = [path('vendor'),
+        path('vendor/lib/python'),
+        path('vendor/src/commonware'),
+        path('apps'),
+        path('lib')]
+
+for p in new_sys_path:
+    site.addsitedir(p)
 site.addsitedir(path(''))
 
 # Move the new items to the front of sys.path. (via virtualenv)
-new_sys_path = [path('vendor'), path('vendor/lib/python'), path('apps'), path('lib')]
 for item in list(sys.path):
     if item not in prev_sys_path:
         new_sys_path.append(item)
@@ -41,10 +44,15 @@ class Mock(object):
     def __getattr__(self, name):
         return Mock
 
-MOCK_MODULES = ['MySQLdb', 'waffle', 'celery', 'celery.decorators', 'django.db.backends.mysql.base', 'django.shortcuts', 'django.db.models.signals']
 
+MOCK_MODULES = ['statsd', 'commonware', 'commonware.log']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
+
+#setattr(sys.modules['MySQLdb'], 'version_info', (1, 2, 2))
+#setattr(sys.modules['MySQLdb.constants'], 'FIELDTYPE', Mock())
+setattr(sys.modules['commonware'], 'log', Mock())
+setattr(sys.modules['commonware.log'], 'getLogger', Mock())
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
 
