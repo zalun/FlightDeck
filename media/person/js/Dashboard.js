@@ -50,7 +50,7 @@ FlightDeck = Class.refactor(FlightDeck, {
                                  '://' + settings.amooauth_domain + 
                                  '/en-US/developers/addons" target="amo_dashboard">AMO dashboard</a>');
                 this.getStatus.delay(5000, this, el.getParent('.UI_AMO_Info'));
-                this.updateStatus(el, {'status': 'Upload Scheduled'})
+                this.updateStatus(el.getParent('.UI_AMO_INFO'), {'status': 'Upload Scheduled'})
 			}.bind(this),
             addOnFailure: function() {
                 this.getStatus.delay(500, this, el.getParent('.UI_AMO_Info'));
@@ -116,8 +116,6 @@ FlightDeck = Class.refactor(FlightDeck, {
      */
     updateStatus: function(status_el, data, created) {
         var update = function(className, content) {
-            $log(status_el);
-            $log('FD: setting ' + className + ' ' + content);
             status_el.getElements(className)[0].set('text', content).highlight();
         };
         if (data.status) update('.amo-review_status', data.status);
