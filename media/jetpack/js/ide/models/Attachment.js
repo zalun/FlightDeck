@@ -32,6 +32,10 @@ module.exports = new Class({
         // we must adjust all instances that keep track of this
         // attachment to use the new id, and any other new options that
         // comes with it
+
+        if (!data.pk || !data.id) {
+            data.pk = data.uid;
+        }
             
         var packAttachments = fd.item.attachments,
             editorItems = fd.item.editor.items,

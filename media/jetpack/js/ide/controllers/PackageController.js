@@ -1312,6 +1312,10 @@ module.exports = new Class({
         }, this);
         Object.each(this.attachments, function(attachment, uid) {
             var att = this.editor.getItem(uid);
+            if (!att) {
+                $log('FD: WARN: Editor not found for attachment:' + uid);
+                return;
+            }
             if (att.get('content') && att.changed) {
                 this.data[attachment.get('uid')] = att.get('content');
             }
@@ -1349,7 +1353,6 @@ module.exports = new Class({
                 if (response.attachments_changed) {
                     Object.forEach(response.attachments_changed, 
                         function(options, uid) {
-                            $log(this.attachments[uid]);
                             if (this.attachments[uid]) {
                                 // updating attachment's uid
                                 var att = this.attachments[uid];
