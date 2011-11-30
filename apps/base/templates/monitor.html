@@ -29,7 +29,7 @@
 
 <h2 class="UI_Heading" style="padding-top: 3em">Free space</h2>
 <ul>
-  {% for path, size in free.items %}
+  {% for path, size in free.items() %}
   <li>{{ path }}:  {{ size }}kB</li>
   {% endfor %}
 </ul>
@@ -47,7 +47,7 @@
 <h2 class="UI_Heading" style="padding-top: 3em">ElasticSearch</h2>
 {% if es_health %}
 <ul>
-    {% for key, value in es_health.items %}
+    {% for key, value in es_health.items() %}
     <li><strong>{{key}}:</strong> {{value}}</li>
     {% endfor %}
 </ul>
