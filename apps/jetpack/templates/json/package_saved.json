@@ -1,8 +1,8 @@
 {
 	{% include "json/_edit_urls.json" %}
-	{# for key, value in response_data['items'] 
+	{% for key, value in response_data.items() %} 
 		"{{ key }}": "{{ value|escapejs }}",
-	 endfor #}
+	{% endfor %}
     "attachments_changed": {{ attachments_changed|safe }},
 	"message_title": "{{ revision.package.get_type_name()|capfirst }} saved",
 	{% if start_revision_number != revision.revision_number %}
