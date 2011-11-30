@@ -84,7 +84,13 @@ module.exports = new Class({
             package_.observe('version_name', function(name) {
                 versionEl.set('value', name);
             });
-        
+        }
+
+        var packageInfoNameEl = this.packageInfoNameEl = dom.$('package-info-name');
+        if (packageInfoNameEl) {
+            package_.observe('full_name', function(name) {
+                packageInfoNameEl.set('text', name);
+            });
         }
 
         this.revision_list_btn = dom.$('revisions_list');
@@ -1335,7 +1341,7 @@ module.exports = new Class({
                 // set the redirect data to view_url of the new revision
                 $log('FD: DEBUG: Save succeeded');
                 if (response.full_name) {
-                    $('package-info-name').set('text', response.full_name);
+                    this.packageInfoNameEl.set('text', response.full_name);
                     this.options.full_name = response.full_name;
                     this.package_.set('full_name', response.full_name);
                 }

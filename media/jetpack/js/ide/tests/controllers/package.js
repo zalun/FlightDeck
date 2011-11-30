@@ -18,8 +18,8 @@ var Package = require('../../models/Package'),
 
 var BUTTONS = {
     'package-properties': string.uniqueID(),
-    'package-copy': string.uniqueID(), 
-    'try_in_browser': string.uniqueID(), 
+    'package-copy': string.uniqueID(),
+    'try_in_browser': string.uniqueID(),
     'download': string.uniqueID(),
     'error-console': string.uniqueID()
 };
@@ -34,6 +34,7 @@ function resetDom() {
 
     var body = dom.document.body;
 
+    body.grab(new dom.Element('span', { id: 'package-info-name' }));
     body.grab(new dom.Element('input', { id: 'version_name' }));
     body.grab(new dom.Element('div', { id: 'revisions_list' }));
     body.grab(new dom.Element('input', { id: 'revision_message' }));
@@ -88,6 +89,16 @@ module.exports = {
             addon.set('version_name', newVer);
 
             expect(pc.versionEl.get('value')).toBe(newVer);
+        });
+
+        it('should bind the package name', function(expect) {
+            var pc = new PackageController(addon, editOptions);
+
+            var name = 'new-name';
+            addon.set('full_name', name);
+
+            expect(pc.packageInfoNameEl.get('text')).toBe(name);
+
         });
 
         it('should register revisions_list click', function(expect) {
