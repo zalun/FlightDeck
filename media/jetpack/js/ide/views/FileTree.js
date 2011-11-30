@@ -4,6 +4,7 @@ var /*Class = require('shipyard/class'),
     */
     object = require('shipyard/utils/object'),
     
+    File = require('../models/File'),
     Module = require('../models/Module'),
     Attachment = require('../models/Attachment');
 
