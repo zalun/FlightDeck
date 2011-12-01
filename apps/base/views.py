@@ -130,10 +130,10 @@ def monitor(request):
     s_path = '%s/' % settings.SDKDIR_PREFIX
     x = os.statvfs(x_path)
     s = os.statvfs(s_path)
-    data['free'] = {
-            'xpi_targetdir %s' % x_path: (x.f_bavail * x.f_frsize) / 1024,
-            'sdkdir_prefix %s' % s_path: (s.f_bavail * s.f_frsize) / 1024
-            }
+    data['free'] = [
+            ('xpi_targetdir %s' % x_path, x.f_bavail * x.f_frsize),
+            ('sdkdir_prefix %s' % s_path, s.f_bavail * s.f_frsize)
+            ]
 
     data['filepaths'] = filepath_results
 
@@ -190,7 +190,7 @@ def monitor(request):
     # Check Redis
     # TODO: we don't currently use redis
 
-
+    print "==DEBUG data", data
     context = RequestContext(request, data)
     status = 200 if status else 500
     template = loader.get_template('monitor.html')

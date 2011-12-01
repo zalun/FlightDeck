@@ -29,8 +29,8 @@
 
 <h2 class="UI_Heading" style="padding-top: 3em">Free space</h2>
 <ul>
-  {% for path, size in free.items() %}
-  <li>{{ path }}:  {{ size }}kB</li>
+  {% for path, size in free %}
+  <li>{{ path }}:  {{ size|filesizeformat }}</li>
   {% endfor %}
 </ul>
 
