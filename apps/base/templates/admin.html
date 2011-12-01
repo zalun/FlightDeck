@@ -17,7 +17,7 @@
 {% if message %}
     <p><strong>{{message}}</strong></p>
 {% endif %}
-    {% csrf_token %}
+    {{ safe_csrf_token()|safe }}
     <ul class="UI_Form_Actions">
         <li>
             <button name="action" value="setup_mapping" type="submit">Setup Mapping</button>
