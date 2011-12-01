@@ -1,5 +1,6 @@
 var Class = require('shipyard/class/Class'),
     File = require('./File'),
+    property = require('shipyard/class/Observable').property,
 	fields = require('shipyard/model/fields'),
 	DummySync = require('shipyard/sync/Dummy'),
     Request = require('shipyard/http/Request');
@@ -18,9 +19,9 @@ module.exports = new Class({
 	fields: {
 	},
 
-    uid: function() {
+    uid: property(function uid() {
          return this.get('filename');
-    },
+    }, 'filename'),
 
     loadContent: function(callback) {
         var spinnerEl,
@@ -42,7 +43,9 @@ module.exports = new Class({
 				this.original_content = code;
                 this.set('content', code);
                 this.fireEvent('loadcontent', code);
-                if (callback) callback.call(this, code);
+                if (callback) {
+                    callback.call(this, code);
+                }
             }.bind(this)
 		}).send();
     }

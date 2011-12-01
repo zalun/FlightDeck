@@ -1305,7 +1305,11 @@ module.exports = new Class({
         this.data.version_name = $('version_name').get('value');
         this.data.revision_message = $('revision_message').get('value');
         Object.each(this.modules, function(module, filename) {
-            var mod = this.editor.items[module.get('uid')];
+            var mod = this.editor.getItem(module.get('uid'));
+            if (!mod) {
+                $log('FD: WARN: Editor not found for module:'+ filename);
+                return;
+            }
             if (mod.get('content') && mod.changed) {
                 this.data[filename] = mod.get('content');
             }

@@ -1,4 +1,5 @@
 var Class = require('shipyard/class/Class'),
+    property = require('shipyard/class/Observable').property,
     fields = require('shipyard/model/fields'),
     DummySync = require('shipyard/sync/Dummy'),
     
@@ -20,9 +21,9 @@ module.exports = new Class({
         data: fields.TextField()
     },
 
-    uid: function uid() {
+    uid: property(function uid() {
         return this.get('pk');
-    },
+    }, 'id'),
 
     reassign: function(data) {
         //TODO: this makes me cry
@@ -48,9 +49,6 @@ module.exports = new Class({
         var newUID = this.get('uid');
 
         packAttachments[newUID] = this;
-
-        editorItems[newUID] = editorItems[oldUID];
-        delete editorItems[oldUID];
 
         this.fireEvent('reassign', newUID);
     }
