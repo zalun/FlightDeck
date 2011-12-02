@@ -2,21 +2,26 @@
 <div class="result package {{ package.is_addon()|yesno("addon,library") }}">
     <h3>
         <a href="{{ package.get_absolute_url() }}">{{ package.full_name }}</a>
-
+        {% if package.featured %}
+            <span class="featured" title="Featured">featured</span>
+        {% endif %}
+        {% if package.example %}
+            <span class="example" title="Example">example</span>
+        {% endif %}
     </h3>
     <p class="description">{{ package.description }}</p>
     <ul class="search_meta">
-        <li><span>author:</span>
+        <li title="Author" class="author"><span>&nbsp;</span>
             <a href="{{ url('person_public_profile', package.author.username) }}">{{ package.author.get_profile() }}</a></span></li>
-        <li><span>forks:</span>
+        <li title="Forks" class="forks"><span>&nbsp;</span>
             {{ package.search_meta.copies_count }}</li>
         {% if package.is_library() %}
-            <li><span>used:</span>
-                {{ package.search_meta.times_depended }} times</li>
+            <li title="Number of times used by other Addons or Libraries" class="used"><span>&nbsp;</span>
+                {{ package.search_meta.times_depended }}</li>
         {% endif %}        
-        <li><span>activity:</span>
+        <li title="Development Activity" class="activity"><span>&nbsp;</span>
             {{ get_activity_level_UI(package.search_meta.activity) }}</li>
-        <li><span>size:</span>
+        <li title="Package Size" class="size"><span>&nbsp;</span>
             {{ package.search_meta.size|filesizeformat }}</li>   
     </ul>
     <ul class="UI_Actions">        

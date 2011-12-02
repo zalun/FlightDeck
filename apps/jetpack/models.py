@@ -1496,6 +1496,10 @@ class Package(BaseModel, SearchMixin):
     active = models.BooleanField(default=True, blank=True)
     # deleted is the limbo state
     deleted = models.BooleanField(default=False, blank=True)
+    # is an example package
+    example = models.BooleanField(default=False, blank=True)
+    # is a featured package
+    featured = models.BooleanField(default=False, blank=True)
 
     #package activity score
     activity_rating = models.DecimalField(default=Decimal('0.0'), max_digits=4, decimal_places=3)

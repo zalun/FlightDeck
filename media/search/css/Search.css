@@ -160,7 +160,8 @@ body {
         color:#2854BB;
         /*color:#478CDE;*/
         font-size:1.3em;
-        letter-spacing: -0.5px;        
+        letter-spacing: -0.5px;
+        margin-right:10px;
     }
     
     #SearchResults .package h3 span {
@@ -192,12 +193,53 @@ body {
     }   
     #SearchResults .package ul.search_meta li{
         float:left;
-        color:#444;
-        margin-right:10px;
+        color:#444;        
+        margin-right:5px;
     }
     
-    #SearchResults .package ul.search_meta li span{
-        color:#666;
+    #SearchResults .package ul.search_meta li span{        
+        opacity: 0.35;
+        padding-right: 10px;
+    }
+    
+    #SearchResults .package ul.search_meta li.size span{
+        background-image:url('../img/size.png');
+        background-repeat: no-repeat;        
+    }
+    #SearchResults .package ul.search_meta li.size{
+        width:75px;
+    }
+    
+    #SearchResults .package ul.search_meta li.author span{
+        background-image:url('../img/person.png');
+        background-repeat: no-repeat;        
+    }
+    #SearchResults .package ul.search_meta li.author{
+        width:100px;
+    }
+    
+    #SearchResults .package ul.search_meta li.forks span{
+        background-image:url('../img/fork.png');
+        background-repeat: no-repeat;        
+    }
+    #SearchResults .package ul.search_meta li.forks{
+        width: 42px;
+    }
+    
+    #SearchResults .package ul.search_meta li.used span{
+        background-image:url('../img/bookmark.png');
+        background-repeat: no-repeat;   
+    }    
+    #SearchResults .package ul.search_meta li.used{
+        width: 52px;
+    }
+    
+    #SearchResults .package ul.search_meta li.activity span{
+        background-image:url('../img/chart.png');
+        background-repeat: no-repeat;        
+    }
+    #SearchResults .package ul.search_meta li.activity{
+        width: 65px;
     }
     
 #SearchResults .UI_Sorting{    
@@ -209,7 +251,30 @@ body {
     font-size:0.8em;
 }
 
-    
+#SearchResults .featured{
+      background: -moz-linear-gradient(center top , #D3B000 0%, #CC952E 100%) repeat scroll 0 0 transparent;
+    border: 1px solid #AD8027;
+    border-radius: 2px 2px 2px 2px;
+    color: white !important;
+    font-size: 0.7em;
+    font-weight: bold;
+    padding: 2px 5px 2px 6px;
+    position: relative;
+    text-shadow: 0 -1px 0 #AD8027;
+    top: -3px;
+}
+#SearchResults .example{   
+    background: -moz-linear-gradient(center top , #638ced 0%, #2170ef 100%) repeat scroll 0 0 transparent;
+    border: 1px solid #2170ef;
+    border-radius: 2px 2px 2px 2px;
+    color: white !important;
+    font-size: 0.7em;
+    font-weight: bold;
+    padding: 2px 5px 2px 6px;
+    position: relative;
+    text-shadow: 0 -1px 0 #2170ef;
+    top: -3px;
+}
         
 
 #SearchResults .see-more {
