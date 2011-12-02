@@ -1,8 +1,9 @@
 window.addEvent('domready', function(e){
     var setMsg = function(msg){
-        $('package_msg').set('html', msg);
+        var elem = $('package_msg');
+        elem.set('html', msg);
         setTimeout(function(){
-            $('package_msg').set('html','');
+            elem.set('html','');
         },2000);
     }
     $('btn_find_package').addEvent('click', function(e){
@@ -25,7 +26,7 @@ window.addEvent('domready', function(e){
             enabled = elem.getParent().hasClass('pressed'),
             r = new Request({
                 url: admin_settings.update_package_url,
-                methpd: 'post',
+                method: 'post',              
                 onSuccess: function(p){
                      setMsg("updated");
                      elem.getParent().toggleClass('pressed');

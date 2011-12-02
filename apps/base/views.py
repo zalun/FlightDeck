@@ -206,10 +206,10 @@ def get_package(request):
 @user_passes_test(lambda u: u.is_superuser)
 def update_package(request):
     package = get_object_or_404(Package, pk=request.POST['package_id'])  
-    if request.POST.__contains__('featured'):        
+    if 'featured' in request.POST:        
         package.featured = request.POST.get('featured') == 'true'
         
-    if request.POST.__contains__('example'):       
+    if 'example' in request.POST:       
         package.example = request.POST.get('example') == 'true'
         
     package.save()    

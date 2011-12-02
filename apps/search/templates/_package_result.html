@@ -11,17 +11,17 @@
     </h3>
     <p class="description">{{ package.description }}</p>
     <ul class="search_meta">
-        <li title="Author" class='author'><span>&nbsp;</span>
+        <li title="Author" class="author"><span>&nbsp;</span>
             <a href="{{ url('person_public_profile', package.author.username) }}">{{ package.author.get_profile() }}</a></span></li>
-        <li title="Forks" class='forks'><span>&nbsp;</span>
+        <li title="Forks" class="forks"><span>&nbsp;</span>
             {{ package.search_meta.copies_count }}</li>
         {% if package.is_library() %}
-            <li title="Number of times used by other Addons or Libraries" class='used'><span>&nbsp;</span>
+            <li title="Number of times used by other Addons or Libraries" class="used"><span>&nbsp;</span>
                 {{ package.search_meta.times_depended }}</li>
         {% endif %}        
-        <li title="Development Activity" class='activity'><span>&nbsp;</span>
+        <li title="Development Activity" class="activity"><span>&nbsp;</span>
             {{ get_activity_level_UI(package.search_meta.activity) }}</li>
-        <li title="Package Size" class='size'><span>&nbsp;</span>
+        <li title="Package Size" class="size"><span>&nbsp;</span>
             {{ package.search_meta.size|filesizeformat }}</li>   
     </ul>
     <ul class="UI_Actions">        
