@@ -6,9 +6,10 @@ import commonware.log
 from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
 from django.http import HttpResponse
-from django.shortcuts import render_to_response
+from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext, loader
 from django.views.debug import get_safe_settings
+from django.template.loader import get_template
 
 from elasticutils import get_es
 import base.tasks
@@ -190,13 +191,31 @@ def monitor(request):
     # Check Redis
     # TODO: we don't currently use redis
 
-    print "==DEBUG data", data
     context = RequestContext(request, data)
     status = 200 if status else 500
     template = loader.get_template('monitor.html')
     return HttpResponse(template.render(context), status=status)
 
 
+def get_package(request):    
+    package = get_object_or_404(Package, pk=request.GET['package_id'])    
+    return render_to_response('admin/_package_result.html', {
+            'package': package
+        }, context_instance=RequestContext(request))
+
+@user_passes_test(lambda u: u.is_superuser)
+def update_package(request):
+    package = get_object_or_404(Package, pk=request.POST['package_id'])  
+    if request.POST.__contains__('featured'):        
+        package.featured = request.POST.get('featured') == 'true'
+        
+    if request.POST.__contains__('example'):       
+        package.example = request.POST.get('example') == 'true'
+        
+    package.save()    
+    return HttpResponse({'status':'ok'}, content_type='text/javascript')
+    
+    
 def homepage(r):
     # one more for the main one
     addons_limit = settings.HOMEPAGE_PACKAGES_NUMBER
@@ -214,6 +233,7 @@ def homepage(r):
          'page': page
         },
         context_instance=RequestContext(r))
+
 
 
 def robots(request):

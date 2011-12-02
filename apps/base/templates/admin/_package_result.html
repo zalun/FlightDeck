@@ -1,0 +1,21 @@
+
+<div class="result package {{ package.is_addon()|yesno("addon,library") }}">
+	<input class="package_id" type="hidden" value="{{ package.id }}" />    
+    <ul class="package_meta">
+		<li><span>name:</span>{{package.full_name}}<li>
+		<li><span>package type:</span>{{ package.is_addon()|yesno("addon,library") }}<li>
+        <li><span>author:</span>
+            <a href="{{ url('person_public_profile', package.author.username) }}">{{ package.author.get_profile() }}</a></li>
+        <li><span>version_name:</span>{{package.version_name}}<li>
+		<li><span>version_id:</span>{{package.version_id}}</li>
+		<li><span>active:</span>{{package.active}}</li>
+		<li><span>deleted:</span>{{package.deleted}}</li>
+		<li><span>created:</span>{{package.created_at}}</li>
+		<li><span>updated:</span>{{package.last_update}}</li>
+		<li><span>description:</span><p>{{package.description}}</p><li>
+    </ul>
+	<ul class="UI_Actions">
+		<li class="UI_Package_Featured {{ 'pressed' if package.featured else '' }}"><a href="">Featured</a></li>
+		<li class="UI_Package_Example {{ 'pressed' if package.example else '' }}"><a href="">Example</a></li>
+	</ul>	
+</div>

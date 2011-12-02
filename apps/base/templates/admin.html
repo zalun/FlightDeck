@@ -1,31 +1,66 @@
 {% extends 'base.html' %}
 
-{% block title %}Mozilla FlightDeck Admin Area{% endblock title %}
+{% block title %}Mozilla FlightDeck Admin Area - {% endblock title %}
  
 {% block head_prejs %}
 <style type="text/css">
     .UI_Forms .UI_Form_Actions li {
-        float:none;
-        display:inline-block;
+        float: none;
+        display: inline-block;
     }
+    #package_msg{
+        color: red;
+    }
+    .package_meta li span{
+        font-weight: bold;
+        margin-right: 4px;
+    }
+    #package_actions label{
+        display: inline;
+    }
+    #package_actions input, #package_actions button{
+        display: inline;
+        border: solid 1px #ccc;
+    }
+    #package_actions button{
+        cursor: pointer;
+    }    
 </style>
 {% endblock %}
 
-{% block app_content %}
-<form method="post" action="" class="UI_Forms">
-<h2 class="UI_Heading" style="padding-top:3em;">Search</h2>
-{% if message %}
-    <p><strong>{{message}}</strong></p>
-{% endif %}
-    {{ safe_csrf_token()|safe }}
-    <ul class="UI_Form_Actions">
-        <li>
-            <button name="action" value="setup_mapping" type="submit">Setup Mapping</button>
-        </li>
-        <li>
-            <button name="action" value="index_all" type="submit">Index All</button>
-        </li>
-    </ul>
-</form>
+{% block head %}
+<script type="text/javascript">
+    var admin_settings = {
+        'get_package_url':'{{ url('admin_get_package') }}',
+        'update_package_url':'{{ url('admin_update_package') }}',
+    };
+</script>
+<script type="text/javascript" src="/media/base/js/Admin.js" ></script>
+{% endblock %}
+
+{% block app_content %}    
+    <form method="post" action="" class="UI_Forms">
+    <h2 class="UI_Heading" style="padding-top:3em;">Crons</h2>
+    {% if message %}
+        <p><strong>{{message}}</strong></p>
+    {% endif %}
+        {{ safe_csrf_token()|safe }}
+        <ul class="UI_Form_Actions">
+            <li>
+                <button name="action" value="setup_mapping" type="submit">Setup Mapping</button>
+            </li>
+            <li>
+                <button name="action" value="index_all" type="submit">Index All</button>
+            </li>
+        </ul>
+    </form>
+    
+    
+    <div id="package_actions">
+        <h2 class="UI_Heading" style="padding-top:3em;">Package&nbsp;&nbsp;<span id="package_msg"></span></h2>        
+        <label for="txt_package_id">Fetch Package by Id</label>
+        <input type="text" id="txt_package_id"  /> <button type="button" id="btn_find_package">Find</button>        
+        <div id="package_item"></div>
+    </div>
 
 {% endblock %}
