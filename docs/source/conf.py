@@ -45,14 +45,23 @@ class Mock(object):
         return Mock
 
 
-MOCK_MODULES = ['MySQLdb', 'MySQLdb.constants', 'statsd', 'commonware', 'commonware.log']
+MOCK_MODULES = [
+    'MySQLdb', 'MySQLdb.constants', 'MySQLdb.converters',
+    'MySQLdb.constants.FIELD_TYPE',
+    'statsd', 'commonware', 'commonware.log']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
 setattr(sys.modules['MySQLdb'], 'version_info', (1, 2, 2))
-setattr(sys.modules['MySQLdb.constants'], 'FIELDTYPE', Mock())
+setattr(sys.modules['MySQLdb.constants'], 'FIELD_TYPE', Mock())
+setattr(sys.modules['MySQLdb.converters'], 'conversions', Mock())
 setattr(sys.modules['commonware'], 'log', Mock())
 setattr(sys.modules['commonware.log'], 'getLogger', Mock())
+
+MySQLdbFIELDTYPES = ['BLOB']
+
+for fieldtype in MySQLdbFIELDTYPES:
+    setattr(sys.modules['MySQLdb.constants.FIELD_TYPE'], fieldtype, Mock())
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
 
