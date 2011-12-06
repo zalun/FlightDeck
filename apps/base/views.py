@@ -198,7 +198,7 @@ def monitor(request):
 
 
 def get_package(request):    
-    package = get_object_or_404(Package, pk=request.GET['package_id'])    
+    package = get_object_or_404(Package, id_number=request.GET['package_id'])    
     return render_to_response('admin/_package_result.html', {
             'package': package
         }, context_instance=RequestContext(request))
