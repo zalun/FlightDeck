@@ -44,7 +44,6 @@ def rebuild_from_location(location, sdk_source_dir, hashtag,
     log.info("[%s] Starting package rebuild... (%s)" % (hashtag, location))
     try:
         rep.download(location)
-        log.debug("All fine")
     except Exception, err:
         log.debug("[%s] Saving error info to %s" % (hashtag, info_path))
         info_write(info_path, 'error', str(err), hashtag)
@@ -187,7 +186,8 @@ def rebuild_addon(revision_pk, hashtag, sdk_version,
 
     error = False
 
-    info_path = '%s.json' % os.path.join(settings.XPI_TARGETDIR, hashtag)
+    # the json file with error message is written by build_xpi itself
+    #info_path = '%s.json' % os.path.join(settings.XPI_TARGETDIR, hashtag)
     data = {
         'secret': settings.AMO_SECRET_KEY,
         'result': 'failure'}
