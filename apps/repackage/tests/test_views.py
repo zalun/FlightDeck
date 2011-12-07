@@ -14,10 +14,10 @@ from utils.test import TestCase
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.contrib.auth.models import User
 
-from jetpack.models import SDK  #, PackageRevision
-from repackage import tasks
 from jetpack.models import SDK
+from repackage import tasks
 
 log = commonware.log.getLogger('f.repackage')
 
@@ -102,6 +102,10 @@ class RepackageViewsTest(TestCase):
         content = simplejson.loads(response.content)
         eq_(content['status'], 'success')
         eq_(tasks.low_rebuild.delay.call_count, 2)
+        # is callback to the right test provided?
+        assert 'callback' in tasks.low_rebuild.delay.call_args[1]
+        eq_(tasks.low_rebuild.delay.call_args[1]['callback'],
+            tasks.rebuild_from_location)
 
     def test_single_upload_and_rebuild(self):
         file_pre = os.path.join(settings.ROOT, 'apps/xpi/tests/sample_addons/')
@@ -114,6 +118,39 @@ class RepackageViewsTest(TestCase):
         content = simplejson.loads(response.content)
         eq_(content['status'], 'success')
         eq_(tasks.low_rebuild.delay.call_count, 1)
+        # is callback to the right test provided?
+        assert 'callback' in tasks.low_rebuild.delay.call_args[1]
+        eq_(tasks.low_rebuild.delay.call_args[1]['callback'],
+            tasks.rebuild_from_upload)
+
+    def test_single_repackage_from_pk(self):
+        tasks.low_rebuild.delay = Mock(return_value=None)
+        response = self.client.post(self.rebuild_url, {
+            'package_key': '1',
+            'secret': settings.AMO_SECRET_KEY})
+        eq_(response.status_code, 200)
+        content = simplejson.loads(response.content)
+        eq_(content['status'], 'success')
+        eq_(tasks.low_rebuild.delay.call_count, 1)
+        # is callback to the right test provided?
+        assert 'callback' in tasks.low_rebuild.delay.call_args[1]
+        eq_(tasks.low_rebuild.delay.call_args[1]['callback'],
+            tasks.rebuild_addon)
+    def test_bulk_repackage_from_pk(self):
+        tasks.low_rebuild.delay = Mock(return_value=None)
+        response = self.client.post(self.rebuild_url, {
+            'addons': simplejson.dumps([
+                {'package_key': '1'},
+                {'package_key': '2'}]),
+            'secret': settings.AMO_SECRET_KEY})
+        eq_(response.status_code, 200)
+        content = simplejson.loads(response.content)
+        eq_(content['status'], 'success')
+        eq_(tasks.low_rebuild.delay.call_count, 2)
+        # is callback to the right test provided?
+        assert 'callback' in tasks.low_rebuild.delay.call_args[1]
+        eq_(tasks.low_rebuild.delay.call_args[1]['callback'],
+            tasks.rebuild_addon)
 
     def test_bulk_upload_and_rebuild(self):
         file_pre = os.path.join(settings.ROOT, 'apps/xpi/tests/sample_addons/')
@@ -165,7 +202,8 @@ class RepackageViewsTest(TestCase):
                 'sdk_version': SDKVERSION})
         eq_(response.status_code, 200)
         task_args = tasks.low_rebuild.delay.call_args
-        eq_(task_args[0][2], sdk.get_source_dir())
+        log.critical(task_args[0])
+        eq_(task_args[0][1], sdk.get_source_dir())
 
     def test_list_versions_api(self):
         """
