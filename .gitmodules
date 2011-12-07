@@ -22,3 +22,6 @@
 [submodule "media/lib/shipyard"]
 	path = media/lib/shipyard
 	url = git://github.com/seanmonstar/Shipyard.git
+[submodule "lib/addon-sdk-1.3"]
+	path = lib/addon-sdk-1.3
+	url = git://github.com/mozilla/addon-sdk.git
