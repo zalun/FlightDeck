@@ -767,7 +767,9 @@ module.exports = new Class({
                     get_url: response.get_url,
                     pk: response.uid
                 });
-                that.editFile(att);
+                if (att.isEditable()) {
+                    that.editFile(att);
+                }
             }
         }).send();
     },
