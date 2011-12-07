@@ -16,9 +16,8 @@ from xpi.xpi_utils import info_write
 
 log = commonware.log.getLogger('f.repackage.tasks')
 
-
-def rebuild(location, upload, sdk_source_dir, hashtag,
-        package_overrides={}, filename=None, pingback=None, post=None,
+def rebuild_from_location(location, sdk_source_dir, hashtag,
+        package_overrides=None, filename=None, pingback=None, post=None,
         options=None, **kwargs):
     """creates a Repackage instance, downloads xpi and rebuilds it
 
@@ -35,51 +34,104 @@ def rebuild(location, upload, sdk_source_dir, hashtag,
     :returns: (list) ``cfx xpi`` response where ``[0]`` is ``stdout`` and
               ``[1]`` ``stderr``
     """
+    if not package_overrides:
+        package_overrides = {}
     rep = Repackage()
     info_path = '%s.json' % os.path.join(settings.XPI_TARGETDIR, hashtag)
     data = {
         'secret': settings.AMO_SECRET_KEY,
         'result': 'failure'}
-    if location:
-        log.info("[%s] Starting package rebuild... (%s)" % (hashtag, location))
-        try:
-            rep.download(location)
-            log.debug("All fine")
-        except Exception, err:
-            log.debug("[%s] Saving error info to %s" % (hashtag, info_path))
-            info_write(info_path, 'error', str(err), hashtag)
-            log.warning("[%s] Error in downloading xpi (%s)\n%s" % (hashtag,
-                location, str(err)))
-            if pingback:
-                data['msg'] = str(err)
-                urllib2.urlopen(pingback, data=urllib.urlencode(data),
-                        timeout=settings.URLOPEN_TIMEOUT)
-            raise
-        log.debug("[%s] XPI file downloaded (%s)" % (hashtag, location))
-        if not filename:
-            filename = '.'.join(
-                os.path.basename(urlparse(location).path).split('.')[0:-1])
+    log.info("[%s] Starting package rebuild... (%s)" % (hashtag, location))
+    try:
+        rep.download(location)
+        log.debug("All fine")
+    except Exception, err:
+        log.debug("[%s] Saving error info to %s" % (hashtag, info_path))
+        info_write(info_path, 'error', str(err), hashtag)
+        log.warning("[%s] Error in downloading xpi (%s)\n%s" % (hashtag,
+            location, str(err)))
+        if pingback:
+            data['msg'] = str(err)
+            urllib2.urlopen(pingback, data=urllib.urlencode(data),
+                    timeout=settings.URLOPEN_TIMEOUT)
+        raise
+    log.debug("[%s] XPI file downloaded (%s)" % (hashtag, location))
+    if not filename:
+        filename = '.'.join(
+            os.path.basename(urlparse(location).path).split('.')[0:-1])
 
-    elif upload:
-        log.info("[%s] Starting package rebuild from upload" % hashtag)
-        try:
-            rep.retrieve(upload)
-        except Exception, err:
-            info_write(info_path, 'error', str(err), hashtag)
-            log.warning("[%s] Error in retrieving xpi (%s)\n%s" % (hashtag,
-                upload, str(err)))
-            if pingback:
-                data['msg'] = str(err)
-                urllib2.urlopen(pingback, data=urllib.urlencode(data),
-                        timeout=settings.URLOPEN_TIMEOUT)
-            raise
-        log.debug("[%s] XPI file retrieved from upload" % hashtag)
-        if not filename:
-            filename = '.'.join(upload.name.split('.')[0:-1])
+    try:
+        response = rep.rebuild(sdk_source_dir, hashtag, package_overrides,
+                               options=options)
+    except Exception, err:
+        info_write(info_path, 'error', str(err), hashtag)
+        log.warning("%s: Error in rebuilding xpi (%s)" % (hashtag, str(err)))
+        if pingback:
+            data['msg'] = str(err)
+            urllib2.urlopen(pingback, data=urllib.urlencode(data),
+                    timeout=settings.URLOPEN_TIMEOUT)
+        raise
 
-    else:
-        log.error("[%s] No location or upload provided" % hashtag)
-        raise ValueError("No location or upload provided")
+    # successful rebuild
+    log.debug('[%s] Response from rebuild: %s' % (hashtag, str(response)))
+
+    if pingback:
+        data.update({
+            'id': rep.manifest['id'],
+            'result': 'success' if not response[1] else 'failure',
+            'msg': response[1] or response[0],
+            'location': "%s%s" % (settings.SITE_URL,
+                reverse('jp_download_xpi', args=[hashtag, filename]))})
+        if post:
+            data['request'] = post
+        urllib2.urlopen(pingback, data=urllib.urlencode(data),
+                timeout=settings.URLOPEN_TIMEOUT)
+        log.debug('[%s] Pingback: %s' % (hashtag, pingback))
+    log.info("[%s] Finished package rebuild." % hashtag)
+    return response
+
+
+def rebuild_from_upload(upload, sdk_source_dir, hashtag,
+        package_overrides=None, filename=None, pingback=None, post=None,
+        options=None, **kwargs):
+    """creates a Repackage instance, downloads xpi and rebuilds it
+
+    :params:
+        * upload - uploaded XPI file
+        * sdk_source_dir (String) absolute path of the SDK
+        * hashtag (String) filename for the buid XPI
+        * package_overrides (dict) override original ``package.json`` fields
+        * filename (String) desired filename for the downloaded ``XPI``
+        * pingback (String) URL to pass the result
+        * post (String) urlified ``request.POST``
+        * kwargs is just collecting the task decorator overhead
+
+    :returns: (list) ``cfx xpi`` response where ``[0]`` is ``stdout`` and
+              ``[1]`` ``stderr``
+    """
+    if not package_overrides:
+        package_overrides = {}
+    rep = Repackage()
+    info_path = '%s.json' % os.path.join(settings.XPI_TARGETDIR, hashtag)
+    data = {
+        'secret': settings.AMO_SECRET_KEY,
+        'result': 'failure'}
+
+    log.info("[%s] Starting package rebuild from upload" % hashtag)
+    try:
+        rep.retrieve(upload)
+    except Exception, err:
+        info_write(info_path, 'error', str(err), hashtag)
+        log.warning("[%s] Error in retrieving xpi (%s)\n%s" % (hashtag,
+            upload, str(err)))
+        if pingback:
+            data['msg'] = str(err)
+            urllib2.urlopen(pingback, data=urllib.urlencode(data),
+                    timeout=settings.URLOPEN_TIMEOUT)
+        raise
+    log.debug("[%s] XPI file retrieved from upload" % hashtag)
+    if not filename:
+        filename = '.'.join(upload.name.split('.')[0:-1])
 
     try:
         response = rep.rebuild(sdk_source_dir, hashtag, package_overrides,
@@ -182,7 +234,7 @@ def rebuild_addon(revision_pk, hashtag, sdk_version,
 
 
 @task(rate_limit='5/m')
-def low_rebuild(callback=rebuild, *args, **kwargs):
+def low_rebuild(callback=None, *args, **kwargs):
     """A wrapper for :meth:`download_and_rebuild` needed to create
     different route in celery for low priority rebuilds
     https://bugzilla.mozilla.org/show_bug.cgi?id=656978
@@ -192,7 +244,7 @@ def low_rebuild(callback=rebuild, *args, **kwargs):
 
 
 @task(rate_limit='30/m')
-def high_rebuild(callback=rebuild, *args, **kwargs):
+def high_rebuild(callback=None, *args, **kwargs):
     """A wrapper for :meth:`download_and_rebuild` needed to create
     different route in celery for high priority rebuilds
     https://bugzilla.mozilla.org/show_bug.cgi?id=656978

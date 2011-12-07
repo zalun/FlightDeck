@@ -61,6 +61,7 @@ def _get_package_overrides(container, sdk_version=None):
 
 def _get_latest_sdk_source_dir():
     # get latest SDK
+    log.debug(SDK.objects.all())
     sdk = SDK.objects.latest('pk')
     # if (when?) choosing POST['sdk_dir'] will be possible
     # sdk = SDK.objects.get(dir=sdk_dir) if sdk_dir else SDK.objects.all()[0]
@@ -180,6 +181,41 @@ def rebuild_addons(request):
     return HttpResponse(simplejson.dumps(response),
             mimetype='application/json')
 
+def send_rebuild_task(package_key, location, upload, hashtag, rebuild_task,
+        sdk_source_dir, package_overrides, filename, pingback, post, options,
+        sdk_version):
+    if package_key:
+        # rebuild one addon from the pk
+        log.debug('[%s] Rebuild started for location (%s)' %
+                (hashtag, location))
+        rebuild_task.delay(
+                package_key, hashtag, sdk_version,
+                package_overrides=package_overrides,
+                pingback=pingback, filename=filename,
+                post=post, options=options,
+                callback=tasks.rebuild_addon)
+
+
+    if location:
+        # rebuild one add-on's XPI downloaded from location
+        log.debug('[%s] Rebuild started for location (%s)' %
+                (hashtag, location))
+        rebuild_task.delay(
+                location, sdk_source_dir, hashtag,
+                package_overrides=package_overrides,
+                filename=filename, pingback=pingback,
+                post=post, options=options,
+                callback=tasks.rebuild_from_location)
+
+    if upload:
+        # rebuild one add-on's from upload
+        log.debug('[%s] Rebuild started from upload' % hashtag)
+        rebuild_task.delay(
+                upload, sdk_source_dir, hashtag,
+                package_overrides=package_overrides,
+                filename=filename, pingback=pingback,
+                post=post, options=options,
+                callback=tasks.rebuild_from_upload)
 
 @csrf_exempt
 @require_POST
@@ -198,90 +234,127 @@ def rebuild(request):
 
     options = request.POST.get('options', None)
 
+    package_key = request.POST.get('package_key', None)
     location = request.POST.get('location', None)
     addons = request.POST.get('addons', None)
     upload = request.FILES.get('upload', None)
 
-    if not location and not upload and not addons:
+    # validate entry
+    if not package_key and not location and not upload and not addons:
         log.error("Rebuild requested but files weren't specified.  Rejecting.")
-        return HttpResponseBadRequest('Please provide XPI files to rebuild')
+        return HttpResponseBadRequest('Please provide Add-ons to rebuild')
     if location and upload:
         log.error("Rebuild requested but location and upload provided."
                 "Rejecting")
-        return HttpResponseBadRequest('Please provide XPI files to rebuild')
+        return HttpResponseBadRequest('location and upload are mutually '
+                                      'exclusive')
+    if location and package_key:
+        log.error("Rebuild requested but location and package_key provided."
+                "Rejecting")
+        return HttpResponseBadRequest('location and package_key are mutually'
+                                      'exclusive')
+    if upload and package_key:
+        log.error("Rebuild requested but upload and package_key provided."
+                "Rejecting")
+        return HttpResponseBadRequest('upload and package_key are mutually'
+                                      'exclusive')
 
+    # prepare repackage common variables
     # locate SDK source directory
     sdk_version, sdk_source_dir = _get_sdk_source_dir(
             request.POST.get('sdk_version', None))
-
     pingback = request.POST.get('pingback', None)
     priority = request.POST.get('priority', None)
-    post = request.POST.urlencode()
     if priority and priority == 'high':
         rebuild_task = tasks.high_rebuild
     else:
         rebuild_task = tasks.low_rebuild
+    post = request.POST.urlencode()
     response = {'status': 'success'}
+    hashtag = get_random_string(10)
+    filename = request.POST.get('filename', None)
     errors = []
     counter = 0
 
-    if location or upload:
-        hashtag = get_random_string(10)
-        if location:
-            log.debug('[%s] Single rebuild started for location (%s)' %
-                    (hashtag, location))
-        else:
-            log.debug('[%s] Single rebuild started from upload' % hashtag)
+    try:
+        package_overrides = _get_package_overrides(request.POST,
+                                                   sdk_version)
+    except BadManifestFieldException, err:
+        msg = '[%s] %s' % (hashtag, str(err))
+        errors.append(msg)
+        log.debug(msg)
 
-        filename = request.POST.get('filename', None)
-
+    if package_key:
         try:
-            package_overrides = _get_package_overrides(request.POST,
-                                                       sdk_version)
-        except BadManifestFieldException, err:
-            errors.append('[%s] %s' % (hashtag, str(err)))
-        else:
-            rebuild_task.delay(
-                    location, upload, sdk_source_dir, hashtag,
-                    package_overrides=package_overrides,
-                    filename=filename, pingback=pingback,
-                    post=post, options=options)
-            counter = counter + 1
+            package_key = int(package_key)
+        except ValueError:
+            msg = '[%s] package_key (%s) is not integer' % (hashtag,
+                    package_key)
+            errors.append(msg)
+            log.debug(msg)
+
+    if not errors:
+        send_rebuild_task(package_key, location, upload, hashtag, rebuild_task,
+                sdk_source_dir, package_overrides, filename, pingback, post,
+                options, sdk_version)
+        counter = counter + 1
 
     if addons:
+        # loop over addons and rebuild the one by one
         try:
             addons = simplejson.loads(addons)
-        except Exception, err:
+        except simplejson.decoder.JSONDecodeError, err:
             errors.append(str(err))
         else:
             for addon in addons:
                 error = False
                 filename = addon.get('filename', None)
                 hashtag = get_random_string(10)
+                options = addon.get('options', None)
+                package_key = addon.get('package_key', None)
                 location = addon.get('location', None)
                 upload_name = addon.get('upload', None)
                 upload = None
                 if upload_name:
                     upload = request.FILES.get(upload_name, None)
-                if not (location or upload):
-                    errors.append("[%s] Files not specified." % hashtag)
+                if not (package_key or location or upload):
+                    errors.append("XPI for the addon not specified.")
                     error = True
-                if location and upload:
-                    errors.append(("[%s] Location and upload provided. "
-                        "Rejecting") % hashtag)
-                    error = True
-                try:
-                    package_overrides = _get_package_overrides(addon,
-                                                               sdk_version)
-                except Exception, err:
-                    errors.append('[%s] %s' % (hashtag, str(err)))
-                    error = True
+                else:
+                    if location and upload:
+                        msg = ('location (%s) and upload are mutually'
+                               ' exclusive') % location
+                        errors.append(msg)
+                        log.error(msg)
+                        error = True
+                    if location and package_key:
+                        msg = ('location (%s) and package_key (%s) '
+                               'are mutually exclusive') % (location, package_key)
+                        errors.append(msg)
+                        log.error(msg)
+                        error = True
+                    if upload and package_key:
+                        msg = ('upload  and package_key (%s) '
+                               'are mutually exclusive') % package_key
+                        errors.append(msg)
+                        log.error(msg)
+                        error = True
+
+                # have something valuable in the logs
+                identifier = package_key or location or filename
+
                 if not error:
-                    rebuild_task.delay(
-                        location, upload, sdk_source_dir, hashtag,
-                        package_overrides=package_overrides,
-                        filename=filename, pingback=pingback,
-                        post=post)
+                    try:
+                        package_overrides = _get_package_overrides(addon,
+                                sdk_version)
+                    except Exception, err:
+                        errors.append('[%s] %s' % (identifier, str(err)))
+                        error = True
+
+                if not error:
+                    send_rebuild_task(package_key, location, upload, hashtag,
+                            rebuild_task, sdk_source_dir, package_overrides,
+                            filename, pingback, post, options, sdk_version)
                     counter = counter + 1
 
     if errors:

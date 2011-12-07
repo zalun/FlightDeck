@@ -20,7 +20,7 @@ from utils.test import TestCase
 
 from base.helpers import hashtag
 from jetpack.models import SDK
-from repackage.tasks import rebuild, rebuild_addon
+from repackage.tasks import rebuild_from_location, rebuild_from_upload, rebuild_addon
 from repackage.helpers import increment_version
 
 log = commonware.log.getLogger('f.repackage')
@@ -54,7 +54,7 @@ class RepackageTaskTest(TestCase):
     def test_download_and_rebuild(self):
         test_file = os.path.join(
                     self.xpi_file_prefix, '%s.xpi' % self.sample_addons[0])
-        rep_response = rebuild(test_file, None, self.sdk_source_dir,
+        rep_response = rebuild_from_location(test_file, self.sdk_source_dir,
             self.hashtag)
         assert not rep_response[1]
 
@@ -62,8 +62,8 @@ class RepackageTaskTest(TestCase):
         with tempfile.NamedTemporaryFile() as bad_xpi:
             urllib2.urlopen = Mock(return_value=open(bad_xpi.name))
             self.assertRaises(Exception,
-                    rebuild,
-                    'file://%s' % bad_xpi.name, None, self.sdk_source_dir,
+                    rebuild_from_location,
+                    'file://%s' % bad_xpi.name, self.sdk_source_dir,
                     self.hashtag,
                     pingback='test_pingback',
                     options='--strip-xpi')
@@ -79,10 +79,9 @@ class RepackageTaskTest(TestCase):
         urllib2.urlopen = Mock(return_value=open(os.path.join(
                 settings.ROOT, 'apps/xpi/tests/sample_addons/',
                 '%s.xpi' % self.sample_addons[0])))
-        rebuild(
+        rebuild_from_location(
                 os.path.join(
                     self.xpi_file_prefix, '%s.xpi' % self.sample_addons[0]),
-                None,
                 self.sdk_source_dir, self.hashtag,
                 pingback='test_pingback',
                 options='--strip-xpi')

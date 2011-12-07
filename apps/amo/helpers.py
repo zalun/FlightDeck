@@ -58,8 +58,6 @@ def get_addon_details(amo_id, amo_file_id=None):
         return {'error': msg % (url, ' : ', str(error))}
     amo_xml = etree.fromstring(page.read())
     amo_data = {}
-    # just debugging will be taken off soon
-    log.debug(amo_xml)
     for element in amo_xml.iter():
         if element.tag in ('status', 'rating', 'version', 'slug'):
             amo_data[element.tag] = element.text
