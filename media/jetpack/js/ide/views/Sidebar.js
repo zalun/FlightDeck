@@ -350,7 +350,9 @@ var Sidebar = module.exports = new Class({
             .addClass(options.file_selected_class);
         
         //also be sure to expand all parent folders
-        var tree = new Tree(el.getParent('.tree')),
+        var rootEl = el.getParent('.tree'),
+            treeName = rootEl.get('id').toLowerCase().replace('tree','');
+            tree = this.trees[treeName],
             node = el;
         
         while (node = node.getParent('li')) {
