@@ -245,6 +245,10 @@ var Sidebar = module.exports = new Class({
         
         var id = string.uniqueID();
         this.uids[file.get('uid')] = id;
+        file.observe('uid', function(uid, old) {
+            that.uids[uid] = id;
+            delete that.uids[old];
+        });
 
         var options = {
             target: $(tree).getElement('.top_branch'),

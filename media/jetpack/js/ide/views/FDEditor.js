@@ -50,7 +50,7 @@ var FDEditor = module.exports = new Class({
         var editor = this;
         item.observe('uid', function(updated, old) {
             $log('uid changed for registed item:' + updated);
-            editor[updated] = item;
+            editor.items[updated] = item;
             delete editor[old];
         });
     },
