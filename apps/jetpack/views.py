@@ -30,6 +30,7 @@ from django.forms.fields import URLField
 from base.shortcuts import get_object_with_related_or_404
 from utils import validator
 from utils.helpers import pathify, render, render_json
+from utils.exceptions import parse_validation_messages
 
 from jetpack.package_helpers import (get_package_revision,
         create_package_from_xpi)
@@ -555,7 +556,8 @@ def upload_attachment(request, id_number, type_id,
         attachment = revision.attachment_create_by_filename(
             request.user, filename, content)
     except ValidationError, e:
-        return HttpResponseForbidden('Validation errors.')
+        return HttpResponseForbidden(
+                'Validation errors.\n%s' % parse_validation_messages(e))
     except Exception, e:
         return HttpResponseForbidden(str(e))
 
@@ -593,7 +595,8 @@ def upload_attachments(request, id_number, type_id,
         attachment = revision.attachment_create_by_filename(
             request.user, filename, content)
     except ValidationError, e:
-        return HttpResponseForbidden('Validation errors.')
+        return HttpResponseForbidden(
+                'Validation errors.\n%s' % parse_validation_messages(e))
     except Exception, e:
         return HttpResponseForbidden(str(e))
 
@@ -630,7 +633,8 @@ def add_empty_attachment(request, id_number, type_id,
         attachment = revision.attachment_create_by_filename(request.user,
                 filename, '')
     except ValidationError, e:
-        return HttpResponseForbidden('Validation error.')
+        return HttpResponseForbidden(
+                'Validation errors.\n%s' % parse_validation_messages(e))
     except Exception, e:
         return HttpResponseForbidden(str(e))
 
@@ -667,8 +671,8 @@ def revision_add_attachment(request, pk):
         except ValidationError, err:
             log.debug('Invalid url provided (%s)\n%s' % (url,
                 '\n'.join(err.messages)))
-            return HttpResponseForbidden(("Loading attachment failed<br/>"
-                "%s") % '<br/>'.join(err.messages))
+            return HttpResponseForbidden(("Loading attachment failed\n"
+                "%s") % parse_validation_messages(err))
         except Exception, err:
             return HttpResponseForbidden(str(err))
         att = urllib2.urlopen(url, timeout=settings.URLOPEN_TIMEOUT)
@@ -698,7 +702,8 @@ def revision_add_attachment(request, pk):
         attachment = revision.attachment_create_by_filename(
             request.user, filename, content)
     except ValidationError, err:
-        return HttpResponseForbidden('Validation error.<br/>%s' % str(err))
+        return HttpResponseForbidden(
+                'Validation error.\n%s' % parse_validation_messages(err))
     except Exception, err:
         return HttpResponseForbidden(str(err))
 
@@ -895,7 +900,8 @@ def save(request, id_number, type_id, revision_number=None,
         try:
             revision.save()
         except ValidationError, err:
-            return HttpResponseForbidden(escape(err.__str__()))
+            return HttpResponseForbidden(
+                'Validation error.\n%s' % parse_validation_messages(err))
 
     if changes:
         attachments_changed = simplejson.dumps(

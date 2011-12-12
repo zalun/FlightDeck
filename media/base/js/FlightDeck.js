@@ -13,15 +13,19 @@ Request = Class.refactor(Request, {
               this.options.addOnFailure();
             }
 			if (xhr.status !== 0 && xhr.responseText) {
-                response = xhr.responseText;
+                var response = xhr.responseText;
                 if (this.headers['X-Request'] == 'JSON') {
                     try {
-                        response = JSON.decode(response);
+                        var jsonresponse = JSON.decode(response);
+                        response = '';
+                        jsonresponse.each(function(v, k) {
+                            response += k + ': ' + v + '\n';
+                        })
                     } catch(err) {
                         // u'some string' is not valid JSON
                     }
                 }
-				fd.error.alert(xhr.statusText, response);
+				fd.error.alert(xhr.statusText, response.replace('\n', '<br/>', 'g'));
 			}
         }
     },
