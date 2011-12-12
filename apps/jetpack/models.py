@@ -525,7 +525,7 @@ class PackageRevision(BaseModel):
         manifest = {
             'fullName': self.full_name,
             'name': name,
-            'description': self.get_full_description(),
+            'description': escape(self.get_full_description()),
             'author': self.package.author.get_profile().get_nickname(),
             'id': self.package.jid if self.package.is_addon() \
                     else self.package.id_number,
