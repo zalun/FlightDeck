@@ -145,11 +145,14 @@ FlightDeck = Class.refactor(FlightDeck, {
                 // remove ability to upload
                 var li_anchor = $$('.upload_link')[0],
                     anchor = li_anchor.getElement('a');
-                li_anchor.set('text', anchor.get('text'));
-                anchor.destroy();
-                li_anchor.removeClass('UI_AMO_Version_Uploaded').removeClass('UI_AMO_Version_Uploaded');
-                li_anchor.addClass('UI_AMO_Version_Uploaded');
-                li_anchor.highlight();
+                // XXX: workaround
+                if (anchor) {
+                    li_anchor.set('text', anchor.get('text'));
+                    anchor.destroy();
+                    li_anchor.removeClass('UI_AMO_Version_Uploaded').removeClass('UI_AMO_Version_Uploaded');
+                    li_anchor.addClass('UI_AMO_Version_Uploaded');
+                    li_anchor.highlight();
+                }
             }
         }
     }
