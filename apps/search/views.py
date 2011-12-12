@@ -27,7 +27,7 @@ def search(request):
     q = query.get('q').lower()
     type_ = query.get('type') or None
     types = {'a': 'addon', 'l': 'library'}
-    page = query.get('page') or 1
+    page = query.get('page') or 1    
     limit = 20
     activity_map = get_activity_scale()
     
@@ -51,13 +51,26 @@ def search(request):
         filters['times_depended__gte'] = query['used']
     else:
         query['used'] = 0
+        
+    if query.get('example'):
+        filters['example'] = 'true'
+        
+    if query.get('featured'):
+        filters['featured'] = 'true'
 
     if query.get('activity'):
         filters['activity__gte'] = activity_map.get(str(query['activity']), 0)
          
     copies_facet = {'terms': {'field': 'copies_count'}}
     times_depended_facet = {'terms': {'field': 'times_depended'}}
-    facets_ = {'copies': copies_facet, 'times_depended': times_depended_facet}
+    examples_facet = {'query': {'term': {'example': 'true' }}}
+    featured_facet = {'query': {'term': {'featured': 'true' }}}
+    facets_ = {
+                'copies': copies_facet,
+                'times_depended': times_depended_facet,
+                'example': examples_facet,
+                'featured': featured_facet
+               }
    
     template = ''
     results={}
@@ -76,10 +89,12 @@ def search(request):
     else:
         # combined view
         results['addons'] = package_search(q, type='a', **filters) \
-            .order_by(sort).facet(**facets_)[:5]
+            .order_by(sort)[:5]
         results['libraries'] = package_search(q, type='l', **filters) \
-            .order_by(sort).facet(**facets_)[:5] 
-        facets = _facets(results['addons'].facets)
+            .order_by(sort)[:5]
+        results['all'] = package_search(q, **filters).facet(**facets_)[:0]
+        
+        facets = _facets(results['all'].facets)
         facets['everyone_total'] = facets['combined_total']
         template = 'aggregate.html'
     
@@ -116,7 +131,7 @@ def _render(request, template, data={}):
     return render_to_response(template, data, RequestContext(request))
 
 
-def _facets(facets):
+def _facets(facets):   
     type_totals = dict((t['term'], t['count']) for t in facets['types'])
     my_total = 0
     if 'author' in facets and len(facets['author']):
@@ -138,11 +153,21 @@ def _facets(facets):
             max_ = depended_steps.pop()
             max_times_depended = max(max_times_depended, max_)
 
+    example_count = 0
+    if 'example' in facets:
+        example_count = facets['example']
+    
+    featured_count = 0    
+    if 'featured' in facets:
+        featured_count = facets['featured']
+
     return {
         'addon_total': type_totals.get('a', 0),
         'library_total': type_totals.get('l', 0),
         'my_total': my_total,
         'combined_total': type_totals.get('a', 0) + type_totals.get('l', 0),
         'max_copies': max_copies,
-        'max_times_depended': max_times_depended
+        'max_times_depended': max_times_depended,
+        'examples_total': example_count,
+        'featured_total': featured_count
     }
