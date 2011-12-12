@@ -460,7 +460,7 @@ module.exports = new Class({
     },
 
     testAddon: function(){
-        if (this.getOption('readonly')) {
+        if (!this.getOption('readonly')) {
             this.collectData();
             this.data.live_data_testing = true;
         }
