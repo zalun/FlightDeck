@@ -108,6 +108,20 @@ class AttachmentTest(TestCase):
         assert os.path.isfile(attachment.get_file_path())
         assert attachment.read()
 
+        # unicode forced for all html, css, txt and js files
+        url = "file://%s/apps/jetpack/tests/jquery-1.6.4.min.js" % settings.ROOT
+        URLField.clean = Mock(return_value=url)
+        response = self.client.post(addon.latest.get_add_attachment_url(), {
+            'url': url,
+            'filename': 'jquery-1.6.4.min-next.js'})
+        eq_(response.status_code, 200)
+        addon = Package.objects.get(author=self.author)
+        eq_(addon.latest.revision_number, 2)
+        attachment = addon.latest.attachments.latest('pk')
+        eq_("jquery-1.6.4.min-next", attachment.filename)
+        assert os.path.isfile(attachment.get_file_path())
+        assert attachment.read()
+
 
     def test_create_image_attachment(self):
         " test simply shouldn't raise any errors "
@@ -149,7 +163,7 @@ class TestViews(TestCase):
 
     def test_attachment_error(self):
         res = self.client.post(self.add_url, {})
-        eq_(res.status_code, 403)
+        eq_(res.status_code, 400)
 
     def add_one(self, data = 'foo', filename='some.txt'):
         self.upload(self.get_upload_url(self.revision.revision_number), data, filename)
@@ -225,6 +239,7 @@ class TestViews(TestCase):
         # A test for large attachments... really slow things
         # down, so before you remove the above, clean this up
         # or drop down the file size limit.
+        import StringIO
         temp = StringIO.StringIO()
         for x in range(0, 1024 * 32):
             temp.write("x" * 1024)
@@ -239,7 +254,7 @@ class TestViews(TestCase):
         eq_(res1.status_code, 403)
 
         # add empty view
-        res2 = self.client.post(self.get_add_url(revision),{
+        res2 = self.client.post(self.get_add_url(revision), {
                     "filename": "some.txt"})
         eq_(res2.status_code, 403)
 
@@ -247,20 +262,20 @@ class TestViews(TestCase):
         revision = self.add_one()
 
         # invalid url
-        response = self.client.post(self.get_add_url(revision),{
+        response = self.client.post(self.get_add_url(revision), {
                     "filename": "some.txt",
                     "url": "abc"})
         eq_(response.status_code, 403)
         # not existing url
-        response = self.client.post(self.get_add_url(revision),{
+        response = self.client.post(self.get_add_url(revision), {
                     "filename": "some.txt",
                     "url": "http://notexistingurl.pl/some.txt"})
         eq_(response.status_code, 403)
         # malicious input
-        response = self.client.post(self.get_add_url(revision),{
+        response = self.client.post(self.get_add_url(revision), {
                     "filename": "",
                     "url": "http://example.com/"})
-        eq_(response.status_code, 403)
+        eq_(response.status_code, 400)
         # TODO: Add tests for:
         #       * no content-length header
         #       * content-length <= 0
@@ -298,26 +313,6 @@ class TestViews(TestCase):
         self.upload(self.upload_url, 'foo', 'some-other.txt')
         assert revision.attachments.count(), 2
 
-    def test_attachment_jump_revision(self):
-        raise SkipTest()
-        # i'm not sure what this is doing right now...
-
-        revision = self.add_one()
-
-        data = {revision.attachments.all()[0].get_uid: 'foo bar'}
-        self.client.post(self.get_change_url(1), data)
-
-        data = {revision.attachments.all()[0].get_uid: 'foo bar zero'}
-        self.client.post(self.get_change_url(0), data)
-
-        eq_(PackageRevision.objects.filter(package=self.package).count(), 4)
-        atts = Attachment.objects.filter(revisions__package=self.package)
-
-        eq_(atts[0].read(), 'foo')
-        eq_(atts[1].read(), 'foo bar')
-        eq_(atts[2].read(), 'foo bar zero')
-        eq_(atts[2].revisions.all()[0].revision_number, 3)
-
     def test_paths(self):
         revision = self.add_one()
 
@@ -325,10 +320,10 @@ class TestViews(TestCase):
         self.client.post(self.get_change_url(1), data)
         atts = Attachment.objects.filter(revisions__package=self.package)
 
-        hash = hashlib.md5('sometxt').hexdigest()
+        hasht = hashlib.md5('sometxt').hexdigest()
 
-        assert atts[0].get_file_path().endswith('%s-%s' % (atts[0].pk, hash))
-        assert atts[1].get_file_path().endswith('%s-%s' % (atts[1].pk, hash))
+        assert atts[0].get_file_path().endswith('%s-%s' % (atts[0].pk, hasht))
+        assert atts[1].get_file_path().endswith('%s-%s' % (atts[1].pk, hasht))
 
     def test_attachment_remove(self):
         revision = self.add_one()
@@ -341,7 +336,7 @@ class TestViews(TestCase):
         assert not revision.attachments.all().count()
 
     def test_fake_attachment_remove(self):
-        revision = self.add_one()
+        self.add_one()
 
         data = {'uid': '1337'}
         resp = self.client.post(self.get_delete_url(1), data)
@@ -353,14 +348,14 @@ class TestViews(TestCase):
         old_uid = revision.attachments.all()[0].get_uid
         revision = PackageRevision.objects.get(package=self.package,
                                                revision_number=1)
-        response = self.client.post(revision.get_rename_attachment_url(),{
+        response = self.client.post(revision.get_rename_attachment_url(), {
                     'new_filename': 'xxx',
                     'new_ext': 'txt',
                     'uid': old_uid})
         eq_(response.status_code, 200)
-        response = simplejson.loads(response.content)
-        assert response.has_key('uid')
-        assert response['uid'] != old_uid
+        content = simplejson.loads(response.content)
+        assert content.has_key('uid')
+        assert content['uid'] != old_uid
 
         revision = next_revision(revision)
         eq_(revision.attachments.count(), 1)
