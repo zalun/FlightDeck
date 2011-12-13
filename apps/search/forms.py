@@ -27,3 +27,5 @@ class SearchForm(CleanForm):
     used = forms.IntegerField(required=False, initial=0)
     activity = forms.IntegerField(required=False, initial=0)
     sort = forms.ChoiceField(required=False, choices=SORT_CHOICES)
+    featured = forms.BooleanField(required=False)
+    example = forms.BooleanField(required=False)

@@ -31,7 +31,8 @@ def package_search(searchq='', user=None, score_on=None, **filters):
         qs = qs.facet(author={'terms': {
             'field': 'author',
             'script':'term == %d ? true : false' % user.id}
-        })    
+        })
+   
     return qs
 
 

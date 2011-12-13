@@ -2,7 +2,7 @@
 <section id="NarrowSearch">
     <h2 class="UI_Heading">Narrow Search</h2>
 
-    <h3 class="UI_SubHeading">Types</h3>
+    <h3 class="UI_SubHeading">Package Type</h3>
     <ul class="UI_Action_List">
         <li {% if not type  %}class="selected"{% endif %}>
             <a href="?{{ querystring('type=') }}">
@@ -24,7 +24,7 @@
         </li>
     </ul>
 
-    {% if user.is_authenticated %}
+    {% if user.is_authenticated() %}
     <h3 class="UI_SubHeading">Owners</h3>
     <ul class="UI_Action_List">
         <li {% if not query.author %}class="selected" {% endif %}>
@@ -38,8 +38,21 @@
     </ul>
     {% endif %}
 
-    <h3 class="UI_SubHeading">Usage</h3>
-    <ul class="UI_Action_List">
+    <h3 class="UI_SubHeading">Filter</h3>
+    <ul class="UI_Action_List">        
+        <li {% if query.featured %}class="selected"{% endif %}>            
+                Featured <input name="featured" type="checkbox"  {% if query.featured %}checked="checked"{% endif %}
+                value="{{ querystring('featured=1') }}" />                    
+            <strong>({{ featured_total }})</strong>
+        </li>
+        <li {% if query.example %}class="selected"{% endif %}>            
+                Example <input name="example" type="checkbox"  {% if query.example %}checked="checked"{% endif %}
+                value="{{ querystring('example=1') }}" />
+            <strong>({{ examples_total }})</strong>
+        </li>
+        
+        <div class="break"></div>
+        
         <li id="CopiesFilter" {% if not max_copies %}class="disabled"{% endif %}>
             <span class="slider-value">{{ query.copies }}</span>
             or more copies: 
