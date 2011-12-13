@@ -7,14 +7,16 @@ import shutil
 import simplejson
 import hashlib
 
-from test_utils import TestCase
+from datetime import datetime
+from mock import Mock
 from nose.tools import eq_
 from nose import SkipTest
-from datetime import datetime
+from test_utils import TestCase
 
 from django.contrib.auth.models import User
 from django.conf  import settings
 from django.core.urlresolvers import reverse
+from django.forms.fields import URLField
 
 from jetpack.models import Package, PackageRevision, Attachment
 from jetpack.tests.test_views import next_revision
@@ -46,10 +48,13 @@ class AttachmentTest(TestCase):
 
         self.path = self.attachment.path
 
+        self.urlfield_clean_backup = URLField.clean
+
     def tearDown(self):
         shutil.rmtree(settings.UPLOAD_DIR)
         shutil.rmtree(self.tempdir)
         settings.UPLOAD_DIR = self.old
+        URLField.clean = self.urlfield_clean_backup
 
     def test_export_file(self):
         destination = self.tempdir
@@ -86,8 +91,6 @@ class AttachmentTest(TestCase):
         eq_(addon.latest.attachments.get().read(), u'ą')
 
     def test_attachment_with_utf_from_web(self):
-        from mock import Mock
-        from django.forms.fields import URLField
         url = "file://%s/apps/jetpack/tests/jquery-1.6.4.min.js" % settings.ROOT
         URLField.clean = Mock(return_value=url)
         addon = Package.objects.create(
@@ -265,12 +268,12 @@ class TestViews(TestCase):
         response = self.client.post(self.get_add_url(revision), {
                     "filename": "some.txt",
                     "url": "abc"})
-        eq_(response.status_code, 403)
+        eq_(response.status_code, 400)
         # not existing url
         response = self.client.post(self.get_add_url(revision), {
                     "filename": "some.txt",
                     "url": "http://notexistingurl.pl/some.txt"})
-        eq_(response.status_code, 403)
+        eq_(response.status_code, 400)
         # malicious input
         response = self.client.post(self.get_add_url(revision), {
                     "filename": "",

@@ -12,6 +12,8 @@ class SimpleException(Exception):
 
 def parse_validation_messages(err):
     error = ''
+    if not hasattr(err, 'message_dict'):
+        return str(err)
     for field, msgs in err.message_dict.items():
         error += ("%s: " % field)
         for msg in msgs:
