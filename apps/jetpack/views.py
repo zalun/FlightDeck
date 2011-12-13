@@ -14,7 +14,7 @@ from django.views.static import serve
 from django.shortcuts import get_object_or_404
 from django.http import (HttpResponseRedirect, HttpResponse,
                         HttpResponseForbidden, HttpResponseServerError,
-                        Http404)  # , QueryDict
+                        Http404, HttpResponseBadRequest)  # , QueryDict
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator, EmptyPage, InvalidPage
 from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
@@ -35,7 +35,7 @@ from utils.exceptions import parse_validation_messages
 from jetpack.package_helpers import (get_package_revision,
         create_package_from_xpi)
 from jetpack.models import (Package, PackageRevision, Module, Attachment, SDK,
-                           EmptyDir)
+                           EmptyDir, EDITABLE_EXTENSIONS)
 from jetpack.errors import FilenameExistException, DependencyException
 
 from person.models import Profile
@@ -660,51 +660,65 @@ def revision_add_attachment(request, pk):
     filename = request.POST.get('filename', None)
     if not filename or filename == "":
         log.error('Trying to create an attachment without name')
-        return HttpResponseForbidden('Path not found.')
+        return HttpResponseBadRequest('Path not found.')
     content = ''
     if url:
+        log.info(('[%s] Preparing to download %s as an attachment of '
+            'PackageRevision %d') % (filename, url, revision.pk))
         # validate url
         field = URLField(verify_exists=True)
         encoding = request.POST.get('force_contenttype', False)
         try:
             url = field.clean(url)
         except ValidationError, err:
-            log.debug('Invalid url provided (%s)\n%s' % (url,
+            log.warning('[%s] Invalid url provided\n%s' % (url,
                 '\n'.join(err.messages)))
-            return HttpResponseForbidden(("Loading attachment failed\n"
+            return HttpResponseBadRequest(("Loading attachment failed\n"
                 "%s") % parse_validation_messages(err))
         except Exception, err:
-            return HttpResponseForbidden(str(err))
+            log.warning('[%s] Exception raised\n%s' % (url, str(err)))
+            return HttpResponseBadRequest(str(err))
         att = urllib2.urlopen(url, timeout=settings.URLOPEN_TIMEOUT)
         # validate filesize
         att_info = att.info()
         if 'content-length' in att_info.dict:
             att_size = int(att_info.dict['content-length'])
             if att_size > settings.ATTACHMENT_MAX_FILESIZE:
-                log.debug('File (%s) is too big (%db)' % (url, att_size))
-                return HttpResponseForbidden("Loading attachment failed<br/>"
+                log.warning('[%s] File is too big (%db)' % (url, att_size))
+                return HttpResponseBadRequest("Loading attachment failed\n"
                         "File is too big")
         # download attachment's content
-        log.info('Downloading (%s)' % url)
+        log.debug('[%s] Downloading' % url)
         content = att.read(settings.ATTACHMENT_MAX_FILESIZE + 1)
+        # work out the contenttype
+        basename, ext = os.path.splitext(filename)
+        unicode_contenttypes = ('utf-8',)
+        ext = ext.split('.')[1].lower() if ext else None
         if not encoding:
             encoding = att.headers['content-type'].split('charset=')[-1]
-        if encoding in ('utf-8',):
+        if encoding not in unicode_contenttypes and ext in EDITABLE_EXTENSIONS:
+            log.info('[%s] Forcing the "utf-8" encoding from '
+                    '"%s"' % (url, encoding))
+            encoding = 'utf-8'
+        # convert to unicode if needed
+        if encoding in unicode_contenttypes:
             content = unicode(content, encoding)
         if len(content) >= settings.ATTACHMENT_MAX_FILESIZE + 1:
-            log.debug('Downloaded file (%s) is too big' % url)
-            return HttpResponseForbidden("Loading attachment failed<br/>"
+            log.warning('[%s] Downloaded file is too big' % url)
+            return HttpResponseBadRequest("Loading attachment failed\n"
                     "File is too big")
-        log.debug('Downloaded (%s) %db, encoding: %s' % (url, len(content),
-                                                         encoding))
+        log.info('[%s] Downloaded %db, encoding: %s' % (url, len(content),
+                                                        encoding))
         att.close()
     try:
         attachment = revision.attachment_create_by_filename(
             request.user, filename, content)
     except ValidationError, err:
+        log.warning("[%s] Validation error.\n%s" % (filename, str(err)))
         return HttpResponseForbidden(
                 'Validation error.\n%s' % parse_validation_messages(err))
     except Exception, err:
+        log.warning("[%s] Exception raised\n%s" % (filename, str(err)))
         return HttpResponseForbidden(str(err))
 
     return render_json(request,
