@@ -286,8 +286,13 @@ module.exports = new Class({
 
     newAttachment: function(data) {
         if (!data.id && !data.pk) data.pk = data.uid;
-        var att = new Attachment(data);
+        var att = new Attachment(data),
+			controller = this;
         this.attachments[att.get('uid')] = att;
+		att.observe('uid', function(updated, old) {
+			controller.attachments[updated] = att;
+			delete controller.attachments[old];
+		});
         this.sidebar.addData(att);
         this.editor.registerItem(att.get('uid'), att);
 
@@ -814,7 +819,7 @@ module.exports = new Class({
                     $log("WARN: Attachment (" + uid + ") couldn't be found in fd.item");
                     return;
                 }
-                attachment.reassign({
+                attachment.set({
                     filename: response.filename,
                     ext: response.ext,
                     author: response.author,
@@ -1362,7 +1367,8 @@ module.exports = new Class({
                             if (this.attachments[uid]) {
                                 // updating attachment's uid
                                 var att = this.attachments[uid];
-                                att.reassign(options);
+								options.pk = options.uid;
+                                att.set(options);
                             }
                         }, this
                     );
