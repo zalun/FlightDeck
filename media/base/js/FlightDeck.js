@@ -215,7 +215,8 @@ var FlightDeck = new Class({
                     !test_request.download_xpi_request.isRunning())) {
             test_request.download_request_number++;
             var url = '/xpi/check_download/'+hashtag+'/';
-            $log('FD: DEBUG: checking if ' + url + ' is prepared');
+            $log('FD: DEBUG: checking if ' + url + ' is prepared (attempt ' 
+                        + test_request.download_request_number + '/50)');
             test_request.download_xpi_request = new Request.JSON({
                 method: 'get',
                 url: url,
@@ -224,6 +225,8 @@ var FlightDeck = new Class({
                     if (response.ready || test_request.download_request_number > 50) {
                         clearInterval(test_request.download_ID);
                         test_request.spinner.destroy();
+                        fd.error.alert('XPI download failed', 
+                            'XPI is not yet prepared, giving up');
                     }
                     if (response.ready) {
                         var url = '/xpi/download/'+hashtag+'/'+filename+'/';
