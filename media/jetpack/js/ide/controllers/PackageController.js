@@ -115,10 +115,16 @@ module.exports = new Class({
             });
         }
         this.copy_el = dom.$(this.options.copy_el);
+            
         if (this.copy_el) {
             this.copy_el.addEvent('click', function(e) {
                 e.preventDefault();
-                controller.copyPackage();
+                var clicked = new Date().getTime(),
+                    interval = this.clickedT ? clicked - this.clickedT : false;
+                if (!interval || interval > 300) {
+                    this.clickedT = clicked;
+                    controller.copyPackage();
+                }
             });
         }
         if (this.options.check_if_latest) {
