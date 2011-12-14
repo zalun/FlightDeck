@@ -50,6 +50,7 @@ from elasticutils.utils import retry_on_timeout
 
 log = commonware.log.getLogger('f.jetpack')
 
+EDITABLE_EXTENSIONS = ("html", "css", "js", "txt")
 
 def make_name(value=None):
     " wrap for slugify "
@@ -2061,7 +2062,7 @@ class Attachment(BaseModel):
 
     @property
     def is_editable(self):
-        return self.ext in ["html", "css", "js", "txt"]
+        return self.ext in EDITABLE_EXTENSIONS
 
     def get_filename(self):
         " returns human readable filename with extension "

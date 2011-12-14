@@ -131,7 +131,7 @@ PYTHON_EXEC = 'python'
 XPI_AMO_PREFIX = "ftp://ftp.mozilla.org/pub/mozilla.org/addons/"
 
 LOWEST_APPROVED_SDK = "1.2.1"
-TEST_SDK = 'addon-sdk-1.2.1'
+TEST_SDK = 'addon-sdk-1.3'
 TEST_AMO_USERNAME = None
 TEST_AMO_PASSWORD = None
 AUTH_DATABASE = None

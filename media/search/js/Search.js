@@ -166,6 +166,19 @@ window.addEvent('domready', function() {
 			SearchResult.page(a.get('href'));
 		}
 	});
+	
+	$('app-body').addEvent('click:relay(input[type="checkbox"])', function(e, a) {
+		var loc = new URI(window.location);
+		var filter = this.get('name');
+		if(a.checked){
+				loc.setData(filter,1);
+				a.checked = !a.checked; //for caching
+		}else{
+				loc.setData(filter,0);
+				a.checked = !a.checked; //for caching
+		}
+		SearchResult.page(loc);
+	});
 
 	$('Search').addEvent('submit', function(e) {
 		e.preventDefault();
