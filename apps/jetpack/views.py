@@ -10,6 +10,7 @@ import urllib2
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse
+from django.db import transaction
 from django.views.static import serve
 from django.shortcuts import get_object_or_404
 from django.http import (HttpResponseRedirect, HttpResponse,
@@ -220,7 +221,6 @@ def get_module(request, id_number, revision_number, filename):
     return HttpResponse(mod.get_json())
 
 
-from django.db import transaction
 @transaction.commit_on_success
 @login_required
 def copy(request, id_number, type_id,
@@ -234,13 +234,9 @@ def copy(request, id_number, type_id,
     log.debug('[copy: %s] Copying started from (%s)' % (pk, source))
 
     new_name = source.package.get_copied_full_name()
-    try:
-        package = Package.objects.get(
+    if Package.objects.filter(
             full_name=new_name,
-            author__username=request.user.username)
-    except Package.DoesNotExist:
-        pass
-    else:
+            author__username=request.user.username).exists():
         log.critical(("[copy: %s] Name created for copied Package (%s) "
                       "does exist") % (pk, new_name))
         return HttpResponseForbidden('You already have a %s with that name' %
