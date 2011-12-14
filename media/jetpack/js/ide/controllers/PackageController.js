@@ -115,15 +115,10 @@ module.exports = new Class({
             });
         }
         this.copy_el = dom.$(this.options.copy_el);
-            
         if (this.copy_el) {
             this.copy_el.addEvent('click', function(e) {
                 e.preventDefault();
-                if (!this.hasClass('clicked')) {
-                    this.addClass('clicked');
-                    this.removeClass.delay(300, this, 'clicked');
-                    controller.copyPackage();
-                }
+                controller.copyPackage();
             });
         }
         if (this.options.check_if_latest) {
