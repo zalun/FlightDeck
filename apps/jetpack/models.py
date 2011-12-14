@@ -1524,6 +1524,13 @@ class Package(BaseModel, SearchMixin):
             if Package.objects.filter(id_number=self.id_number).exclude(pk=self.pk):
                 self.id_number = _get_next_id_number()
                 self.save(**kwargs)
+        except Exception, err:
+            log.critical('Save package failed\n%s' % str(err))
+            raise
+        if self.pk is None:
+            log.critical('[save] Save failed - self.pk is None')
+        elif not self.pk:
+            log.critical('[save] Save failed - self.pk is %s' % self.pk)
 
     def update_full_name(self):
         if not self.full_name:
@@ -1692,11 +1699,11 @@ class Package(BaseModel, SearchMixin):
             license=self.license,
             lib_dir=self.lib_dir
         )
-        log.debug('[copy: %s] %s' % (self.pk, new_p))
         new_p.save()
         # doubleclick on [copy] results with an issue
-        if new_p:
-            log.debug('[copy: %s] Package saved (%s)' % (self.pk, new_p.pk))
+        if new_p.latest:
+            log.debug(('[copy: %s] Package copied (%s) PackageRevision '
+                'created (%s)') % (self.pk, new_p.pk, new_p.latest.pk))
         else:
             log.critical('[copy: %s] Package save(?) error' % self.pk)
         # Saving the track of forks
@@ -2307,7 +2314,6 @@ def save_first_revision(instance, **kwargs):
     if kwargs.get('raw', False) or not kwargs.get('created', False):
         return
 
-    log.debug('[create: %s] Creating first revision' % instance.pk)
     revision = PackageRevision(
         package=instance,
         author=instance.author)
