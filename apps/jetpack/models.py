@@ -1714,7 +1714,7 @@ class Package(BaseModel, SearchMixin):
             raise IntegrityError('New name exists')
 
         new_p = Package(
-            full_name=self.get_copied_full_name(),
+            full_name=new_name,
             description=self.description,
             type=self.type,
             author=author,
