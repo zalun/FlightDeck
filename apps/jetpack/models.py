@@ -1691,7 +1691,13 @@ class Package(BaseModel, SearchMixin):
             license=self.license,
             lib_dir=self.lib_dir
         )
+        log.debug('[copy: %s] %s' % (self.pk, new_p))
         new_p.save()
+        # doubleclick on [copy] results with an issue
+        if new_p:
+            log.debug('[copy: %s] Package saved (%s)' % (self.pk, new_p.pk))
+        else:
+            log.critical('[copy: %s] Package save(?) error' % self.pk)
         # Saving the track of forks
         new_p.latest.origin = self.latest
         super(PackageRevision, new_p.latest).save()
@@ -2300,6 +2306,7 @@ def save_first_revision(instance, **kwargs):
     if kwargs.get('raw', False) or not kwargs.get('created', False):
         return
 
+    log.debug('[create: %s] Creating first revision' % instance.pk)
     revision = PackageRevision(
         package=instance,
         author=instance.author)
