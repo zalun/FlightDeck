@@ -1,6 +1,7 @@
 import os
 import socket
 import simplejson
+import threading
 
 import commonware.log
 from django.conf import settings
@@ -15,6 +16,7 @@ from elasticutils import get_es
 import base.tasks
 from search.cron import index_all, setup_mapping
 from jetpack.models import Package, SDK
+from jetpack.cron import update_package_activity
 from base.models import CeleryResponse
 
 log = commonware.log.getLogger('f.monitor')
@@ -53,7 +55,7 @@ def graphite(request, site):
     # have to hack together our own.  This is temporary until we can replace it
     # with jinja code.
 
-    v = {}
+    v = {}    
     v['ns'] = {"trunk": "builder.preview",
                "stage": "builder.next",
                "prod": "builder"}[site]  # Validated by url regex
@@ -64,7 +66,8 @@ def graphite(request, site):
                    "week": "from=-7days&title=7 days", }
 
 
-    return render_to_response('graphite.html', v)
+    return render_to_response('graphite.html', v,
+                              context_instance=RequestContext(request))
 
 @user_passes_test(lambda u: u.is_superuser)
 def site_settings(request):
@@ -83,11 +86,15 @@ def admin(request):
         if action == 'setup_mapping':
             msg = 'setup_mapping triggered'
             log.info(log_msg % (msg, request.user, request.user.pk))
-            setup_mapping()
+            threading.Thread(target=setup_mapping).start()            
         elif action == 'index_all':
             msg = 'index_all triggered'
             log.info(log_msg % (msg , request.user, request.user.pk))
-            index_all()
+            threading.Thread(target=index_all).start()            
+        elif action == 'update_package_activity':
+            msg = 'update_package_activity triggered'
+            log.info(log_msg % (msg , request.user, request.user.pk))
+            threading.Thread(target=update_package_activity).start()
         else:
             log.warning('[TAMPERING][admin] Action "%s" tried by %s (id: %s)'
                         % (action, request.user, request.user.pk))
