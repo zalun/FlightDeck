@@ -1518,16 +1518,24 @@ class Package(BaseModel, SearchMixin):
 
     def save(self, **kwargs):
         " save with finding a next id number "
+        if not self.id_number:
+            self.id_number = _get_next_id_number()
         try:
             super(Package, self).save(**kwargs)
-        except IntegrityError:
-            if Package.objects.filter(id_number=self.id_number).exclude(pk=self.pk):
+        except IntegrityError, err:
+            package = Package.objects.filter(id_number=self.id_number).exclude(pk=self.pk)
+            if package:
                 self.id_number = _get_next_id_number()
                 log.debug('[save] new id_number %s' % self.id_number)
-                self.save(**kwargs)
+                return self.save(**kwargs)
+            else:
+                log.critical('[save] Error saving Package\n%s\n%s' % (
+                    self.__dict__, str(err)))
+                raise
         except Exception, err:
             log.critical('Save package failed\n%s' % str(err))
             raise
+
         if self.pk is None:
             log.critical('[save] Save failed - self.pk is None')
         elif not self.pk:
