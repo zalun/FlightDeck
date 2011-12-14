@@ -1523,6 +1523,7 @@ class Package(BaseModel, SearchMixin):
         except IntegrityError:
             if Package.objects.filter(id_number=self.id_number).exclude(pk=self.pk):
                 self.id_number = _get_next_id_number()
+                log.debug('[save] new id_number %s' % self.id_number)
                 self.save(**kwargs)
         except Exception, err:
             log.critical('Save package failed\n%s' % str(err))
