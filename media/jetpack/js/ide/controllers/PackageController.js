@@ -119,10 +119,9 @@ module.exports = new Class({
         if (this.copy_el) {
             this.copy_el.addEvent('click', function(e) {
                 e.preventDefault();
-                var clicked = new Date().getTime(),
-                    interval = this.clickedT ? clicked - this.clickedT : false;
-                if (!interval || interval > 300) {
-                    this.clickedT = clicked;
+                if (!this.hasClass('clicked')) {
+                    this.addClass('clicked');
+                    this.removeClass.delay(300, this, 'clicked');
                     controller.copyPackage();
                 }
             });
