@@ -11,7 +11,7 @@ import waffle
 from decimal import Decimal, getcontext
 from copy import deepcopy
 
-from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.exceptions import ObjectDoesNotExist, ValidationError, MultipleObjectsReturned
 from django.db.models.signals import (pre_save, post_delete, post_save,
                                       m2m_changed)
 from django.db import models, transaction, IntegrityError
@@ -1525,11 +1525,8 @@ class Package(BaseModel, SearchMixin):
         except IntegrityError, err:
             # if id_number exists we should try again
             if 'id_number' in err[1]:
-                old_id_number = self.id_number
-                self.id_number = _get_next_id_number()
-                if old_id_number == self.id_number:
-                    self.id_number = str(int(self.id_number) + iteration)
-                    iteration += 1
+                self.id_number = str(int(self.id_number) + 1)
+                iteration += 1
                 log.debug('[save] new id_number %s' % self.id_number)
                 return self.save(iteration=iteration, **kwargs)
             else:
@@ -1693,6 +1690,8 @@ class Package(BaseModel, SearchMixin):
             Package.objects.get(name=make_name(new_name))
         except ObjectDoesNotExist:
             return new_name
+        except MultipleObjectsReturned:
+            pass
         return self.get_copied_full_name(
                 basic_name=full_name, iteration=iteration+1)
 
