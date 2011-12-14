@@ -11,9 +11,16 @@ var Class = require('shipyard/class/Class'),
     Attachment = require('../models/Attachment'),
     Folder = require('../models/Folder'),
     Package = require('../models/Package'),
-    FileTree = require('./FileTree');
+    FileTree = require('./FileTree'),
+    filename = require('../utils/filename');
 
-// globals: $, FlightDeck.Keyboard, fd.item
+//TODO: Bad practice.
+var fd = dom.window.get('fd'),
+    settings = dom.window.get('settings');
+
+//globals: URI, FlightDeck.Autocomplete
+
+var CLICK = 'click';
 
 var Sidebar = module.exports = new Class({
     
@@ -31,7 +38,7 @@ var Sidebar = module.exports = new Class({
     
     initialize: function(options){
         this.setOptions(options);
-        this.element = $('app-sidebar');
+        this.element = dom.$('app-sidebar');
         //keyboard isn't working great, bug: 689382
         //this.bind_keyboard();
     },
@@ -74,7 +81,7 @@ var Sidebar = module.exports = new Class({
             collapsed: false
         };
         
-        var location = window.location;
+        var location = dom.window.get('location');
         var addon_or_lib_url = location.pathname.match(/\/[a-z]+\/\d+\//g)[0]
                 .replace(/\//g, '_');
         
@@ -87,7 +94,7 @@ var Sidebar = module.exports = new Class({
             }
         };
         
-        if($('LibTree') && !trees.lib) {
+        if(dom.$('LibTree') && !trees.lib) {
             trees.lib = new FileTree('LibTree', Object.merge({
                 id_prefix: 'l'
             }, treeOptions));
@@ -101,7 +108,7 @@ var Sidebar = module.exports = new Class({
             trees.lib.collapse.prepare();
         }
         
-        if($('DataTree') && !trees.data) {
+        if(dom.$('DataTree') && !trees.data) {
             trees.data = new FileTree('DataTree', Object.merge({
                 id_prefix: 'd'
             },treeOptions));
@@ -115,7 +122,7 @@ var Sidebar = module.exports = new Class({
             trees.data.collapse.prepare();
         }
             
-        if($('PluginsTree') && !trees.plugins) {
+        if(dom.$('PluginsTree') && !trees.plugins) {
             trees.plugins = new FileTree('PluginsTree', Object.merge({}, treeOptions, { actions: {
                 add: false,
                 edit: false,
@@ -129,9 +136,9 @@ var Sidebar = module.exports = new Class({
                 'class': 'top_branch nodrag'
             }, null, topBranchOptions);
             
-            var sdkBranch = $('core_library_lib');
+            var sdkBranch = dom.$('core_library_lib');
             if(sdkBranch) {
-                pluginsBranch.getElement('ul').grab(sdkBranch);
+                pluginsBranch.getElement('ul').appendChild(sdkBranch);
             }
             trees.plugins.collapse.prepare();
         }
@@ -143,43 +150,44 @@ var Sidebar = module.exports = new Class({
     
     attach: function() {
         var sidebar = this,
-            sidebarEl = $(this);
+            sidebarEl = this.element;
 
         // highlight branch on click
-        sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .label:not([contenteditable="true"]))'.substitute(this.options), function(e, label) {
-            sidebar.selectBranch($(e.target).getParent('li'));
+        var hilightableBranchSelector = string.substitute('.{file_listing_class} li:not(.top_branch) .label:not([contenteditable="true"])', this.options);
+        sidebarEl.delegate(hilightableBranchSelector, CLICK, function(e, label) {
+            sidebar.selectBranch(label.getParent('li'));
         });
         
         //adding modules to Lib
         if(this.trees.lib) {
-            $(this.trees.lib).addEvent('click:relay(.add)', function(e) {
-                sidebar.promptNewFile(e.target.getParent('li'));
+            dom.$(this.trees.lib).delegate('.add', CLICK, function(e, btn) {
+                sidebar.promptNewFile(btn.getParent('li'));
             });
         }
         
         //adding attachments to Data
         if(this.trees.data) {
-            $(this.trees.data).addEvent('click:relay(.add)', function(e) {
-                sidebar.promptAttachment(e.target.getParent('li'));
+            dom.$(this.trees.data).delegate('.add', CLICK, function(e, btn) {
+                sidebar.promptAttachment(btn.getParent('li'));
             });
         }
         
         //adding User Libraries to Plugins
         if(this.trees.plugins) {
-            $(this.trees.plugins).addEvents({
-                'click:relay(li.top_branch > .holder .add)': function(e) {
-                    sidebar.promptPlugin();
-                },
-                'click:relay(li.update > .holder .icon)': function(e) {
-                    e.stop();
-                    sidebar.promptPluginUpdate(e.target.getParent('li.update'));
-                }
+            var pluginsEl = dom.$(this.trees.plugins);
+            pluginsEl.delegate('li.top_branch > .holder .add', CLICK, function() {
+                sidebar.promptPlugin();
+            });
+            pluginsEl.delegate('li.update > .holder .icon', CLICK, function(e, icon) {
+                e.stop();
+                sidebar.promptPluginUpdate(icon.getParent('li.update'));
             });
         }
         
         // delete
-        sidebarEl.addEvent('click:relay(.{file_listing_class} li:not(.top_branch) .actions .delete)'.substitute(this.options), function(e) {
-            var li = $(e.target).getParent('li'),
+        var deleteBtnSelector = string.substitute('.{file_listing_class} li:not(.top_branch) .actions .delete', this.options);
+        sidebarEl.delegate(deleteBtnSelector, CLICK, function(e, btn) {
+            var li = btn.getParent('li'),
                 file = li.retrieve('file'),
                 isModules = li.getParent('.tree').get('id') === 'LibTree';
             if (file) {
@@ -194,12 +202,10 @@ var Sidebar = module.exports = new Class({
         });
         
         object.forEach(this.trees, function(tree, name) {
-            tree.addEvents({
-                'renameComplete': function(li, fullpath) {
-                    var file = li.retrieve('file');
-                    if (file) {
-                        sidebar.renameFile(li.retrieve('file'), fullpath);
-                    }
+            tree.addListener('renameComplete', function(li, fullpath) {
+                var file = li.retrieve('file');
+                if (file) {
+                    sidebar.renameFile(li.retrieve('file'), fullpath);
                 }
             });
         });
@@ -254,7 +260,7 @@ var Sidebar = module.exports = new Class({
         });
 
         var options = {
-            target: $(tree).getElement('.top_branch'),
+            target: dom.$(tree).getElement('.top_branch'),
             url: url,
             id: id
         };
@@ -307,8 +313,10 @@ var Sidebar = module.exports = new Class({
             return;
         }
             
-        if (prefix) prefix+='-';
-        var li = $(prefix+file.replace(/\//g, '-'));
+        if (prefix) {
+            prefix+='-';
+        }
+        var li = dom.$(prefix+file.replace(/\//g, '-'));
         
         if (li) {
             li.destroy();
@@ -327,22 +335,28 @@ var Sidebar = module.exports = new Class({
         var branch;
         
         var id = this.uids[file.get('uid')];
-        if (id) branch = $(id);
+        if (id) {
+            branch = dom.$(id);
+        }
         return branch;
     },
 
-    getBranchFromPath: function(path, treeName) { 
+    getBranchFromPath: function(path, treeName) {
         var tree = this.trees[treeName];
-        if (!tree) return null;
-        return $(tree).getElement('li[path="{p}"]'.substitute({p:path}));
+        if (!tree) {
+            return null;
+        }
+        return dom.$(tree).getElement('li[path="'+path+'"]');
     },
     
     setSelectedFile: function(el) {
         var options = this.options;
         
-        if (el instanceof File) el = this.getBranchFromFile(el);
+        if (el instanceof File) {
+            el = this.getBranchFromFile(el);
+        }
         
-        $(this).getElements('.'+options.file_listing_class+' li')
+        this.element.getElements('.'+options.file_listing_class+' li')
             .removeClass(options.file_selected_class)
             .addClass(options.file_normal_class);
         
@@ -351,7 +365,7 @@ var Sidebar = module.exports = new Class({
         
         //also be sure to expand all parent folders
         var rootEl = el.getParent('.tree'),
-            treeName = rootEl.get('id').toLowerCase().replace('tree','');
+            treeName = rootEl.get('id').toLowerCase().replace('tree',''),
             tree = this.trees[treeName],
             node = el;
         
@@ -425,9 +439,9 @@ var Sidebar = module.exports = new Class({
                             fd.item.removeLibrary(file);
                         } else if (file instanceof Folder) {
                             fd.item.removeFolder(file);
-                        } else if (fileType == Module) {
+                        } else if (fileType === Module) {
                             fd.item.removeModules(file);
-                        } else if (fileType == Attachment) {
+                        } else if (fileType === Attachment) {
                             fd.item.removeAttachments(file);
                         }
                         
@@ -438,8 +452,11 @@ var Sidebar = module.exports = new Class({
     },
     
     promptNewFile: function(folder) {
-        var path = (folder && folder.get('path')) || '';
-        if (path) path += '/';
+        var path = (folder && folder.get('path')) || '',
+            isFolder = false;
+        if (path) {
+            path += '/';
+        }
         
         fd.showQuestion({
             title: 'Create a new file or folder',
@@ -450,38 +467,38 @@ var Sidebar = module.exports = new Class({
             id: 'create_new_file',
             callback: function promptNewFile_callback() {
                 // get data
-                var filename = path + $('new_file').value,
+                var fname_ = path + dom.$('new_file').get('value'),
                     pack = fd.item;
                     
                 if (!filename) {
                     fd.error.alert(
-                        'Filename can\'t be empty', 
+                        'Filename can\'t be empty',
                         'Please provide the name of the module');
                     return;
                 }
                 
                 // remove janky characters from filenames
                 // (from promptAttachment)
-                filename = File.sanitize(filename);
-                filename = filename.replace(/\/{2,}/g, '/');
+                fname_ = File.sanitize(fname_);
+                fname_ = fname_.replace(/\/{2,}/g, '/');
 
-                if (filename[filename.length-1] == '/') {
+                if (fname_[fname_.length-1] === '/') {
                     isFolder = true;
-                    filename = filename.substr(0, filename.length-1);
+                    fname_ = fname_.substr(0, fname_.length-1);
                 } else {
                     //strip off any extensions
-                    filename = filename.replace(/^\//, '');
-                    filename = filename.replace(/\.[^\.]+$/, '');
+                    fname_ = fname_.replace(/^\//, '');
+                    fname_ = fname_.replace(/\.[^\.]+$/, '');
                 }
                 
-                if (!isFolder && pack.moduleExists(filename)) {
+                if (!isFolder && pack.moduleExists(fname_)) {
                     fd.error.alert('Filename has to be unique', 'You already have the module with that name');
                     return;
-                } else if (isFolder && pack.folderExists(filename, Folder.ROOT_DIR_LIB)) {
+                } else if (isFolder && pack.folderExists(fname_, Folder.ROOT_DIR_LIB)) {
                     fd.error.alert('Folder has to be unique', 'You already have the folder with that name');
                     return;
                 }
-                if (['-', ''].contains(filename.get_basename(isFolder))) {
+                if (['-', ''].contains(fname_.get_basename(isFolder))) {
                     fd.error.alert(
                             'ERROR',
                             'Please use alphanumeric characters for filename');
@@ -490,26 +507,25 @@ var Sidebar = module.exports = new Class({
                 
                 
                 if (isFolder){
-                    pack.addFolder(filename, Folder.ROOT_DIR_LIB);
+                    pack.addFolder(fname_, Folder.ROOT_DIR_LIB);
                 } else {
-                    pack.addModule(filename);
+                    pack.addModule(fname_);
                 }
             }
         });
 
         //hookup File / Folder buttons
-        var fileBtn = $('new_type_file'),
-            folderBtn = $('new_type_folder'),
-            isFolder = false;
+        var fileBtn = dom.$('new_type_file'),
+            folderBtn = dom.$('new_type_folder');
             
-        fileBtn.addEvent('click', function(e) {
+        fileBtn.addListener('click', function(e) {
             e.stop();
             folderBtn.removeClass('selected');
             this.addClass('selected');
             isFolder = false;
         });
         
-        folderBtn.addEvent('click', function(e) {
+        folderBtn.addListener('click', function(e) {
             e.stop();
             fileBtn.removeClass('selected');
             this.addClass('selected');
@@ -521,8 +537,11 @@ var Sidebar = module.exports = new Class({
         var basename,
             that = this,
             pack = fd.item,
+            isFolder = false,
             path = (folder && folder.get('path')) || '';
-        if (path) path += '/';
+        if (path) {
+            path += '/';
+        }
         fd.showQuestion({
             title: 'Create or Upload an Attachment',
             message: ''+
@@ -539,41 +558,41 @@ var Sidebar = module.exports = new Class({
             ok: 'Create Attachment',
             id: 'new_attachment_button',
             callback: function() {
-                var uploadInput = $('upload_attachment'),
-                    createInput = $('new_attachment'),
-                    externalInput = $('external_attachment'),
-                    filename = createInput.value,
-                    url = externalInput.value,
+                var uploadInput = dom.$('upload_attachment'),
+                    createInput = dom.$('new_attachment'),
+                    externalInput = dom.$('external_attachment'),
+                    fname_ = createInput.get('value'),
+                    url = externalInput.get('value'),
                     renameAfterLoad,
-                    files = uploadInput.files;
+                    files = uploadInput.getNode().files;
 
-                if (url && !filename) {
+                if (url && !fname_) {
                     // extract filename from URL
-                    url_o = new URI(url);
-                    filename = url_o.get('file');
+                    var url_o = new URI(url);
+                    fname_ = url_o.get('file');
                 }
                 
                 //validation
-                if(!(files && files.length) && !filename && !(url && filename)) {
-                    fd.error.alert('No file was selected.', 
+                if(!(files && files.length) && !fname_ && !(url && fname_)) {
+                    fd.error.alert('No file was selected.',
                             'Please select a file to upload.');
                     return;
                 }
                 
                 for (var f = 0; f < files.length; f++){
-                    var fname = files[f].name.getFileName(),
-                        ex = files[f].name.getFileExtension();
+                    var fname = filename.basename(files[f].name),
+                        ex = filename.extname(files[f].name);
                         
                     if (fd.item.attachmentExists(fname +'.'+ ex)) {
-                        fd.error.alert('Filename has to be unique', 
+                        fd.error.alert('Filename has to be unique',
                                 'You already have an attachment with that name.');
                         return;
                     }
                 }
                 
                 //if passed a folder to put the file in
-                if (filename) {
-                    filename = path + filename;
+                if (fname_) {
+                    fname_ = path + fname_;
                 } else if (path) {
                     renameAfterLoad = function(att) {
                         var el = that.getBranchFromFile(att);
@@ -583,31 +602,31 @@ var Sidebar = module.exports = new Class({
 
                         var new_name = path + att.get('filename');
                         // rename attachment (quietly) to place in the right
-                        // folder 
+                        // folder
                         pack.renameAttachment(att.get('uid'), new_name, true);
                     };
                 }
                 
-                if (filename && filename[filename.length-1] == '/') {
+                if (fname_ && fname_[fname_.length-1] === '/') {
                     isFolder = true;
-                    filename = filename.substr(0, filename.length-1);
+                    fname_ = fname_.substr(0, fname_.length-1);
                 }
                 
                 //remove janky characters from filenames
-                if (filename) {
-                    filename = filename.replace(/[^a-zA-Z0-9=!@#\$%\^&\(\)\+\-_\/\.]+/g, '-');
-                    filename = filename.replace(/\/{2,}/g, '/');
-                    filename = filename.replace(/^\//, '');
-                    filename = filename.replace(/\/*$/g, ''); /* */
+                if (fname_) {
+                    fname_ = fname_.replace(/[^a-zA-Z0-9=!@#\$%\^&\(\)\+\-_\/\.]+/g, '-');
+                    fname_ = fname_.replace(/\/{2,}/g, '/');
+                    fname_ = fname_.replace(/^\//, '');
+                    fname_ = fname_.replace(/\/*$/g, ''); /* */
                     
-                    if (!isFolder && !filename.getFileExtension()) {
-                        // we're defaulting to .js files if the user doesnt 
+                    if (!isFolder && !filename.extname(fname_)) {
+                        // we're defaulting to .js files if the user doesnt
                         // enter an extension
-                        filename = filename.replace(/\./, '') + '.js'; 
+                        fname_ = fname_.replace(/\./, '') + '.js';
                     }
                     // basename should have a meaning after replacing all
                     // non alphanumeric characters
-                    if (['-', ''].contains(filename.get_basename(isFolder))) {
+                    if (['-', ''].contains(fname_.get_basename(isFolder))) {
                         fd.error.alert(
                                 'ERROR',
                                 'Please use alphanumeric characters for filename');
@@ -616,23 +635,22 @@ var Sidebar = module.exports = new Class({
                 }
                 
                 if(files.length) {
-                    pack.uploadAttachment(uploadInput.files, renameAfterLoad);
+                    pack.uploadAttachment(files, renameAfterLoad);
                 } else if (isFolder) {
-                    pack.addFolder(filename, Folder.ROOT_DIR_DATA);
-                } else if (url && filename) {
-                    pack.addExternalAttachment(url, filename);
-                } else if (filename) {
-                    pack.addAttachment(filename);
-                }               
+                    pack.addFolder(fname_, Folder.ROOT_DIR_DATA);
+                } else if (url && fname_) {
+                    pack.addExternalAttachment(url, fname_);
+                } else if (fname_) {
+                    pack.addAttachment(fname_);
+                }
             }
         });
         
         //hookup File / Folder buttons
-        var fileBtn = $('new_type_file'),
-            folderBtn = $('new_type_folder'),
-            isFolder = false;
+        var fileBtn = dom.$('new_type_file'),
+            folderBtn = dom.$('new_type_folder');
             
-        fileBtn.addEvent('click', function(e) {
+        fileBtn.addListener('click', function(e) {
             e.stop();
             folderBtn.removeClass('selected');
             this.addClass('selected');
@@ -648,14 +666,14 @@ var Sidebar = module.exports = new Class({
     },
     
     promptPlugin: function() {
-        var prompt = fd.showQuestion({
+        var modal = fd.showQuestion({
             title: 'Add a Library',
             message: '<input type="text" name="new_library" id="new_library" placeholder="Search for libraries to include" />' +
                      '<input type="hidden" name="library_id_number" id="library_id_number" />',
             ok: 'Add Library',
             id: 'new_library_button',
             callback: function() {
-                var lib_id = $('library_id_number').value;
+                var lib_id = dom.$('library_id_number').get('value');
                 if(!lib_id) {
                     fd.error.alert('No Library found!', 'Please enter the name of an existing Library');
                     return;
@@ -670,14 +688,16 @@ var Sidebar = module.exports = new Class({
         var ac = new FlightDeck.Autocomplete({
             'url': settings.library_autocomplete_url
         });
-        $(prompt).retrieve('dragger').addEvent('drag', function(el, evt) {
+        dom.$(modal).retrieve('dragger').addEvent('drag', function(el, evt) {
             ac.positionNextTo();
         });
     },
 
     setPluginUpdate: function(library, latest_revision) {
         var branch = this.getBranchFromFile(library);
-        if (!branch || branch.hasClass('update')) return;
+        if (!branch || branch.hasClass('update')) {
+            return;
+        }
         
         branch.addClass('update');
         branch.getElement('.icon').set('title', 'Update to new version');
@@ -685,7 +705,9 @@ var Sidebar = module.exports = new Class({
     
     removePluginUpdate: function(library) {
         var branch = this.getBranchFromFile(library);
-        if (!branch || !branch.hasClass('update')) return;
+        if (!branch || !branch.hasClass('update')) {
+            return;
+        }
         
         branch.removeClass('update');
         branch.getElement('.icon').erase('title');
@@ -696,17 +718,17 @@ var Sidebar = module.exports = new Class({
             file = li.retrieve('file');
         fd.item.updateLibrary(file, function(response) {
             that.removePluginUpdate(file);
-            // XXX: Somehow here rename the item
+            //TODO: Somehow here rename the item
         });
     },
     
-    focus: function() {
+    /*focus: function() {
         this.keyboard.activate();
         
-        $(this).getElements('.focused').removeClass('focused');
+        this.element.getElements('.focused').removeClass('focused');
 
         //set top most branch as current if never focused before
-        this._current_focus = this._current_focus || $(this).getElement('li');
+        this._current_focus = this._current_focus || this.element.getElement('li');
 
         if (this._current_focus) {
             this._current_focus.addClass('focused');
@@ -806,7 +828,7 @@ var Sidebar = module.exports = new Class({
                         var rel = that._current_focus.get('rel');
                         if(rel != 'file' && !(!that._current_focus.hasClass('top_branch') && that._current_focus.getParent('#PluginsTree'))) {
                             that.collapseFocused();
-                        } 
+                        }
                     }
                 }
             },
@@ -818,7 +840,7 @@ var Sidebar = module.exports = new Class({
                         var rel = that._current_focus.get('rel');
                         if(rel != 'file' && !(!that._current_focus.hasClass('top_branch') && that._current_focus.getParent('#PluginsTree'))) {
                             that.expandFocused();
-                        } 
+                        }
                     }
                 }
             },
@@ -826,7 +848,7 @@ var Sidebar = module.exports = new Class({
                 keys: 'up|k',
                 description: 'Move focus up the tree.',
                 handler: function(e) {
-                    that.focusPrevious(); 
+                    that.focusPrevious();
                 }
             },
             'down': {
@@ -849,10 +871,10 @@ var Sidebar = module.exports = new Class({
                         }
                     }
                 }
-            } 
+            }
         });
         
-    },
+    },*/
 
     toElement: function() {
         return this.element;

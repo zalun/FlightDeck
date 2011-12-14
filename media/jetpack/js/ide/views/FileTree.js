@@ -6,7 +6,8 @@ var Class = require('shipyard/class/Class'),
 
     File = require('../models/File'),
     Module = require('../models/Module'),
-    Attachment = require('../models/Attachment');
+    Attachment = require('../models/Attachment'),
+    filename = require('../utils/filename');
 
 var FileTree = module.exports = new Class({
     
@@ -192,12 +193,12 @@ var FileTree = module.exports = new Class({
         
         label.addEvent('blur', label.retrieve('$blur'));
         
-        hasExtension = hasExtension || !!text.getFileExtension();
+        hasExtension = hasExtension || !!filename.extname(text);
         
         var range = dom.document.getNode().createRange(),
             node = label.firstChild;
         range.setStart(node, 0);
-        range.setEnd(node, hasExtension ? text.length - text.getFileExtension().length -1 : text.length);
+        range.setEnd(node, hasExtension ? text.length - filename.extname(text).length -1 : text.length);
         var sel = dom.window.getNode().getSelection();
         sel.removeAllRanges();
         sel.addRange(range);
@@ -233,7 +234,7 @@ var FileTree = module.exports = new Class({
             text = File.sanitize(text);
             
             
-            if (!text.getFileName()) {
+            if (!filename.basename(text)) {
                 fd.error.alert('Filename must be valid', 'Your file must not contain special characters, and requires a file extension.');
                 return this;
             }
@@ -378,17 +379,4 @@ FileTree.Collapse = new Class({
         element.set('path', (path ? path + '/' : '') + (element.get('path') || '').split('/').getLast());
     }
     
-});
-
-String.implement('getFileExtension', function() {
-    var parts = this.split('.'),
-        ext = parts.pop(),
-        filename = parts.join('.');
-        
-    return !!filename && !!ext && !ext.match(/[^a-zA-Z0-9]/) && ext;
-});
-
-String.implement('getFileName', function() {
-    var ext = this.getFileExtension();
-    return ext && this.substring(0, this.length - ext.length - 1);
 });

@@ -14,6 +14,8 @@ var Class = require('shipyard/class/Class'),
     Package = require('../models/Package'),
     PackageRevision = require('../models/PackageRevision'),
 
+    filename = require('../utils/filename'),
+
     FloatingTips = require('../views/FloatingTips'),
     Validator = require('../views/Validator'),
     
@@ -304,7 +306,9 @@ module.exports = new Class({
     },
 
     newAttachment: function(data) {
-        if (!data.id && !data.pk) data.pk = data.uid;
+        if (!data.id && !data.pk) {
+            data.pk = data.uid;
+        }
         var att = new Attachment(data),
 			controller = this;
         this.attachments[att.get('uid')] = att;
@@ -805,7 +809,7 @@ module.exports = new Class({
                     pk: response.uid
                 });
                 if (att.isEditable()) {
-                    that.editFile(att);
+                    controller.editFile(att);
                 }
             },
             onComplete: function() {
@@ -816,13 +820,12 @@ module.exports = new Class({
 
     renameAttachment: function(uid, newName, quiet) {
         var that = this,
-            att = this.attachments[uid],
-            filename = newName;
+            att = this.attachments[uid];
         
         // break off an extension from the filename
-        var ext = filename.getFileExtension() || '';
+        var ext = filename.extname(newName) || '';
         if (ext) {
-            filename = filename.getFileName();
+            newName = filename.basename(newName);
         }
 
         var attachmentEl = this.sidebar.getBranchFromPath(newName, 'data');
@@ -833,7 +836,7 @@ module.exports = new Class({
             url: that.options.rename_attachment_url,
             data: {
                 uid: uid,
-                new_filename: filename,
+                new_filename: newName,
                 new_ext: ext
             },
             onSuccess: function(text) {
@@ -1344,7 +1347,7 @@ module.exports = new Class({
         object.forEach(this.modules, function(module, filename) {
             var mod = this.editor.getItem(module.get('uid'));
             if (!mod) {
-                $log('FD: WARN: Editor not found for module:'+ filename);
+                log.warn('Editor not found for module: %s', filename);
                 return;
             }
             if (mod.get('content') && mod.changed) {
@@ -1354,7 +1357,7 @@ module.exports = new Class({
         object.forEach(this.attachments, function(attachment, uid) {
             var att = this.editor.getItem(uid);
             if (!att) {
-                $log('FD: WARN: Editor not found for attachment:' + uid);
+                log.warn('Editor not found for attachment: %s', uid);
                 return;
             }
             if (att.get('content') && att.changed) {
