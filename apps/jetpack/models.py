@@ -1666,7 +1666,7 @@ class Package(BaseModel, SearchMixin):
         """
         full_name = self.full_name if not basic_name else basic_name
         if '(copy ' in full_name:
-            full_name = full_name.split('(copy')[0]
+            full_name = full_name.split(' (copy')[0]
         new_name = '%s (copy %d)' % (full_name, iteration)
         try:
             Package.objects.get(name=make_name(new_name))

@@ -220,6 +220,8 @@ def get_module(request, id_number, revision_number, filename):
     return HttpResponse(mod.get_json())
 
 
+from django.db import transaction
+@transaction.commit_on_success
 @login_required
 def copy(request, id_number, type_id,
                  revision_number=None, version_name=None):
@@ -228,22 +230,28 @@ def copy(request, id_number, type_id,
     """
     source = get_package_revision(id_number, type_id, revision_number,
                                   version_name)
+    pk = source.pk
+    log.debug('[copy: %s] Copying started from (%s)' % (pk, source))
 
+    new_name = source.package.get_copied_full_name()
     try:
         package = Package.objects.get(
-            full_name=source.package.get_copied_full_name(),
-            author__username=request.user.username
-            )
+            full_name=new_name,
+            author__username=request.user.username)
     except Package.DoesNotExist:
-        package = source.package.copy(request.user)
-        source.save_new_revision(package)
+        pass
+    else:
+        log.critical(("[copy: %s] Name created for copied Package (%s) "
+                      "does exist") % (pk, new_name))
+        return HttpResponseForbidden('You already have a %s with that name' %
+                                     escape(source.package.get_type_name()))
+    package = source.package.copy(request.user)
+    source.save_new_revision(package)
 
-        return render_json(request,
-            "json/%s_copied.json" % package.get_type_name(),
-            {'revision': source})
-
-    return HttpResponseForbidden('You already have a %s with that name' %
-                                 escape(source.package.get_type_name()))
+    log.info('[copy: %s] Copied to %s, (%s)' % (pk, source.pk, new_name))
+    return render_json(request,
+        "json/%s_copied.json" % package.get_type_name(),
+        {'revision': source})
 
 
 @login_required
