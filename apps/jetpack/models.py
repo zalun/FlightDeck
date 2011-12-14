@@ -1528,7 +1528,7 @@ class Package(BaseModel, SearchMixin):
                 old_id_number = self.id_number
                 self.id_number = _get_next_id_number()
                 if old_id_number == self.id_number:
-                    self.id_number += iteration
+                    self.id_number = str(int(self.id_number) + iteration)
                     iteration += 1
                 log.debug('[save] new id_number %s' % self.id_number)
                 return self.save(iteration=iteration, **kwargs)
