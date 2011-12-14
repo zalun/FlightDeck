@@ -1,6 +1,7 @@
 import os
 import datetime
 import commonware
+from mock import Mock
 from decimal import Decimal
 
 from test_utils import TestCase
@@ -325,6 +326,15 @@ class PackageTest(TestCase):
         assert "(copy 2)" not in addon_copy.full_name
         assert "(copy 3)" in addon_copy.full_name
 
+    def test_create_anew_id_number_if_current_exists(self):
+        full_clean = Package.full_clean
+        Package.full_clean = Mock()
+        addon = Package.objects.create(author=self.author, type='a')
+        addon2 = addon.copy(self.author)
+        addon2.id_number = addon.id_number
+        addon2.save()
+        Package.full_clean = full_clean
+
     def test_description_characters(self):
         addon = Package.objects.create(author=self.author, type='a')
         description = "abcdefghijklmnoprstuwxyz!@#$%^&*(){}[]:',./?"
@@ -335,40 +345,40 @@ class PackageTest(TestCase):
 
     def test_activity_rating_calculation_one_year(self):
         addon = Package.objects.create(author=self.author, type='a')
-        
+
         eq_(0, addon.calc_activity_rating())
 
-        now = datetime.datetime.now()        
-                
+        now = datetime.datetime.now()
+
         for i in range(1,366):
             r = addon.revisions.create(author=self.author, revision_number=i)
             r.created_at=now-datetime.timedelta(i)
             super(PackageRevision, r).save()
-        
-        
+
+
         #created packages, including initial
-        eq_(366, addon.revisions.count())                
-        eq_(Decimal('1'), addon.calc_activity_rating())        
-        
+        eq_(366, addon.revisions.count())
+        eq_(Decimal('1'), addon.calc_activity_rating())
+
     def test_activity_rating_calculation_first_week(self):
         addon = Package.objects.create(type='a', author=self.author)
-        
+
         eq_(0, addon.calc_activity_rating())
-        
+
         now = datetime.datetime.now()
 
         # Create 1 weeks worth of revisions... should equal .30 of score
         # see models.py def Packages for weights
-        
+
         for i in range(1,8):
             r = addon.revisions.create(author=self.author, revision_number=i)
             r.created_at=now-datetime.timedelta(i)
             super(PackageRevision, r).save()
-    
-        eq_(8, addon.revisions.count())   
-        
-        eq_(Decimal('0.300'), addon.calc_activity_rating())        
-       
+
+        eq_(8, addon.revisions.count())
+
+        eq_(Decimal('0.300'), addon.calc_activity_rating())
+
 
 
 

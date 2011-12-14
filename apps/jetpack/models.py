@@ -1524,11 +1524,7 @@ class Package(BaseModel, SearchMixin):
             super(Package, self).save(**kwargs)
         except IntegrityError, err:
             # if id_number exists we should try again
-            tryagain = False
-            for msg in err.messages:
-                if 'id_number' in msg:
-                    tryagain = True
-            if tryagain:
+            if 'id_number' in err[1]:
                 self.id_number = _get_next_id_number()
                 log.debug('[save] new id_number %s' % self.id_number)
                 return self.save(**kwargs)
