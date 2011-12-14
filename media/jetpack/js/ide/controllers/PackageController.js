@@ -416,6 +416,11 @@ module.exports = new Class({
      * create a new Package with the same name for the current user
      */
     copyPackage: function() {
+		if (this._is_copying) {
+			return;
+		}
+		this._is_copying = true;
+
         if (!settings.user) {
             fd.alertNotAuthenticated();
             return;
@@ -426,6 +431,8 @@ module.exports = new Class({
                     "To make a copy, please save your changes.");
             return;
         }
+
+		var controller = this;
         new Request.JSON({
             url: this.options.copy_url,
             useSpinner: true,
@@ -438,7 +445,10 @@ module.exports = new Class({
             },
             onSuccess: function(response) {
                 window.location.href = response.view_url;
-            }
+            },
+			onComplete: function() {
+				controller._is_copying = false;
+			}
         }).send();
     },
 
