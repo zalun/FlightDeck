@@ -1516,7 +1516,7 @@ class Package(BaseModel, SearchMixin):
     ##################
     # Methods
 
-    def save(self, **kwargs):
+    def save(self, iteration=1, **kwargs):
         " save with finding a next id number "
         if not self.id_number:
             self.id_number = _get_next_id_number()
@@ -1525,9 +1525,13 @@ class Package(BaseModel, SearchMixin):
         except IntegrityError, err:
             # if id_number exists we should try again
             if 'id_number' in err[1]:
+                old_id_number = self.id_number
                 self.id_number = _get_next_id_number()
+                if old_id_number == self.id_number:
+                    self.id_number += iteration
+                    iteration += 1
                 log.debug('[save] new id_number %s' % self.id_number)
-                return self.save(**kwargs)
+                return self.save(iteration=iteration, **kwargs)
             else:
                 log.critical('[save] Error saving Package\n%s\n%s' % (
                     self.__dict__, str(err)))
