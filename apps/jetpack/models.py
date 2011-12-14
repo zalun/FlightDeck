@@ -1690,6 +1690,7 @@ class Package(BaseModel, SearchMixin):
             Package.objects.get(name=make_name(new_name))
         except ObjectDoesNotExist:
             return new_name
+        # it's entirely possible to have 2 add-ons with exactly the same name
         except MultipleObjectsReturned:
             pass
         return self.get_copied_full_name(
