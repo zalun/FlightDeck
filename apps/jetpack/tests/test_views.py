@@ -238,3 +238,23 @@ class TestEditing(TestCase):
         eq_(len(addon2.revisions.all()), 2)
         eq_(addon2.full_name, addon2.latest.full_name)
         assert rev1.name != addon2.latest.name
+
+
+class TestRevision(TestCase):
+    fixtures = ('mozilla_user', 'core_sdk', 'users', 'packages')
+
+    def test_copy_revision(self):
+        author = User.objects.get(username='john')
+        addon = Package(author=author, type='a')
+        addon.save()
+        # unauthenticated
+        response = self.client.get(addon.latest.get_copy_url())
+        eq_(response.status_code, 302)
+        # authenticated
+        author.set_password('secure')
+        author.save()
+        self.client.login(username=author.username, password='secure')
+        response = self.client.get(addon.latest.get_copy_url())
+        eq_(response.status_code, 200)
+        assert 'Add-on' in response.content
+        assert 'copied' in response.content

@@ -233,21 +233,23 @@ def copy(request, id_number, type_id,
     pk = source.pk
     log.debug('[copy: %s] Copying started from (%s)' % (pk, source))
 
-    new_name = source.package.get_copied_full_name()
-    if Package.objects.filter(
-            full_name=new_name,
-            author__username=request.user.username).exists():
-        log.critical(("[copy: %s] Name created for copied Package (%s) "
-                      "does exist") % (pk, new_name))
+    # save package
+    try:
+        package = source.package.copy(request.user)
+    except IntegrityError, err:
+        log.critical(("[copy: %s] Package copy failed") % pk)
         return HttpResponseForbidden('You already have a %s with that name' %
                                      escape(source.package.get_type_name()))
-    package = source.package.copy(request.user)
-    source.save_new_revision(package)
 
-    log.info('[copy: %s] Copied to %s, (%s)' % (pk, source.pk, new_name))
+    # save revision with all dependencies
+    source.save_new_revision(package)
+    copied = source
+    del source
+
+    log.info('[copy: %s] Copied to %s, (%s)' % (pk, copied.pk, copied.full_name))
     return render_json(request,
         "json/%s_copied.json" % package.get_type_name(),
-        {'revision': source})
+        {'revision': copied})
 
 
 @login_required

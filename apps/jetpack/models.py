@@ -1700,8 +1700,19 @@ class Package(BaseModel, SearchMixin):
         """
         create copy of the package
         """
+
         if self.is_singleton():
             raise SingletonCopyException("This is a singleton")
+
+        new_name = self.get_copied_full_name()
+
+        if Package.objects.filter(
+                full_name=new_name,
+                author__username=author.username).exists():
+            log.error('[copy: %s] User has a Package with that name (%s)' % (
+                self.pk, new_name))
+            raise IntegrityError('New name exists')
+
         new_p = Package(
             full_name=self.get_copied_full_name(),
             description=self.description,
