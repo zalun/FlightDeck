@@ -63,9 +63,8 @@ def querystring(context, query, **params):
     
     #convert dictionary to querystring with all params that have values
     qs = []
-    for (k,v) in query_dictionary.items():
-        if v != None and len(v) > 0:
-            qs.append( k+'='+urllib.quote(str(v)) )
+    for (k,v) in query_dictionary.items():        
+        qs.append( k+'='+urllib.quote(str(v)) )
             
     return '&'.join(sorted(qs))
 
