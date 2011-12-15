@@ -8,6 +8,16 @@ var Class = require('shipyard/class/Class'),
 
 var uid = '$tree:' + string.uniqueID();
 
+var bind = function() {
+	var bound = {},
+		key;
+	for (var i = 0, len = arguments.length; i < len; i++) {
+		key = arguments[i];
+		bound[key] = this[key].bind(this);
+	}
+	return bound;
+};
+
 module.exports = new Class({
 
     Implements: [Options, Events],
@@ -38,6 +48,7 @@ module.exports = new Class({
             tree.mousedown(this, e);
         };
         
+		this.bound = bind.call(this, 'hideIndicator', 'onDrag', 'onDrop')
         this.attach();
     },
 
@@ -46,7 +57,9 @@ module.exports = new Class({
         this.downHandler = this.element.delegate('li', 'mousedown', function(e) {
             tree.mousedown(this, e);
         });
-        this.upHandler = dom.document.body.addListener('mouseup', this.mouseup);
+        this.upHandler = dom.document.body.addListener('mouseup', funciton(e) {
+			tree.mouseup(this, e);
+		});
         return this;
     },
 
@@ -69,26 +82,25 @@ module.exports = new Class({
         }
 
         this.current = element;
-        this.clone = element.clone().setStyles({
+        this._clone = element.clone().setStyles({
             left: event.page.x + this.options.cloneOffset.x,
             top: event.page.y + this.options.cloneOffset.y,
             opacity: this.options.cloneOpacity
         }).addClass('drag').inject(dom.document.body);
 
-        var dragger = new Draggable(this.clone, {
+        var dragger = new Draggable(this._clone, {
             droppables: this.element.getElements('li span'),
-            onLeave: this.bound('hideIndicator'),
-            onDrag: this.bound('onDrag'),
-            onDrop: this.bound('onDrop'),
-            // omg, i added this line, panic!
+            onLeave: this.bound.hideIndicator,
+            onDrag: this.bound.onDrag,
+            onDrop: this.bound.onDrop,
             container: this.options.container ? (dom.$(this.options.container) || this.element) : null
         });
         dragger.start(event);
     },
 
     mouseup: function() {
-        if (this.clone) {
-            this.clone.destroy();
+        if (this._clone) {
+            this._clone.destroy();
         }
     },
 

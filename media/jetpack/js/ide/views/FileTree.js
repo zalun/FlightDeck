@@ -29,7 +29,7 @@ var FileTree = module.exports = new Class({
         snap: 3,
         id_prefix: '',
         
-        // if container is null, container will default to the Tree el
+        // if container is true, container will default to the Tree el
         // "false" will cancel the container
         container: true
         //onAddBranch: function(el, attributes, target){}
@@ -90,16 +90,16 @@ var FileTree = module.exports = new Class({
         };
         
         this.parent(element, event);
-        if (this.clone) {
-            this.clone.setStyle('display', 'none');
+        if (this._clone) {
+            this._clone.setStyle('display', 'none');
         }
         return this;
     },
     
     onDrag: function(el, event) {
         this.parent(el, event);
-        if (this.clone) {
-            this.clone.setStyle('display', null); //default snap is already 6px
+        if (this._clone) {
+            this._clone.setStyle('display', null); //default snap is already 6px
         }
     },
     
