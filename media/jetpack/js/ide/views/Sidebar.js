@@ -12,13 +12,14 @@ var Class = require('shipyard/class/Class'),
     Folder = require('../models/Folder'),
     Package = require('../models/Package'),
     FileTree = require('./FileTree'),
-    filename = require('../utils/filename');
+    filename = require('../utils/filename'),
+    URI = require('../utils/URI');
 
 //TODO: Bad practice.
 var fd = dom.window.get('fd'),
     settings = dom.window.get('settings');
 
-//globals: URI, FlightDeck.Autocomplete
+//globals: FlightDeck.Autocomplete
 
 var CLICK = 'click';
 
