@@ -9,13 +9,13 @@ var Class = require('shipyard/class/Class'),
 var uid = '$tree:' + string.uniqueID();
 
 var bind = function() {
-	var bound = {},
-		key;
-	for (var i = 0, len = arguments.length; i < len; i++) {
-		key = arguments[i];
-		bound[key] = this[key].bind(this);
-	}
-	return bound;
+    var bound = {},
+        key;
+    for (var i = 0, len = arguments.length; i < len; i++) {
+        key = arguments[i];
+        bound[key] = this[key].bind(this);
+    }
+    return bound;
 };
 
 module.exports = new Class({
@@ -48,7 +48,7 @@ module.exports = new Class({
             tree.mousedown(this, e);
         };
         
-		this.bound = bind.call(this, 'hideIndicator', 'onDrag', 'onDrop')
+        this.bound = bind.call(this, 'hideIndicator', 'onDrag', 'onDrop');
         this.attach();
     },
 
@@ -57,9 +57,9 @@ module.exports = new Class({
         this.downHandler = this.element.delegate('li', 'mousedown', function(e) {
             tree.mousedown(this, e);
         });
-        this.upHandler = dom.document.body.addListener('mouseup', funciton(e) {
-			tree.mouseup(this, e);
-		});
+        this.upHandler = dom.document.body.addListener('mouseup', function(e) {
+            tree.mouseup(this, e);
+        });
         return this;
     },
 
@@ -70,8 +70,6 @@ module.exports = new Class({
     },
 
     mousedown: function(element, event) {
-        event.preventDefault();
-
         this.padding = (this.element.getElement('li ul li') || this.element.getElement('li')).getLeft() - this.element.getLeft() + this.options.indicatorOffset;
 
         if(!this.options.checkDrag.call(this, element)) {
@@ -93,6 +91,7 @@ module.exports = new Class({
             onLeave: this.bound.hideIndicator,
             onDrag: this.bound.onDrag,
             onDrop: this.bound.onDrop,
+            preventDefault: true,
             container: this.options.container ? (dom.$(this.options.container) || this.element) : null
         });
         dragger.start(event);
@@ -100,7 +99,7 @@ module.exports = new Class({
 
     mouseup: function() {
         if (this._clone) {
-            this._clone.destroy();
+            this._clone = this._clone.destroy();
         }
     },
 
@@ -118,7 +117,9 @@ module.exports = new Class({
             return;
         }
 
-        var droppable = (event.target.get('tag') === 'li') ? event.target : event.target.getParent('li');
+        var target = dom.$(event.target);
+
+        var droppable = (target.get('tag') === 'li') ? target : target.getParent('li');
         if (!droppable || this.element === droppable || !this.element.contains(droppable)) {
             return;
         }
@@ -128,7 +129,7 @@ module.exports = new Class({
         }
 
         var coords = droppable.getCoordinates(),
-            marginTop =  droppable.getStyle('marginTop').toInt(),
+            marginTop =  parseInt(droppable.getStyle('marginTop'), 10),
             center = coords.top + marginTop + (coords.height / 2),
             isSubnode = (event.page.x > coords.left + this.padding),
             position = {

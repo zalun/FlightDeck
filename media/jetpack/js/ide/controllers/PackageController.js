@@ -326,7 +326,6 @@ module.exports = new Class({
             this.editor.registerItem(att.get('uid'), att);
         }
 
-        var controller = this;
         att.addEvent('destroy', function() {
             delete controller.attachments[this.get('uid')];
         });
@@ -581,7 +580,7 @@ module.exports = new Class({
         }
 
         var controller = this;
-        this.sidebar.addEvent('select', function(file) {
+        this.sidebar.addListener('select', function(file) {
             controller.onSidebarSelect(file);
         });
     },
@@ -592,7 +591,7 @@ module.exports = new Class({
         }
 
         var controller = this;
-        this.tabs.addEvent('select', function(tab) {
+        this.tabs.addListener('select', function(tab) {
             controller.onTabSelect(tab);
         });
     },

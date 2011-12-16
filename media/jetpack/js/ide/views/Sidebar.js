@@ -378,7 +378,7 @@ var Sidebar = module.exports = new Class({
     
     selectBranch: function(li) {
         var file = li.retrieve('file');
-        this.fireEvent('select', file);
+        this.emit('select', file);
         this.setSelectedFile(li);
     },
 
@@ -394,7 +394,7 @@ var Sidebar = module.exports = new Class({
             var emptydir = node.retrieve('file');
             if (emptydir instanceof Folder) {
                 emptydir.removeEvent('destroy', emptydir._removeFromTree);
-                node.eliminate('file');
+                node.unstore('file');
                 emptydir.destroy();
             }
         }
