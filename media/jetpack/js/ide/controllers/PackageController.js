@@ -827,7 +827,9 @@ module.exports = new Class({
             newName = filename.basename(newName);
         }
 
-        var attachmentEl = this.sidebar.getBranchFromPath(newName, 'data');
+        var attachmentEl = this.sidebar.getBranchFromPath(newName, 'data') ||
+            this.sidebar.getBranchFromFile(att);
+
         var spinnerEl = attachmentEl || dom.$(this.sidebar.trees.data);
         spinnerEl.addClass(LOADING_CLASS).addClass('small');
 
@@ -846,12 +848,11 @@ module.exports = new Class({
                     fd.message.alert(response.message_title, response.message);
                 }
                 
-                var attachment = that.attachments[uid];
-                if (!attachment) {
+                if (!att) {
                     log.warn("Attachment (" + uid + ") couldn't be found in fd.item");
                     return;
                 }
-                attachment.set({
+                att.set({
                     filename: response.filename,
                     ext: response.ext,
                     author: response.author,
@@ -860,7 +861,7 @@ module.exports = new Class({
                     id: response.uid
                 });
                 if (!attachmentEl) {
-                    that.sidebar.addData(attachment);
+                    that.sidebar.addData(att);
                 }
                 
             },
