@@ -16,7 +16,7 @@ document.addEvent('domready',function(){
 				onFailure: function(res){
 					if( res.status == 401){
 						fd.error.alert("BrowserID login failed",
-							"Please register at addons.mozilla.com first");
+							"Please register at addons.mozilla.org first");
 					}else if( res.status == 403 ){
 						fd.error.alert("BrowserID",
 							"Not enabled");
