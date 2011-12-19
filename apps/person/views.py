@@ -53,12 +53,12 @@ def dashboard(r):
     Dashboard of the user
     """
     page = "dashboard"
-    person = r.user   
+    person = r.user
     (addons, libraries,
      disabled_addons, disabled_libraries) = get_packages(person)
     return render_to_response("user_dashboard.html", {
         'page': page,
-        'person': person,       
+        'person': person,
         'addons': addons,
         'libraries': libraries,
         'disabled_addons': disabled_addons,
