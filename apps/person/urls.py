@@ -9,6 +9,8 @@ urlpatterns = patterns('person.views',
     url(r'^signin/$', login,
         {'authentication_form': AuthenticationForm}, name='login'),
     url(r'^signout/$', logout, {"next_page": "/"}, name='logout'),
+    
+    url('^browserid-login/', 'browserid_login', name='browserid_login'),
 
     # dashboard
     url(r'dashboard/$', 'dashboard', name='person_dashboard'),
