@@ -284,8 +284,7 @@ class TestRevision(TestCase):
         addon = Package(
                 full_name='BROKEN',
                 name='broken',
-                author=author, type='a',
-                id_number=1000)
+                author=author, type='a')
         addon.save()
         post_save.connect(save_first_revision, sender=Package)
         assert not addon.latest

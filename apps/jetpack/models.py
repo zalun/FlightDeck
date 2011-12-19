@@ -1568,6 +1568,8 @@ class Package(BaseModel, SearchMixin):
             # fix add-on
             self.latest = latest
             self.save()
+            log.info('Package (%s) fixed - latest revision (%s) added' % (
+                self.id_number, self.latest.revision_number))
             return self.latest
         # this is a permanently broken package - has no PackageRevision
         # error happens on the template layer - it has to display something
@@ -1578,6 +1580,7 @@ class Package(BaseModel, SearchMixin):
         package.version = packagerev
         package.latest = packagerev
         if self.id:
+            log.warning('Removing broken package (%s)' % self.id_number)
             self.delete()
         return packagerev
 
