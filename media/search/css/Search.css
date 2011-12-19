@@ -192,7 +192,7 @@ body {
     
     #SearchResults .package ul.search_meta{
         color: #666;
-        margin: 6px 0 0;
+        margin: 8px 0 0;
         font-size: 0.8em;
         text-transform:lowercase;
         
@@ -229,10 +229,11 @@ body {
         background-repeat: no-repeat;        
     }
     #SearchResults .package ul.search_meta li.forks{
-        width: 42px;
+        width: 52px;
     }
     
     #SearchResults .package ul.search_meta li.used span{
+        background-position: 0 50%;
         background-image:url('../img/bookmark.png');
         background-repeat: no-repeat;   
     }    
