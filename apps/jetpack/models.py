@@ -1557,6 +1557,30 @@ class Package(BaseModel, SearchMixin):
         return '%s v. %s by %s' % (self.full_name, self.version_name,
                                    self.author)
 
+    def get_latest(self):
+        if self.latest:
+            return self.latest
+        try:
+            latest = self.revisions.latest('revision_number')
+        except PackageRevision.DoesNotExist:
+            pass
+        else:
+            # fix add-on
+            self.latest = latest
+            self.save()
+            return self.latest
+        # this is a permanently broken package - has no PackageRevision
+        # error happens on the template layer - it has to display something
+        package = Package(
+                name='broken', type=self.type, id_number=self.id_number)
+        packagerev = PackageRevision(
+                package=package, version_name='deleted', revision_number=1)
+        package.version = packagerev
+        package.latest = packagerev
+        if self.id:
+            self.delete()
+        return packagerev
+
     def get_absolute_url(self):
         " returns the URL View Source "
         return reverse('jp_%s_details' % self.get_type_name(),
