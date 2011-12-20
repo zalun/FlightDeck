@@ -4,7 +4,7 @@ import json
 
 from nose.tools import eq_
 #from nose import SkipTest
-from mock import patch   #, Mock
+from mock import patch
 
 from test_utils import TestCase
 from django.conf import settings
