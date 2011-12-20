@@ -52,6 +52,9 @@ class Profile(models.Model):
     def get_libraries_url(self):
         return reverse('jp_browser_user_libraries', args=[self.get_nickname()])
 
+    def get_profile_url(self):
+        return reverse('person_public_profile', args=[self.get_nickname()])
+
     def update_from_AMO(self, data=None):
         if not data:
             auth_cursor = get_amo_cursor()

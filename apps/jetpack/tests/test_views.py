@@ -2,16 +2,17 @@ import os
 import commonware
 import json
 
-from test_utils import TestCase
 from nose.tools import eq_
 #from nose import SkipTest
 from mock import patch
 
+from test_utils import TestCase
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
+from django.db.models.signals import post_save
 
-from jetpack.models import Package, PackageRevision, Module
+from jetpack.models import Package, PackageRevision, Module, save_first_revision
 from base.helpers import hashtag
 
 log = commonware.log.getLogger('f.test')
@@ -258,3 +259,36 @@ class TestRevision(TestCase):
         eq_(response.status_code, 200)
         assert 'Add-on' in response.content
         assert 'copied' in response.content
+
+    def test_dashboard_with_broken_package(self):
+        # fixable add-on - no latest given
+        author = User.objects.get(username='john')
+        addon = Package(
+                full_name='FIXABLE',
+                author=author, type='a')
+        addon.save()
+        latest = addon.latest
+        # removing addon.latest
+        addon.latest = None
+        addon.save()
+        assert not addon.latest
+        response = self.client.get(author.get_profile().get_profile_url())
+        eq_(response.status_code, 200)
+        addon = Package.objects.get(full_name='FIXABLE')
+        # displaying the broken addon should fix it
+        assert addon.latest
+        eq_(addon.latest, latest)
+
+        # package with no version at all
+        post_save.disconnect(save_first_revision, sender=Package)
+        addon = Package(
+                full_name='BROKEN',
+                name='broken',
+                author=author, type='a')
+        addon.save()
+        post_save.connect(save_first_revision, sender=Package)
+        assert not addon.latest
+        response = self.client.get(author.get_profile().get_profile_url())
+        eq_(response.status_code, 200)
+        self.assertRaises(Package.DoesNotExist,
+                Package.objects.get, full_name='BROKEN')
