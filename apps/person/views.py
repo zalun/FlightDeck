@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib import auth
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -6,6 +7,12 @@ from django.db.models import ObjectDoesNotExist
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
 from django.http import Http404
+from django import http
+
+from amo.authentication import  AMOAuthentication
+from django_browserid.auth import BrowserIDBackend
+
+import waffle
 
 from person.models import Profile
 
@@ -98,3 +105,64 @@ def dashboard_browser(r, page_number=1, type=None, disabled=False):
             'other_packages_number': other_packages_number,
             'other_type': other_type
         }, context_instance=RequestContext(r))
+
+def browserid_authenticate(request, assertion):
+    """
+    Verify a BrowserID login attempt. If the BrowserID assertion is
+    good, but no account exists on flightdeck, create one.
+    """
+    backend = BrowserIDBackend()
+    
+    result = backend.verify(assertion, settings.SITE_URL)
+    if not result:
+        return (None, None)
+    
+    email = result['email']
+    
+    amouser = AMOAuthentication.auth_browserid_authenticate(email)
+    if amouser == None:
+        return (None,None)
+    
+    users = User.objects.filter(email=email)
+    if len(users) == 1:
+        try:
+            profile = users[0].get_profile()
+        except Profile.DoesNotExist:
+            profile = Profile(user=users[0])
+        profile.user.backend = 'django_browserid.auth.BrowserIDBackend'
+        return (profile, None)
+        
+    username = email.partition('@')[0]
+    user = User.objects.create(username=username, email=email)
+    
+    profile = Profile(user=user)
+    profile.user.backend = 'django_browserid.auth.BrowserIDBackend'
+    profile.user.save()    
+    profile.update_from_AMO(amouser)
+    
+    return (profile, None)
+    
+
+def browserid_login(request):
+    """
+    If browserID is enabled, then try to authenticate with the assertion
+    """
+    if waffle.switch_is_active('browserid-login'):    
+        if request.user.is_authenticated():
+            return http.HttpResponse(status=200)
+            
+        profile, msg = browserid_authenticate(
+            request,
+            assertion=request.POST['assertion'])
+       
+        if profile is not None:            
+            auth.login(request, profile.user)
+            return http.HttpResponse(status=200)
+            
+        return http.HttpResponse(status=401)
+    else:
+        return http.HttpResponse(status=403)
+
+
+
+

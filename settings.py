@@ -187,8 +187,8 @@ MEDIA_URL = ''
 LOGIN_URL = '/user/signin/'
 LOGIN_REDIRECT_URL = '/user/dashboard/'
 AUTH_PROFILE_MODULE = 'person.Profile'
-AUTHENTICATION_BACKENDS = (
-   'amo.authentication.AMOAuthentication',
+AUTHENTICATION_BACKENDS = (   
+   'amo.authentication.AMOAuthentication',   
 )
 
 
@@ -288,13 +288,14 @@ INTERNAL_IPS = ('127.0.0.1',)
 
 INSTALLED_APPS = [
     'django.contrib.admin',
-    'django.contrib.auth',
+    'django.contrib.auth',    
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.sites',
     'django.contrib.markup',
     'django.contrib.messages',
-
+    'django_browserid',
+    
     # database migrations not implemented yet
     # 'south',
 

@@ -6,7 +6,11 @@
 {% block title %}Sign In - {% endblock %}
 
 {% block head %}
-	<link rel="stylesheet" href="/media/jetpack/css/UI.Login.css" type="text/css" media="screen" />
+	<link rel="stylesheet" href="/media/jetpack/css/UI.Login.css" type="text/css" media="screen" />	
+	{% if waffle.switch('browserid-login') %}
+		<script src="https://browserid.org/include.js" type="text/javascript"></script>
+		<script src="/media/person/js/browserid.js" type="text/javascript"></script>
+	{% endif %}	
 {% endblock %}
 
 
@@ -29,11 +33,11 @@
 	{% endif %}
 
 	<div class="UI_Login">
-		
+		<div class="UI_Heading">Sign In</div>			
 		<form class="UI_Forms" id="login_form" method="post" action="{{ url('django.contrib.auth.views.login') }}" accept-charset="utf-8">
 			{{ safe_csrf_token()|safe }}
 			<fieldset>
-				<legend>Login</legend>
+				<legend>Sign In</legend>
 				
 				<div class="UI_Forms_info">
 					<p>Sign in to Add-on Builder with your 
@@ -66,6 +70,10 @@
 				</ul>
 			</div> <!-- /UI_Form_Actions -->
 		</form> <!-- /UI_Forms -->
-	
+		{% if waffle.switch('browserid-login') %}
+			<div id="UI_BrowserID_Login">				
+				<img id="login-browserid" title="Login with BrowserID" alt="sign in button - blue" src="https://browserid.org/i/sign_in_blue.png"/>				
+			</div>
+		{% endif %}
 	</div> <!-- /UI_Login -->
 {% endblock %}

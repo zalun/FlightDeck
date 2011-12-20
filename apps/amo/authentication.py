@@ -89,19 +89,7 @@ class AMOAuthentication:
     def auth_db_authenticate(self, username, password):
         " authenticate email/password pair in AMO database "
 
-        columns = ('id', 'email', 'username', 'display_name', 'password',
-                   'homepage')
-        auth_cursor = get_amo_cursor()
-
-        SQL = ('SELECT %s FROM %s WHERE email=%%s') % (
-                ','.join(columns), settings.AUTH_DATABASE['TABLE'])
-        auth_cursor.execute(SQL, username)
-        data = auth_cursor.fetchone()
-        user_data = {}
-        for i in range(len(data)):
-            user_data[columns[i]] = data[i]
-        if not user_data:
-            return None
+        user_data = AMOAuthentication.fetch_amo_user(username)
 
         if '$' not in user_data['password']:
             valid = (get_hexdigest('md5', '',
@@ -116,8 +104,33 @@ class AMOAuthentication:
         username = user_data['id']
         self.user_data = user_data
         return username
+    
+    @staticmethod
+    def auth_browserid_authenticate(email):
+        """
+            fetch the user from amo, no password validation, since we're using
+            browserid
+        """
+        return AMOAuthentication.fetch_amo_user(email)
+        
+    @staticmethod
+    def fetch_amo_user(email):
+        columns = ('id', 'email', 'username', 'password',
+                   'display_name', 'homepage')
+        auth_cursor = get_amo_cursor()
 
-
+        SQL = ('SELECT %s FROM %s WHERE email=%%s') % (
+                ','.join(columns), settings.AUTH_DATABASE['TABLE'])
+        auth_cursor.execute(SQL, email)
+        data = auth_cursor.fetchone()
+        if data == None:
+            return None
+        
+        user_data = {}
+        for i in range(len(data)):
+            user_data[columns[i]] = data[i]        
+        
+        return user_data
 
 
 def get_hexdigest(algorithm, salt, raw_password):
