@@ -354,7 +354,8 @@ var FlightDeck = new Class({
         var response;
         if (settings.addons_helper_version && window.mozFlightDeck) {
             response = window.mozFlightDeck.send({cmd: 'version'});
-            if (!response.success || response.msg < settings.addons_helper_version) {
+            if (!fd.update_abh_msg_displayed && (!response.success || response.msg < settings.addons_helper_version)) {
+                fd.update_abh_msg_displayed = true;
                 fd.warning.alert(
                         'Upgrade Add-on Builder Helper',
                         'There is a newer version ({addons_helper_version}) available.<br/> Please install <a href="{addons_helper}">the current one</a>.'.substitute(settings));
