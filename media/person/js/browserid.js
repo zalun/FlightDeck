@@ -10,8 +10,13 @@ document.addEvent('domready',function(){
 				},
 				method: 'POST',
 				data: 'assertion='+assertion,
-				onSuccess: function(res){
-					window.location = '/user/dashboard/';							
+				onSuccess: function(res){					
+					var next = new URI(String(window.location)).getData('next');					
+					if(next){
+						window.location = next;
+					}else{
+						window.location = '/user/dashboard/';
+					}					
 				},					
 				onFailure: function(res){
 					if( res.status == 401){
