@@ -71,8 +71,10 @@
 			</div> <!-- /UI_Form_Actions -->
 		</form> <!-- /UI_Forms -->
 		{% if waffle.switch('browserid-login') %}
-			<div id="UI_BrowserID_Login">				
-				<img id="login-browserid" title="Login with BrowserID" alt="sign in button - blue" src="https://browserid.org/i/sign_in_blue.png"/>				
+			<div id="UI_BrowserID_Login">
+				<div id="UI_BrowserID_Img" title="Login with BrowserID">
+						&nbsp;
+				</div>				
 			</div>
 		{% endif %}
 	</div> <!-- /UI_Login -->
