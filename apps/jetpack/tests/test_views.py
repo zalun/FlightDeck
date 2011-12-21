@@ -3,8 +3,8 @@ import commonware
 import json
 
 from nose.tools import eq_
-#from nose import SkipTest
-from mock import patch
+from nose import SkipTest
+from mock import patch, Mock
 
 from test_utils import TestCase
 from django.conf import settings
@@ -292,3 +292,40 @@ class TestRevision(TestCase):
         eq_(response.status_code, 200)
         self.assertRaises(Package.DoesNotExist,
                 Package.objects.get, full_name='BROKEN')
+
+    def test_non_unique_fixable_packages(self):
+        # multiple fixable packages with the same name
+        # no idea how to create them in database
+        # duplicate packages are denied on MySQL level
+        if True:
+            # hide "Unreachable code" pylint warning
+            raise SkipTest()
+
+        # this is how the test would run if no IntegrityError would be raised
+        author = User.objects.get(username='john')
+        addon = Package.objects.create(
+                full_name='Integrity Error',
+                author=author, type='a')
+        # addon has 2 revisions
+        addon.latest.save()
+        latest = addon.latest
+        addon.latest = None
+        addon.save()
+        backup = Package.full_clean
+        Package.full_clean = Mock()
+        addon2 = Package.objects.create(
+                full_name='Integrity Error',
+                author=author, type='a')
+        addon2.latest = None
+        addon2.save()
+        Package.full_clean = backup
+        # requesting author's profile
+        response = self.client.get(author.get_profile().get_profile_url())
+        eq_(response.status_code, 200)
+        addon = Package.objects.get(full_name='FIXABLE')
+        # displaying the broken addon should fix it
+        assert addon.latest
+        eq_(addon.latest, latest)
+        # there should be other package with the name created from FIXABLE
+        eq_(Package.objects.filter(
+            author=author, full_name__contains='FIXABLE').count(), 2)

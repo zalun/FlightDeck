@@ -40,7 +40,7 @@ from jetpack.errors import (SelfDependencyException, FilenameExistException,
 from jetpack.managers import PackageManager
 
 from utils import validator
-from utils.helpers import pathify, alphanum, alphanum_plus
+from utils.helpers import pathify, alphanum, alphanum_plus, get_random_string
 from utils.os_utils import make_path
 from utils.amo import AMOOAuth
 from xpi import xpi_utils
@@ -1560,19 +1560,20 @@ class Package(BaseModel, SearchMixin):
     def get_latest(self):
         if self.latest:
             return self.latest
+        log.warning('[%s] No latest revision assigned' % self.id_number)
         try:
             latest = self.revisions.latest('revision_number')
         except PackageRevision.DoesNotExist:
             pass
         else:
-            # fix add-on
+            # fix latest
             self.latest = latest
             self.save()
-            log.info('Package (%s) fixed - latest revision (%s) added' % (
+            log.info('[%s] Package fixed - latest revision (%s) assigned' % (
                 self.id_number, self.latest.revision_number))
             return self.latest
-        # this is a permanently broken package - has no PackageRevision
-        # error happens on the template layer - it has to display something
+        # this is a permanently broken package - it has no PackageRevision
+        # error happens on the template layer - display fake pckage
         package = Package(
                 name='broken', type=self.type, id_number=self.id_number)
         packagerev = PackageRevision(
@@ -1580,7 +1581,7 @@ class Package(BaseModel, SearchMixin):
         package.version = packagerev
         package.latest = packagerev
         if self.id:
-            log.warning('Removing broken package (%s)' % self.id_number)
+            log.info('[%s] Removing broken package' % self.id_number)
             self.delete()
         return packagerev
 
@@ -1877,6 +1878,26 @@ class Package(BaseModel, SearchMixin):
             self.description = alphanum_plus(self.description)
         if self.version_name:
             self.version_name = alphanum_plus(self.version_name)
+        # fix add-on
+        # fix uniqueness
+        packages = Package.objects.filter(
+                author=self.author, full_name=self.full_name)
+        if self.pk:
+            other_packages = packages.exclude(pk=self.pk)
+            max_revisions = (self, self.revisions.count())
+            for package in other_packages.all():
+                # package is a copy of self (or the opposite)
+                # find which has more revisions and change the name of
+                # the one with less revisions
+                if package.revisions.count() > max_revisions[1]:
+                    max_revisions = (package, package.revisions.count())
+            for package in packages.exclude(pk=max_revisions[0].pk):
+                package.full_name += (
+                        " [fixed uniqueness - %s]") % get_random_string(5)
+                log.info(('[%d] Forcing uniqueness, full_name changed'
+                          '(%s)') % (package.pk, package.full_name))
+                package.save()
+
 
     def calc_activity_rating(self):
         """
