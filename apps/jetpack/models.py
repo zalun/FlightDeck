@@ -1557,10 +1557,32 @@ class Package(BaseModel, SearchMixin):
         return '%s v. %s by %s' % (self.full_name, self.version_name,
                                    self.author)
 
-    def get_latest(self):
+    def fix_uniqueness(self):
+        """ fix add-on """
+        # fix uniqueness
+        packages = Package.objects.filter(
+                author=self.author, full_name=self.full_name)
+        other_packages = packages.exclude(pk=self.pk)
+        if not other_packages:
+            return
+        max_revisions = (self, self.revisions.count())
+        for package in other_packages.all():
+            # package is a copy of self (or the opposite)
+            # find which has more revisions and change the name of
+            # the one with less revisions
+            if package.revisions.count() > max_revisions[1]:
+                max_revisions = (package, package.revisions.count())
+        for package in packages.exclude(pk=max_revisions[0].pk):
+            package.full_name += (
+                    " [fixed uniqueness - %s]") % get_random_string(5)
+            log.info(('[%d] Forcing uniqueness, full_name changed'
+                      '(%s)') % (package.pk, package.full_name))
+            package.save()
+        return True
+
+    def fix_latest(self):
         if self.latest:
-            return self.latest
-        log.warning('[%s] No latest revision assigned' % self.id_number)
+            return
         try:
             latest = self.revisions.latest('revision_number')
         except PackageRevision.DoesNotExist:
@@ -1584,6 +1606,13 @@ class Package(BaseModel, SearchMixin):
             log.info('[%s] Removing broken package' % self.id_number)
             self.delete()
         return packagerev
+
+    def get_latest(self):
+        if self.latest:
+            return self.latest
+        log.warning('[%s] No latest revision assigned' % self.id_number)
+        self.fix_uniqueness()
+        return self.fix_latest()
 
     def get_absolute_url(self):
         " returns the URL View Source "
@@ -1878,25 +1907,6 @@ class Package(BaseModel, SearchMixin):
             self.description = alphanum_plus(self.description)
         if self.version_name:
             self.version_name = alphanum_plus(self.version_name)
-        # fix add-on
-        # fix uniqueness
-        packages = Package.objects.filter(
-                author=self.author, full_name=self.full_name)
-        if self.pk:
-            other_packages = packages.exclude(pk=self.pk)
-            max_revisions = (self, self.revisions.count())
-            for package in other_packages.all():
-                # package is a copy of self (or the opposite)
-                # find which has more revisions and change the name of
-                # the one with less revisions
-                if package.revisions.count() > max_revisions[1]:
-                    max_revisions = (package, package.revisions.count())
-            for package in packages.exclude(pk=max_revisions[0].pk):
-                package.full_name += (
-                        " [fixed uniqueness - %s]") % get_random_string(5)
-                log.info(('[%d] Forcing uniqueness, full_name changed'
-                          '(%s)') % (package.pk, package.full_name))
-                package.save()
 
 
     def calc_activity_rating(self):
