@@ -5,7 +5,7 @@
         data-revision_id="{{ item.latest_uploaded.pk }}" 
         data-uploaded="{% if item.amo_id and item.latest_uploaded and item.latest_uploaded.amo_status != -2 %}1{% endif %}"
         data-pull_info_url="{{ item.latest_uploaded.get_amo_status_url() if item.latest_uploaded else '' }}"
-        data-get_addon_info_url="{{ item.latest.get_status_url() }}">
+        data-get_addon_info_url="{{ item.get_latest().get_status_url() }}">
     <h2>AMO Status</h2>
     <p>version:
     <span class='amo-latest_version'>{{ item.latest_uploaded.amo_version_name|default("---") }}</span>
@@ -17,21 +17,21 @@
 
     <ul class="UI_AMO_Actions">
         {% if item.amo_id %}
-            {% if item.latest.is_uploaded() %}
+            {% if item.get_latest().is_uploaded() %}
             <li class="UI_AMO_Version_Uploaded">upload new version</li> 
             {% else %}
             <li class="UI_AMO_Upload_New_Version upload_link" 
-                data-upload_url="{{ item.latest.get_upload_to_amo_url() }}"><a>upload new version</a></li>
+                data-upload_url="{{ item.get_latest().get_upload_to_amo_url() }}"><a>upload new version</a></li>
             {% endif %}
         {# <li class="UI_AMO_View_History" data-url=""><a>view history</a></li> #}
         {% else %}
         <li class="UI_AMO_Upload_New_Addon upload_link" 
-            data-upload_url="{{ item.latest.get_upload_to_amo_url() }}"><a>upload to AMO</a></li>
+            data-upload_url="{{ item.get_latest().get_upload_to_amo_url() }}"><a>upload to AMO</a></li>
         {% endif %}
-        <li class="UI_AMO_View_On_AMO{% if not item.amo_slug or item.latest.amo_status <= 0 %} hidden{% endif %}">
+        <li class="UI_AMO_View_On_AMO{% if not item.amo_slug or item.get_latest().amo_status <= 0 %} hidden{% endif %}">
             <a target="_amo" href="{{ item.get_view_on_amo_url() }}">view on AMO</a>
         </li>
-        <li class="UI_AMO_Edit_On_AMO{% if item.latest.amo_status != 0 %} hidden{% endif %}">
+        <li class="UI_AMO_Edit_On_AMO{% if item.get_latest().amo_status != 0 %} hidden{% endif %}">
             <a target="_amo" href="{{ item.get_edit_on_amo_url() }}">edit on AMO</a>
         </li>
     </ul>
