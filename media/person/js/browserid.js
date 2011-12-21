@@ -1,5 +1,5 @@
 document.addEvent('domready',function(){
-	$('login-browserid') && $('login-browserid').addEvent('click',function(){
+	$('UI_BrowserID_Img').addEvent('click',function(){
 		navigator.id.getVerifiedEmail(function(assertion) {
 			if (assertion) {
 			
@@ -30,7 +30,7 @@ document.addEvent('domready',function(){
 				}).send();
 			} else {
 				fd.error.alert("BrowserID Login Failed",
-					"Invalid assertion");
+					"Please try again");
 			}
 		});
 	});
