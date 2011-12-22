@@ -1607,13 +1607,6 @@ class Package(BaseModel, SearchMixin):
             self.delete()
         return packagerev
 
-    def get_latest(self):
-        if self.latest:
-            return self.latest
-        log.warning('[%s] No latest revision assigned' % self.id_number)
-        self.fix_uniqueness()
-        return self.fix_latest()
-
     def get_absolute_url(self):
         " returns the URL View Source "
         return reverse('jp_%s_details' % self.get_type_name(),
