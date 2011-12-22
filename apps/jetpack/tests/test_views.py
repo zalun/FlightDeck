@@ -2,9 +2,10 @@ import os
 import commonware
 import json
 
+from jinja2 import UndefinedError
 from nose.tools import eq_
-#from nose import SkipTest
-from mock import patch
+from nose import SkipTest
+from mock import patch, Mock
 
 from test_utils import TestCase
 from django.conf import settings
@@ -264,7 +265,7 @@ class TestRevision(TestCase):
         # fixable add-on - no latest given
         author = User.objects.get(username='john')
         addon = Package(
-                full_name='FIXABLE',
+                full_name='NOLATEST',
                 author=author, type='a')
         addon.save()
         latest = addon.latest
@@ -272,9 +273,13 @@ class TestRevision(TestCase):
         addon.latest = None
         addon.save()
         assert not addon.latest
+        self.assertRaises(UndefinedError,
+                self.client.get, author.get_profile().get_profile_url())
+        # fix latest (it will last revision to latest)
+        addon.fix_latest()
         response = self.client.get(author.get_profile().get_profile_url())
         eq_(response.status_code, 200)
-        addon = Package.objects.get(full_name='FIXABLE')
+        addon = Package.objects.get(full_name='NOLATEST')
         # displaying the broken addon should fix it
         assert addon.latest
         eq_(addon.latest, latest)
@@ -282,13 +287,56 @@ class TestRevision(TestCase):
         # package with no version at all
         post_save.disconnect(save_first_revision, sender=Package)
         addon = Package(
-                full_name='BROKEN',
+                full_name='NOREVISION',
                 name='broken',
                 author=author, type='a')
         addon.save()
         post_save.connect(save_first_revision, sender=Package)
         assert not addon.latest
+        self.assertRaises(UndefinedError,
+                self.client.get, author.get_profile().get_profile_url())
+        # fix latest (it will remove the package)
+        addon.fix_latest()
         response = self.client.get(author.get_profile().get_profile_url())
         eq_(response.status_code, 200)
         self.assertRaises(Package.DoesNotExist,
-                Package.objects.get, full_name='BROKEN')
+                Package.objects.get, full_name='NOREVISION')
+
+    def test_non_unique_fixable_packages(self):
+        # multiple fixable packages with the same name
+        # no idea how to create them in database
+        # duplicate packages are denied on MySQL level
+        if True:
+            # hide "Unreachable code" pylint warning
+            raise SkipTest()
+
+        # this is how the test would run if no IntegrityError would be raised
+        author = User.objects.get(username='john')
+        addon = Package.objects.create(
+                full_name='Integrity Error',
+                author=author, type='a')
+        # addon has 2 revisions
+        addon.latest.save()
+        latest = addon.latest
+        backup = Package.full_clean
+        Package.full_clean = Mock()
+        addon2 = Package.objects.create(
+                full_name='Integrity Error',
+                author=author, type='a')
+        addon2.latest = None
+        addon2.save()
+        Package.full_clean = backup
+        # requesting author's profile
+        self.assertRaises(Package.MultipleObjectsReturned,
+                self.client.get, author.get_profile().get_profile_url())
+        # fix uniqueness (it will rename addon2 as it has less revisions)
+        addon.fix_uniqueness()
+        response = self.client.get(author.get_profile().get_profile_url())
+        eq_(response.status_code, 200)
+        addon = Package.objects.get(full_name='Integrity Error')
+        # displaying the broken addon should fix it
+        assert addon.latest
+        eq_(addon.latest, latest)
+        # there should be other package with the name created from FIXABLE
+        eq_(Package.objects.filter(
+            author=author, full_name__contains='Integrity Error').count(), 2)

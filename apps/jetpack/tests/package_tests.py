@@ -5,11 +5,11 @@ from mock import Mock
 from decimal import Decimal
 
 from test_utils import TestCase
-from nose import SkipTest
 from nose.tools import eq_
 
 from django.contrib.auth.models import User
 from django.conf import settings
+from django.db import IntegrityError
 
 from jetpack.models import Package, PackageRevision
 from jetpack.errors import DependencyException
@@ -350,9 +350,9 @@ class PackageTest(TestCase):
 
         now = datetime.datetime.now()
 
-        for i in range(1,366):
+        for i in range(1, 366):
             r = addon.revisions.create(author=self.author, revision_number=i)
-            r.created_at=now-datetime.timedelta(i)
+            r.created_at = now-datetime.timedelta(i)
             super(PackageRevision, r).save()
 
 
@@ -370,15 +370,26 @@ class PackageTest(TestCase):
         # Create 1 weeks worth of revisions... should equal .30 of score
         # see models.py def Packages for weights
 
-        for i in range(1,8):
+        for i in range(1, 8):
             r = addon.revisions.create(author=self.author, revision_number=i)
-            r.created_at=now-datetime.timedelta(i)
+            r.created_at = now-datetime.timedelta(i)
             super(PackageRevision, r).save()
 
         eq_(8, addon.revisions.count())
 
         eq_(Decimal('0.300'), addon.calc_activity_rating())
 
-
-
-
+    def test_duplicate_packages_integrity_error(self):
+        # duplicate packages are denied on MySQL level
+        author = User.objects.get(username='john')
+        addon = Package(
+                full_name='Integrity Error',
+                author=author, type='a')
+        addon.save()
+        backup = Package.full_clean
+        Package.full_clean = Mock()
+        addon2 = Package(
+                full_name='Integrity Error',
+                author=author, type='a')
+        self.assertRaises(IntegrityError, addon2.save)
+        Package.full_clean = backup
