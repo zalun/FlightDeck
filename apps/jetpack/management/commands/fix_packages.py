@@ -23,9 +23,11 @@ class Command(BaseCommand):
         deleted_packages_count = 0
         for package in packages:
             if package.fix_uniqueness():
+                self.stdout.write('[%s] Package not unique' % package.id_number)
                 fixed_uniqueness_count += 1
             latest = package.fix_latest()
             if latest:
+                self.stdout.write('[%s] No latest' % package.id_number)
                 if latest.pk:
                     fixed_latest_count += 1
                 else:
