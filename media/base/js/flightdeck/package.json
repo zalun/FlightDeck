@@ -1,0 +1,13 @@
+{
+	"name": "flightdeck",
+	"description": "Base functionality to install add-ons.",
+
+	"shipyard": {
+		"app": "./",
+		"mini_require": true,
+		"target": "../flightdeck-min.js",
+		"min": false,
+
+		"test": "./tests"
+	}
+}
