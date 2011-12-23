@@ -8,7 +8,7 @@ import commonware
 
 from django.core.management.commands.loaddata import Command as BaseCommand
 
-from jetpack.models import Package
+from jetpack.models import Package, PackageRevision
 
 log = commonware.log.getLogger('f.jetpack')
 
@@ -20,6 +20,7 @@ class Command(BaseCommand):
         packages = Package.objects.all()
         fixed_uniqueness_count = 0
         fixed_latest_count = 0
+        fixed_version_count = 0
         deleted_packages_count = 0
         for package in packages:
             if package.fix_uniqueness():
@@ -28,14 +29,22 @@ class Command(BaseCommand):
             latest = package.fix_latest()
             if latest:
                 self.stdout.write('[%s] No latest' % package.id_number)
-                if latest.pk:
+                if isinstance(PackageRevision, latest):
                     fixed_latest_count += 1
                 else:
                     deleted_packages_count += 1
+            if not latest or isinstance(PackageRevision, latest):
+                # otherwise the package is deleted anyway
+                version = package.fix_version()
+                if version:
+                    fixed_version_count += 1
+
         self.stdout.write("""
 Finished fixing packages.
 %d uniqueness fixed
 %d latest revisions fixed
+%d version revisions fixed
 %d packages deleted
-""" % (fixed_uniqueness_count, fixed_latest_count, deleted_packages_count))
+""" % (fixed_uniqueness_count, fixed_latest_count, fixed_version_count,
+    deleted_packages_count))
 

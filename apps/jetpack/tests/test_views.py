@@ -268,21 +268,33 @@ class TestRevision(TestCase):
                 full_name='NOLATEST',
                 author=author, type='a')
         addon.save()
+        # adding a new version
+        addon.latest.save()
+        eq_(addon.revisions.count(), 2)
+        addon.latest.set_version('1.0')
         latest = addon.latest
         # removing addon.latest
         addon.latest = None
+        addon.version = None
         addon.save()
         assert not addon.latest
         self.assertRaises(UndefinedError,
                 self.client.get, author.get_profile().get_profile_url())
-        # fix latest (it will last revision to latest)
+        # fix latest will assign last revision to latest
         addon.fix_latest()
         response = self.client.get(author.get_profile().get_profile_url())
         eq_(response.status_code, 200)
         addon = Package.objects.get(full_name='NOLATEST')
-        # displaying the broken addon should fix it
         assert addon.latest
         eq_(addon.latest, latest)
+        self.assertRaises(AttributeError, addon.latest.get_absolute_url)
+        # fix version will assign revision with a highest version_name to
+        # version
+        addon.fix_version()
+        eq_(response.status_code, 200)
+        addon = Package.objects.get(full_name='NOLATEST')
+        assert addon.version
+        eq_(addon.version.version_name, '1.0')
 
         # package with no version at all
         post_save.disconnect(save_first_revision, sender=Package)

@@ -1596,16 +1596,33 @@ class Package(BaseModel, SearchMixin):
             return self.latest
         # this is a permanently broken package - it has no PackageRevision
         # error happens on the template layer - display fake pckage
-        package = Package(
-                name='broken', type=self.type, id_number=self.id_number)
-        packagerev = PackageRevision(
-                package=package, version_name='deleted', revision_number=1)
-        package.version = packagerev
-        package.latest = packagerev
         if self.id:
             log.info('[%s] Removing broken package' % self.id_number)
             self.delete()
-        return packagerev
+        return True
+
+    def fix_version(self):
+        if self.version:
+            return
+        versions = self.revisions.exclude(version_name=None)
+        if versions.count() > 0:
+            # try to get the latest version excluding 'initial' and 'copy'
+            try:
+                version = (versions.exclude(version_name='initial')
+                                   .exclude(version_name='copy')
+                                   .latest('version_name'))
+            except PackageRevision.DoesNotExist:
+                try:
+                    version = versions.get(version_name='copy')
+                except PackageRevision.DoesNotExist:
+                    version = versions.get(version_name='initial')
+            self.version = version
+            if not self.version_name:
+                self.version_name = self.version.version_name
+            self.save()
+            return True
+
+
 
     def get_absolute_url(self):
         " returns the URL View Source "
