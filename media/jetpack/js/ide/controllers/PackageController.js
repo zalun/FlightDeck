@@ -454,6 +454,8 @@ module.exports = new Class({
 
     downloadAddon: function() {
         var el = $(this.options.download_el).getElement('a');
+        if (el.hasClass('clicked')) return;
+        el.addClass('clicked');
 
         fd.tests[this.options.hashtag] = {
             spinner: new Spinner(el, {
@@ -470,7 +472,13 @@ module.exports = new Class({
         new Request.JSON({
             url: this.options.download_url,
             data: data,
-            onSuccess: fd.downloadXPI
+            onSuccess: function() {
+                el.removeClass('clicked');
+                fd.downloadXPI()
+            },
+            addOnFailure: function() {
+                el.removeClass('clicked');
+            }
         }).send();
     },
 
