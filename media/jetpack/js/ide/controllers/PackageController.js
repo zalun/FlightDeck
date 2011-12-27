@@ -472,11 +472,8 @@ module.exports = new Class({
         new Request.JSON({
             url: this.options.download_url,
             data: data,
-            onSuccess: function() {
-                el.removeClass('clicked');
-                fd.downloadXPI()
-            },
-            addOnFailure: function() {
+            onSuccess: fd.downloadXPI,
+            onComplete: function() {
                 el.removeClass('clicked');
             }
         }).send();
