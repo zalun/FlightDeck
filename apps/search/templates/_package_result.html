@@ -9,7 +9,9 @@
             <span class="example" title="Example">example</span>
         {% endif %}
     </h3>
-    <p class="description">{{ package.description }}</p>
+    <p data-text="{{package.description}}"
+       class="description {{ 'truncate' if package.description|length > 270  else ''}}">
+        {{ package.description|truncate(270) }}</p>
     <ul class="search_meta">
         <li title="Author" class="author"><span>&nbsp;</span>
             <a href="{{ url('person_public_profile', package.author.username) }}">{{ package.author.get_profile() }}</a></span></li>

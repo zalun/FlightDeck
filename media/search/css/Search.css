@@ -176,6 +176,11 @@ body {
     
     #SearchResults .package .description {
         color:#555;
+        
+    }
+    
+    #SearchResults .package .truncate{
+        cursor:pointer;
     }
     
     #SearchResults .package .UI_Actions {

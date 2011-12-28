@@ -210,6 +210,12 @@ window.addEvent('domready', function() {
 			}
 		});
 	});
+	
+	$('app-body').addEvent('click:relay(#SearchResults .truncate)', function(e){
+				var tmp = this.get('data-text');
+				this.set('data-text',this.get('text'));
+				this.set('text', tmp);
+	});
 
 	SearchResult.setupUI();
 });
