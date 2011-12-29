@@ -17,8 +17,11 @@ var Class = require('shipyard/class/Class'),
     URI = require('../utils/URI');
 
 //TODO: Bad practice.
-var fd = dom.window.get('fd'),
-    settings = dom.window.get('settings');
+var settings = dom.window.get('settings');
+
+function fd() {
+	return dom.window.get('fd');
+}
 
 //globals: FlightDeck.Autocomplete
 
@@ -97,7 +100,7 @@ var Sidebar = module.exports = new Class({
         };
         
         if(dom.$('LibTree') && !trees.lib) {
-            trees.lib = new FileTree('LibTree', Object.merge({
+            trees.lib = new FileTree('LibTree', object.merge({
                 id_prefix: 'l'
             }, treeOptions));
             trees.lib.collapse = new FileTree.Collapse('LibTree', collapseOptions);
@@ -111,7 +114,7 @@ var Sidebar = module.exports = new Class({
         }
         
         if(dom.$('DataTree') && !trees.data) {
-            trees.data = new FileTree('DataTree', Object.merge({
+            trees.data = new FileTree('DataTree', object.merge({
                 id_prefix: 'd'
             },treeOptions));
             trees.data.collapse = new FileTree.Collapse('DataTree', collapseOptions);
@@ -125,7 +128,7 @@ var Sidebar = module.exports = new Class({
         }
             
         if(dom.$('PluginsTree') && !trees.plugins) {
-            trees.plugins = new FileTree('PluginsTree', Object.merge({}, treeOptions, { actions: {
+            trees.plugins = new FileTree('PluginsTree', object.merge({}, treeOptions, { actions: {
                 add: false,
                 edit: false,
                 remove: true
@@ -216,7 +219,7 @@ var Sidebar = module.exports = new Class({
     },
     
     renameFile: function(file, fullpath) {
-        var pack = fd.item;
+        var pack = fd().item;
         if (file instanceof Module) {
             pack.renameModule(file.get('uid'), fullpath);
         } else if (file instanceof Attachment) {
@@ -302,7 +305,7 @@ var Sidebar = module.exports = new Class({
         if(isFile && (file.active || file.get('main')) && file.isEditable()) {
             this.setSelectedFile(element);
         }
-    }.protect(),
+    },
     
     addLib: function(lib) {
         this.addFileToTree('lib', lib);
@@ -417,7 +420,7 @@ var Sidebar = module.exports = new Class({
         
         
         titleOpts.name = titleOpts.name.split('/').getLast();
-        fd.showQuestion({
+        fd().showQuestion({
             title: title.substitute(titleOpts),
             message: file instanceof Module ? 'You may always copy it from this revision' : '',
             buttons: [
@@ -434,17 +437,17 @@ var Sidebar = module.exports = new Class({
                     'irreversible': true,
                     'callback': function() {
                         if (file instanceof Module) {
-                            fd.item.removeModule(file);
+                            fd().item.removeModule(file);
                         } else if (file instanceof Attachment) {
-                            fd.item.removeAttachment(file);
+                            fd().item.removeAttachment(file);
                         } else if (file instanceof Package) {
-                            fd.item.removeLibrary(file);
+                            fd().item.removeLibrary(file);
                         } else if (file instanceof Folder) {
-                            fd.item.removeFolder(file);
+                            fd().item.removeFolder(file);
                         } else if (fileType === Module) {
-                            fd.item.removeModules(file);
+                            fd().item.removeModules(file);
                         } else if (fileType === Attachment) {
-                            fd.item.removeAttachments(file);
+                            fd().item.removeAttachments(file);
                         }
                         
                     }
@@ -460,7 +463,7 @@ var Sidebar = module.exports = new Class({
             path += '/';
         }
         
-        fd.showQuestion({
+        fd().showQuestion({
             title: 'Create a new file or folder',
             message: '<a href="#" id="new_type_file" class="radio_btn selected"><span>File</span></a>' +
                 '<a href="#" id="new_type_folder" class="radio_btn"><span>Folder</span></a>' +
@@ -470,10 +473,10 @@ var Sidebar = module.exports = new Class({
             callback: function promptNewFile_callback() {
                 // get data
                 var fname_ = path + dom.$('new_file').get('value'),
-                    pack = fd.item;
+                    pack = fd().item;
                     
                 if (!filename) {
-                    fd.error.alert(
+                    fd().error.alert(
                         'Filename can\'t be empty',
                         'Please provide the name of the module');
                     return;
@@ -494,14 +497,14 @@ var Sidebar = module.exports = new Class({
                 }
                 
                 if (!isFolder && pack.moduleExists(fname_)) {
-                    fd.error.alert('Filename has to be unique', 'You already have the module with that name');
+                    fd().error.alert('Filename has to be unique', 'You already have the module with that name');
                     return;
                 } else if (isFolder && pack.folderExists(fname_, Folder.ROOT_DIR_LIB)) {
-                    fd.error.alert('Folder has to be unique', 'You already have the folder with that name');
+                    fd().error.alert('Folder has to be unique', 'You already have the folder with that name');
                     return;
                 }
-                if (['-', ''].contains(fname_.get_basename(isFolder))) {
-                    fd.error.alert(
+                if (['-', ''].contains(fname_)) {
+                    fd().error.alert(
                             'ERROR',
                             'Please use alphanumeric characters for filename');
                     return;
@@ -538,13 +541,13 @@ var Sidebar = module.exports = new Class({
     promptAttachment: function(folder) {
         var basename,
             that = this,
-            pack = fd.item,
+            pack = fd().item,
             isFolder = false,
             path = (folder && folder.get('path')) || '';
         if (path) {
             path += '/';
         }
-        fd.showQuestion({
+        fd().showQuestion({
             title: 'Create or Upload an Attachment',
             message: ''+
                 '<form id="upload_attachment_form" method="post" enctype="multipart/form-data" action="'+
@@ -576,7 +579,7 @@ var Sidebar = module.exports = new Class({
                 
                 //validation
                 if(!(files && files.length) && !fname_ && !(url && fname_)) {
-                    fd.error.alert('No file was selected.',
+                    fd().error.alert('No file was selected.',
                             'Please select a file to upload.');
                     return;
                 }
@@ -585,8 +588,8 @@ var Sidebar = module.exports = new Class({
                     var fname = filename.basename(files[f].name),
                         ex = filename.extname(files[f].name);
                         
-                    if (fd.item.attachmentExists(fname +'.'+ ex)) {
-                        fd.error.alert('Filename has to be unique',
+                    if (fd().item.attachmentExists(fname +'.'+ ex)) {
+                        fd().error.alert('Filename has to be unique',
                                 'You already have an attachment with that name.');
                         return;
                     }
@@ -628,8 +631,8 @@ var Sidebar = module.exports = new Class({
                     }
                     // basename should have a meaning after replacing all
                     // non alphanumeric characters
-                    if (['-', ''].contains(fname_.get_basename(isFolder))) {
-                        fd.error.alert(
+                    if (['-', ''].contains(fname_)) {
+                        fd().error.alert(
                                 'ERROR',
                                 'Please use alphanumeric characters for filename');
                         return;
@@ -668,7 +671,7 @@ var Sidebar = module.exports = new Class({
     },
     
     promptPlugin: function() {
-        var modal = fd.showQuestion({
+        var modal = fd().showQuestion({
             title: 'Add a Library',
             message: '<input type="text" name="new_library" id="new_library" placeholder="Search for libraries to include" />' +
                      '<input type="hidden" name="library_id_number" id="library_id_number" />',
@@ -677,11 +680,11 @@ var Sidebar = module.exports = new Class({
             callback: function() {
                 var lib_id = dom.$('library_id_number').get('value');
                 if(!lib_id) {
-                    fd.error.alert('No Library found!', 'Please enter the name of an existing Library');
+                    fd().error.alert('No Library found!', 'Please enter the name of an existing Library');
                     return;
                 }
                 
-                fd.item.assignLibrary(lib_id);
+                fd().item.assignLibrary(lib_id);
             }
         });
         
@@ -724,7 +727,7 @@ var Sidebar = module.exports = new Class({
     promptPluginUpdate: function(li) {
         var that = this,
             file = li.retrieve('file');
-        fd.item.updateLibrary(file, function(response) {
+        fd().item.updateLibrary(file, function(response) {
             that.removePluginUpdate(file);
             //TODO: Somehow here rename the item
         });

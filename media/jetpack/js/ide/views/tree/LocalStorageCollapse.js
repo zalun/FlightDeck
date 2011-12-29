@@ -19,7 +19,7 @@ module.exports = new Class({
 
     setState: function(element, state){
         this.parent(element, state);
-        localStorage.setItem(this.key, JSON.encode(this.state));
+        localStorage.setItem(this.key, JSON.stringify(this.state));
         return this;
     }
 

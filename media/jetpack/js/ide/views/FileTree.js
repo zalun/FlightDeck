@@ -2,6 +2,7 @@ var Class = require('shipyard/class/Class'),
     Tree = require('./tree/Tree'),
     LocalStorageCollapse = require('./tree/LocalStorageCollapse'),
     object = require('shipyard/utils/object'),
+	string = require('shipyard/utils/string'),
     dom = require('shipyard/dom'),
 
     File = require('../models/File'),
@@ -130,11 +131,11 @@ var FileTree = module.exports = new Class({
             delete options.remove;
         }
         
-        attr.html = ('<a class="expand" href="#"></a>' +
+        attr.html = string.substitute('<a class="expand" href="#"></a>' +
             '<div class="holder">' +
                 '<span id="{id}" class="label" title="{title}">{title}</span><span class="icon"></span>' +
                 '<div class="actions">{add}{edit}{remove}</div>' +
-            '</div>{dir}').substitute({
+            '</div>{dir}', {
             title: attr.title,
             id: attr.name ? attr.name + '_switch' : attr.title + '_folder',
             dir: attr.rel === 'directory' ? '<ul' + (options.collapsed ? ' style="display:none;"' : '') + '></ul>' : '',
@@ -158,7 +159,7 @@ var FileTree = module.exports = new Class({
         });
         
         li.inject(target, where);
-        this.fireEvent('addBranch', [li].combine(arguments));
+        this.emit('addBranch', li, attr, target, options);
         return li;
     },
     
@@ -167,7 +168,7 @@ var FileTree = module.exports = new Class({
             label = li.getElement('.label'),
             text = label.get('text').trim();
         
-        this.fireEvent('renameStart', [li, label]);
+        this.fireEvent('renameStart', li, label);
         
         
         label.set('tabIndex', 0).set('contenteditable', true).focus();
@@ -265,7 +266,7 @@ var FileTree = module.exports = new Class({
         options = options || {};
         var suffix = options.suffix || '',
             splitted = obj.get('fullName').split('/'),
-            elements = Array.clone(splitted),
+            elements = object.clone(splitted),
             end = splitted.length - 1,
             selector = '',
             tree = this,
@@ -282,7 +283,7 @@ var FileTree = module.exports = new Class({
         }
         
         //TODO: my eyes!
-        elements.each(function(name, i){
+        elements.forEach(function(name, i){
             var path = splitted.slice(0, i + 1).join('/');
             if (i === end){
                 var previous = elements[i - 1] ? elements[i - 1].getElement('ul') : (options.target.getElement('ul') || options.target);
@@ -364,7 +365,7 @@ FileTree.Collapse = new Class({
     updatePath: function(element){
         var parent = element.getParent('li'),
             path = parent ? parent.get('path') : false;
-        element.set('path', (path ? path + '/' : '') + (element.get('path') || '').split('/').getLast());
+        element.set('path', (path ? path + '/' : '') + (element.get('path') || '').split('/').pop());
     }
     
 });

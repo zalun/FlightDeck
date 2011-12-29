@@ -20,8 +20,11 @@ var Class = require('shipyard/class/Class'),
     Validator = require('../views/Validator'),
     
     //TODO: this is bad practice
-    settings = dom.window.get('settings'),
-    fd = dom.window.get('fd');
+    settings = dom.window.get('settings');
+
+function fd() {
+	return dom.window.get('fd');
+}
 
 var LOADING_CLASS = 'loading';
 
@@ -152,7 +155,7 @@ module.exports = new Class({
             });
         }
 
-        fd.addEvent('xpi_downloaded', function() {
+        fd().addEvent('xpi_downloaded', function() {
             controller.generateHashtag();
         });
 
@@ -194,9 +197,9 @@ module.exports = new Class({
             this.console_el = dom.$(this.options.console_el);
             this.console_el.addEvent('click', function(e) {
                 e.preventDefault();
-                var FD = dom.window.get('mozFlightDeck');
-                if (FD) {
-                    FD.send({
+                var abh = dom.window.get('mozFlightDeck');
+                if (abh) {
+                    abh.send({
                         cmd: 'toggleConsole',
                         contents: 'open'
                     });
@@ -242,7 +245,7 @@ module.exports = new Class({
                     onSuccess: function(text) {
                         var response = JSON.parse(text);
                         // set the redirect data to view_url of the new revision
-                        fd.setURIRedirect(response.view_url);
+                        //fd().setURIRedirect(response.view_url);
                         // set data changed by save
                         controller.registerRevision(response);
                         // change url to the SDK lib code
@@ -251,7 +254,7 @@ module.exports = new Class({
                         // change name of the SDK lib
                         dom.$('core_library_lib').getElement('span').set(
                             'text', response.lib_name);
-                        fd.message.alert(response.message_title, response.message);
+                        fd().message.alert(response.message_title, response.message);
                     },
                     onComplete: function() {
                         loader.removeClass(LOADING_CLASS);
@@ -367,7 +370,7 @@ module.exports = new Class({
             method: 'get',
             url: string.subsitute(this.options.revisions_list_html_url, this.options),
             onSuccess: function(html) {
-                var modal = fd.displayModal(html),
+                var modal = fd().displayModal(html),
                     modalEl = dom.$(modal).getElement('.UI_Modal'),
                     showVersionsEl = modalEl.getElement('#versions_only');
                 //setup handler for "Show versions only" checkbox
@@ -427,7 +430,7 @@ module.exports = new Class({
     },
 
     askForReload: function() {
-        fd.warning.alert(
+        fd().warning.alert(
             'New revision detected',
             'There is a newer revision available. <a href="'+
             this.options.latest_url +'">Click this link to go to it now.</a>'
@@ -445,12 +448,12 @@ module.exports = new Class({
 		this._is_copying = true;
 
         if (!settings.user) {
-            fd.alertNotAuthenticated();
+            fd().alertNotAuthenticated();
             return;
         }
         
         if (this.edited) {
-            fd.error.alert("There are unsaved changes",
+            fd().error.alert("There are unsaved changes",
                     "To make a copy, please save your changes.");
             return;
         }
@@ -479,7 +482,7 @@ module.exports = new Class({
 		}
         el.addClass('clicked');
 
-        fd.tests[this.options.hashtag] = {
+        fd().tests[this.options.hashtag] = {
             spinner: el.addClass('loading').addClass('small')
         };
         var data = {
@@ -494,7 +497,7 @@ module.exports = new Class({
                 el.removeClass('clicked');
 			},
             onSuccess: function() {
-                fd.downloadXPI(data);
+                fd().downloadXPI(data);
             }
         }).send();
     },
@@ -505,15 +508,15 @@ module.exports = new Class({
             this.data.live_data_testing = true;
         }
         var el = this.test_el;
-        if (fd.alertIfNoAddOn()) {
+        if (fd().alertIfNoAddOn()) {
             if (el.hasClass('pressed')) {
-                fd.uninstallXPI(el.get('data-jetpackid'));
+                fd().uninstallXPI(el.get('data-jetpackid'));
             } else {
                 this.installAddon();
             }
         } else {
-            fd.whenAddonInstalled(function() {
-                fd.message.alert(
+            fd().whenAddonInstalled(function() {
+                fd().message.alert(
                     'Add-on Builder Helper',
                     'Now that you have installed the Add-on Builder Helper, loading the add-on into your browser for testing...'
                 );
@@ -529,7 +532,7 @@ module.exports = new Class({
         }
         
         var loader = this.test_el.getElement('a');
-        fd.tests[this.options.hashtag] = {
+        fd().tests[this.options.hashtag] = {
             spinner: loader.addClass(LOADING_CLASS).addClass('small')
         };
         var data = this.data || {};
@@ -538,7 +541,7 @@ module.exports = new Class({
             url: this.options.test_url,
             data: data,
             onSuccess: function() {
-                fd.testXPI(data);
+                fd().testXPI(data);
             },
             onComplete: function() {
                 loader.removeClass(LOADING_CLASS);
@@ -550,12 +553,12 @@ module.exports = new Class({
         if (this.getOption('readonly')) {
             return;
         }
-        this.options.hashtag = fd.generateHashtag(this.package_.get('id_number'));
+        this.options.hashtag = fd().generateHashtag(this.package_.get('id_number'));
     },
 
     //Package.View
     showInfo: function() {
-        fd.displayModal(this.options.package_info);
+        fd().displayModal(this.options.package_info);
     },
 
     //Package.Edit
@@ -605,7 +608,7 @@ module.exports = new Class({
         }
         // else if uneditable Attachment
         else if (file instanceof Attachment) {
-            // then show in fd.modal
+            // then show in fd().modal
             this.showAttachmentModal(file);
         }
         // else if Library
@@ -637,7 +640,7 @@ module.exports = new Class({
             file.get('shortName')+
             '</a>';
         var spinner, img;
-        var modal = fd.displayModal(template_start+template_middle+template_end);
+        var modal = fd().displayModal(template_start+template_middle+template_end);
         var target = dom.$(modal).getElement('.UI_Modal_Section p');
         if (file.isImage()) {
             template_middle += '<p></p>';
@@ -682,7 +685,7 @@ module.exports = new Class({
         var that = this;
         if (this.edited) {
             // display message
-            fd.showQuestion({
+            fd().showQuestion({
                 title: 'You\'ve got unsaved changes.',
                 message: 'Choose from the following options',
                 buttons: [{
@@ -703,7 +706,7 @@ module.exports = new Class({
                     'class': 'submit',
                     type: 'button',
                     callback: function(){
-                        fd.addVolatileEvent('save', this.boundDownloadAddon);
+                        fd().once('save', this.boundDownloadAddon);
                         this.save();
                     }.bind(this),
                     'default': true
@@ -744,7 +747,7 @@ module.exports = new Class({
                     return;
                 }
 
-                fd.message.alert(response.message_title, response.message);
+                fd().message.alert(response.message_title, response.message);
                 var attachment = controller.newAttachment({
                     filename: response.filename,
                     ext: response.ext,
@@ -760,7 +763,7 @@ module.exports = new Class({
                 }
             },
             onFailure: function(text) {
-                fd.error.alert(
+                fd().error.alert(
                     string.substitute('Error {status}', this.xhr),
                     string.substitute('{statusText}<br/>{responseText}', this.xhr)
                 );
@@ -796,9 +799,9 @@ module.exports = new Class({
             method: 'post',
             onSuccess: function(text) {
                 var response = JSON.parse(text);
-                fd.setURIRedirect(response.view_url);
+                //fd().setURIRedirect(response.view_url);
                 controller.registerRevision(response);
-                fd.message.alert(response.message_title, response.message);
+                fd().message.alert(response.message_title, response.message);
                 var att = controller.newAttachment({
                     filename: response.filename,
                     ext: response.ext,
@@ -842,14 +845,14 @@ module.exports = new Class({
             },
             onSuccess: function(text) {
                 var response = JSON.parse(text);
-                fd.setURIRedirect(response.view_url);
+                //fd().setURIRedirect(response.view_url);
                 that.registerRevision(response);
                 if (!quiet) {
-                    fd.message.alert(response.message_title, response.message);
+                    fd().message.alert(response.message_title, response.message);
                 }
                 
                 if (!att) {
-                    log.warn("Attachment (" + uid + ") couldn't be found in fd.item");
+                    log.warn("Attachment (" + uid + ") couldn't be found in fd().item");
                     return;
                 }
                 att.set({
@@ -880,9 +883,9 @@ module.exports = new Class({
             data: {uid: attachment.get('uid')},
             onSuccess: function(text) {
                 var response = JSON.parse(text);
-                fd.setURIRedirect(response.view_url);
+                //fd().setURIRedirect(response.view_url);
                 controller.registerRevision(response);
-                fd.message.alert(response.message_title, response.message);
+                fd().message.alert(response.message_title, response.message);
                 attachment.destroy();
             }
         }).send();
@@ -898,10 +901,10 @@ module.exports = new Class({
             onSuccess: function addModule_onSuccess(text) {
                 var response = JSON.parse(text);
                 // set the redirect data to view_url of the new revision
-                fd.setURIRedirect(response.view_url);
+                //fd().setURIRedirect(response.view_url);
                 // set data changed by save
                 controller.registerRevision(response);
-                fd.message.alert(response.message_title, response.message);
+                fd().message.alert(response.message_title, response.message);
                 // initiate new Module
                 var mod = controller.newModule({
                     active: true,
@@ -932,9 +935,9 @@ module.exports = new Class({
             },
             onSuccess: function(text) {
                 var response = JSON.parse(text);
-                fd.setURIRedirect(response.view_url);
+                //fd().setURIRedirect(response.view_url);
                 controller.registerRevision(response);
-                fd.message.alert(response.message_title, response.message);
+                fd().message.alert(response.message_title, response.message);
                 
                 var mod = controller.modules[oldName];
                 var modId = mod.get('uid');
@@ -964,9 +967,9 @@ module.exports = new Class({
             data: module.toJSON(),
             onSuccess: function(text) {
                 var response = JSON.parse(text);
-                fd.setURIRedirect(response.view_url);
+                //fd().setURIRedirect(response.view_url);
                 controller.registerRevision(response);
-                fd.message.alert(response.message_title, response.message);
+                fd().message.alert(response.message_title, response.message);
                 module.destroy();
             },
             onComplete: function() {
@@ -987,9 +990,9 @@ module.exports = new Class({
             },
             onSuccess: function(text) {
                 var response = JSON.parse(text);
-                fd.setURIRedirect(response.view_url);
+                //fd().setURIRedirect(response.view_url);
                 controller.registerRevision(response);
-                fd.message.alert(response.message_title, response.message);
+                fd().message.alert(response.message_title, response.message);
                 response.removed_attachments.forEach(function(uid) {
                     controller.attachments[uid].destroy();
                 });
@@ -1013,9 +1016,9 @@ module.exports = new Class({
             data: {filename: path+'/'},
             onSuccess: function(text) {
                 var response = JSON.parse(text);
-                fd.setURIRedirect(response.view_url);
+                //fd().setURIRedirect(response.view_url);
                 controller.registerRevision(response);
-                fd.message.alert(response.message_title, response.message);
+                fd().message.alert(response.message_title, response.message);
                 response.removed_modules.forEach(function(filename) {
                     controller.modules[filename].destroy();
                 });
@@ -1043,9 +1046,9 @@ module.exports = new Class({
             },
             onSuccess: function(text) {
                 var response = JSON.parse(text);
-                fd.setURIRedirect(response.view_url);
+                //fd().setURIRedirect(response.view_url);
                 controller.registerRevision(response);
-                fd.message.alert(response.message_title, response.message);
+                fd().message.alert(response.message_title, response.message);
                 controller.newFolder({
                     name: response.name,
                     root_dir: root_dir
@@ -1066,9 +1069,9 @@ module.exports = new Class({
             data: folder.toJSON(),
             onSuccess: function(text) {
                 var response = JSON.parse(text);
-                fd.setURIRedirect(response.view_url);
+                //fd().setURIRedirect(response.view_url);
                 controller.registerRevision(response);
-                fd.message.alert(response.message_title, response.message);
+                fd().message.alert(response.message_title, response.message);
                 folder.destroy();
             },
             onComplete: function() {
@@ -1080,7 +1083,7 @@ module.exports = new Class({
     assignLibrary: function(library_id) {
         if (library_id) {
             var controller = this,
-                el = dom.$('plugins');
+                el = dom.$('libraries');
             el.addClass(LOADING_CLASS).addClass('small');
             return new Request({
                 url: this.options.assign_library_url,
@@ -1088,10 +1091,10 @@ module.exports = new Class({
                 onSuccess: function(text) {
                     var response = JSON.parse(text);
                     // set the redirect data to view_url of the new revision
-                    fd.setURIRedirect(response.view_url);
+                    //fd().setURIRedirect(response.view_url);
                     // set data changed by save
                     controller.registerRevision(response);
-                    fd.message.alert(response.message_title, response.message);
+                    fd().message.alert(response.message_title, response.message);
                     controller.newDependency({
                         full_name: response.library_full_name,
                         id_number: response.library_id_number,
@@ -1105,7 +1108,7 @@ module.exports = new Class({
                 }
             }).send();
         } else {
-            fd.error.alert('No such Library', 'Please choose a library from the list');
+            fd().error.alert('No such Library', 'Please choose a library from the list');
         }
     },
     
@@ -1121,9 +1124,9 @@ module.exports = new Class({
             },
             onSuccess: function(text) {
                 var response = JSON.parse(text);
-                fd.setURIRedirect(response.view_url);
+                //fd().setURIRedirect(response.view_url);
                 controller.registerRevision(response);
-                fd.message.alert(response.message_title, response.message);
+                fd().message.alert(response.message_title, response.message);
                 lib.set({
                     view_url: response.library_url
                 });
@@ -1186,9 +1189,9 @@ module.exports = new Class({
             data: {'id_number': lib.get('id_number')},
             onSuccess: function(text) {
                 var response = JSON.parse(text);
-                fd.setURIRedirect(response.view_url);
+                //fd().setURIRedirect(response.view_url);
                 controller.registerRevision(response);
-                fd.message.alert(response.message_title, response.message);
+                fd().message.alert(response.message_title, response.message);
                 lib.destroy();
             },
             onComplete: function() {
@@ -1232,8 +1235,8 @@ module.exports = new Class({
             url: activateButton.getElement('a').get('href'),
             onSuccess: function(text) {
                 var response = JSON.parse(text);
-                fd.message.alert(response.message_title, response.message);
-                fd.fireEvent('activate_' + response.package_type);
+                fd().message.alert(response.message_title, response.message);
+                fd().fireEvent('activate_' + response.package_type);
                 activateButton.addClass('pressed').getElement('a').addClass('inactive');
                 dom.$('UI_DisableLink').removeClass('pressed').getElement('a').removeClass('inactive');
             },
@@ -1259,8 +1262,8 @@ module.exports = new Class({
         return new Request({
             url: deactivateButton.getElement('a').get('href'),
             onSuccess: function(response) {
-                fd.message.alert(response.message_title, response.message);
-                fd.fireEvent('disable_' + response.package_type);
+                fd().message.alert(response.message_title, response.message);
+                fd().fireEvent('disable_' + response.package_type);
                 dom.$('activate').addEvent('click', controller.makePublic.bind(controller));
                 deactivateButton.addClass('pressed').getElement('a').addClass('inactive');
                 dom.$('UI_ActivateLink').removeClass('pressed').getElement('a').removeClass('inactive');
@@ -1278,14 +1281,14 @@ module.exports = new Class({
     editInfo: function() {
         var controller = this;
         this.savenow = false;
-        fd.editPackageInfoModal = fd.displayModal(
+        fd().editPackageInfoModal = fd().displayModal(
                 string.substitute(settings.edit_package_info_template,
                     object.merge({}, this.data, this.options)));
         dom.$('full_name').addEvent('change', function() {
-            fd.fireEvent('change');
+            fd().fireEvent('change');
         });
         dom.$('package_description').addEvent('change', function() {
-            fd.fireEvent('change');
+            fd().fireEvent('change');
         });
         var savenow = dom.$('savenow');
         if (savenow) {
@@ -1337,7 +1340,7 @@ module.exports = new Class({
         if (this.savenow) {
             return this.save();
         }
-        fd.editPackageInfoModal.destroy();
+        fd().editPackageInfoModal.destroy();
     },
 
     collectData: function() {
@@ -1405,10 +1408,10 @@ module.exports = new Class({
                         }, this
                     );
                 }
-                fd.setURIRedirect(response.view_url);
+                //fd().setURIRedirect(response.view_url);
                 // set data changed by save
                 this.registerRevision(response);
-                fd.message.alert(response.message_title, response.message);
+                fd().message.alert(response.message_title, response.message);
                 // clean data leaving package_info data
                 this.data = {};
                 this.options.package_info_form_elements.forEach(function(key) {
@@ -1416,8 +1419,8 @@ module.exports = new Class({
                         this.data[key] = response[key];
                     }
                 }, this);
-                if (fd.editPackageInfoModal) {
-                    fd.editPackageInfoModal.destroy();
+                if (fd().editPackageInfoModal) {
+                    fd().editPackageInfoModal.destroy();
                 }
                 if (this.test_el && this.test_el.hasClass('pressed')) {
                     // only one add-on of the same id should be allowed on the Helper side
@@ -1544,7 +1547,7 @@ module.exports = new Class({
         shortcuts.push('<strong>Tree</strong>');
         this.sidebar.keyboard.getShortcuts().forEach(buildLines);
         
-        this._shortcutsModal = fd.displayModal('<h3>Keyboard Shortcuts</h3>'+
+        this._shortcutsModal = fd().displayModal('<h3>Keyboard Shortcuts</h3>'+
                         '<div class="UI_Modal_Section"><p>'+
                         shortcuts.join('</p><p>')+
                         '</p></div>'
@@ -1573,7 +1576,7 @@ module.exports = new Class({
     },
 
     alertUnsavedData: function(e) {
-        if (this.edited && !fd.saving) {
+        if (this.edited && !fd().saving) {
             e.preventDefault();
         }
     }

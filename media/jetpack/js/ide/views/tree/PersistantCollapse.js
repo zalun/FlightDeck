@@ -25,7 +25,7 @@ module.exports = new Class({
 
     prepare: function(){
         var obj = this.state;
-        this.element.getElements(this.options.listSelector).each(function(element){
+        this.element.getElements(this.options.listSelector).forEach(function(element){
             if (!element.getElement(this.options.childSelector)) {
                 return;
             }

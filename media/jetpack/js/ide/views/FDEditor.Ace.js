@@ -27,7 +27,7 @@ var stripDeltas = function(stack) {
     // [[DeltaObject1], [DeltaObject2], ... ]
     // these objects have to be copied - not referenced
     var deltas = [];
-    stack.each(function(single){
+    stack.forEach(function(single){
         deltas.push(object.merge({}, single[0]));
     });
     return deltas;
@@ -36,7 +36,7 @@ var stripDeltas = function(stack) {
 var buildStack = function(deltas) {
     // Extract stored deltas into the stack
     var stack = [];
-    deltas.each(function(delta){
+    deltas.forEach(function(delta){
         stack.push([object.merge({}, delta)]);
     });
     return stack;
@@ -69,7 +69,7 @@ module.exports = new Class({
 
         var that = this;
         
-        ['blur', 'focus'].each(function(ev) {
+        ['blur', 'focus'].forEach(function(ev) {
             that.editor.on(ev, function(){
                 that.emit(ev);
             });

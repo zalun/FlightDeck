@@ -241,7 +241,7 @@ module.exports = new Class({
         }
         
         var result = {};
-        base.getChildren('li').each(function(el) {
+        base.getChildren('li').forEach(function(el) {
             var child = el.getElement('ul');
             result[fn(el)] = child ? this.serialize(fn, child) : true;
         }, this);
