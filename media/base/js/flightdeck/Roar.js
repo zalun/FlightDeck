@@ -191,7 +191,9 @@ module.exports = new Class({
 	},
 
 	reposition: function() {
-		var max = dom.document.getCoordinates(), scroll = dom.document.getScroll(), margin = this.options.margin;
+		var max = dom.document.getCoordinates(),
+			scroll = dom.document.getScroll(),
+			margin = this.options.margin;
 		max.left += scroll.x;
 		max.right += scroll.x;
 		max.top += scroll.y;

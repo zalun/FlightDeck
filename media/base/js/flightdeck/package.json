@@ -7,7 +7,7 @@
 		"mini_require": true,
 		"target": "../flightdeck-min.js",
 		"min": false,
-
+		
 		"test": "./tests"
 	}
 }

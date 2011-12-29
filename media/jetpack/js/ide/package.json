@@ -7,6 +7,9 @@
         "target": "../ide-min.js",
         "min": false,
 
+		"dependencies": {
+			"flightdeck": "../../../base/js/flightdeck"
+		},
         "test": "./tests"
     }
 }

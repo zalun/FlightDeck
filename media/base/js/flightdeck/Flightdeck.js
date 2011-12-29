@@ -4,16 +4,27 @@ var Class = require('shipyard/class/Class'),
 	EventEmitter = require('shipyard/class/Events'),
 	dom = require('shipyard/dom'),
 	Request = require('shipyard/http/Request'),
+	object = require('shipyard/utils/object'),
 	string = require('shipyard/utils/string'),
 	log = require('shipyard/utils/log'),
 	
+	Roar = require('./Roar'),
 	settings = dom.window.get('settings');
 
 function ABH() {
 	return dom.window.get('mozFlightDeck');
 }
 
-var FlightDeck = new Class({
+function wrapRoar(roar, name, duration) {
+	return function _roar(title, message) {
+		roar.alert(title, message, {
+			className: 'roar ' + name,
+			duration: duration
+		});
+	};
+}
+
+module.exports = new Class({
 
     Implements: [Options, EventEmitter],
 
@@ -26,14 +37,32 @@ var FlightDeck = new Class({
         //user: ''
     },
 
-    initialize: function() {
+	warning: {},
+	error: {},
+	message: {},
+
+    initialize: function(options) {
+		this.setOptions(options);
 		var fd = this;
         this.tests = {}; // placeholder for testing spinners
-        this.warning = this.error = this.message = {
-            'alert': function(title, message) {
-                alert(title+"\n"+message);
-            }
-        };
+		this.roar = new Roar({ position: 'topRight' });
+
+		var roars = {
+			warning: 8000,
+			error: 20000,
+			message: 4000
+		};
+
+		object.forEach(roars, function(duration, name) {
+			this[name].alert = wrapRoar(this.roar, name, duration);
+		}, this);
+
+		// compatibility with Django messages
+		// http://docs.djangoproject.com/en/dev/ref/contrib/messages/#message-tags
+		this.success = this.info = this.message;
+		this.debug = this.warning;
+		this.parseMessages();
+
         this.editors = [];
         this.createActionSections();
 		setTimeout(function() {
@@ -70,6 +99,20 @@ var FlightDeck = new Class({
             handle.detach();
         }, 1000 * 100);
     },
+
+	/*
+     * Method: parseMessages
+     * Parses DOM to find elements with fd_{type_of_message}
+     * displays messages and removes elements from DOM
+     */
+	parseMessages: function() {
+		['message', 'warning', 'error', 'success', 'info', 'debug'].forEach(function(name) {
+			dom.$$('.fd_' + name).forEach(function(el) {
+				this[name].alert(el.get('title') || name, el.get('html'));
+				el.destroy();
+			}, this);
+		}, this);
+	},
 
     parseTestButtons: function() {
         var installed = (this.isAddonInstalled()) ? this.isXpiInstalled() : false;
