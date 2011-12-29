@@ -13,6 +13,7 @@ var Class = require('shipyard/class/Class'),
     Package = require('../models/Package'),
     FileTree = require('./FileTree'),
     filename = require('../utils/filename'),
+	Autocomplete = require('flightdeck/Autocomplete'),
     URI = require('../utils/URI');
 
 //TODO: Bad practice.
@@ -686,12 +687,18 @@ var Sidebar = module.exports = new Class({
         
         //setup Library autocomplete
         // autocomplete
-        var ac = new FlightDeck.Autocomplete({
-            'url': settings.library_autocomplete_url
-        });
-        dom.$(modal).retrieve('dragger').addEvent('drag', function(el, evt) {
+        var ac = new Autocomplete('new_library', settings.library_autocomplete_url, {
+			valueField: 'library_id_number',
+			valueFilter: function(data) {
+				return data.id_number;
+			}
+		});
+        modal.addListener('drag', function(el, evt) {
             ac.positionNextTo();
         });
+		modal.addListener('destroy', function() {
+			ac.destroy();
+		});
     },
 
     setPluginUpdate: function(library, latest_revision) {

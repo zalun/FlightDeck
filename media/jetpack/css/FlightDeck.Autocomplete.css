@@ -11,7 +11,7 @@ license: MIT-style license
 ...
 */
 
-.ma-container {
+.fd-autocomplete {
 	visibility: hidden;
 	position: absolute;
 	top: 31px;
@@ -29,13 +29,13 @@ license: MIT-style license
 	overflow-x: hidden;
 }
 
-.ma-container ul {
+.fd-autocomplete ul {
 	list-style: none;
 	overflow: hidden;
 	width: 100%;
 }
 
-.ma-container li {
+.fd-autocomplete li {
  	background: transparent;
 	margin: 0;
 	display: block;
@@ -46,24 +46,24 @@ license: MIT-style license
 	cursor: pointer;
 }
 
-.ma-container .ma-hover {
+.fd-autocomplete .fd-hover {
 	background: -moz-linear-gradient(270deg, #5AA2F3, #3E81D2);
 	color: #fff;
 	text-shadow: 0 1px 0 #011E4F;
 }
 
-.ma-container .ma-odd {
+.fd-autocomplete .fd-odd {
 }
 
-.ma-container .ma-even {
+.fd-autocomplete .fd-even {
 }
-.ma-loading {
+.fd-loading {
     background-image:url('../img/spinner-16.gif');
     background-repeat:no-repeat;
     background-position:98% center;
 }
 
-.ma-selected {
+.fd-selected {
 }
 
 .autocomplete.tip.roar {

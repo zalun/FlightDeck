@@ -98,15 +98,15 @@ body
             }
 		
 
-.ma-container strong { 
+.fd-autocomplete strong { 
 	font-weight: bold;
 }
-.ma-container .author {
+.fd-autocomplete .author {
 	display: block;
 	font-size: 0.9em;
 }
 
-.ma-container .description {
+.fd-autocomplete .description {
 	display: block;
 	font-size: 0.9em;
 	font-style: italic;
