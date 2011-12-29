@@ -168,8 +168,10 @@ module.exports = new Class({
                     if (response.ready || test_request.download_request_number > 50) {
                         clearInterval(test_request.download_ID);
                         test_request.spinner.removeClass('loading');
-                        fd.error.alert('XPI download failed',
-                            'XPI is not yet prepared, giving up');
+						if (!response.ready) {
+							fd.error.alert('XPI download failed',
+								'XPI is not yet prepared, giving up');
+						}
                     }
                     if (response.ready) {
                         var url = '/xpi/download/'+hashtag+'/'+filename+'/';
