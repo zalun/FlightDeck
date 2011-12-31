@@ -23,8 +23,11 @@
         {% endif %}        
         <li title="Development Activity" class="activity"><span>&nbsp;</span>
             {{ get_activity_level_UI(package.search_meta.activity) }}</li>
+        {% if package.search_meta.size %}
         <li title="Package Size" class="size"><span>&nbsp;</span>
             {{ package.search_meta.size|filesizeformat }}</li>   
+        {% endif %}
+
     </ul>
     <ul class="UI_Actions">        
         {% if package.is_addon() %}
