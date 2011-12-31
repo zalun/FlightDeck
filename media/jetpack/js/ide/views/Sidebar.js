@@ -14,7 +14,7 @@ var Class = require('shipyard/class/Class'),
     FileTree = require('./FileTree'),
     filename = require('../utils/filename'),
 	Autocomplete = require('flightdeck/Autocomplete'),
-    URI = require('../utils/URI');
+    URI = require('shipyard/utils/URI');
 
 //TODO: Bad practice.
 var settings = dom.window.get('settings');
