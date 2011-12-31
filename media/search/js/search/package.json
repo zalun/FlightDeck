@@ -1,0 +1,11 @@
+{
+	"name": "search",
+
+	"shipyard": {
+		"target": "../search-min.js",
+		"mini_require": true,
+		"dependencies": {
+			"flightdeck": "../../../base/js/flightdeck"
+		}
+	}
+}

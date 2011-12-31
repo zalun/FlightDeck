@@ -1,22 +1,37 @@
-var SearchResult = new Class({
+var Class = require('shipyard/class/Class'),
+	Request = require('shipyard/http/Request'),
+	dom = require('shipyard/dom'),
+	object = require('shipyard/utils/object'),
+	URI = require('shipyard/utils/URI'),
+	
+	Slider = require('../views/Slider');
+
+var LOADING_CLASS = 'loading';
+
+var SearchResult = module.exports = new Class({
 	
 	initialize: function(url) {
-		this.url = url
+		this.url = url;
 	},
 
 	load: function() {
 		SearchResult.$loading = this;
-		this.request = new Request.HTML({
+		var spinner = dom.$('SearchResults');
+		spinner.addClass(LOADING_CLASS);
+		this.request = new Request({
 			url: this.url,
-			filter: 'section',
-			useSpinner: true,
 			method: 'get',
-			spinnerTarget: 'SearchResults',
-			onSuccess: function(tree, elements, html) {
-				if (SearchResult.$loading == this) SearchResult.$loading = null;
-				this.content = tree;
+			onSuccess: function(response) {
+				if (SearchResult.$loading === this) {
+					SearchResult.$loading = null;
+				}
+				var temp = new dom.Element('div', { html: response });
+				this.content = temp.getElements('section');
 				this.show();
-			}.bind(this)
+			}.bind(this),
+			onComplete: function() {
+				spinner.removeClass(LOADING_CLASS);
+			}
 		}).send('xhr');
 
 		return this;
@@ -32,28 +47,27 @@ var SearchResult = new Class({
 			return this;
 		}
 
-		var results = $('SearchResults'),
-			sidebar = $('NarrowSearch'),
+		var results = dom.$('SearchResults'),
+			sidebar = dom.$('NarrowSearch'),
 			newSidebar = this.content[0],
 			newResults = this.content[1];
 		if (results) {
-			newResults.replaces(results);
+			newResults.replace(results);
 		}
 
 		if (sidebar) {
-			newSidebar.replaces(sidebar);
+			newSidebar.replace(sidebar);
 		}
 
 		if (!this.ui) {
 			SearchResult.setupUI(this);
 		} else {
 			var loc = new URI(this.url);
-			Object.each(this.ui.sliders, function(slider, name) {
+			object.forEach(this.ui.sliders, function(slider, name) {
 				slider.sanityCheck = false;
 				slider.set(loc.getData(name) || 0);
 				slider.sanityCheck = true;
-			});	
-            
+			});
 		}
 
 		return this;
@@ -64,7 +78,7 @@ var SearchResult = new Class({
 SearchResult.$cache = {};
 SearchResult.fetch = function(url) {
 	var result = SearchResult.$cache[url];
-	if (SearchResult.$loading && SearchResult.$loading != result) {
+	if (SearchResult.$loading && SearchResult.$loading !== result) {
 		SearchResult.$loading.request.cancel();
 		SearchResult.$loading = null;
 	}
@@ -79,15 +93,17 @@ SearchResult.fetch = function(url) {
 };
 
 SearchResult.page = function(url) {
-	window.history.pushState(null, "Search", String(url));
-	SearchResult.fetch(String(window.location));
+	dom.window.getNode().history.pushState(null, "Search", String(url));
+	SearchResult.fetch(String(dom.window.get('location')));
 };
 
 SearchResult.setupUI = function(result) {
 	var ui = { sliders: {} };
-    if (result) result.ui = ui;
+    if (result) {
+		result.ui = ui;
+	}
 
-    slidersMap = {
+    var slidersMap = {
         'Activity': {
             0: 'Inactive',
             1: 'Stale',
@@ -96,11 +112,11 @@ SearchResult.setupUI = function(result) {
             4: 'High',
             5: 'Rockin\''
         }
-    }
+    };
 
     var filters = ['Copies', 'Used', 'Activity'];
     filters.forEach(function(filter) {
-        var container = $(filter + 'Filter'),
+        var container = dom.$(filter + 'Filter'),
             dataKey = filter.toLowerCase();
 
         if (container && !container.hasClass('disabled')) {
@@ -109,9 +125,9 @@ SearchResult.setupUI = function(result) {
                 knobEl = sliderEl.getElement('.knob'),
                 valueEl = container.getElement('.slider-value'),
                 rangeEndEl = sliderEl.getElement('.range.end'),
-                end = rangeEndEl.get('text').toInt() || rangeEndEl.get('data-value').toInt();
+                end = parseInt(rangeEndEl.get('text'), 10) || parseInt(rangeEndEl.get('data-value'), 10);
 
-            var initialStep = Math.max(0, valueEl.get('text').toInt() || 0);
+            var initialStep = Math.max(0, parseInt(valueEl.get('text'), 10) || 0);
         
             var slider = new Slider(sliderEl, knobEl, {
                 //snap: true,
@@ -122,9 +138,11 @@ SearchResult.setupUI = function(result) {
                     valueEl.set('text', map ? map[step] : step);
                 },
                 onComplete: function(step) {
-                    if (!this.sanityCheck) return;
+                    if (!this.sanityCheck) {
+						return;
+					}
 
-                    var loc = new URI(String(window.location));
+                    var loc = new URI(String(dom.window.get('location')));
                     loc.setData(dataKey, step);
                     SearchResult.page(loc);
                 }
@@ -142,7 +160,7 @@ SearchResult.setupUI = function(result) {
             // If a slider is disabled, it's because it's facet no
             // longer has results. So, we should remove the facet from
             // the URL
-            var loc = new URI(String(window.location));
+            var loc = new URI(String(dom.window.get('location')));
 
             var oldData = Number(loc.getData(dataKey));
             if (oldData) {
@@ -153,63 +171,3 @@ SearchResult.setupUI = function(result) {
     });
 };
 
-
-window.addEvent('domready', function() {
-	//cool browsers only
-	if (!(window.history && history.pushState)) return;
-
-	Element.NativeEvents.popstate = 2;
-	
-	$('app-body').addEvent('click:relay(a)', function(e, a) {
-		if (a.pathname == window.location.pathname) {
-			e.preventDefault();
-			SearchResult.page(a.get('href'));
-		}
-	});
-	
-	$('app-body').addEvent('click:relay(input[type="checkbox"])', function(e, a) {
-		var loc = new URI(window.location);
-		var filter = this.get('name');
-		if(a.checked){
-				loc.setData(filter,1);
-				a.checked = !a.checked; //for caching
-		}else{
-				loc.setData(filter,0);
-				a.checked = !a.checked; //for caching
-		}
-		SearchResult.page(loc);
-	});
-
-	$('Search').addEvent('submit', function(e) {
-		e.preventDefault();
-		var loc = new URI(String(window.location)),
-			q = this.getElement('input[name=q]');
-		if (loc.getData('q') != q.value) {
-			loc.setData('q', q.value);
-			SearchResult.page(loc);
-		}
-	});
-
-	window.addEvent('popstate', function(e) {
-		SearchResult.fetch(String(window.location));
-	});
-	
-	$('app-body').addEvent('change:relay(#SortSelect)',function(e){
-		var u = new URI(window.location);
-		var oldValue = u.getData('sort');		
-		u.setData('sort',this.getSelected().get('value')[0])
-		SearchResult.page(u.toString());
-		// Since we cache these pages, we need to set the select
-		// value back to the original value. Otherwise,
-		// when this page is pulled from the cache the selected
-		// option will not match the querystring
-		Array.from(this.options).each(function(o,i){			
-			if(o.value == oldValue){
-				o.selected = true;
-				this.selectedIndex = i;
-			}
-		});
-	});
-	
-	SearchResult.setupUI();
-});
