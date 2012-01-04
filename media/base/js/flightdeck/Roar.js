@@ -60,7 +60,7 @@ module.exports = new Class({
 		options = options || {};
 
 		var offset = [-this.options.offset, 0];
-		var last = this.items.getLast();
+		var last = this.items[this.items.length - 1];
 		if (last) {
 			offset[0] = last.retrieve('roar:offset');
 			offset[1] = offset[0] + last.get('offsetHeight') + this.options.offset;
