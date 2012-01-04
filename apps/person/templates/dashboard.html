@@ -1,12 +1,19 @@
 {% extends "base.html" %}
 
+{% block head %}
+    <link rel="stylesheet" href="/media/person/css/UI.Dashboard.css" type="text/css" media="screen" />
+	<link rel="stylesheet" href="/media/jetpack/css/UI.Browser.css" type="text/css" media="screen" />
+{% endblock %}
 
 {% block flightdeck_options %},
 'upload_package_modal': '{{ escape_template("_upload_package.html") }}'
 {% endblock %}
 
+{% block page_domready %}
+    flightdeck.browser(fd);
 {% block head %}
   {% block head_continue %}{% endblock %}
+{% endblock %}
 {% endblock %}
 
 {% block app_sidebar %}

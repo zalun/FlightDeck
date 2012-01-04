@@ -2,13 +2,6 @@
 
 {% block title %}Dashboard - {% endblock %}
 
-{% block head_continue %}
-	<link rel="stylesheet" href="/media/jetpack/css/UI.Browser.css" type="text/css" media="screen" />
-	<link rel="stylesheet" href="/media/person/css/UI.Dashboard.css" type="text/css" media="screen" />
-	<script src="/media/jetpack/js/FlightDeck.Browser.js"></script>
-	<script src="/media/person/js/Dashboard.js"></script>
-{% endblock %}
-
 {% block app_settings %}
     amooauth_domain: '{{ settings.AMOOAUTH_DOMAIN }}',
     amooauth_protocol: '{{ settings.AMOOAUTH_PROTOCOL }}',

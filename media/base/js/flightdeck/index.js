@@ -1,5 +1,6 @@
 var FlightDeck = require('./FlightDeck'),
-	showModal = require('./showModal');
+	showModal = require('./showModal'),
+	browser = require('./browser');
 require('./request');
 
 exports.init = function(options) {
@@ -7,4 +8,8 @@ exports.init = function(options) {
 	fd.showQuestion = showModal.showQuestion;
 	fd.displayModal = showModal.displayModal;
 	return fd;
+};
+
+exports.browser = function(fd) {
+	browser.init(fd);
 };
