@@ -5,21 +5,24 @@
 	<link rel="stylesheet" href="/media/jetpack/css/UI.Browser.css" type="text/css" media="screen" />
 {% endblock %}
 
-{% block flightdeck_options %},
-'upload_package_modal': '{{ escape_template("_upload_package.html") }}'
+{% block shipyardjs %}
+    {{ shipyard("/media/person/js/dashboard/") }}
 {% endblock %}
 
 {% block page_domready %}
     flightdeck.browser(fd);
-{% block head %}
-  {% block head_continue %}{% endblock %}
+    var dashboard = require('dashboard');
+    dashboard.init(fd);
 {% endblock %}
+
+{% block flightdeck_options %},
+'upload_package_modal': '{{ escape_template("_upload_package.html") }}'
 {% endblock %}
 
 {% block app_sidebar %}
   <h2 class="UI_Heading">
     {{ profile.get_name()}}
-  </h2>
+</h2>
   
   <div class="UI_ProfileInfo">
     {% include '_dashboard_info.html' %}

@@ -1,0 +1,12 @@
+{
+	"name": "dashboard",
+
+	"shipyard": {
+		"mini_require": true,
+		"target": "../dashboard-min.js",
+
+		"dependencies": {
+			"flightdeck": "../../../base/js/flightdeck"
+		}
+	}
+}
