@@ -319,7 +319,7 @@ module.exports = new Class({
             if (!response.success || response.msg < settings.addons_helper_version) {
                 this.warning.alert(
                         'Upgrade Add-on Builder Helper',
-                        'There is a newer version ({addons_helper_version}) available.<br/> Please install <a href="{addons_helper}">the current one</a>.'.substitute(settings));
+                        string.substitute('There is a newer version ({addons_helper_version}) available.<br/> Please install <a href="{addons_helper}">the current one</a>.', settings));
             }
         }
     },
@@ -334,9 +334,9 @@ module.exports = new Class({
         if (this.isAddonInstalled()) {
 			return true;
 		}
-        text = [text,
-                "To test this add-on, please install the <a id='install_addon_helper' href='{addons_helper}'>Add-on Builder Helper add-on</a>".substitute(settings)].pick();
-        title = [title, "Install Add-on Builder Helper"].pick();
+        text = text ||
+			string.substitute("To test this add-on, please install the <a id='install_addon_helper' href='{addons_helper}'>Add-on Builder Helper add-on</a>", settings);
+        title = title || "Install Add-on Builder Helper";
         this.warning.alert(title, text);
         return false;
     },
