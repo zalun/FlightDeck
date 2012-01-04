@@ -7,7 +7,6 @@ var Ace = require('./views/FDEditor.Ace');
 var Sidebar = require('./views/Sidebar');
 var object = require('shipyard/utils/object');
 var log = require('shipyard/utils/log');
-require('./utils/request');
 
 exports.init = function() {
 	log.debug('ide/index loaded');

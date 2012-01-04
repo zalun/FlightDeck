@@ -1,5 +1,6 @@
 var FlightDeck = require('./FlightDeck'),
 	showModal = require('./showModal');
+require('./request');
 
 exports.init = function(options) {
 	var fd = new FlightDeck(options);
