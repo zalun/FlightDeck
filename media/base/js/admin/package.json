@@ -1,0 +1,11 @@
+{
+	"name": "admin",
+
+	"shipyard": {
+		"dependencies": {
+			"flightdeck": "../flightdeck"
+		},
+		"mini_require": true,
+		"target": "../admin-min.js"
+	}
+}
