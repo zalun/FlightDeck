@@ -34,4 +34,8 @@ document.addEvent('domready',function(){
 			}
 		});
 	});
+	$('old_auth').addEvent('click', function(e){
+		e.stop();
+		$('login_form').show();
+	});
 });
