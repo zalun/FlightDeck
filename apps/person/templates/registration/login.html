@@ -33,22 +33,29 @@
 	{% endif %}
 
 	<div class="UI_Login">
-		<div class="UI_Heading">Sign In</div>			
-		<form class="UI_Forms" id="login_form" method="post" action="{{ url('django.contrib.auth.views.login') }}" accept-charset="utf-8">
+		<div class="UI_Heading">Sign In</div>
+		
+		<div class="UI_Forms_info">
+				<p>
+					Login to Add-on Builder using the same email address you use to access
+					<a title="Go to addons.mozilla.org" href="https://addons.mozilla.org">addons.mozilla.org</a>. 
+					If you don't have an account there yet, you can create one 
+					<a title="Create a new account" href="https://addons.mozilla.org/users/register">here</a>.
+				</p>
+				<p>
+					{% if waffle.switch('browserid-login') %}
+							<div id="UI_BrowserID_Img" title="Login with BrowserID">
+									&nbsp;
+							</div><span id="login_txt">or login using the <a id="old_auth" href="">old method</a>.</span>
+					{% endif %}
+				</p>
+			</div>		
+		
+		
+		<form  id="login_form" class="UI_Forms {% if not waffle.switch('browserid-login') %}show-login{% endif %}" method="post" action="{{ url('django.contrib.auth.views.login') }}" accept-charset="utf-8">
 			{{ safe_csrf_token()|safe }}
 			<fieldset>
 				<legend>Sign In</legend>
-				
-				<div class="UI_Forms_info">
-					<p>Sign in to Add-on Builder with your 
-						<a title="Go to addons.mozilla.org" href="https://addons.mozilla.org">
-							addons.mozilla.org
-						</a> account.
-					</p>
-					<p>Don't have an account? 
-						<a title="Create a new account" href="https://addons.mozilla.org/users/register">Get one</a>.
-					</p>
-				</div>
 				
 				<p class="UI_Field">
 					{{ form.username.label_tag()|safe }}
@@ -70,12 +77,6 @@
 				</ul>
 			</div> <!-- /UI_Form_Actions -->
 		</form> <!-- /UI_Forms -->
-		{% if waffle.switch('browserid-login') %}
-			<div id="UI_BrowserID_Login">
-				<div id="UI_BrowserID_Img" title="Login with BrowserID">
-						&nbsp;
-				</div>				
-			</div>
-		{% endif %}
+		<p class="really-seriously">*You must use the same email address you use to access addons.mozilla.org for both BrowserID and standard login.</p>
 	</div> <!-- /UI_Login -->
 {% endblock %}

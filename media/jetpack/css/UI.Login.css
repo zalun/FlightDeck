@@ -44,4 +44,22 @@ h3{
     cursor: pointer;
     height: 32px;
     width: 115px;
+	display:inline-block;
+}
+
+#login_form{
+   display:none;
+}
+
+#login_txt{
+   padding: 0 16px;
+   position: relative;
+   top: 8px;
+}
+#login_form.show-login{
+   display:block;
+}
+.really-seriously{
+   font-style:italic;
+   color:red;
 }

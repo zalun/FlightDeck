@@ -132,7 +132,7 @@ def browserid_authenticate(request, assertion):
         profile.user.backend = 'django_browserid.auth.BrowserIDBackend'
         return (profile, None)
         
-    username = email.partition('@')[0]
+    username = amouser['id']
     user = User.objects.create(username=username, email=email)
     
     profile = Profile(user=user)
