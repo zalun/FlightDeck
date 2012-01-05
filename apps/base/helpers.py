@@ -1,5 +1,7 @@
+import os
 import urllib
 import urlparse
+import json
 
 from django.conf import settings
 from django.template import (Library, loader, TemplateSyntaxError, Node,
@@ -139,7 +141,17 @@ def shipyard(path, compiled_path=None):
                 (_SHIPYARD_REQUIRE, path))
     else:
         if not compiled_path:
-            compiled_path = path + _SHIPYARD_SUFFIX
+            real_path = path
+            if real_path.startswith('/'):
+                real_path = '..' + real_path
+            real_path = os.path.join(settings.MEDIA_ROOT, real_path)
+            package = os.path.join(real_path, 'package.json')
+            with open(package, 'r') as f:
+                data = json.loads(f.read())
+                target = data['shipyard']['target']
+                compiled_path = os.path.join(path, target)
+
+
         out = mark_safe(u'<script src="%s?%s"></script>' %
                 (compiled_path, settings.BUILD_ID))
     return jinja2.Markup(out)
