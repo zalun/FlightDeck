@@ -84,6 +84,7 @@ def shipyard_min(ctx):
     with ctx.lcd(settings.SRC_DIR):
         ctx.local(cmd % (minify, './media/jetpack/js/ide'))
         ctx.local(cmd % (minify, './media/person/js/dashboard'))
+        ctx.local(cmd % (minify, './media/person/js/browserid'))
         ctx.local(cmd % (minify, './media/search/js/search'))
         ctx.local(cmd % (minify, './media/base/js/admin'))
         ctx.local(cmd % (minify, './media/base/js/flightdeck'))
