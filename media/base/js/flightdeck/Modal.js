@@ -18,7 +18,8 @@ module.exports = new Class({
         content: '',
         draggable: true,
         dragHandle: null,
-        zIndex: 9000
+        zIndex: 9000,
+		closeHandle: '.closeModal'
     },
 
     initialize: function Modal(options) {
@@ -45,6 +46,24 @@ module.exports = new Class({
 				}
             });
         }
+
+		// closeable
+		var closeBtn = this.element.getElement(this.getOption('closeHandle'));
+		if (closeBtn) {
+			closeBtn.addListener('click', function(e) {
+				e.stop();
+				modal.destroy();
+			});
+			var keydownHandle = dom.window.addListener('keydown', function(e) {
+				if (e.key === 'esc') {
+					modal.destroy();
+				}
+			});
+			this.addListener('destroy', function() {
+				keydownHandle.detach();
+			});
+		}
+
         this.anim = new Anim(this.element, {
             duration: Anim.SHORT,
             transition: Sine.easeInOut

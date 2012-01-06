@@ -74,9 +74,6 @@ exports.showQuestion = function(data) {
         if (!button['class']) {
             button['class'] = button.type;
         }
-        if (!button.id) {
-            button.id = string.uniqueID();
-        }
         var li = '<li>' +
                 '<input id="{id}" type="{type}" value="{text}" ' +
                 'class="{class}Modal';
@@ -125,9 +122,6 @@ exports.showQuestion = function(data) {
                 main_callback();
                 display.destroy();
             }
-        } else if (e.key === 'esc') {
-            e.stop();
-            display.destroy();
         }
     });
     display.addEvent('destroy', function() {
