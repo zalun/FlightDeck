@@ -153,7 +153,7 @@ def shipyard(path, compiled_path=None):
 
 
         out = mark_safe(u'<script src="%s?%s"></script>' %
-                (compiled_path, settings.BUILD_ID))
+                (os.path.normpath(compiled_path), settings.BUILD_ID))
     return jinja2.Markup(out)
 
 def urlparams(url_, **query):
