@@ -368,7 +368,7 @@ module.exports = new Class({
         loader.addClass(LOADING_CLASS).addClass('small');
         new Request({
             method: 'get',
-            url: string.subsitute(this.options.revisions_list_html_url, this.options),
+            url: string.substitute(this.options.revisions_list_html_url, this.options),
             onSuccess: function(html) {
                 var modal = fd().displayModal(html),
                     modalEl = dom.$(modal).getElement('.UI_Modal'),
@@ -476,7 +476,7 @@ module.exports = new Class({
     },
 
     downloadAddon: function() {
-        var el = $(this.options.download_el).getElement('a');
+        var el = dom.$(this.options.download_el).getElement('a');
         if (el.hasClass('clicked')) {
 			return;
 		}
@@ -491,7 +491,7 @@ module.exports = new Class({
         };
         new Request({
             url: this.options.download_url,
-            method: 'get',
+            method: 'post',
             data: data,
             onComplete: function() {
                 el.removeClass('clicked');
