@@ -1,0 +1,10 @@
+{
+	"name": "browserid",
+	"shipyard": {
+		"mini_require": true,
+		"target": "../browserid-min.js",
+		"dependencies": {
+			"flightdeck": "../../../base/js/flightdeck"
+		}
+	}
+}
