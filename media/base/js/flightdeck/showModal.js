@@ -54,7 +54,6 @@ exports.showQuestion = function(data) {
         main_callback,
         _buildButtons = function(data){
             return [{
-				id: string.uniqueID(),
                 type: 'reset',
                 text: data.cancel,
                 'class': 'close'
@@ -74,6 +73,9 @@ exports.showQuestion = function(data) {
     data.buttons.reverse().forEach(function(button){
         if (!button['class']) {
             button['class'] = button.type;
+        }
+        if (!button.id) {
+            button.id = string.uniqueID();
         }
         var li = '<li>' +
                 '<input id="{id}" type="{type}" value="{text}" ' +
@@ -116,17 +118,20 @@ exports.showQuestion = function(data) {
     
     //auto focus first input if it exists
     //also listen for the enter key if a text input exists
-    var enterHandle = dom.window.addListener('keydown', function(e) {
+    var keydownHandle = dom.window.addListener('keydown', function(e) {
         if (e.key === 'enter') {
             e.stop();
             if (main_callback) {
                 main_callback();
                 display.destroy();
             }
+        } else if (e.key === 'esc') {
+            e.stop();
+            display.destroy();
         }
     });
     display.addEvent('destroy', function() {
-        enterHandle.detach();
+        keydownHandle.detach();
     });
     
     textboxes = dom.$(display).getElements('input[type="text"]');
