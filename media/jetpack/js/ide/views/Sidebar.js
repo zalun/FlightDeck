@@ -56,7 +56,7 @@ var Sidebar = module.exports = new Class({
             },
             checkDrop: function(el, drop){
                 var isFile = el.get('rel') === 'file',
-                    isSibling = this.current.getSiblings().contains(el);
+                    isSibling = this.current.getSiblings().indexOf(el) !== -1;
                     
                 return (
                         ((drop.isSubnode || isSibling) && isFile) ||
@@ -503,7 +503,7 @@ var Sidebar = module.exports = new Class({
                     fd().error.alert('Folder has to be unique', 'You already have the folder with that name');
                     return;
                 }
-                if (['-', ''].contains(fname_)) {
+                if (['-', ''].indexOf(fname_) !== -1) {
                     fd().error.alert(
                             'ERROR',
                             'Please use alphanumeric characters for filename');
@@ -631,7 +631,7 @@ var Sidebar = module.exports = new Class({
                     }
                     // basename should have a meaning after replacing all
                     // non alphanumeric characters
-                    if (['-', ''].contains(fname_)) {
+                    if (['-', ''].indexOf(fname_) !== -1) {
                         fd().error.alert(
                                 'ERROR',
                                 'Please use alphanumeric characters for filename');
