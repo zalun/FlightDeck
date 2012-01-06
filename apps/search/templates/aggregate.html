@@ -5,12 +5,12 @@
 {% block head %}
 	<link rel="alternate" type="application/rss+xml" href="rss/{% if q %}?q={{q}}{% endif %}" />
 	<link rel="stylesheet" type="text/css" href="/media/search/css/Search.css" />
-	<script src="/media/jetpack/js/FlightDeck.Browser.js"></script>
 {% endblock %}
 {% block shipyardjs %}
     {{ shipyard("/media/search/js/search/") }}
 {% endblock %}
 {% block page_domready %}
+    flightdeck.browser(fd);
     var search = require('search');
     search.init();
 {% endblock %}

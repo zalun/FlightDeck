@@ -4,6 +4,10 @@ var dom = require('shipyard/dom'),
     Sine = require('shipyard/anim/transitions/Sine'),
     log = require('shipyard/utils/log');
 
+// for minifier to include flightdeck app, since it's currently always
+// initiated in base.html
+var flightdeck = require('flightdeck');
+
 var CLICK = 'click',
     LOADING_CLASS = 'loading',
 	settings,

@@ -7,10 +7,20 @@
 
 {% block head %}
 	<link rel="stylesheet" href="/media/jetpack/css/UI.Login.css" type="text/css" media="screen" />	
-	{% if waffle.switch('browserid-login') %}
+	{% if waffle.switch("browserid-login") %}
 		<script src="https://browserid.org/include.js" type="text/javascript"></script>
-		<script src="/media/person/js/browserid.js" type="text/javascript"></script>
 	{% endif %}	
+{% endblock %}
+
+{% block shipyardjs %}
+    {{ shipyard("/media/person/js/browserid/") }}
+{% endblock %}
+
+{% block page_domready %}
+    {% if waffle.switch("browserid-login") %}
+        var browserid = require('browserid');
+        browserid.init(fd);
+    {% endif %}
 {% endblock %}
 
 

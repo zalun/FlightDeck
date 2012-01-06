@@ -1,6 +1,8 @@
 var Request = require('shipyard/http/Request'),
 	dom = require('shipyard/dom');
 
+var flightdeck = require('flightdeck');
+
 var admin_settings;
 var PRESSED = 'pressed';
 

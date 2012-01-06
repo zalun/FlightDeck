@@ -4,6 +4,7 @@ var dom = require('shipyard/dom'),
 	
 	SearchResult = require('./models/SearchResult');
 
+var flightdeck = require('flightdeck');
 
 exports.init = function init() {
 	//cool browsers only
