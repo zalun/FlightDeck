@@ -14,24 +14,27 @@ exports.init = function(fd) {
 			if (assertion) {
 			
 				new Request({
-				url: '/user/browserid-login/',
-				method: 'POST',
-				data: {
-                    assertion: assertion
-                },
-				onSuccess: function(res){
-					var next = new URI(String(dom.window.get('location'))).getData('next');
-                    dom.window.getNode().location = next || '/usr/dashboard';
-				},
-				onFailure: function(res){
-					if(this.xhr.status === 401){
-						fd.error.alert("BrowserID login failed",
-							"Is this e-mail registered at addons.mozilla.org?");
-					} else if(this.xhr.status === 403 ){
-						fd.error.alert("BrowserID",
-							"Not enabled");
+					url: '/user/browserid-login/',
+					headers: {
+						'X-CSRFToken': dom.$$('input[name=csrfmiddlewaretoken]').get('value')
+					},
+					method: 'POST',
+					data: {
+						assertion: assertion
+					},
+					onSuccess: function(res){
+						var next = new URI(String(dom.window.get('location'))).getData('next');
+						dom.window.getNode().location = next || '/usr/dashboard';
+					},
+					onFailure: function(res){
+						if(this.xhr.status === 401){
+							fd.error.alert("BrowserID login failed",
+								"Is this e-mail registered at addons.mozilla.org?");
+						} else if(this.xhr.status === 403 ){
+							fd.error.alert("BrowserID",
+								"Not enabled");
+						}
 					}
-				}
 				}).send();
 			} else {
 				fd.error.alert("BrowserID Login Failed",
