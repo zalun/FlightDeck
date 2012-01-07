@@ -375,7 +375,7 @@ module.exports = new Class({
                     showVersionsEl = modalEl.getElement('#versions_only');
                 //setup handler for "Show versions only" checkbox
                 function toggleVersionsOnly() {
-                    if (showVersionsEl.checked) {
+                    if (showVersionsEl.get('checked')) {
                         modalEl.addClass('boolean-on');
                     } else {
                         modalEl.removeClass('boolean-on');

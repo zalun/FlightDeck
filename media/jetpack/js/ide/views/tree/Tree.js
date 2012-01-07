@@ -138,7 +138,7 @@ module.exports = new Class({
             };
 
         var drop;
-        if ([droppable, droppable.getParent('li')].contains(this.current)) {
+        if (this.current === droppable || this.current === droppable.getParent('li')) {
             this.drop = {};
         } else if (event.page.y >= center) {
             position.y += coords.height;
@@ -224,10 +224,12 @@ module.exports = new Class({
         });
         anim.start(1, 0.5);
         this.previous = element;
-        this.timer = (function() {
+
+        var tree = this;
+        this.timer = setTimeout(function() {
             anim.start(1);
-            this.collapse.expand(element);
-        }).delay(300, this);
+            tree.collapse.expand(element);
+        }, 300);
     },
 
     serialize: function(fn, base) {

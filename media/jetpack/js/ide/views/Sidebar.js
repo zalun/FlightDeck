@@ -287,7 +287,7 @@ var Sidebar = module.exports = new Class({
         
         file.addEvent('destroy', file._removeFromTree);
         file.addEvent('destroy', function() {
-            element.erase('file');
+            element.unstore('file');
         });
 
         // file.onChange should add an asterisk to the tree branch
@@ -419,9 +419,9 @@ var Sidebar = module.exports = new Class({
         }
         
         
-        titleOpts.name = titleOpts.name.split('/').getLast();
+        titleOpts.name = titleOpts.name.split('/').pop();
         fd().showQuestion({
-            title: title.substitute(titleOpts),
+            title: string.substitute(title, titleOpts),
             message: file instanceof Module ? 'You may always copy it from this revision' : '',
             buttons: [
                 {
@@ -721,7 +721,7 @@ var Sidebar = module.exports = new Class({
         }
         
         branch.removeClass('update');
-        branch.getElement('.icon').erase('title');
+        branch.getElement('.icon').set('title', null);
     },
     
     promptPluginUpdate: function(li) {
