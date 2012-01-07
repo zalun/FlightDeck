@@ -418,3 +418,6 @@ body .UI_middleWrapper.page {
 		.moreInfo a {
 			color: #478CDE;
 		}
+.truncate {
+	cursor: pointer;
+}

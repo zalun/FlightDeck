@@ -12,7 +12,9 @@
         version <span class="version-name">{{ item.latest.get_version_name()}}</span>
     </span>
 </h3>
-<p>{{ item.description }}</p>
+<p data-text="{{item.description}}"
+       class="description {{ 'truncate' if item.description|length > 170  else ''}}">
+        {{ item.description|truncate(170) }}</p>
 
 <ul class="UI_Actions">
 	<li class="UI_Try_in_Browser XPI_test">
