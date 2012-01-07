@@ -71,13 +71,17 @@ module.exports = new Class({
     },
 
     show: function() {
+        var modal = this;
+
         this._position();
         this.element.setStyles({
 			'visibility': 'visible',
 			'opacity': 0
 		});
         this.anim.start('opacity', 0, 1);
-		this.emit('show');
+        this.anim.once('complete', function() {
+            modal.emit('show');
+        });
 		return this;
     },
 
