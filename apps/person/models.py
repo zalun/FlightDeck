@@ -69,7 +69,13 @@ class Profile(models.Model):
             if row:
                 for i in range(len(row)):
                     data[columns[i]] = row[i]
-
+                    
+        if 'email' in data and self.user.email != data['email']:
+            log.info('User (%s) updated email (%s)' % (
+                self.user.username, self.user.email))
+            self.user.email = data['email']
+            self.user.save()
+            
         if 'display_name' in data:
             if data['display_name']:
                 names = data['display_name'].split(' ')

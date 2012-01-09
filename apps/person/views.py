@@ -10,7 +10,7 @@ from django.http import Http404
 from django import http
 
 from amo.authentication import  AMOAuthentication
-from django_browserid.auth import BrowserIDBackend
+from django_browserid import auth as browserid_auth
 
 import waffle
 
@@ -111,7 +111,7 @@ def browserid_authenticate(request, assertion):
     Verify a BrowserID login attempt. If the BrowserID assertion is
     good, but no account exists on flightdeck, create one.
     """
-    backend = BrowserIDBackend()
+    backend = browserid_auth.BrowserIDBackend()
     
     result = backend.verify(assertion, settings.SITE_URL)
     if not result:
@@ -120,24 +120,23 @@ def browserid_authenticate(request, assertion):
     email = result['email']
     
     amouser = AMOAuthentication.auth_browserid_authenticate(email)
-   
+    
     if amouser == None:
         return (None,None)
-
-    users = User.objects.filter(username=amouser['id'])    
+    
+    users = User.objects.filter(username=amouser['id'])
     if len(users) == 1:
         try:
             profile = users[0].get_profile()
         except Profile.DoesNotExist:
             profile = Profile(user=users[0])
-        profile.user.backend = 'django_browserid.auth.BrowserIDBackend'
-        return (profile, None)
+            profile.user.save()
+    else:
+        user = User.objects.create(username=amouser['id'], email=email)
+        profile = Profile(user=user)
+        profile.user.save()
     
-    user = User.objects.create(username=amouser['id'], email=email)
-    
-    profile = Profile(user=user)
     profile.user.backend = 'django_browserid.auth.BrowserIDBackend'
-    profile.user.save()    
     profile.update_from_AMO(amouser)
     
     return (profile, None)
