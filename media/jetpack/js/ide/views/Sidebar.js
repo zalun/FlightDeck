@@ -229,9 +229,8 @@ var Sidebar = module.exports = new Class({
     
     removeFileFromTree: function(treeName, file) {
         var tree = this.trees[treeName],
-            el;
-            
-        el = this.getBranchFromFile(file);
+            el = this.getBranchFromFile(file);
+
         delete this.uids[file.get('uid')];
         if (el) {
             tree.removeBranch(el);
@@ -285,8 +284,8 @@ var Sidebar = module.exports = new Class({
             that.removeFileFromTree(treeName, file);
         };
         
-        file.addEvent('destroy', file._removeFromTree);
-        file.addEvent('destroy', function() {
+        file.addListener('destroy', file._removeFromTree);
+        file.addListener('destroy', function() {
             element.unstore('file');
         });
 
@@ -302,7 +301,7 @@ var Sidebar = module.exports = new Class({
         //check all of element's parents for Folders, destroy them
         this.silentlyRemoveFolders(element);
         
-        if(isFile && (file.active || file.get('main')) && file.isEditable()) {
+        if(isFile && (file.get('active') || file.get('main')) && file.isEditable()) {
             this.setSelectedFile(element);
         }
     },
@@ -338,8 +337,8 @@ var Sidebar = module.exports = new Class({
     
     getBranchFromFile: function(file) {
         var branch;
-        
         var id = this.uids[file.get('uid')];
+        
         if (id) {
             branch = dom.$(id);
         }
