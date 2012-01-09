@@ -29,11 +29,13 @@ class Command(BaseCommand):
             latest = package.fix_latest()
             if latest:
                 self.stdout.write('[%s] No latest' % package.id_number)
-                if isinstance(PackageRevision, latest):
+                if isinstance(latest, PackageRevision):
+                    # latest is fixed
                     fixed_latest_count += 1
                 else:
+                    # package is deleted
                     deleted_packages_count += 1
-            if not latest or isinstance(PackageRevision, latest):
+            if not latest or isinstance(latest, PackageRevision):
                 # otherwise the package is deleted anyway
                 version = package.fix_version()
                 if version:
