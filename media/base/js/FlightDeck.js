@@ -559,4 +559,10 @@ window.addEvent('domready', function() {
     $$('.emptyreset').forEach(function(el) {
         el.set('value', '');
     });
+	
+	$('app-body').addEvent('click:relay(.truncate)', function(e){
+				var tmp = this.get('data-text');
+				this.set('data-text',this.get('text'));
+				this.set('text', tmp);
+	});
 });

@@ -1,6 +1,6 @@
 {% extends "dashboard.html" %}
 
-{% block title %}Your {% if disabled %}Disabled{% else %}Latest{% endif %} Add-ons - {% endblock %}
+{% block title %}Your {% if disabled %}Private{% else %}Latest{% endif %} Add-ons - {% endblock %}
 
 {% block head %}
 	<link rel="stylesheet" href="/media/jetpack/css/UI.Browser.css" type="text/css" media="screen" />
@@ -15,7 +15,7 @@
 {% endblock %}
 
 {% block app_content %}
-	<h2 class="UI_Heading">Your {% if disabled %}Disabled{% else %}Latest{% endif %} Add-ons</h2>
+	<h2 class="UI_Heading">Your {% if disabled %}Private{% else %}Latest{% endif %} Add-ons</h2>
 	<ul class="UI_Browser">
 		{% for item in pager.object_list %}
 			<li class="UI_Item">
@@ -27,7 +27,11 @@
                 {% if pager.has_previous() %}
                     <li class="UI_Pagin_Action prev">
                         <span></span>
-                        <a title="" href="{{ url('person_addons_page', pager.previous_page_number()) }}">
+						{% if disabled %}
+							<a title="" href="{{ url('person_disabled_addons_page', pager.previous_page_number()) }}">
+						{% else %}
+							<a title="" href="{{ url('person_addons_page', pager.previous_page_number()) }}">
+						{% endif%}
                             Previous
                         </a>
                     </li>
@@ -35,7 +39,11 @@
                 <li class='current'>{{ pager.number }}</li>
                 {% if pager.has_next() %}
                     <li class="UI_Pagin_Action next">
-                        <a title="" href="{{ url('person_addons_page', pager.next_page_number()) }}">Next</a>
+						{% if disabled %}
+                        <a title="" href="{{ url('person_disabled_addons_page', pager.next_page_number()) }}">Next</a>
+						{% else %}
+						<a title="" href="{{ url('person_addons_page', pager.next_page_number()) }}">Next</a>
+						{% endif %}
                         <span></span>
                     </li>
                 {% endif %}
