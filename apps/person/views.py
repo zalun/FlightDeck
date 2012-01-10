@@ -99,6 +99,7 @@ def dashboard_browser(r, page_number=1, type=None, disabled=False):
             'pager': pager,
             'author': author,
             'addons': addons,
+            'disabled': disabled,
             'libraries': libraries,
             'disabled_addons': disabled_addons,
             'disabled_libraries': disabled_libraries,
