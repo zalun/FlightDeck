@@ -165,6 +165,12 @@ module.exports = new Class({
                 url: url,
                 timeout: fd.options.request_interval,
                 onSuccess: function(response) {
+                    try {
+                        response = JSON.parse(response);
+                    } catch (jsonError) {
+                        log.warning('JSON error: ', jsonError);
+                        return;
+                    }
                     if (response.ready || test_request.download_request_number > 50) {
                         clearInterval(test_request.download_ID);
                         test_request.spinner.removeClass('loading');
@@ -193,8 +199,8 @@ module.exports = new Class({
      * Method: testXPI
      */
     testXPI: function(data) {
-        log.debug('XPI delayed ... try to load every ' + fd.options.request_interval/1000 + ' seconds' );
 		var fd = this;
+        log.debug('XPI delayed ... try to load every ' + fd.options.request_interval/1000 + ' seconds' );
         var hashtag = data.hashtag;
         this.tests[hashtag].request_number = 0;
         setTimeout(function() {
@@ -271,7 +277,7 @@ module.exports = new Class({
 							fd.error.alert(this.xhr.statusText, this.xhr.responseText);
 						}
 					}
-                }).send(this);
+                }).send();
             } else {
                 log.debug('request is running');
             }
@@ -301,7 +307,7 @@ module.exports = new Class({
     },
 
     generateHashtag: function(id_number) {
-        return (Number.random(0,9) + '' + id_number + Date.now()).toInt().toString(36);
+        return parseInt('' + id_number + (new Date()).getTime(), 10).toString(36);
     },
 
     isAddonInstalled: function() {

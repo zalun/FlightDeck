@@ -543,7 +543,8 @@ module.exports = new Class({
             onSuccess: function() {
                 fd().testXPI(data);
             },
-            onComplete: function() {
+            onFailure: function() {
+                log.error('Failed to start testing addon');
                 loader.removeClass(LOADING_CLASS);
             }
         }).send();
