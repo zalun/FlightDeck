@@ -32,11 +32,12 @@ exports.init = function init() {
 	});
 
 	dom.$('Search').addListener('submit', function(e) {
+		console.log('submit!');
 		e.preventDefault();
 		var loc = new URI(String(dom.window.get('location'))),
 			q = this.getElement('input[name=q]');
-		if (loc.getData('q') !== q.value) {
-			loc.setData('q', q.value);
+		if (loc.getData('q') !== q.get('value')) {
+			loc.setData('q', q.get('value'));
 			SearchResult.page(loc);
 		}
 	});

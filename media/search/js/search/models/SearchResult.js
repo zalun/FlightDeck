@@ -32,7 +32,7 @@ var SearchResult = module.exports = new Class({
 			onComplete: function() {
 				spinner.removeClass(LOADING_CLASS);
 			}
-		}).send('xhr');
+		}).send({xhr:1});
 
 		return this;
 	},
