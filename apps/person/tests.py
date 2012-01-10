@@ -5,8 +5,12 @@ person.urls
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.test import TestCase
+from mock import Mock
 from nose.tools import eq_
+from waffle.models import Switch
 
+from amo.authentication import  AMOAuthentication
+from django_browserid import auth
 from person.models import Profile
 
 
@@ -43,3 +47,46 @@ class ProfileTest(TestCase):
     def test_fake_profile(self):
         resp = self.client.get(reverse('person_public_profile', args=['xxx']))
         eq_(404, resp.status_code)
+
+
+class BrowserIDLoginTest(TestCase):
+
+    TESTEMAIL = 'jdoe@example.com'
+
+    def setUp(self):
+        Switch.objects.create(
+                name='browserid-login',
+                active=True)
+        self.user = User.objects.create(
+                username='123', email=self.TESTEMAIL)
+        Profile.objects.create(user=self.user, nickname='jdoe')
+
+        # Mocking BrowserIDBackend
+        class BIDBackend():
+            def verify(self, assertion, site):
+                return {'email': assertion}
+        self.BIDBackend = auth.BrowserIDBackend
+        auth.BrowserIDBackend = BIDBackend
+
+    def tearDown(self):
+        auth.BrowserIDBackend = self.BIDBackend
+
+    def test_existing_user_login(self):
+        AMOAuthentication.auth_browserid_authenticate = Mock(
+                return_value={'id': '123'})
+        response = self.client.post(reverse('browserid_login'),
+                        {'assertion': self.TESTEMAIL})
+        eq_(response.status_code, 200)
+        assert self.user.is_authenticated()
+
+    def test_user_changed_email_on_AMO(self):
+        auth.BrowserIDBackend.verify = Mock(return_value={'email': 'some@example.com'})
+        AMOAuthentication.auth_browserid_authenticate = Mock(
+                return_value={'id': '123', 'email': 'some@example.com'})
+        response = self.client.post(reverse('browserid_login'),
+                        {'assertion': 'some-assertion'})
+        eq_(response.status_code, 200)
+        assert self.user.is_authenticated()        
+        assert User.objects.filter(email='some@example.com')
+        self.assertRaises(User.DoesNotExist,
+                User.objects.get, email=self.TESTEMAIL)
