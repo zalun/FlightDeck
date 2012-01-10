@@ -1265,7 +1265,6 @@ module.exports = new Class({
             onSuccess: function(response) {
                 fd().message.alert(response.message_title, response.message);
                 fd().fireEvent('disable_' + response.package_type);
-                dom.$('activate').addEvent('click', controller.makePublic.bind(controller));
                 deactivateButton.addClass('pressed').getElement('a').addClass('inactive');
                 dom.$('UI_ActivateLink').removeClass('pressed').getElement('a').removeClass('inactive');
             },

@@ -32,7 +32,6 @@ exports.init = function init() {
 	});
 
 	dom.$('Search').addListener('submit', function(e) {
-		console.log('submit!');
 		e.preventDefault();
 		var loc = new URI(String(dom.window.get('location'))),
 			q = this.getElement('input[name=q]');
