@@ -1,6 +1,7 @@
 var Class = require('shipyard/class/Class'),
     PersistantCollapse = require('./PersistantCollapse'),
-    dom = require('shipyard/dom');
+    dom = require('shipyard/dom'),
+	log = require('shipyard/utils/log');
 
 var localStorage = dom.window.get('localStorage');
 
@@ -11,8 +12,9 @@ module.exports = new Class({
     getState: function(){
         var self = this;
         try {
-            return JSON.decode(localStorage.getItem(self.key)) || {};
+            return JSON.parse(localStorage.getItem(self.key)) || {};
         } catch (jsonError) {
+			log.error('Error decoding tree from localStorage: ', jsonError);
             return {};
         }
     },

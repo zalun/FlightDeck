@@ -92,7 +92,8 @@ var Sidebar = module.exports = new Class({
         
         var collapseOptions = {
             getAttribute: function(element) {
-                return element.get('path') || element.get('id');
+				var file = element.retrieve('file');
+                return (file && file.get('fullName')) || element.get('path') || element.get('id');
             },
             getIdentifier: function(element) {
                 return addon_or_lib_url + '_collapse_' + element.get('id');

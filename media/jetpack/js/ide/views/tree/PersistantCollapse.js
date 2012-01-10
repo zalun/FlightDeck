@@ -30,7 +30,8 @@ module.exports = new Class({
                 return;
             }
             
-            var state = obj[this.options.getAttribute.call(this, element)];
+			var key = this.options.getAttribute.call(this, element);
+			var state = obj[key];
             if (state === 1) {
                 this.expand(element);
             } else if (state === 0) {
