@@ -4,7 +4,10 @@
 {% block head %}
 	<link rel="stylesheet" href="/media/jetpack/css/UI.Browser.css" type="text/css" media="screen" />
 	<link rel="stylesheet" href="/media/jetpack/css/UI.Landing_Page.css" type="text/css" media="screen" />
-	<script src="/media/jetpack/js/FlightDeck.Browser.js"></script>
+{% endblock %}
+
+{% block page_domready %}
+    flightdeck.browser(fd);
 {% endblock %}
 
 {% block app_menu %}{% endblock %}

@@ -6,8 +6,12 @@ var Class = require('shipyard/class/Class'),
     Events = require('shipyard/class/Events'),
     Options = require('shipyard/class/Options'),
     log = require('shipyard/utils/log'),
+    dom = require('shipyard/dom'),
     
-    tabs = require('../views/Tabs');
+    tabs = require('../views/Tabs'),
+    
+    //TODO: this is terrible practice
+    fd = dom.window.get('fd');
 
 module.exports = new Class({
 
@@ -27,17 +31,15 @@ module.exports = new Class({
 			onCloseDown: function(tabClose) {
 				var tabEl = tabClose.getParent('.tab');
 				var isMoreTabs = controller.$tabs.length > 1;
-				if(isMoreTabs) {
-                    //TODO: allow user to delete all Tabs
+                
+                //TODO: allow user to delete all Tabs
+				if (isMoreTabs) {
 					var tab = tabEl.retrieve('tab:instance'),
 						that = this,
 						file = tab.file;
 						
-					function closeTab() {
-						tab.destroy();
-					}
 					
-					if(file.changed) {
+					if (file.changed) {
 						fd.showQuestion({
 							title: 'Lose unsaved changes?',
 							message: 'The tab "'+file.get('shortName')+'" that you are trying to close has unsaved changes.',
@@ -54,11 +56,11 @@ module.exports = new Class({
 									'default': true,
 									'irreversible': true,
 									'callback': function() {
-										closeTab();
+										tab.destroy();
 										//do this after editor changes instances, cause editor
 										//dumps content when it changes
 										setTimeout(function() {
-											file.content = file.original_content;
+											file.set('content', file.original_content);
 											file.setChanged(false);
 											fd.item.edited--;
 											if(!fd.item.edited) {
@@ -70,7 +72,7 @@ module.exports = new Class({
 							]
 						});
 					} else {
-						closeTab();
+						tab.destroy();
 					}
 				}
 				
@@ -86,11 +88,11 @@ module.exports = new Class({
         });
 
         function change() {
-            $(tab).addClass('modified');
+            dom.$(tab).addClass('modified');
         }
 
         function reset() {
-            $(tab).removeClass('modified');
+            dom.$(tab).removeClass('modified');
         }
 
         function destroy() {
@@ -101,16 +103,28 @@ module.exports = new Class({
             tab.setLabel(this.get('shortName'));
         }
 
-        var changePtr = file.addEvent('dirty', change);
-        var resetPtr = file.addEvent('reset', reset); 
-        var destroyPtr = file.addEvent('destroy', destroy);
-        var observePtr = file.observe('filename', changeName);
+        function loadStart() {
+            dom.$(tab).addClass('loading');
+        }
 
-        tab.addEvent('destroy', function() {
+        function loaded() {
+            dom.$(tab).removeClass('loading');
+        }
+
+        var changePtr = file.addListener('dirty', change);
+        var resetPtr = file.addListener('reset', reset);
+        var destroyPtr = file.addListener('destroy', destroy);
+        var observePtr = file.observe('filename', changeName);
+        var loadStartPtr = file.addListener('loadstart', loadStart);
+        var loadedPtr = file.addListener('loadcontent', loaded);
+
+        tab.addListener('destroy', function() {
             changePtr.detach();
             resetPtr.detach();
             destroyPtr.detach();
             observePtr.detach();
+            loadStartPtr.detach();
+            loadedPtr.detach();
             delete tab.file;
             controller.removeTab(tab);
         });
@@ -132,16 +146,17 @@ module.exports = new Class({
         }
 
         //we need to switch to another tab
-        var tabEl = $(tab);
+        var tabEl = dom.$(tab);
         var nextTab = tabEl.hasClass('selected') ?
 					tabEl.getPrevious('.tab') || tabEl.getNext('.tab') :
-					$(this.tabs).getElement('.tab.selected');
+					dom.$(this.tabs).getElement('.tab.selected');
         if (nextTab) {
             this.tabs.fireEvent('tabDown', nextTab);
         } else {
             //TODO: this should just show a "Open a file on the left"
             log.error('Another tab couldn\'t be found !');
         }
+
     },
 
     selectTab: function(file) {
@@ -151,7 +166,7 @@ module.exports = new Class({
 
     getTab: function(file) {
         for (var i = 0, len = this.$tabs.length; i < len; i++) {
-            if (this.$tabs[i].file == file) {
+            if (this.$tabs[i].file === file) {
                 return this.$tabs[i];
             }
         }

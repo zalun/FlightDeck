@@ -71,11 +71,11 @@ body
 
 			#editor-tabs .tab.selected
 			{
-				border-color: #777 !important;				
-				background: -moz-linear-gradient(top, #bbb, #ccc) !important;
-				text-shadow: 0 1px 0 #eee !important;
-				color: #222 !important;
-				cursor: default !important;
+				border-color: #777;				
+				background: -moz-linear-gradient(top, #bbb, #ccc);
+				text-shadow: 0 1px 0 #eee;
+				color: #222;
+				cursor: default;
 				-moz-box-shadow: 0 1px 2px -1px #555 inset;	
 			}
 		
@@ -98,15 +98,15 @@ body
             }
 		
 
-.ma-container strong { 
+.fd-autocomplete strong { 
 	font-weight: bold;
 }
-.ma-container .author {
+.fd-autocomplete .author {
 	display: block;
 	font-size: 0.9em;
 }
 
-.ma-container .description {
+.fd-autocomplete .description {
 	display: block;
 	font-size: 0.9em;
 	font-style: italic;
@@ -131,3 +131,4 @@ body
 .UI_Revisions em.date {
 	margin-left: 5px;
 }
+

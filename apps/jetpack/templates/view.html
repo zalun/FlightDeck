@@ -8,14 +8,10 @@
 	<link rel="stylesheet" href="/media/jetpack/css/tree.css" type="text/css" media="screen" />
 	<link rel="stylesheet" href="/media/jetpack/css/collapse.css" type="text/css" media="screen" />
 	<script src="/media/lib/ace/ace.js"></script>
-	<script src="/media/lib/tree.js"></script>
 
 	<script src="/media/lib/ace/mode-javascript.js"></script>
 	<script src="/media/lib/ace/mode-css.js"></script>
 	<script src="/media/lib/ace/mode-html.js"></script>
-	<script src="/media/lib/meio/Meio.Autocomplete.HTML-1.3.js"></script>
-	<script src="/media/base/js/FlightDeck.Autocomplete.js"></script>
-	<script src="/media/lib/FloatingTips.js"></script>
 
     <script type="text/javascript">
         define('ide/settings', [], function(require, exports, module) {
@@ -25,12 +21,10 @@
             };
         });
     </script>
+{% endblock %}
 
-    {% if settings.DEBUG %}
-    <script src="/media/lib/shipyard/scripts/require.js" data-main="/media/jetpack/js/ide/"></script>
-    {% else %}
-    <script src="/media/jetpack/js/ide-min.js?{{ settings.BUILD_ID }}"></script>
-    {% endif %}
+{% block shipyardjs %}
+{{ shipyard("/media/jetpack/js/ide") }}
 {% endblock %}
 
 {# switch off default menu bar #}
@@ -40,7 +34,7 @@
 {% block app_domready %}
     
     var ide = require('ide');
-    fd.item = ide.controller;
+    fd.item = ide.init().controller;
 
 {% endblock %}
 

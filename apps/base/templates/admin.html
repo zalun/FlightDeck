@@ -35,7 +35,15 @@
         'update_package_url':'{{ url('admin_update_package') }}',
     };
 </script>
-<script type="text/javascript" src="/media/base/js/Admin.js" ></script>
+{% endblock %}
+
+{% block shipyardjs %}
+    {{ shipyard("/media/base/js/admin/") }}
+{% endblock %}
+
+{% block page_domready %}
+    var admin = require('admin');
+    admin.init(admin_settings);
 {% endblock %}
 
 {% block app_content %}    

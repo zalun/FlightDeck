@@ -4,34 +4,28 @@
 {% block title %}Edit {{ revision }} - {% endblock %}
 
 {% block head %}
-	<link rel="stylesheet" href="/media/jetpack/css/UI.Editor.css" type="text/css" media="screen" />
-	<link rel="stylesheet" href="/media/jetpack/css/FlightDeck.Autocomplete.css" type="text/css" media="screen" />
-	<link rel="stylesheet" href="/media/jetpack/css/tree.css" type="text/css" media="screen" />
-	<link rel="stylesheet" href="/media/jetpack/css/collapse.css" type="text/css" media="screen" />
-	<script src="/media/lib/tree.js"></script>
+    <link rel="stylesheet" href="/media/jetpack/css/UI.Editor.css" type="text/css" media="screen" />
+    <link rel="stylesheet" href="/media/jetpack/css/FlightDeck.Autocomplete.css" type="text/css" media="screen" />
+    <link rel="stylesheet" href="/media/jetpack/css/tree.css" type="text/css" media="screen" />
+    <link rel="stylesheet" href="/media/jetpack/css/collapse.css" type="text/css" media="screen" />
 
-	<script src="/media/lib/ace/ace.js"></script>
-	<script src="/media/lib/ace/mode-javascript.js"></script>
-	<script src="/media/lib/ace/mode-css.js"></script>
-	<script src="/media/lib/ace/mode-html.js"></script>
-	<script src="/media/lib/meio/Meio.Autocomplete.HTML-1.3.js"></script>
-	<script src="/media/base/js/FlightDeck.Autocomplete.js"></script>
-	<script src="/media/lib/FloatingTips.js"></script>
-	
+    <script src="/media/lib/ace/ace.js"></script>
+    <script src="/media/lib/ace/mode-javascript.js"></script>
+    <script src="/media/lib/ace/mode-css.js"></script>
+    <script src="/media/lib/ace/mode-html.js"></script>
+
     <script type="text/javascript">
         define('ide/settings', [], function(require, exports, module) {
             module.exports = {
-            {% include "js/_package_initiate.js" %},
-            {% include "js/_edit_package_initiate.js" %}
+                {% include "js/_package_initiate.js" %},
+                {% include "js/_edit_package_initiate.js" %}
             };
         });
     </script>
+{% endblock %}
 
-    {% if settings.DEBUG %}
-    <script src="/media/lib/shipyard/scripts/require.js" data-main="/media/jetpack/js/ide/"></script>
-    {% else %}
-    <script src="/media/jetpack/js/ide-min.js?{{ settings.BUILD_ID }}"></script>
-    {% endif %}
+{% block shipyardjs %}
+{{ shipyard("/media/jetpack/js/ide") }}
 {% endblock %}
 
 
@@ -45,24 +39,24 @@
 {% block app_domready %}
 
     var ide = require('ide');
-    fd.item = ide.controller;
+    fd.item = ide.init().controller;
 
 {% endblock %}
 
 
 {# get package_info_form_template #}
 {% block app_settings %}
-	edit_package_info_template: '{{ escape_template("_edit_package_info.html") }}',
-	library_autocomplete_url: '{{ url('jp_library_autocomplete') }}',
+    edit_package_info_template: '{{ escape_template("_edit_package_info.html") }}',
+    library_autocomplete_url: '{{ url('jp_library_autocomplete') }}',
 {% endblock %}
 
 
 {% block create_init %}{#
-	create.init(
-		['create_addon'],
-		['addon'],
-		'app-body'
-	);
+    create.init(
+        ['create_addon'],
+        ['addon'],
+        'app-body'
+    );
 #}{% endblock %}
 
 {# switch off the footer #}
@@ -70,35 +64,35 @@
 
 {% block app_sidebar %}
 <div class="scroll-container">
-	{% include "_package_info.html" %}
+    {% include "_package_info.html" %}
     <div class="trees-container">
     <form id="app-sidebar-form">
-		<section id="modules">
-			<ul id="LibTree" class="tree collapse">
-				
-				
-			</ul>
-		</section>
-		<section id="attachments">
-			<ul id="DataTree" class="tree collapse">
-				
-			</ul>
-		</section>
-		<section id="libraries">
-			<ul id="PluginsTree" class="tree collapse">
-				{% block core_library %}{% endblock %}
-			</ul>
+        <section id="modules">
+            <ul id="LibTree" class="tree collapse">
+                
+                
+            </ul>
+        </section>
+        <section id="attachments">
+            <ul id="DataTree" class="tree collapse">
+                
+            </ul>
+        </section>
+        <section id="libraries">
+            <ul id="PluginsTree" class="tree collapse">
+                {% block core_library %}{% endblock %}
+            </ul>
         </section>
     </form>
-	</div>
+    </div>
 </div>
 {% endblock %}
 
 {% block app_content %}
-	<div id="editor-menu-wrapper">
-		<ul class="UI_Editor_Menu">
-			{% block app_content_menu_items %}{% endblock %}
-			<li title="Save" class="UI_Editor_Menu_Button Icon_save UI_Editor_Menu_Parent">
+    <div id="editor-menu-wrapper">
+        <ul class="UI_Editor_Menu">
+            {% block app_content_menu_items %}{% endblock %}
+            <li title="Save" class="UI_Editor_Menu_Button Icon_save UI_Editor_Menu_Parent">
             <a id="package-save" href="#"><span></span></a>
                 <form class="UI_Forms UI_Editor_Menu_Descendant">
                     <fieldset>
@@ -112,20 +106,20 @@
                         </p>
                     </fieldset>
                 </form>
-			</li>
-			{% if revision.package.public_permission != 2 %}
-				<li id="package-copy" title="Copy" class="UI_Editor_Menu_Button Icon_copy">
+            </li>
+            {% if revision.package.public_permission != 2 %}
+                <li id="package-copy" title="Copy" class="UI_Editor_Menu_Button Icon_copy">
                 <a href="#"><span></span></a>
-				</li>
-			{% endif %}
-			{% block app_content_menu_error_console %}{% endblock %}
-			{% include "_editor_app_menu_items.html" %}
-		</ul>
-	</div> <!-- /editor-menu-wrapper -->
-	<div id="editor-tabs">
-	</div>
-	<div id="editor-wrapper">
-		{# block editor_wrapper #}
-		{# endblock #}
-	</div> <!-- /editor-wrapper -->
+                </li>
+            {% endif %}
+            {% block app_content_menu_error_console %}{% endblock %}
+            {% include "_editor_app_menu_items.html" %}
+        </ul>
+    </div> <!-- /editor-menu-wrapper -->
+    <div id="editor-tabs">
+    </div>
+    <div id="editor-wrapper">
+        {# block editor_wrapper #}
+        {# endblock #}
+    </div> <!-- /editor-wrapper -->
 {% endblock %}

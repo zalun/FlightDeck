@@ -2,12 +2,6 @@
 
 {% block title %}Your {% if disabled %}Private{% else %}Latest{% endif %} Add-ons - {% endblock %}
 
-{% block head %}
-	<link rel="stylesheet" href="/media/jetpack/css/UI.Browser.css" type="text/css" media="screen" />
-	<link rel="stylesheet" href="/media/person/css/UI.Dashboard.css" type="text/css" media="screen" />
-	<script src="/media/person/js/Dashboard.js"></script>
-	<script src="/media/jetpack/js/FlightDeck.Browser.js"></script>
-{% endblock %}
 
 {% block app_settings %}
     amooauth_domain: '{{ settings.AMOOAUTH_DOMAIN }}',

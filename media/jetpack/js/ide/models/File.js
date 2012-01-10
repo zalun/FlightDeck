@@ -23,7 +23,9 @@ var File = module.exports = new Class({
         readonly: fields.BooleanField({ 'default': false, write: false }),
 
         url: fields.TextField({ write: false }),
-        get_url: fields.TextField({ write: false })
+        get_url: fields.TextField({ write: false }),
+
+		active: fields.BooleanField({ write: false, 'default': false })
     },
 
     initialize: function File(data) {
@@ -74,6 +76,7 @@ var File = module.exports = new Class({
     loadContent: function(callback) {
         var file = this;
         var spinnerEl;
+        this.fireEvent('loadstart');
         return new Request({
 			method: 'get',
 			url: this.get('get_url'),
@@ -90,7 +93,9 @@ var File = module.exports = new Class({
 				file.original_content = content;
                 file.set('content', content);
 				file.fireEvent('loadcontent', content);
-                if (callback) callback.call(this, content);
+                if (callback) {
+					callback.call(this, content);
+				}
 			}
 		}).send();
 

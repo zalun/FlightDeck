@@ -1,6 +1,8 @@
 var Class = require('shipyard/class/Class'),
     Model = require('shipyard/model/Model'),
     fields = require('shipyard/model/fields'),
+	Observable = require('shipyard/class/Observable'),
+	property = Observable.property,
     Syncable = require('shipyard/sync/Syncable'),
     DummySync = require('shipyard/sync/Dummy'),
     string = require('shipyard/utils/string');
@@ -23,19 +25,28 @@ var Folder = module.exports = new Class({
         root_dir: fields.TextField({ required: true }) //ChoiceField
     },
 
-    shortName: function() {
+	pk: 'uid',
+
+    shortName: property(function() {
         var name = this.get('name');
+		if (!name) {
+			return null;
+		}
         var parts = name.split('/');
         return parts[parts.length - 1];
-    },
+    }, 'name'),
 
-    fullName: function() {
+    fullName: property(function() {
         return this.get('name');
-    },
+    }, 'name'),
 
-    uid: function() {
+    uid: property(function() {
         return this.get('root_dir') + '/' + this.get('name');
-    }
+    }, 'root_dir', 'name'),
+
+	toString: function() {
+		return this.get('fullName');
+	}
 
 });
 

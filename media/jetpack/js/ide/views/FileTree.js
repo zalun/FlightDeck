@@ -1,14 +1,14 @@
-var /*Class = require('shipyard/class'),
-    shipyard/class only lets Class extends from other shipyard/class, 
-    and FileTree extends from Tree (which is a regular Moo Class)
-    */
+var Class = require('shipyard/class/Class'),
+    Tree = require('./tree/Tree'),
+    LocalStorageCollapse = require('./tree/LocalStorageCollapse'),
     object = require('shipyard/utils/object'),
-    
+	string = require('shipyard/utils/string'),
+    dom = require('shipyard/dom'),
+
     File = require('../models/File'),
     Module = require('../models/Module'),
-    Attachment = require('../models/Attachment');
-
-// globals: Class, Tree, Collapse.LocalStorage, Element, String.implement
+    Attachment = require('../models/Attachment'),
+    filename = require('../utils/filename');
 
 var FileTree = module.exports = new Class({
     
@@ -30,7 +30,7 @@ var FileTree = module.exports = new Class({
         snap: 3,
         id_prefix: '',
         
-        // if container is null, container will default to the Tree el
+        // if container is true, container will default to the Tree el
         // "false" will cancel the container
         container: true
         //onAddBranch: function(el, attributes, target){}
@@ -40,7 +40,7 @@ var FileTree = module.exports = new Class({
     },
     
     initialize: function(element, options) {
-        this.addEvent('change', function() {
+        this.addListener('change', function() {
             this.setFullPath(this.current);
         }, true);
         this.parent(element, options);
@@ -48,24 +48,29 @@ var FileTree = module.exports = new Class({
     
     attach: function(){
         this.parent();
-        var that = this;
-        this.element.addEvents({
-            'mousedown:relay(.actions .edit)': function(e) {
-                var li = e.target.getParent('li');
-                if (li.hasClass('editing')) {
-                    that.renameBranchEnd($(e.target).getParent('li'));
-                } else {
-                    that.renameBranch($(e.target).getParent('li'));
-                }
-                
-                
-            },
-            'click:relay(li[rel="directory"] > .holder .label, li[rel="directory"] > .holder .icon)': function(e, labelEl){
-                var li = e.target.getParent('li');
-                that.toggleBranch(li);
-            },
-            'keypress:relay(span)': function(e){
-                if(e.key == 'enter') that.renameBranchEnd($(e.target).getParent('li'));
+        var tree = this;
+
+        this.element.delegate('.actions .edit', 'mousedown', function(e, edit) {
+            var li = edit.getParent('li');
+            if (li.hasClass('editing')) {
+                tree.renameBranchEnd(edit);
+            } else {
+                tree.renameBranch(edit);
+            }
+            
+            
+        });
+
+        // this selector is a huge WTF?
+        // Basically, clicks on the label or icon of directories should
+        // toggle open/closed the directory.
+        this.element.delegate('li[rel="directory"] > .holder .label, li[rel="directory"] > .holder .icon', 'click', function(e, target){
+            var li = target.getParent('li');
+            tree.toggleBranch(li);
+        });
+        this.element.delegate('span', 'keypress', function(e, span){
+            if(e.key === 'enter') {
+                tree.renameBranchEnd(span.getParent('li'));
             }
         });
         
@@ -73,29 +78,17 @@ var FileTree = module.exports = new Class({
     },
     
     mousedown: function(element, event) {
-        //tree.js prevents event immediately, when really we only want
-        //the event prevents when it drags. This is because if the element
-        //has contentEditable active, we want the default mousedown action,
-        //which is to move the cursor around the text node. If it's not,
-        //then preventDefault will be called twice, and the dragging will still
-        //work. :)
-        
-        var oldDefault = event.preventDefault;
-        event.preventDefault = function(){
-            event.preventDefault = oldDefault;
-        };
-        
         this.parent(element, event);
-        if (this.clone) {
-            this.clone.setStyle('display', 'none');
+        if (this._clone) {
+            this._clone.setStyle('display', 'none');
         }
         return this;
     },
     
     onDrag: function(el, event) {
         this.parent(el, event);
-        if (this.clone) {
-            this.clone.setStyle('display', null); //default snap is already 6px
+        if (this._clone) {
+            this._clone.setStyle('display', null); //default snap is already 6px
         }
     },
     
@@ -118,7 +111,7 @@ var FileTree = module.exports = new Class({
     
     addBranch: function(attr, target, options){
         attr = object.merge({}, this.options.branch, attr);
-        target = $(target) || this.element;
+        target = dom.$(target) || this.element;
         if (target.get('tag') !== 'ul') {
             target = target.getElement('ul');
         }
@@ -126,8 +119,8 @@ var FileTree = module.exports = new Class({
         var isEditable = this.options.editable;
         
         options = object.merge({}, {
-            add: attr.rel == 'directory',
-            edit: attr.rel != 'directory',
+            add: attr.rel === 'directory',
+            edit: attr.rel !== 'directory',
             remove: true, //can delete anything
             collapsed: true
         }, this.options.actions, options);
@@ -138,20 +131,20 @@ var FileTree = module.exports = new Class({
             delete options.remove;
         }
         
-        attr.html = ('<a class="expand" href="#"></a>' +
+        attr.html = string.substitute('<a class="expand" href="#"></a>' +
             '<div class="holder">' +
                 '<span id="{id}" class="label" title="{title}">{title}</span><span class="icon"></span>' +
                 '<div class="actions">{add}{edit}{remove}</div>' +
-            '</div>{dir}').substitute({
+            '</div>{dir}', {
             title: attr.title,
             id: attr.name ? attr.name + '_switch' : attr.title + '_folder',
-            dir: attr.rel == 'directory' ? '<ul' + (options.collapsed ? ' style="display:none;"' : '') + '></ul>' : '',
+            dir: attr.rel === 'directory' ? '<ul' + (options.collapsed ? ' style="display:none;"' : '') + '></ul>' : '',
             add: options.add ? '<span class="add" title="Add"></span>' : '',
             edit: options.edit ? '<span class="edit" title="Rename"></span>' : '',
             remove: options.remove ? '<span class="delete" title="Delete"></span>' : ''
         });
         
-        var li = new Element('li', attr),
+        var li = new dom.Element('li', attr),
             where = 'bottom';
         
         //branches should always be in alpha order
@@ -166,16 +159,16 @@ var FileTree = module.exports = new Class({
         });
         
         li.inject(target, where);
-        this.fireEvent('addBranch', [li].combine(arguments));
+        this.emit('addBranch', li, attr, target, options);
         return li;
     },
     
     renameBranch: function(element, hasExtension){
-        var li = (element.get('tag') == 'li') ? element : element.getParent('li'),
+        var li = (element.get('tag') === 'li') ? element : element.getParent('li'),
             label = li.getElement('.label'),
             text = label.get('text').trim();
         
-        this.fireEvent('renameStart', [li, label]);
+        this.fireEvent('renameStart', li, label);
         
         
         label.set('tabIndex', 0).set('contenteditable', true).focus();
@@ -189,13 +182,13 @@ var FileTree = module.exports = new Class({
         
         label.addEvent('blur', label.retrieve('$blur'));
         
-        hasExtension = hasExtension || !!text.getFileExtension();
+        hasExtension = hasExtension || !!filename.extname(text);
         
-        var range = document.createRange(),
+        var range = dom.document.getNode().createRange(),
             node = label.firstChild;
         range.setStart(node, 0);
-        range.setEnd(node, hasExtension ? text.length - text.getFileExtension().length -1 : text.length);
-        sel = window.getSelection();
+        range.setEnd(node, hasExtension ? text.length - filename.extname(text).length -1 : text.length);
+        var sel = dom.window.getNode().getSelection();
         sel.removeAllRanges();
         sel.addRange(range);
 
@@ -203,7 +196,7 @@ var FileTree = module.exports = new Class({
     },
     
     renameBranchCancel: function(element) {
-        var li = (element.get('tag') == 'li') ? element : element.getParent('li'),
+        var li = (element.get('tag') === 'li') ? element : element.getParent('li'),
             label = li.getElement('.label'),
             text = label.retrieve('$text').trim();
         
@@ -217,17 +210,20 @@ var FileTree = module.exports = new Class({
     },
     
     renameBranchEnd: function(element) {
-        var li = (element.get('tag') == 'li') ? element : element.getParent('li'),
+        var li = (element.get('tag') === 'li') ? element : element.getParent('li'),
             label = li.getElement('.label'),
             text = label.get('text').trim();
         
-        if(label.get('contenteditable') == 'true'){
+        //TODO: Bad practice.
+        var fd = dom.window.get('fd');
+
+        if(label.get('contenteditable') === 'true'){
             
             //validation
             text = File.sanitize(text);
             
             
-            if (!text.getFileName()) {
+            if (!filename.basename(text)) {
                 fd.error.alert('Filename must be valid', 'Your file must not contain special characters, and requires a file extension.');
                 return this;
             }
@@ -235,12 +231,12 @@ var FileTree = module.exports = new Class({
             label.removeEvent('blur', label.retrieve('$blur'));
             label.eliminate('$text');
             label.set('contenteditable', false).blur();
-            window.getSelection().removeAllRanges();
+            dom.window.getNode().getSelection().removeAllRanges();
             
             
             li.removeClass('editing');
             //fire a renameCancel if the name didnt change
-            if (text == label.get('title').trim()) {
+            if (text === label.get('title').trim()) {
                 this.fireEvent('renameCancel', li);
                 return this;
             }
@@ -270,7 +266,7 @@ var FileTree = module.exports = new Class({
         options = options || {};
         var suffix = options.suffix || '',
             splitted = obj.get('fullName').split('/'),
-            elements = Array.clone(splitted),
+            elements = object.clone(splitted),
             end = splitted.length - 1,
             selector = '',
             tree = this,
@@ -287,9 +283,9 @@ var FileTree = module.exports = new Class({
         }
         
         //TODO: my eyes!
-        elements.each(function(name, i){
+        elements.forEach(function(name, i){
             var path = splitted.slice(0, i + 1).join('/');
-            if (i == end){
+            if (i === end){
                 var previous = elements[i - 1] ? elements[i - 1].getElement('ul') : (options.target.getElement('ul') || options.target);
                 el = elements[i] = previous.getChildren(selector += 'li[title='+ name + suffix +'] ')[0] || this.addBranch({
                     'title': obj.get('shortName'),
@@ -345,7 +341,9 @@ var FileTree = module.exports = new Class({
     },
     
     setFullPath: function(branch, path) {
-        if (!path) path = this.getFullPath(branch);
+        if (!path) {
+            path = this.getFullPath(branch);
+        }
         branch.set('path', path);
         return branch;
     },
@@ -357,7 +355,7 @@ var FileTree = module.exports = new Class({
 
 FileTree.Collapse = new Class({
     
-    Extends: Collapse.LocalStorage,
+    Extends: LocalStorageCollapse,
     
     updateElement: function(element){
         this.parent(element);
@@ -367,20 +365,7 @@ FileTree.Collapse = new Class({
     updatePath: function(element){
         var parent = element.getParent('li'),
             path = parent ? parent.get('path') : false;
-        element.set('path', (path ? path + '/' : '') + (element.get('path') || '').split('/').getLast());
+        element.set('path', (path ? path + '/' : '') + (element.get('path') || '').split('/').pop());
     }
     
-});
-
-String.implement('getFileExtension', function() {
-    var parts = this.split('.'),
-        ext = parts.pop(),
-        filename = parts.join('.');
-        
-    return !!filename && !!ext && !ext.match(/[^a-zA-Z0-9]/) && ext;
-});
-
-String.implement('getFileName', function() {
-    var ext = this.getFileExtension();
-    return ext && this.substring(0, this.length - ext.length - 1);
 });

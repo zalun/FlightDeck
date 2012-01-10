@@ -4,8 +4,16 @@
 
 {% block head %}
 	<link rel="stylesheet" href="/media/jetpack/css/UI.Browser.css" type="text/css" media="screen" />
-	<script src="/media/jetpack/js/FlightDeck.Browser.js"></script>
-	<script src="/media/person/js/Dashboard.js"></script>
+{% endblock %}
+
+{% block shipyardjs %}
+    {{ shipyard("/media/person/js/dashboard/") }}
+{% endblock %}
+
+{% block page_domready %}
+    flightdeck.browser(fd);
+    var dashboard = require('dashboard');
+    dashboard.init(fd);
 {% endblock %}
 
 {% block app_sidebar %}

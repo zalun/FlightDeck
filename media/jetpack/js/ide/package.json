@@ -7,6 +7,14 @@
         "target": "../ide-min.js",
         "min": false,
 
+		"dependencies": {
+			"flightdeck": "../../../base/js/flightdeck"
+		},
+		"ignore": [
+			"ace/",
+			"ide/settings"
+			
+		],
         "test": "./tests"
     }
 }

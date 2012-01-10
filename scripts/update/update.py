@@ -76,15 +76,18 @@ def update_celery(ctx):
     ctx.remote("/sbin/service %s-bulk restart" % settings.CELERY_SERVICE_PREFIX)
 
 
-_shipyard_cmd = 'node ./media/lib/shipyard/bin/shipyard build %s -d ./media/jetpack/js/ide'
-
-
 @task
 def shipyard_min(ctx):
+    cmd = 'node ./media/lib/shipyard/bin/shipyard build %s -d %s'
     manage_cmd(ctx, 'cache_bust')
     minify = '--non-minify' if getattr(settings, 'BUILDER_DEV', False) else '--minify'
     with ctx.lcd(settings.SRC_DIR):
-        ctx.local(_shipyard_cmd % minify)
+        ctx.local(cmd % (minify, './media/jetpack/js/ide'))
+        ctx.local(cmd % (minify, './media/person/js/dashboard'))
+        ctx.local(cmd % (minify, './media/person/js/browserid'))
+        ctx.local(cmd % (minify, './media/search/js/search'))
+        ctx.local(cmd % (minify, './media/base/js/admin'))
+        ctx.local(cmd % (minify, './media/base/js/flightdeck'))
 
 
 @task
