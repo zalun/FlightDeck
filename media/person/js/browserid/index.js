@@ -24,7 +24,7 @@ exports.init = function(fd) {
 					},
 					onSuccess: function(res){
 						var next = new URI(String(dom.window.get('location'))).getData('next');
-						dom.window.getNode().location = next || '/usr/dashboard';
+						dom.window.getNode().location = next || '/user/dashboard';
 					},
 					onFailure: function(res){
 						if(this.xhr.status === 401){
