@@ -22,31 +22,37 @@ class Command(BaseCommand):
         fixed_latest_count = 0
         fixed_version_count = 0
         deleted_packages_count = 0
+        errors = 0
         for package in packages:
-            if package.fix_uniqueness():
-                self.stdout.write('[%s] Package not unique\n' % package.id_number)
-                fixed_uniqueness_count += 1
-            latest = package.fix_latest()
-            if latest:
-                self.stdout.write('[%s] No latest\n' % package.id_number)
-                if isinstance(latest, PackageRevision):
-                    # latest is fixed
-                    fixed_latest_count += 1
-                else:
-                    # package is deleted
-                    deleted_packages_count += 1
-            if not latest or isinstance(latest, PackageRevision):
-                # otherwise the package is deleted anyway
-                version = package.fix_version()
-                if version:
-                    fixed_version_count += 1
+            try:
+                if package.fix_uniqueness():
+                    self.stdout.write('[%s] Package not unique\n' % package.id_number)
+                    fixed_uniqueness_count += 1
+                latest = package.fix_latest()
+                if latest:
+                    self.stdout.write('[%s] No latest\n' % package.id_number)
+                    if isinstance(latest, PackageRevision):
+                        # latest is fixed
+                        fixed_latest_count += 1
+                    else:
+                        # package is deleted
+                        deleted_packages_count += 1
+                if not latest or isinstance(latest, PackageRevision):
+                    # otherwise the package is deleted anyway
+                    version = package.fix_version()
+                    if version:
+                        fixed_version_count += 1
+            except Exception, err:
+                self.stdout.write('[%s] ERROR: %s' % (package.id_number, str(err)))
+                errors += 1
 
         self.stdout.write("""
 Finished fixing packages.
+%d errors
 %d uniqueness fixed
 %d latest revisions fixed
 %d version revisions fixed
 %d packages deleted
-""" % (fixed_uniqueness_count, fixed_latest_count, fixed_version_count,
+""" % (errors, fixed_uniqueness_count, fixed_latest_count, fixed_version_count,
     deleted_packages_count))
 
