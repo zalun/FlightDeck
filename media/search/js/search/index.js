@@ -61,12 +61,6 @@ exports.init = function init() {
 			}
 		});
 	});
-	
-	dom.$('app-body').delegate('#SearchResults .truncate', 'click', function(e){
-				var tmp = this.get('data-text');
-				this.set('data-text',this.get('text'));
-				this.set('text', tmp);
-	});
 
 	SearchResult.setupUI();
 };

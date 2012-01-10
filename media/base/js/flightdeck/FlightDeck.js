@@ -72,6 +72,12 @@ module.exports = new Class({
         this.addListener('xpi_installed', this.whenXpiInstalled);
         this.addListener('xpi_uninstalled', this.whenXpiUninstalled);
         //if (!this.isAddonInstalled()) $log('FD: No Addon Builder Helper')
+
+		dom.$('app-body').delegate('.truncate', 'click', function(e) {
+			var tmp = this.get('data-text');
+			this.set('data-test', this.get('text'));
+			this.set('text', tmp);
+		});
     },
 
     whenXpiInstalled: function(name) {
