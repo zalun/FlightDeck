@@ -168,7 +168,7 @@ var FileTree = module.exports = new Class({
             label = li.getElement('.label'),
             text = label.get('text').trim();
         
-        this.fireEvent('renameStart', li, label);
+        this.emit('renameStart', li, label);
         
         
         label.set('tabIndex', 0).set('contenteditable', true).focus();
@@ -237,7 +237,7 @@ var FileTree = module.exports = new Class({
             li.removeClass('editing');
             //fire a renameCancel if the name didnt change
             if (text === label.get('title').trim()) {
-                this.fireEvent('renameCancel', li);
+                this.emit('renameCancel', li);
                 return this;
             }
             
@@ -250,7 +250,7 @@ var FileTree = module.exports = new Class({
             li.set('path', path);
             
             
-            this.fireEvent('renameComplete', [li, path]);
+            this.emit('renameComplete', li, path);
             return false;
         }
         
@@ -259,7 +259,7 @@ var FileTree = module.exports = new Class({
     deleteBranch: function(element) {
         element.dispose();
         this.collapse.prepare();
-        this.fireEvent('deleteBranch', element);
+        this.emit('deleteBranch', element);
     },
     
     addPath: function(obj, options){
