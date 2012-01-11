@@ -1,6 +1,7 @@
 var dom = require('shipyard/dom'),
 	history = dom.window.get('history'),
 	URI = require('shipyard/utils/URI'),
+	array = require('shipyard/utils/array'),
 	
 	SearchResult = require('./models/SearchResult');
 
@@ -48,16 +49,16 @@ exports.init = function init() {
 	dom.$('app-body').delegate('#SortSelect', 'change',function(e){
 		var u = new URI(dom.window.get('location'));
 		var oldValue = u.getData('sort');
-		u.setData('sort',this.getSelected().get('value')[0]);
+		u.setData('sort', this.get('value'));
 		SearchResult.page(String(u));
 		// Since we cache these pages, we need to set the select
 		// value back to the original value. Otherwise,
 		// when this page is pulled from the cache the selected
 		// option will not match the querystring
-		Array.from(this.options).each(function(o,i){
+		array.from(this.getNode().options).forEach(function(o,i){
 			if(o.value === oldValue){
 				o.selected = true;
-				this.selectedIndex = i;
+				this.getNode().selectedIndex = i;
 			}
 		});
 	});
