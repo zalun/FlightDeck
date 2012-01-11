@@ -185,7 +185,7 @@ var FileTree = module.exports = new Class({
         hasExtension = hasExtension || !!filename.extname(text);
         
         var range = dom.document.getNode().createRange(),
-            node = label.firstChild;
+            node = label.getNode().firstChild;
         range.setStart(node, 0);
         range.setEnd(node, hasExtension ? text.length - filename.extname(text).length -1 : text.length);
         var sel = dom.window.getNode().getSelection();
@@ -198,11 +198,11 @@ var FileTree = module.exports = new Class({
     renameBranchCancel: function(element) {
         var li = (element.get('tag') === 'li') ? element : element.getParent('li'),
             label = li.getElement('.label'),
-            text = label.retrieve('$text').trim();
+            text = label.retrieve('$text');
         
         label.set('contenteditable', false);
         if (text) {
-            label.set('text', text);
+            label.set('text', text.trim());
         }
         label.unstore('$text');
         li.removeClass('editing');
