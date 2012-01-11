@@ -204,7 +204,7 @@ var FileTree = module.exports = new Class({
         if (text) {
             label.set('text', text);
         }
-        label.eliminate('$text');
+        label.unstore('$text');
         li.removeClass('editing');
         
     },
@@ -229,7 +229,7 @@ var FileTree = module.exports = new Class({
             }
             
             label.removeEvent('blur', label.retrieve('$blur'));
-            label.eliminate('$text');
+            label.unstore('$text');
             label.set('contenteditable', false).blur();
             dom.window.getNode().getSelection().removeAllRanges();
             
