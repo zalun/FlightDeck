@@ -60,7 +60,7 @@ exports.init = function init() {
 				o.selected = true;
 				this.getNode().selectedIndex = i;
 			}
-		});
+		}, this);
 	});
 
 	SearchResult.setupUI();
