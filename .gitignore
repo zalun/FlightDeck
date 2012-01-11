@@ -2,13 +2,12 @@ adminmedia
 build
 build.py
 ide-min.js
+admin-min.js
+flightdeck-min.js
+browserid-min.js
+dashboard-min.js
+search-min.js
 flightdeckenv
-flightdeck/media/jetpack
-flightdeck/media/tutorial
-# flightdeck/media/bespin
-flightdeck/media/codemirror
-flightdeck/media/api
-flightdeck/jetpack/media/media
 lib/temp-*
 upload
 sdk_versions
