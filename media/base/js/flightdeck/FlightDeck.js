@@ -75,7 +75,7 @@ module.exports = new Class({
 
 		dom.$('app-body').delegate('.truncate', 'click', function(e) {
 			var tmp = this.get('data-text');
-			this.set('data-test', this.get('text'));
+			this.set('data-text', this.get('text'));
 			this.set('text', tmp);
 		});
     },
