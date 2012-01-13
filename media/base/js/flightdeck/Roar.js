@@ -17,9 +17,11 @@ var Class = require('shipyard/class/Class'),
 	Back = require('shipyard/anim/transitions/Back'),
 	Circ = require('shipyard/anim/transitions/Circ'),
 	object = require('shipyard/utils/object'),
+	string = require('shipyard/utils/string'),
 	typeOf = require('shipyard/utils/type').typeOf;
 
-var STORAGE = '__roar:anim';
+var STORAGE_ANIM = '__roar:anim';
+var STORAGE_OFFSET = '__roar:offset';
 
 module.exports = new Class({
 
@@ -62,7 +64,7 @@ module.exports = new Class({
 		var offset = [-this.options.offset, 0];
 		var last = this.items[this.items.length - 1];
 		if (last) {
-			offset[0] = last.retrieve('roar:offset');
+			offset[0] = last.retrieve(STORAGE_OFFSET);
 			offset[1] = offset[0] + last.get('offsetHeight') + this.options.offset;
 		}
 		var to = {'opacity': 1};
@@ -72,7 +74,8 @@ module.exports = new Class({
 			'class': options.className || this.options.className,
 			'styles': {
 				'opacity': 0
-			}
+			},
+			id: string.uniqueID()
 		});
 		elements.unshift(new dom.Element('div', {
 			'class': 'roar-bg',
@@ -85,14 +88,14 @@ module.exports = new Class({
 			item.appendChild(el);
 		});
 
-		item.setStyle(this.align.x, 0).store('roar:offset', offset[1]);
+		item.setStyle(this.align.x, 0).store(STORAGE_OFFSET, offset[1]);
 		
 		var anim = new Anim(item, object.merge({}, {
 			unit: 'px',
 			link: 'cancel',
 			transition: Back.easeOut
 		}, this.options.itemFx));
-		item.store(STORAGE, anim);
+		item.store(STORAGE_ANIM, anim);
 
 		var that = this;
 		var remove = function() {
@@ -139,7 +142,7 @@ module.exports = new Class({
 		var to = {opacity: 0};
 		to[this.align.y] = parseInt(item.getStyle(this.align.y), 10) - item.get('offsetHeight') - this.options.offset;
 
-		var anim = item.retrieve(STORAGE);
+		var anim = item.retrieve(STORAGE_ANIM);
 		anim.once('complete', function() {
 			item.destroy();
 		});
