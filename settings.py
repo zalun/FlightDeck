@@ -130,6 +130,7 @@ PYTHON_EXEC = 'python'
 # amo defaults
 XPI_AMO_PREFIX = "ftp://ftp.mozilla.org/pub/mozilla.org/addons/"
 
+# The lowest approved SDK available for add-ons
 LOWEST_APPROVED_SDK = "1.3"
 TEST_SDK = 'addon-sdk-1.3'
 TEST_AMO_USERNAME = None
@@ -267,7 +268,9 @@ ROOT_URLCONF = 'urls'
 
 ADDONS_HELPER_URL = ('https://addons.mozilla.org/firefox/downloads/latest/'
                     '182410?src=external-builder')
-ADDONS_HELPER_VERSION = '1.2.2'
+# desired ABH version
+# Builder will display a warning if the version is lower than this number
+ADDONS_HELPER_VERSION = '1.4'
 
 TEMPLATE_DIRS = ()
 

@@ -36,6 +36,7 @@ class Command(BaseCommand):
                         fixed_latest_count += 1
                     else:
                         # package is deleted
+                        self.stdout.write('[%s] Package deleted\n' % package.id_number)
                         deleted_packages_count += 1
                 if not latest or isinstance(latest, PackageRevision):
                     # otherwise the package is deleted anyway
