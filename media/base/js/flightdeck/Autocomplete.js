@@ -189,6 +189,11 @@ module.exports = new Class({
 	},
 
 	_renderList: function() {
+        if (!this.element) {
+            // this.element has already been destroy, likely from
+            // picking a value while a Request was fetching results
+            return;
+        }
 		var data = this._cache[this._text];
 		this._focusedItem = null;
 		
