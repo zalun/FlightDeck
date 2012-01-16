@@ -253,7 +253,7 @@ module.exports = new Class({
                             if (fd.item) {
 								this.fireEvent('xpi_downloaded', hashtag);
 							}
-                            var result = ABH().send("install", responseText).then(function(response) {
+                            ABH().send("install", responseText).then(function(response) {
                                 if (response && response.success) {
                                     this.fireEvent('xpi_installed', '');
                                 } else {
@@ -296,11 +296,8 @@ module.exports = new Class({
      * Remove Add-on from Browser
      */
     uninstallXPI: function() {
-        log.debug('uninstalling add-on');
         ABH().send('uninstall').then(function(response){
             if (response.success) {
-                // XXX: no idea why it's not working without this line
-                log.debug('');
                 this.fireEvent('xpi_uninstalled');
             }
         }.bind(this));
