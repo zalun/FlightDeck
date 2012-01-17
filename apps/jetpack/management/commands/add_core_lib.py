@@ -10,11 +10,17 @@ class Command(BaseCommand):
             make_option('--options',
                 dest="options",
                 default=None,
-                help="Apply this options to ``cfx xpi`` command"),)
+                help="Apply this options to ``cfx xpi`` command"),
+            make_option('--useversion',
+                dest="version",
+                default=None,
+                help="Version string to show in Builder"),)
 
     def handle(self, sdk_dir_name, *args, **kwargs):
         #try:
-        create_or_update_SDK(sdk_dir_name, options=kwargs['options'])
+        create_or_update_SDK(sdk_dir_name,
+                options=kwargs['options'],
+                version=kwargs['version'])
         print "SDK instances created"
         #except Exception, (e):
         #    print "Error: %s" % e
