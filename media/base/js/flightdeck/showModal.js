@@ -5,7 +5,7 @@ var Modal = require('./Modal'),
 
 exports.displayModal = function(content) {
     var modal = new Modal({
-        dragHandle: 'h3',
+        dragHandle: ['h3'],
         draggable: true,
         content: content
     });
