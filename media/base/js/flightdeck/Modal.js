@@ -105,11 +105,12 @@ module.exports = new Class({
     _position: function _position() {
         var el = this.element,
             elSize = el.getSize(),
-            winSize = dom.window.getSize();
+            winSize = dom.window.getSize(),
+			scroll = dom.window.getScroll();
 
         el.setPosition({
-            x: (winSize.x - elSize.x) / 2,
-            y: (winSize.y - elSize.y) / 2
+            x: (winSize.x - elSize.x) / 2 + scroll.x,
+            y: (winSize.y - elSize.y) / 2 + scroll.y
         });
     },
 
