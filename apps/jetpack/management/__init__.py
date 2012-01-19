@@ -33,14 +33,6 @@ class SDKDirDoesNotExist(SimpleException):
     " No such dir "
 
 
-def create_or_update_SDK(sdk_dir_name, options=None, version=None):
-    " call create or update depending on the current staus "
-    sdk_number = SDK.objects.count()
-    if sdk_number > 0:
-        return update_SDK(sdk_dir_name, options=options, version=version)
-    return create_SDK(sdk_dir_name, options=options, version=version)
-
-
 def get_manifest(sdk_source, core_name):
     " parse the SDK's manifest "
     if not os.path.isdir(sdk_source):

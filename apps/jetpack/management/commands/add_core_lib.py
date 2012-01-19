@@ -1,7 +1,8 @@
 from optparse import make_option
 
 from django.core.management.base import BaseCommand
-from jetpack.management import create_or_update_SDK
+from jetpack.management import create_SDK, update_SDK
+from jetpack.models import SDK
 
 
 class Command(BaseCommand):
@@ -16,11 +17,9 @@ class Command(BaseCommand):
                 default=None,
                 help="Version string to show in Builder"),)
 
-    def handle(self, sdk_dir_name, *args, **kwargs):
-        #try:
-        create_or_update_SDK(sdk_dir_name,
-                options=kwargs['options'],
-                version=kwargs['version'])
+    def handle(self, sdk_dir_name, options=None, version=None, *args, **kwargs):
+        if SDK.objects.count() > 0:
+            update_SDK(sdk_dir_name, options=options, version=version)
+        else:
+            create_SDK(sdk_dir_name, options=options, version=version)
         print "SDK instances created"
-        #except Exception, (e):
-        #    print "Error: %s" % e
