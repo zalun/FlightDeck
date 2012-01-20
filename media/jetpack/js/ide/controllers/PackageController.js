@@ -637,9 +637,7 @@ module.exports = new Class({
             '">'+
             file.get('shortName')+
             '</a>';
-        var spinner, img;
-        var modal = fd().displayModal(template_start+template_middle+template_end);
-        var target = dom.$(modal).getElement('.UI_Modal_Section p');
+        var spinner, img, modal, target;
         if (file.isImage()) {
             template_middle += '<p></p>';
             img = new dom.Element('img', { src: file.get('get_url') });
@@ -650,7 +648,9 @@ module.exports = new Class({
                 modal._position();
             });
         }
-        if (target) {
+        modal = fd().displayModal(template_start+template_middle+template_end);
+        target = dom.$(modal).getElement('.UI_Modal_Section p');
+        if (target && img) {
             target.addClass(LOADING_CLASS);
             img.inject(target);
         }
