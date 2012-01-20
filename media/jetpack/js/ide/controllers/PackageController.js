@@ -199,10 +199,7 @@ module.exports = new Class({
                 e.preventDefault();
                 var abh = dom.window.get('mozFlightDeck');
                 if (abh) {
-                    abh.send({
-                        cmd: 'toggleConsole',
-                        contents: 'open'
-                    });
+                    abh.send('toggleConsole', 'open');
                 } else {
                     log.warn('No mozFlightDeck.');
                 }

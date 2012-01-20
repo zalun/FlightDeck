@@ -1,15 +1,9 @@
 # coding=utf-8
-"""
-Piotr Zalewa (pzalewa@mozilla.com)
-"""
-import os
 import commonware
 import json
-import tempfile
 
 from test_utils import TestCase
 from nose.tools import eq_
-from nose import SkipTest
 
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
@@ -41,7 +35,7 @@ class ModuleTest(TestCase):
 
     def test_create_module_with_utf_content(self):
         author = User.objects.get(username='john')
-        mod = Module.objects.create(
+        Module.objects.create(
                 filename='test_filename',
                 author=author,
                 code=u'ą')

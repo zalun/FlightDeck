@@ -71,7 +71,6 @@ module.exports = new Class({
         this.addListener('xpi_downloaded', this.whenXpiDownloaded);
         this.addListener('xpi_installed', this.whenXpiInstalled);
         this.addListener('xpi_uninstalled', this.whenXpiUninstalled);
-        //if (!this.isAddonInstalled()) $log('FD: No Addon Builder Helper')
 
 		dom.$('app-body').delegate('.truncate', 'click', function(e) {
 			var tmp = this.get('data-text');
@@ -81,8 +80,8 @@ module.exports = new Class({
     },
 
     whenXpiInstalled: function(name) {
-        this.parseTestButtons();
         this.message.alert('Add-on Builder', 'Add-on installed');
+        this.parseTestButtons();
         log.info('Add-on installed');
     },
 
@@ -90,8 +89,9 @@ module.exports = new Class({
     },
 
     whenXpiUninstalled: function() {
-        this.parseTestButtons();
+        log.info('Add-on uninstalled');
         this.message.alert('Add-on Builder', 'Add-on uninstalled');
+        this.parseTestButtons();
     },
 
     /*
@@ -101,7 +101,7 @@ module.exports = new Class({
     whenAddonInstalled: function(callback) {
         var handle = dom.document.body.addListener('addonbuilderhelperstart', callback);
         setTimeout(function() {
-            log.warning('not listening to addonbuilderhelperstart, is Helper installed?');
+            log.warn('not listening to addonbuilderhelperstart, is Helper installed?');
             handle.detach();
         }, 1000 * 100);
     },
@@ -121,16 +121,19 @@ module.exports = new Class({
 	},
 
     parseTestButtons: function() {
-        var installed = (this.isAddonInstalled()) ? this.isXpiInstalled() : false;
-        if (installed) {
-            dom.$$(string.substitute('.{try_in_browser_class} a', this.options)).forEach(function(test_button){
-                if (installed && installed.installedID === test_button.get('data-jetpackid')) {
-                    test_button.getParent('li').addClass('pressed');
-                } else {
-                    test_button.getParent('li').removeClass('pressed');
-                }
-            }, this);
-        }
+        if (!this.isAddonInstalled()) return;
+        ABH().send('isInstalled').then(function(response) {
+            if (response.success) {
+                dom.$$(string.substitute('.{try_in_browser_class} a', this.options))
+                .forEach(function(test_button){
+                    if (response.installedID === test_button.get('data-jetpackid')) {
+                        test_button.getParent('li').addClass('pressed');
+                    } else {
+                        test_button.getParent('li').removeClass('pressed');
+                    }
+                }, this);
+            }
+        }.bind(this));
     },
 
     /*
@@ -156,14 +159,14 @@ module.exports = new Class({
      * Try to download XPI
      * if finished - stop periodical, stop spinner
      */
-    tryDownloadXPI: function(hashtag, filename) {
+    tryDownloadXPI: function (hashtag, filename) {
 		var fd = this;
         var test_request = this.tests[hashtag];
         if (!test_request.download_xpi_request || (
                     test_request.download_xpi_request &&
                     !test_request.download_xpi_request.isRunning())) {
             test_request.download_request_number++;
-            var url = '/xpi/check_download/'+hashtag+'/';
+            var url = '/xpi/check_download/' + hashtag + '/';
             log.debug('checking if ' + url + ' is prepared (attempt ' +
 					test_request.download_request_number + '/50)');
             var r = test_request.download_xpi_request = new Request({
@@ -217,10 +220,6 @@ module.exports = new Class({
 		}, this.options.request_interval);
     },
 
-    isXpiInstalled: function() {
-        return ABH().send({cmd:'isInstalled'});
-    },
-
     /*
      * Method: tryInstallXPI
      *
@@ -254,24 +253,26 @@ module.exports = new Class({
                             if (fd.item) {
 								this.fireEvent('xpi_downloaded', hashtag);
 							}
-                            var result = ABH().send({
-                                cmd: "install", contents: responseText
-                            });
-                            if (result && result.success) {
-                                this.fireEvent('xpi_installed', '');
-                            } else {
-                                if (result) {
-									log.debug('Unsucessful result:', result);
-								}
-                                this.warning.alert(
-                                    'Add-on Builder',
-                                    'Wrong response from Add-on Builder Helper. Please <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=573778">let us know</a>'
-                                );
-                            }
+                            ABH().send("install", responseText).then(function(response) {
+                                if (response && response.success) {
+                                    this.fireEvent('xpi_installed', '');
+                                } else {
+                                    if (response) {
+                                        log.debug('Unsuccessful response:', response);
+                                    }
+                                    this.warning.alert(
+                                        'Add-on Builder',
+                                        'Wrong response from Add-on Builder Helper. ' +
+                                        'Please <a href="https://bugzilla.mozilla.org/' +
+                                        'show_bug.cgi?id=573778">let us know</a>'
+                                    );
+                                }
+                            }.bind(this));
                         } else if (test_request.request_number > 50) {
                             this.warning.alert(
                                 'Add-on Builder',
-                                'The add-on was not successfully built (attempts timed out). Please try again.'
+                                'The add-on was not successfully built ' +
+                                '(attempts timed out). Please try again.'
                             );
                         }
                     }.bind(this),
@@ -294,12 +295,12 @@ module.exports = new Class({
      *
      * Remove Add-on from Browser
      */
-    uninstallXPI: function(jid) {
-        log.info('uninstalling ' + jid);
-        var result = ABH().send({cmd:'uninstall'});
-        if (result.success) {
-			this.fireEvent('xpi_uninstalled');
-		}
+    uninstallXPI: function() {
+        ABH().send('uninstall').then(function(response){
+            if (response.success) {
+                this.fireEvent('xpi_uninstalled');
+            }
+        }.bind(this));
     },
     /*
      * Method: enableMenuButtons
@@ -325,14 +326,30 @@ module.exports = new Class({
      * Show a warning if old add-on builder helper is installed
      */
     alertIfOldHelper: function() {
-        var response;
+        // run this only once per request
+        var that = this;
+        if (this.old_helper_checked) return;
         if (settings.addons_helper_version && ABH()) {
-            response = ABH().send({cmd: 'version'});
-            if (!response.success || response.msg < settings.addons_helper_version) {
-                this.warning.alert(
-                        'Upgrade Add-on Builder Helper',
-                        string.substitute('There is a newer version ({addons_helper_version}) available.<br/> Please install <a href="{addons_helper}">the current one</a>.', settings));
+            if (!ABH().send({cmd: 'version'}).then) {
+                that.warning.alert(
+                    'Upgrade Add-on Builder Helper',
+                    string.substitute('Your version is not compatible with' +
+                        ' the Builder. <br/>There is a newer one ' +
+                        '({addons_helper_version}) available.<br/> ' +
+                        'Please install <a href="{addons_helper}">' +
+                        'the current one</a>.<br/>', settings));
             }
+            ABH().send('version').then(function (response){
+                that.old_helper_checked = true;
+                if (!response.success || response.msg < settings.addons_helper_version) {
+                    that.warning.alert(
+                        'Upgrade Add-on Builder Helper',
+                        string.substitute('There is a newer version ' +
+                            '({addons_helper_version}) available.<br/> ' +
+                            'Please install <a href="{addons_helper}">' +
+                            'the current one</a>.', settings));
+                }
+            });
         }
     },
 
@@ -347,8 +364,10 @@ module.exports = new Class({
 			return true;
 		}
         text = text ||
-			string.substitute("To test this add-on, please install the <a id='install_addon_helper' href='{addons_helper}'>Add-on Builder Helper add-on</a>", settings);
-        title = title || "Install Add-on Builder Helper";
+			string.substitute('To test this add-on, please install the '+
+                    '<a id="install_addon_helper" href="{addons_helper}">'+
+                    'Add-on Builder Helper add-on</a>', settings);
+        title = title || 'Install Add-on Builder Helper';
         this.warning.alert(title, text);
         return false;
     },
