@@ -647,7 +647,7 @@ module.exports = new Class({
                 if (target) {
                     target.removeClass(LOADING_CLASS);
                 }
-                modal.position();
+                modal._position();
             });
         }
         if (target) {
@@ -655,7 +655,7 @@ module.exports = new Class({
             img.inject(target);
         }
         setTimeout(function() {
-            modal.position();
+            modal._position();
         }, 1);
     },
                       
