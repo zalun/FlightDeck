@@ -105,7 +105,7 @@ module.exports = new Class({
 		this.element.delegate('li', 'mouseover', function(e, li) {
 			ac._focusItem(li);
 		});
-		this.element.delegate('li', 'click', function(e, li) {
+		this.element.delegate('li', 'mousedown', function(e, li) {
 			ac._selectFocusedItem();
 		});
 	},
