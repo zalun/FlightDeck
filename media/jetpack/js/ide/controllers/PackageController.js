@@ -945,8 +945,6 @@ module.exports = new Class({
                 });
                 controller.modules[response.filename] = mod;
                 // change the id of the element
-                controller.sidebar.uids[mod.get('uid')] = controller.sidebar.uids[modId];
-                delete controller.sidebar.uids[modId];
                 delete controller.modules[oldName];
             },
             onComplete: function() {
