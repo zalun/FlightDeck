@@ -938,10 +938,8 @@ module.exports = new Class({
                 fd().message.alert(response.message_title, response.message);
                 
                 var mod = controller.modules[oldName];
-                var modId = mod.get('uid');
                 mod.set({
-                    filename: response.filename,
-                    get_url: response.get_url
+                    filename: response.filename
                 });
                 controller.modules[response.filename] = mod;
                 // change the id of the element
@@ -1221,6 +1219,8 @@ module.exports = new Class({
      */
     makePublic: function(e) {
         e.stop();
+		var controller = this;
+
         this.savenow = false;
         var activateButton = dom.$('UI_ActivateLink');
         if (activateButton.getElement('a').hasClass('inactive')) {
@@ -1235,6 +1235,7 @@ module.exports = new Class({
                 fd().fireEvent('activate_' + response.package_type);
                 activateButton.addClass('pressed').getElement('a').addClass('inactive');
                 dom.$('UI_DisableLink').removeClass('pressed').getElement('a').removeClass('inactive');
+				controller.package_.set('active', true);
             },
             onComplete: function() {
                 activateButton.removeClass(LOADING_CLASS);
@@ -1258,10 +1259,12 @@ module.exports = new Class({
         return new Request({
             url: deactivateButton.getElement('a').get('href'),
             onSuccess: function(response) {
+				response = JSON.parse(response);
                 fd().message.alert(response.message_title, response.message);
                 fd().fireEvent('disable_' + response.package_type);
                 deactivateButton.addClass('pressed').getElement('a').addClass('inactive');
                 dom.$('UI_ActivateLink').removeClass('pressed').getElement('a').removeClass('inactive');
+				controller.package_.set('active', false);
             },
             onComplete: function() {
                 deactivateButton.removeClass(LOADING_CLASS);
@@ -1294,6 +1297,19 @@ module.exports = new Class({
 
         dom.$('UI_ActivateLink').getElement('a').addEvent('click', this.makePublic.bind(this));
         dom.$('UI_DisableLink').getElement('a').addEvent('click', this.makePrivate.bind(this));
+
+		// adjust button if package has been made private or public
+		// since last page load
+		var pressedBtn, notPressedBtn;
+		if (this.package_.get('active')) {
+			pressedBtn = dom.$('UI_ActivateLink');
+			notPressedBtn = dom.$('UI_DisableLink');
+		} else {
+			notPressedBtn = dom.$('UI_ActivateLink');
+			pressedBtn = dom.$('UI_DisableLink');
+		}
+		pressedBtn.addClass('pressed').getElement('a').addClass('inactive');
+		notPressedBtn.removeClass('pressed').getElement('a').removeClass('inactive');
 
         var validator = new Validator('full_name', {
             pattern: /^[A-Za-z0-9\s\-_\.\(\)]*$/,
