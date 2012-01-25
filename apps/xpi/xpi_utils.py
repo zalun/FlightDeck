@@ -79,7 +79,7 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None):
     try:
         process = subprocess.Popen(cfx, shell=False, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE, env=env)
-        response = process.communicate()
+        processresponse = process.communicate()
     except subprocess.CalledProcessError, err:
         info_write(info_targetpath, 'error', str(err), hashtag)
         log.critical("[xpi:%s] Failed to build xpi: %s.  Command(%s)" % (
@@ -88,10 +88,10 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None):
         raise
     if (waffle.switch_is_active('SDKErrorInStdOutWorkaround') and
             not os.path.exists(os.path.join(package_dir, '%s.xpi' % filename))):
-        badresponse = response[0]
+        badresponse = processresponse[0]
         response = ['', '']
         response[1] = badresponse
-    if response[1]:
+    if processresponse.returncode != 0:
         info_write(info_targetpath, 'error', response[1], hashtag)
         log.critical("[xpi:%s] Failed to build xpi." % hashtag)
         shutil.rmtree(sdk_dir)
