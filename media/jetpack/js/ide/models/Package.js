@@ -30,6 +30,7 @@ var Package = module.exports = new Class({
 		version_name: fields.TextField(),
 		revision_number: fields.NumberField(),
         view_url: fields.TextField(),
+		active: fields.BooleanField(),
 
         latest: fields.NumberField() // a FK to PackageRevision
 
@@ -59,7 +60,7 @@ var Package = module.exports = new Class({
     },
 
     retrieveNewVersion: function() {
-        return this._latest_version;    
+        return this._latest_version;
     },
 
     isAddon: function isAddon() {
