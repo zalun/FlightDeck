@@ -93,7 +93,8 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None):
         response[1] = badresponse
     if process.returncode != 0:
         info_write(info_targetpath, 'error', response[1], hashtag)
-        log.critical("[xpi:%s] Failed to build xpi." % hashtag)
+        log.critical("[xpi:%s] Failed to build xpi., returncode: %d" % (
+            hashtag, process.returncode))
         shutil.rmtree(sdk_dir)
         return response
 
