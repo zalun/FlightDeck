@@ -938,10 +938,8 @@ module.exports = new Class({
                 fd().message.alert(response.message_title, response.message);
                 
                 var mod = controller.modules[oldName];
-                var modId = mod.get('uid');
                 mod.set({
-                    filename: response.filename,
-                    get_url: response.get_url
+                    filename: response.filename
                 });
                 controller.modules[response.filename] = mod;
                 // change the id of the element
