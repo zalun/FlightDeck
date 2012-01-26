@@ -28,3 +28,6 @@
 [submodule "lib/addon-sdk-1.4"]
 	path = lib/addon-sdk-1.4
 	url = git://github.com/mozilla/addon-sdk.git
+[submodule "lib/addon-sdk-1.4.1-warner-1"]
+	path = lib/addon-sdk-1.4.1-warner-1
+	url = git://github.com/warner/addon-sdk.git
