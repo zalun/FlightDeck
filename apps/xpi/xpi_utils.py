@@ -41,7 +41,8 @@ def sdk_copy(sdk_source, sdk_dir):
             shutil.copytree(sdk_source, sdk_dir)
 
 
-def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None):
+def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None,
+        temp_dir=None):
     """Build xpi from SDK with prepared packages in sdk_dir.
 
     :params:
@@ -57,6 +58,9 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None):
     """
 
     t1 = time.time()
+
+    if not temp_dir:
+        temp_dir = sdk_dir
 
     # create XPI
     os.chdir(package_dir)
@@ -84,7 +88,7 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None):
         info_write(info_targetpath, 'error', str(err), hashtag)
         log.critical("[xpi:%s] Failed to build xpi: %s.  Command(%s)" % (
                      hashtag, str(err), cfx))
-        shutil.rmtree(sdk_dir)
+        shutil.rmtree(temp_dir)
         raise
     if (waffle.switch_is_active('SDKErrorInStdOutWorkaround') and
             not os.path.exists(os.path.join(package_dir, '%s.xpi' % filename))):
@@ -95,7 +99,7 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None):
         info_write(info_targetpath, 'error', response[1], hashtag)
         log.critical("[xpi:%s] Failed to build xpi., returncode: %d" % (
             hashtag, process.returncode))
-        shutil.rmtree(sdk_dir)
+        shutil.rmtree(temp_dir)
         return response
 
     t2 = time.time()
@@ -111,10 +115,10 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None):
                 'XPI file can not be copied.',
                 hashtag)
         log.critical("[xpi:%s] Failed to copy xpi.\n%s" % (hashtag, str(err)))
-        shutil.rmtree(sdk_dir)
+        shutil.rmtree(temp_dir)
         return response
 
-    shutil.rmtree(sdk_dir)
+    shutil.rmtree(temp_dir)
 
     ret = [xpi_targetfilename]
     ret.extend(response)

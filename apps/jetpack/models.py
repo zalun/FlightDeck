@@ -1317,9 +1317,8 @@ class PackageRevision(BaseModel):
             sdk = self.sdk
         sdk_source = sdk.get_source_dir()
 
-        sdk_dir = tempfile.mkdtemp()
-        # XXX: this will leave garbage - testing if it'll work like that
-        sdk_dir = "%s/addon-sdk-%s" % (sdk_dir, sdk.version)
+        temp_dir = tempfile.mkdtemp()
+        sdk_dir = "%s/addon-sdk-%s" % (temp_dir, sdk.version)
         os.makedirs(sdk_dir)
 
         # XPI: Copy files from NFS to local temp dir
@@ -1376,7 +1375,8 @@ class PackageRevision(BaseModel):
         if waffle.switch_is_active('AddRevisionPkToXPI'):
             options = '%s --harness-option builderVersion=%s' % (options, self.pk)
         return xpi_utils.build(sdk_dir, self.get_dir_name(packages_dir),
-                self.name, hashtag, tstart=tstart, options=options)
+                self.name, hashtag, tstart=tstart, options=options,
+                temp_dir=temp_dir)
 
     def export_keys(self, sdk_dir):
         """Export private and public keys to file."""
