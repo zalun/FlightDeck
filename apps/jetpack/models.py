@@ -1313,10 +1313,14 @@ class PackageRevision(BaseModel):
         if not tstart:
             tstart = time.time()
 
-        sdk_dir = tempfile.mkdtemp()
         if not sdk:
             sdk = self.sdk
         sdk_source = sdk.get_source_dir()
+
+        sdk_dir = tempfile.mkdtemp()
+        # XXX: this will leave garbage - testing if it'll work like that
+        sdk_dir = "%s/addon-sdk-%s" % (sdk_dir, sdk.version)
+        os.makedirs(sdk_dir)
 
         # XPI: Copy files from NFS to local temp dir
         xpi_utils.sdk_copy(sdk_source, sdk_dir)
