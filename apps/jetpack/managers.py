@@ -15,10 +15,11 @@ log = commonware.log.getLogger('f.jetpack.managers')
 class SDKManager(models.Manager):
     " manager for SDK class "
 
-    def exclude_disabled(self):
+    def exclude_disabled(self, current=None):
         query = self
         for disabled in settings.DISABLED_SDKS:
-            query = query.exclude(version=disabled)
+            if not current or current != disabled:
+                query = query.exclude(version=disabled)
         return query.all()
 
 class PackageManager(QuerySetManager):
