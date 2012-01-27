@@ -37,7 +37,7 @@ from base.models import BaseModel
 from jetpack.errors import (SelfDependencyException, FilenameExistException,
                             UpdateDeniedException, SingletonCopyException,
                             DependencyException, AttachmentWriteException)
-from jetpack.managers import PackageManager
+from jetpack.managers import SDKManager, PackageManager
 
 from utils import validator
 from utils.helpers import pathify, alphanum, alphanum_plus, get_random_string
@@ -2334,6 +2334,8 @@ class SDK(BaseModel):
     #: xpi creation options specific to the SDK release
     options = models.CharField(max_length=255, default=None, blank=True,
                                null=True)
+
+    objects = SDKManager()
 
     class Meta:
         """Ordering of SDK instances."""

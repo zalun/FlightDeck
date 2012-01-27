@@ -148,7 +148,7 @@ def edit(request, revision):
     sdk_list = None
     if revision.package.is_addon():
         library_counter += 1
-        sdk_list = SDK.objects.all()
+        sdk_list = SDK.objects.exclude_disabled()
 
     return render(request,
         "%s_edit.html" % revision.package.get_type_name(), {

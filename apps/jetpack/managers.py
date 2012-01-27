@@ -5,12 +5,21 @@ import datetime
 import commonware
 
 from django.db import models
+from django.conf import settings
 
 from base.managers import QuerySetManager
 
 log = commonware.log.getLogger('f.jetpack.managers')
 #TODO: Add Library and Addon managers and use them inside Package and views
 
+class SDKManager(models.Manager):
+    " manager for SDK class "
+
+    def exclude_disabled(self):
+        query = self
+        for disabled in settings.DISABLED_SDKS:
+            query = query.exclude(version=disabled)
+        return query.all()
 
 class PackageManager(QuerySetManager):
     " manager for Package object "
