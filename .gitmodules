@@ -33,4 +33,4 @@
 	url = git://github.com/mozilla/addon-sdk.git
 [submodule "lib/addon-sdk-1.4.2"]
 	path = lib/addon-sdk-1.4.2
-	url = https://github.com/KWierso/addon-sdk.git
+	url = git://github.com/mozilla/addon-sdk.git
