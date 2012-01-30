@@ -1537,8 +1537,16 @@ class Package(BaseModel, SearchMixin):
                 log.critical('[save] Error saving Package\n%s\n%s' % (
                     self.__dict__, str(err)))
                 raise
+        except ValidationError, err:
+            # a common error here is "Full Name and Author already exists"
+            if ('__all__' in err and
+                'Author and Name already exists' in err['__all__']):
+                self.full_name = None
+                self.save()
+            else:
+                log.error('[save] Save package validation error: %s', str(err))
         except Exception, err:
-            log.critical('Save package failed\n%s' % str(err))
+            log.exception('[save] Save package failed')
             raise
 
         if self.pk is None:
