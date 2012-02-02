@@ -6,7 +6,7 @@ var dom = require('shipyard/dom'),
     string = require('shipyard/utils/string'),
     Cookie = require('shipyard/utils/Cookie'),
 
-    Spy = require('testigo/lib/spy').Spy,
+    Spy = require('shipyard/test/Spy'),
     mockXHR = require('shipyard/test/mockXHR');
 
 var fd = new Events();
@@ -215,11 +215,8 @@ module.exports = {
 
             var pc = new PackageController(addon, editOptions);
             pc.console_el.fireEvent('click', new E('click'));
-            expect(fd.send.getCallCount()).toBe(1);
-            expect(fd.send.getLastArgs()).toBeLike([{
-                cmd: 'toggleConsole',
-                contents: 'open'
-            }]);
+            expect(fd.send).toHaveBeenCalled();
+            expect(fd.send.getLastArgs()).toBeLike(['toggleConsole', 'open']);
 
             delete dom.window.node.mozFlightDeck;
         });
