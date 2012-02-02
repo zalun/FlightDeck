@@ -1540,11 +1540,13 @@ class Package(BaseModel, SearchMixin):
         except ValidationError, err:
             # a common error here is "Full Name and Author already exists"
             if ('__all__' in err and
-                'Author and Name already exists' in err['__all__']):
+                'Package with this Author and Name already exists.' in err['__all__']):
                 self.full_name = None
-                self.save()
+                self.name = None
+                return self.save()
             else:
                 log.error('[save] Save package validation error: %s', str(err))
+                raise
         except Exception, err:
             log.exception('[save] Save package failed')
             raise
@@ -1724,7 +1726,6 @@ class Package(BaseModel, SearchMixin):
 
     def default_name(self):
         self.name = make_name(self.full_name)
-
 
     def set_full_name(self):
         """
