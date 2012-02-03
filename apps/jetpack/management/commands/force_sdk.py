@@ -18,14 +18,14 @@ log = commonware.log.getLogger('f.jetpack')
 
 
 class Command(BaseCommand):
-    args = "<target_version from_version>"
+    args = "<from_version target_version>"
 
-    def handle(self, target_version, from_version, *args, **kwargs):
+    def handle(self, from_version, target_version, *args, **kwargs):
         """Force add-ons to use SDK with version ``target_version``
 
         :params:
-            * target_version (string) Use that target_version
             * from_version (string) Choose add-ons using sdk with that version
+            * target_version (string) Use that target_version
         """
         try:
             sdk = SDK.objects.get(version=target_version)
