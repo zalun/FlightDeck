@@ -26,35 +26,25 @@ div.UI_Editor_Area {
 
 		div.ace_gutter div.ace_gutter-layer
 		{
-			padding: 4px 0;
+			padding: 2px 0;
 		}
 
 	div.ace_scroller
 	{
 		top: 0px;
 		bottom: 0px;	
-		height: auto !important;
+		/*height: auto !important;*/
 		background: #FFFFFF;
 		border-top: 1px solid #777;
 		border-left: 1px solid #777;
-		-moz-border-radius: 3px 0 0 0;
+		border-radius: 3px 0 0 0;
 		-moz-box-shadow: 1px 1px 2px -2px #000 inset;
+        overflow-x: auto;
 	}
 	
-		div.ace_content
-		{
-			top: 3px;
-			padding: 4px !important;
-		}
-
-			div.ace_content > div.ace_layer
-			{
-				top: -1px;
-			}
 	
 	div.ace_editor div.ace_sb
 	{
-		right: -1px;
 		border-top: 1px solid #777;		
 	}
 
