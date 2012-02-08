@@ -164,6 +164,7 @@ module.exports = new Class({
         this.attachEditor();
         this.attachSidebar();
         this.attachTabs();
+		this.bind_keyboard();
 
         if (this.getOption('readonly')) {
             this.assignViewActions();
@@ -1471,70 +1472,51 @@ module.exports = new Class({
         this.emit('focus');
     },
 
-    /*bind_keyboard: function() {
-        var that = this;
-        this.keyboard = new FlightDeck.Keyboard();
-        if(this.package_.isAddon()) {
-            this.keyboard.addShortcut('test', {
-                keys:'ctrl+enter',
-                description: 'Toggle Testing',
-                handler: function(e) {
-                    e.preventDefault();
-                    that.testAddon();
-                }
-            });
-        }
-        this.keyboard.addShortcuts({
-            'save': {
-                keys:'ctrl+s',
-                description: 'Save current outstanding changes.',
-                handler: this.boundSaveAction
-            },
-            
-            'new attachment': {
-                keys: 'ctrl+n',
-                description: 'Open the New Attachment prompt.',
-                handler: function(e) {
-                    e.preventDefault();
-                    that.sidebar.promptAttachment();
-                }
-            },
-            'new module': {
-                keys:'ctrl+shift+n',
-                description: 'Open the New Module prompt.',
-                handler: function(e) {
-                    e.preventDefault();
-                    that.sidebar.promptNewFile();
-                }
-            },
-            'focus tree / editor': {
-                keys: 'ctrl+e',
-                description: 'Switch focus between the editor and the tree',
-                handler: function(e) {
-                    e.preventDefault();
-                    if(that._focused) {
-                        that.blur();
-                        that.sidebar.focus();
-                    } else {
-                        //that.sidebar.blur();
-                        that.focus();
-                    }
-                }
-            },
-            'shortcuts': {
-                keys: 'ctrl+shift+/',
-                description: 'Show these keyboard shortcuts',
-                handler: function() {
-                    that.toggleShortcutsModal();
-                }
-            }
-        });
-        this.keyboard.manage(this.sidebar.keyboard);
-        this.keyboard.activate();
-        this.sidebar.keyboard.deactivate();
-        this.addListener('focus', function() {
-            that.sidebar.blur();
-        });
+    bind_keyboard: function() {
+        var controller = this;
+
+		dom.document.addListener('keyup', function(e) {
+			if (!e.control) {
+				return;
+			}
+			switch (e.key) {
+				case 's':
+					e.preventDefault();
+					controller.save();
+					break;
+				case 'enter':
+					if (controller.package_.isAddon()) {
+						e.preventDefault();
+						controller.testAddon();
+					}
+					break;
+				case 'n':
+					e.preventDefault();
+					if (e.shift) {
+						//new module
+						controller.sidebar.promptNewFile();
+					} else {
+						//new attachment
+						controller.sidebar.promptAttachment();
+					}
+					break;
+				// keypress isn't fired for this key... awesome!
+				case '/':
+					if (e.shift) {
+						e.preventDefault();
+						controller.toggleShortcutsModal();
+					}
+					break;
+			}
+		});
+
+		// to prevent ctrl+n opening a new window
+		// keyup is too late
+		dom.document.addListener('keypress', function(e) {
+			if (e.key === 'n' && e.control) {
+				e.preventDefault();
+			}
+		});
     },
     
     toggleShortcutsModal: function() {
@@ -1546,22 +1528,49 @@ module.exports = new Class({
     },
     
     showShortcuts: function() {
-        var shortcuts = [];
+        var shortcuts = [
+			{
+				keys: 'ctrl+s',
+				description: 'Save current outstanding changes.'
+			},
+			{
+				keys: 'ctrl+enter',
+				description: 'Toggle testing.'
+			},
+			{
+				keys: 'ctrl+shift+n',
+				description: 'Open the new Module prompt.'
+			},
+			{
+				keys: 'ctrl+n',
+				description: 'Open the new Attachment prompt.'
+			},
+			{
+				keys: 'ctrl+shift+/',
+				description: 'Show these keyboard shortcuts.'
+			}
+		];
+		var output = [];
         function buildLines(shortcut) {
             var keys = '<kbd>'+ shortcut.keys.split('+').join('</kbd> + <kbd>').split('|').join('</kbd> or <kbd>').replace(/meta/g, 'cmd') + '</kbd>';
-            shortcuts.push(keys + ': ' + shortcut.description);
+            output.push(keys + ': ' + shortcut.description);
         }
         
         
-        shortcuts.push('<strong>Editor</strong>');
-        this.keyboard.getShortcuts().forEach(buildLines);
-        shortcuts.push('<strong>Tree</strong>');
-        this.sidebar.keyboard.getShortcuts().forEach(buildLines);
+        //output.push('<strong>Editor</strong>');
+        shortcuts.forEach(buildLines);
+        //shortcuts.push('<strong>Tree</strong>');
+        //this.sidebar.keyboard.getShortcuts().forEach(buildLines);
         
         this._shortcutsModal = fd().displayModal('<h3>Keyboard Shortcuts</h3>'+
                         '<div class="UI_Modal_Section"><p>'+
-                        shortcuts.join('</p><p>')+
-                        '</p></div>'
+                        output.join('</p><p>')+
+                        '</p></div>'+
+						'<div class="UI_Modal_Actions">'+
+							'<ul>'+
+								'<li><input type="reset" class="closeModal" value="Close"/></li>'+
+							'</ul>'+
+						'</div>'
         );
         this._shortcutsModal.addListener('destroy', function() {
             this._shortcutsModal = null;
@@ -1572,7 +1581,7 @@ module.exports = new Class({
         if (this._shortcutsModal) {
             this._shortcutsModal.destroy();
         }
-    },*/
+    },
 
     registerRevision: function(urls) {
         // update page title to reflect current revision and name
