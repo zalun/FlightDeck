@@ -28,7 +28,7 @@ module.exports = new Class({
         var spinnerEl,
             file = this;
 
-        log.debug('loading content for module (%s)' % this.get('uid'));
+        log.debug('loading content for module (uid:%s)', this.get('uid'));
 
         this.fireEvent('loadstart');
 		return new Request({
