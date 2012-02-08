@@ -23,7 +23,7 @@ module.exports = {
             mockXHR(mod);
             var m = new Module();
             var fn = new Spy();
-            m.addEvent('loadcontent', fn);
+            m.addListener('loadcontent', fn);
             m.loadContent(function(content) {
                 expect(content).toBe(mod.code);
                 expect(m.get('content')).toBe(mod.code);

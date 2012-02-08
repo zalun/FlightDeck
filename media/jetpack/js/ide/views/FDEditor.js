@@ -153,7 +153,7 @@ var FDEditor = module.exports = new Class({
     },
 
     unhookChange: function(){
-        this.element.removeEvent('keyup', this.boundWhenItemChanged);
+        this.element.removeListener('keyup', this.boundWhenItemChanged);
         this.change_hooked = false;
         log.info('No longer following changes');
     },

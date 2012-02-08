@@ -292,10 +292,10 @@ var Sidebar = module.exports = new Class({
 
         // file.onChange should add an asterisk to the tree branch
         // file.onReset should remove the asterisk
-        file.addEvent('dirty', function() {
+        file.addListener('dirty', function() {
             element.addClass(that.options.file_modified_class);
         });
-        file.addEvent('reset', function() {
+        file.addListener('reset', function() {
             element.removeClass(that.options.file_modified_class);
         });
         
@@ -398,7 +398,7 @@ var Sidebar = module.exports = new Class({
             
             var emptydir = node.retrieve('file');
             if (emptydir instanceof Folder) {
-                emptydir.removeEvent('destroy', emptydir._removeFromTree);
+                emptydir.removeListener('destroy', emptydir._removeFromTree);
                 node.unstore('file');
                 emptydir.destroy();
             }
@@ -662,7 +662,7 @@ var Sidebar = module.exports = new Class({
             isFolder = false;
         });
         
-        folderBtn.addEvent('click', function(e) {
+        folderBtn.addListener('click', function(e) {
             e.stop();
             fileBtn.removeClass('selected');
             this.addClass('selected');

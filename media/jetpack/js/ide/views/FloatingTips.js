@@ -66,7 +66,7 @@ module.exports = new Class({
             evs[s.options.hideOn] = function() {
                 s.hide(e);
             };
-            e.addEvents(evs);
+            e.addListeners(evs);
         });
         return this;
     },
@@ -83,7 +83,7 @@ module.exports = new Class({
         }
         element.store(STORE_TIP, tip);
         this._animate(tip, 'in');
-        this.fireEvent('show', tip, element);
+        this.emit('show', tip, element);
         return this;
     },
     
@@ -93,7 +93,7 @@ module.exports = new Class({
             return this;
         }
         this._animate(tip, 'out');
-        this.fireEvent('hide', [tip, element]);
+        this.emit('hide', tip, element);
         return this;
     },
     

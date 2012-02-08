@@ -194,7 +194,7 @@ module.exports = new Class({
             this.collapse.updateElement(drop.target);
         }
         
-        this.fireEvent('change');
+        this.emit('change');
     },
 
     setDropTarget: function(drop) {

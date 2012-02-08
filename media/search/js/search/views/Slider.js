@@ -199,7 +199,7 @@ module.exports = new Class({
 		var step = this.step;
 		if (this.previousChange !== step) {
 			this.previousChange = step;
-			this.fireEvent('change', step);
+			this.emit('change', step);
 		}
 		return this;
 	},

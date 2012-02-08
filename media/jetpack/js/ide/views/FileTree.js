@@ -176,11 +176,11 @@ var FileTree = module.exports = new Class({
         label.store('$text', text);
         
         label.store('$blur', function blur(e) {
-            label.removeEvent('blur', blur);
+            label.removeListener('blur', blur);
             this.renameBranchCancel(element);
         }.bind(this));
         
-        label.addEvent('blur', label.retrieve('$blur'));
+        label.addListener('blur', label.retrieve('$blur'));
         
         hasExtension = hasExtension || !!filename.extname(text);
         
@@ -228,7 +228,7 @@ var FileTree = module.exports = new Class({
                 return this;
             }
             
-            label.removeEvent('blur', label.retrieve('$blur'));
+            label.removeListener('blur', label.retrieve('$blur'));
             label.unstore('$text');
             label.set('contenteditable', false).blur();
             dom.window.getNode().getSelection().removeAllRanges();

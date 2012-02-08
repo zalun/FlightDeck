@@ -33,8 +33,8 @@ function resetDom() {
     dom.$$('body *').dispose();
 
 
-    fd.removeEvents();
-    dom.window.removeEvents();
+    fd.removeListeners();
+    dom.window.removeListeners();
 
     var body = dom.document.body;
 
@@ -119,7 +119,7 @@ module.exports = {
 
             pc.showRevisionList = new Spy();
 
-            pc.revision_list_btn.fireEvent('click', new E('click'));
+            pc.revision_list_btn.emit('click', new E('click'));
             expect(pc.showRevisionList.getCallCount()).toBe(1);
         });
 
@@ -152,7 +152,7 @@ module.exports = {
         it('should be bound to testAddon', function(expect) {
             var pc = new PackageController(addon, editOptions);
             pc.testAddon = new Spy();
-            pc.test_el.fireEvent('click', new E('click'));
+            pc.test_el.emit('click', new E('click'));
             expect(pc.testAddon.getCallCount()).toBe(1);
         });
 
@@ -164,21 +164,21 @@ module.exports = {
         it('should be bound to downloadAddon', function(expect) {
             var pc = new PackageController(addon, editOptions);
             pc.downloadAddon = new Spy();
-            pc.download_el.fireEvent('click', new E('click'));
+            pc.download_el.emit('click', new E('click'));
             expect(pc.downloadAddon.getCallCount()).toBe(1);
         });
 
         it('should be bound to copyPackage', function(expect) {
             var pc = new PackageController(addon, editOptions);
             pc.copyPackage = new Spy();
-            pc.copy_el.fireEvent('click', new E('click'));
+            pc.copy_el.emit('click', new E('click'));
             expect(pc.copyPackage.getCallCount()).toBe(1);
         });
 
         it('should be bound to checkIfLatest on window.focus', function(expect) {
             var pc = new PackageController(addon, editOptions);
             pc.checkIfLatest = new Spy();
-            dom.window.fireEvent('focus', new E('focus'));
+            dom.window.emit('focus', new E('focus'));
             expect(pc.checkIfLatest.getCallCount()).toBe(1);
         });
 
@@ -188,14 +188,14 @@ module.exports = {
                 check_dependencies: false
             });
             pc.checkIfLatest = new Spy();
-            dom.window.fireEvent('focus', new E('focus'));
+            dom.window.emit('focus', new E('focus'));
             expect(pc.checkIfLatest.getCallCount()).toBe(0);
         });
 
         it('should be bound to showInfo', function(expect) {
             var pc = new PackageController(addon, { readonly: true });
             pc.showInfo = new Spy();
-            pc.packageInfoEl.fireEvent('click', new E('click'));
+            pc.packageInfoEl.emit('click', new E('click'));
             expect(pc.showInfo.getCallCount()).toBe(1);
         });
 
@@ -205,7 +205,7 @@ module.exports = {
         it('should be bound to editInfo', function(expect) {
             var pc = new PackageController(addon, editOptions);
             pc.editInfo = new Spy();
-            pc.packageInfoEl.fireEvent('click', new E('click'));
+            pc.packageInfoEl.emit('click', new E('click'));
             expect(pc.editInfo.getCallCount()).toBe(1);
         });
 
@@ -214,7 +214,7 @@ module.exports = {
             dom.window.node.mozFlightDeck = fd;
 
             var pc = new PackageController(addon, editOptions);
-            pc.console_el.fireEvent('click', new E('click'));
+            pc.console_el.emit('click', new E('click'));
             expect(fd.send).toHaveBeenCalled();
             expect(fd.send.getLastArgs()).toBeLike(['toggleConsole', 'open']);
 
@@ -224,14 +224,14 @@ module.exports = {
         it('should bind save_el to saveAction', function(expect) {
             var pc = new PackageController(addon, editOptions);
             pc.saveAction = new Spy();
-            pc.save_el.fireEvent('click', new E('click'));
+            pc.save_el.emit('click', new E('click'));
             expect(pc.saveAction.getCallCount()).toBe(1);
         });
 
         it('should bind to onbeforeunload', function(expect) {
             var pc = new PackageController(addon, editOptions);
             pc.alertUnsavedData = new Spy();
-            dom.window.fireEvent('beforeunload', new E('beforeunload'));
+            dom.window.emit('beforeunload', new E('beforeunload'));
             expect(pc.alertUnsavedData.getCallCount()).toBe(1);
         });
 
@@ -252,19 +252,19 @@ module.exports = {
 
             // jury-rig the .focus() methods to trigger our event
             // handlers
-            pc.versionEl.focus = function() { this.fireEvent('focus', new E('focus')); };
+            pc.versionEl.focus = function() { this.emit('focus', new E('focus')); };
             pc.save_el.focus = pc.versionEl.focus;
 
-            pc.versionEl.addEvent('focus', versionFocus);
-            pc.save_el.addEvent('focus', saveFocus);
+            pc.versionEl.addListener('focus', versionFocus);
+            pc.save_el.addListener('focus', saveFocus);
 
-            pc.save_el.fireEvent('mouseenter', new E('mouseenter'));
+            pc.save_el.emit('mouseenter', new E('mouseenter'));
             expect(versionFocus.getCallCount()).toBe(1);
 
             var tab = new E('keypress');
             tab.keyCode = 9;
             //tab.key = 'tab';
-            pc.revision_message_el.fireEvent('keypress', tab);
+            pc.revision_message_el.emit('keypress', tab);
             expect(saveFocus.getCallCount()).toBe(1);
         });
 

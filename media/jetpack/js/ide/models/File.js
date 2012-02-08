@@ -67,16 +67,16 @@ var File = module.exports = new Class({
     setChanged: function(isChanged) {
         this.changed = isChanged;
         if (isChanged) {
-            this.fireEvent('dirty');
+            this.emit('dirty');
         } else {
-            this.fireEvent('reset');
+            this.emit('reset');
         }
     },
 
     loadContent: function(callback) {
         var file = this;
         var spinnerEl;
-        this.fireEvent('loadstart');
+        this.emit('loadstart');
         return new Request({
 			method: 'get',
 			url: this.get('get_url'),
@@ -92,7 +92,7 @@ var File = module.exports = new Class({
                 var content = text || '';
 				file.original_content = content;
                 file.set('content', content);
-				file.fireEvent('loadcontent', content);
+				file.emit('loadcontent', content);
                 if (callback) {
 					callback.call(this, content);
 				}

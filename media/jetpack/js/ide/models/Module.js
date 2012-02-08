@@ -30,7 +30,7 @@ module.exports = new Class({
 
         log.debug('loading content for module (uid:%s)', this.get('uid'));
 
-        this.fireEvent('loadstart');
+        this.emit('loadstart');
 		return new Request({
             method: 'get',
 			url: this.get('get_url'),
@@ -47,7 +47,7 @@ module.exports = new Class({
                 var code = mod.code || '';
 				this.original_content = code;
                 this.set('content', code);
-                this.fireEvent('loadcontent', code);
+                this.emit('loadcontent', code);
                 if (callback) {
                     callback.call(this, code);
                 }

@@ -6,7 +6,7 @@ var LOADING_CLASS = 'loading',
 	fd;
 
 var browser_test_item = function(el) {
-	el.addEvent('click', function(e){
+	el.addListener('click', function(e){
 		e.stop();
 		var hashtag = this.get('data-hashtag');
 		var testThisXpi = function() {
@@ -47,7 +47,7 @@ var browser_test_item = function(el) {
 };
 
 var browser_disable_item = function(el) {
-	el.addEvent('click', function(e){
+	el.addListener('click', function(e){
 		if (e) {
 			e.stop();
 		}
@@ -60,9 +60,9 @@ var browser_disable_item = function(el) {
 					response = JSON.parse(response);
 					el.getParent('li.UI_Item').destroy();
 					fd.message.alert(response.message_title, response.message);
-					fd.fireEvent('deactivate_' + response.package_type);
+					fd.emit('deactivate_' + response.package_type);
 					if (dom.$('activate')) {
-						dom.$('activate').addEvent('click', function(e2){
+						dom.$('activate').addListener('click', function(e2){
 							e2.stop();
 							new Request({
 								url: el.get('href'),
@@ -83,7 +83,7 @@ var browser_disable_item = function(el) {
 };
 
 var browser_activate_item = function(el) {
-	el.addEvent('click', function(e){
+	el.addListener('click', function(e){
 		if (e) {
 			e.stop();
 		}
@@ -96,7 +96,7 @@ var browser_activate_item = function(el) {
 					response = JSON.parse(response);
 					ui_item.destroy();
 					fd.message.alert(response.message_title, response.message);
-					fd.fireEvent('activate_' + response.package_type);
+					fd.emit('activate_' + response.package_type);
 				},
 				onFailure: function() {
 					ui_item.removeClass(LOADING_CLASS);
@@ -107,7 +107,7 @@ var browser_activate_item = function(el) {
 };
 
 var browser_delete_item = function(el) {
-	el.addEvent('click', function(e){
+	el.addListener('click', function(e){
 		if (e) {
 			e.stop();
 		}
@@ -179,9 +179,9 @@ exports.init = function(fd_) {
 	dom.$$('.UI_Activate a').forEach(browser_activate_item);
 	dom.$$('.UI_Delete a').forEach(browser_delete_item);
 
-	fd.addEvent('activate_l', on_activate_library);
-	fd.addEvent('deactivate_l', on_deactivate_library);
-	fd.addEvent('activate_a', on_activate_addon);
-	fd.addEvent('deactivate_a', on_deactivate_addon);
+	fd.addListener('activate_l', on_activate_library);
+	fd.addListener('deactivate_l', on_deactivate_library);
+	fd.addListener('activate_a', on_activate_addon);
+	fd.addListener('deactivate_a', on_deactivate_addon);
 };
 

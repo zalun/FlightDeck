@@ -124,7 +124,7 @@ exports.showQuestion = function(data) {
             }
         }
     });
-    display.addEvent('destroy', function() {
+    display.addListener('destroy', function() {
         keydownHandle.detach();
     });
     

@@ -121,7 +121,9 @@ module.exports = new Class({
 	},
 
     parseTestButtons: function() {
-        if (!this.isAddonInstalled()) return;
+        if (!this.isAddonInstalled()) {
+			return;
+		}
         ABH().send('isInstalled').then(function(response) {
             if (response.success) {
                 dom.$$(string.substitute('.{try_in_browser_class} a', this.options))
@@ -251,11 +253,11 @@ module.exports = new Class({
                         }
                         if (responseText) {
                             if (fd.item) {
-								this.fireEvent('xpi_downloaded', hashtag);
+								this.emit('xpi_downloaded', hashtag);
 							}
                             ABH().send("install", responseText).then(function(response) {
                                 if (response && response.success) {
-                                    this.fireEvent('xpi_installed', '');
+                                    this.emit('xpi_installed', '');
                                 } else {
                                     if (response) {
                                         log.debug('Unsuccessful response:', response);
@@ -298,7 +300,7 @@ module.exports = new Class({
     uninstallXPI: function() {
         ABH().send('uninstall').then(function(response){
             if (response.success) {
-                this.fireEvent('xpi_uninstalled');
+                this.emit('xpi_uninstalled');
             }
         }.bind(this));
     },
@@ -328,7 +330,9 @@ module.exports = new Class({
     alertIfOldHelper: function() {
         // run this only once per request
         var that = this;
-        if (this.old_helper_checked) return;
+        if (this.old_helper_checked) {
+			return;
+		}
         if (settings.addons_helper_version && ABH()) {
             if (!ABH().send({cmd: 'version'}).then) {
                 that.warning.alert(

@@ -116,7 +116,7 @@ module.exports = new Class({
         }
 
         this.revision_list_btn = dom.$('revisions_list');
-        this.revision_list_btn.addEvent('click', function(e) {
+        this.revision_list_btn.addListener('click', function(e) {
             e.preventDefault();
             controller.showRevisionList();
         });
@@ -124,14 +124,14 @@ module.exports = new Class({
             this.boundTestAddon = this.testAddon.bind(this);
             this.test_el = dom.$(this.options.test_el);
             this.options.test_url = this.test_el.getElement('a').get('href');
-            this.test_el.addEvent('click', function(e) {
+            this.test_el.addListener('click', function(e) {
                 e.preventDefault();
                 controller.testAddon();
             });
 
             this.download_el = dom.$(this.options.download_el);
             this.options.download_url = this.download_el.getElement('a').get('href');
-            this.download_el.addEvent('click', function(e) {
+            this.download_el.addListener('click', function(e) {
                 e.preventDefault();
                 if (this.hasClass(LOADING_CLASS)) {
                     return;
@@ -141,7 +141,7 @@ module.exports = new Class({
         }
         this.copy_el = dom.$(this.options.copy_el);
         if (this.copy_el) {
-            this.copy_el.addEvent('click', function(e) {
+            this.copy_el.addListener('click', function(e) {
                 e.preventDefault();
                 if (this.hasClass(LOADING_CLASS)) {
                     return;
@@ -150,12 +150,12 @@ module.exports = new Class({
             });
         }
         if (this.options.check_if_latest) {
-            dom.window.addEvent('focus', function() {
+            dom.window.addListener('focus', function() {
                 controller.checkIfLatest(controller.askForReload);
             });
         }
 
-        fd().addEvent('xpi_downloaded', function() {
+        fd().addListener('xpi_downloaded', function() {
             controller.generateHashtag();
         });
 
@@ -175,7 +175,7 @@ module.exports = new Class({
     assignViewActions: function() {
         var controller = this;
 
-        this.packageInfoEl.addEvent('click', function(e) {
+        this.packageInfoEl.addListener('click', function(e) {
             e.preventDefault();
             controller.showInfo();
         });
@@ -184,18 +184,18 @@ module.exports = new Class({
     assignEditActions: function assignEditActions() {
         var controller = this;
 
-        dom.window.addEvent('beforeunload', function(e) {
+        dom.window.addListener('beforeunload', function(e) {
             controller.alertUnsavedData(e);
         });
 
-        this.packageInfoEl.addEvent('click', function(e) {
+        this.packageInfoEl.addListener('click', function(e) {
             e.preventDefault();
             controller.editInfo();
         });
 
         if (this.package_.isAddon()) {
             this.console_el = dom.$(this.options.console_el);
-            this.console_el.addEvent('click', function(e) {
+            this.console_el.addListener('click', function(e) {
                 e.preventDefault();
                 var abh = dom.window.get('mozFlightDeck');
                 if (abh) {
@@ -207,18 +207,18 @@ module.exports = new Class({
         }
 
         this.save_el = dom.$(this.options.save_el);
-        this.save_el.addEvent('click', function(e) {
+        this.save_el.addListener('click', function(e) {
             e.preventDefault();
             controller.saveAction();
         });
         
         // when typing in Save popover, you should be able to tab in a
         // logical order
-        this.save_el.addEvent('mouseenter', function(e) {
+        this.save_el.addListener('mouseenter', function(e) {
             controller.versionEl.focus();
         });
         this.revision_message_el = dom.$('revision_message');
-        this.revision_message_el.addEvent('keypress', function(e) {
+        this.revision_message_el.addListener('keypress', function(e) {
             if (e.key === 'tab') {
                 e.preventDefault();
                 controller.save_el.focus();
@@ -231,7 +231,7 @@ module.exports = new Class({
 
         this.sdkVersionEl = dom.$('jetpack_core_sdk_version');
         if (this.sdkVersionEl) {
-            this.sdkVersionEl.addEvent('change', function() {
+            this.sdkVersionEl.addListener('change', function() {
                 var loader = dom.$('core_library_lib');
                 loader.addClass(LOADING_CLASS).addClass('small');
                 new Request({
@@ -299,7 +299,7 @@ module.exports = new Class({
         this.sidebar.addLib(mod);
         this.editor.registerItem(mod.get('uid'), mod);
         var controller = this;
-        mod.addEvent('destroy', function() {
+        mod.addListener('destroy', function() {
             delete controller.modules[this.get('uid')];
         });
         return mod;
@@ -326,7 +326,7 @@ module.exports = new Class({
             this.editor.registerItem(att.get('uid'), att);
         }
 
-        att.addEvent('destroy', function() {
+        att.addListener('destroy', function() {
             delete controller.attachments[this.get('uid')];
         });
         return att;
@@ -344,7 +344,7 @@ module.exports = new Class({
         }
         
         var controller = this;
-        folder.addEvent('destroy', function() {
+        folder.addListener('destroy', function() {
             delete controller.folders[this.get('uid')];
         });
     },
@@ -355,7 +355,7 @@ module.exports = new Class({
         this.sidebar.addPlugin(lib);
 
         var controller = this;
-        lib.addEvent('destroy', function() {
+        lib.addListener('destroy', function() {
             delete controller.dependencies[this.get('uid')];
         });
     },
@@ -378,7 +378,7 @@ module.exports = new Class({
                         modalEl.removeClass('boolean-on');
                     }
                 }
-                showVersionsEl.addEvent('change', function(e) {
+                showVersionsEl.addListener('change', function(e) {
                     toggleVersionsOnly();
                 });
                 toggleVersionsOnly();
@@ -566,13 +566,13 @@ module.exports = new Class({
             return;
         }
 
-        this.editor.addEvent('change', function() {
+        this.editor.addListener('change', function() {
             controller.onChanged();
         });
         
-        this.addEvent('change', this.onChanged);
-        this.addEvent('save', this.onSaved);
-        this.addEvent('reset', this.onReset);
+        this.addListener('change', this.onChanged);
+        this.addListener('save', this.onSaved);
+        this.addListener('reset', this.onReset);
     },
 
     attachSidebar: function() {
@@ -641,7 +641,7 @@ module.exports = new Class({
         if (file.isImage()) {
             template_middle += '<p></p>';
             img = new dom.Element('img', { src: file.get('get_url') });
-            img.addEvent('load', function() {
+            img.addListener('load', function() {
                 if (target) {
                     target.removeClass(LOADING_CLASS);
                 }
@@ -667,7 +667,7 @@ module.exports = new Class({
 
     onSaved: function() {
         //any save specific logic?
-        this.fireEvent('reset');
+        this.emit('reset');
     },
     
     onReset: function() {
@@ -1168,8 +1168,8 @@ module.exports = new Class({
             clearInterval(that.checkDependenciesInterval);
         }
         
-        dom.window.addEvent('focus', setCheckInterval);
-        dom.window.addEvent('blur', unsetCheckInterval);
+        dom.window.addListener('focus', setCheckInterval);
+        dom.window.addListener('blur', unsetCheckInterval);
         setCheckInterval();
         
     },
@@ -1232,7 +1232,7 @@ module.exports = new Class({
             onSuccess: function(text) {
                 var response = JSON.parse(text);
                 fd().message.alert(response.message_title, response.message);
-                fd().fireEvent('activate_' + response.package_type);
+                fd().emit('activate_' + response.package_type);
                 activateButton.addClass('pressed').getElement('a').addClass('inactive');
                 dom.$('UI_DisableLink').removeClass('pressed').getElement('a').removeClass('inactive');
 				controller.package_.set('active', true);
@@ -1261,7 +1261,7 @@ module.exports = new Class({
             onSuccess: function(response) {
 				response = JSON.parse(response);
                 fd().message.alert(response.message_title, response.message);
-                fd().fireEvent('disable_' + response.package_type);
+                fd().emit('disable_' + response.package_type);
                 deactivateButton.addClass('pressed').getElement('a').addClass('inactive');
                 dom.$('UI_ActivateLink').removeClass('pressed').getElement('a').removeClass('inactive');
 				controller.package_.set('active', false);
@@ -1282,21 +1282,21 @@ module.exports = new Class({
         fd().editPackageInfoModal = fd().displayModal(
                 string.substitute(settings.edit_package_info_template,
                     object.merge({}, this.data, this.options)));
-        dom.$('full_name').addEvent('change', function() {
-            fd().fireEvent('change');
+        dom.$('full_name').addListener('change', function() {
+            fd().emit('change');
         });
-        dom.$('package_description').addEvent('change', function() {
-            fd().fireEvent('change');
+        dom.$('package_description').addListener('change', function() {
+            fd().emit('change');
         });
         var savenow = dom.$('savenow');
         if (savenow) {
-            savenow.addEvent('click', function() {
+            savenow.addListener('click', function() {
                 controller.savenow = true;
             });
         }
 
-        dom.$('UI_ActivateLink').getElement('a').addEvent('click', this.makePublic.bind(this));
-        dom.$('UI_DisableLink').getElement('a').addEvent('click', this.makePrivate.bind(this));
+        dom.$('UI_ActivateLink').getElement('a').addListener('click', this.makePublic.bind(this));
+        dom.$('UI_DisableLink').getElement('a').addListener('click', this.makePrivate.bind(this));
 
 		// adjust button if package has been made private or public
 		// since last page load
@@ -1315,7 +1315,7 @@ module.exports = new Class({
             pattern: /^[A-Za-z0-9\s\-_\.\(\)]*$/,
             message: 'Please use only letters, numbers, spaces, or "_().-" in this field.'
         });
-        dom.$('package-info_form').addEvent('submit', function(e) {
+        dom.$('package-info_form').addListener('submit', function(e) {
             e.stop();
             if (validator.validate()) {
                 controller.submitInfo();
@@ -1438,7 +1438,7 @@ module.exports = new Class({
                     this.installAddon();
                 }
                 this.editor.cleanChangeState();
-                this.fireEvent('save');
+                this.emit('save');
             }.bind(this),
             onComplete: function() {
                 loader.removeClass(LOADING_CLASS);
@@ -1450,8 +1450,8 @@ module.exports = new Class({
     blur: function() {
         this._focused = false;
         this.editor.blur();
-        this.fireEvent('blur');
-        this.editor.addEvent('focus:once', function() {
+        this.emit('blur');
+        this.editor.addListener('focus:once', function() {
             if (!this._focused) {
                 this.focus();
             }
@@ -1468,7 +1468,7 @@ module.exports = new Class({
         //this.keyboard.activate();
         this.editor.focus();
         
-        this.fireEvent('focus');
+        this.emit('focus');
     },
 
     /*bind_keyboard: function() {
@@ -1532,7 +1532,7 @@ module.exports = new Class({
         this.keyboard.manage(this.sidebar.keyboard);
         this.keyboard.activate();
         this.sidebar.keyboard.deactivate();
-        this.addEvent('focus', function() {
+        this.addListener('focus', function() {
             that.sidebar.blur();
         });
     },
@@ -1563,7 +1563,7 @@ module.exports = new Class({
                         shortcuts.join('</p><p>')+
                         '</p></div>'
         );
-        this._shortcutsModal.addEvent('destroy', function() {
+        this._shortcutsModal.addListener('destroy', function() {
             this._shortcutsModal = null;
         }.bind(this));
     },

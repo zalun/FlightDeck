@@ -25,7 +25,7 @@ module.exports = new Class({
 			arrows: false,
 			onTabDown: function(tab) {
 				if (!tab.hasClass('selected')) {
-					controller.fireEvent('select', tab.retrieve('tab:instance'));
+					controller.emit('select', tab.retrieve('tab:instance'));
 				}
 			},
 			onCloseDown: function(tabClose) {
@@ -64,7 +64,7 @@ module.exports = new Class({
 											file.setChanged(false);
 											fd.item.edited--;
 											if(!fd.item.edited) {
-												fd.item.fireEvent('reset');
+												fd.item.emit('reset');
 											}
 										}, 1);
 									}
@@ -151,7 +151,7 @@ module.exports = new Class({
 					tabEl.getPrevious('.tab') || tabEl.getNext('.tab') :
 					dom.$(this.tabs).getElement('.tab.selected');
         if (nextTab) {
-            this.tabs.fireEvent('tabDown', nextTab);
+            this.tabs.emit('tabDown', nextTab);
         } else {
             //TODO: this should just show a "Open a file on the left"
             log.error('Another tab couldn\'t be found !');

@@ -115,7 +115,7 @@ module.exports = new Class({
 					remove();
 				}
 			}, options.duration || this.options.duration);
-			item.addEvents({
+			item.addListeners({
 				mouseover: function() {
 					over = true;
 				},
@@ -129,7 +129,7 @@ module.exports = new Class({
 		}
 		item.inject(this.body);
 		anim.start(to);
-		return this.fireEvent('show', item, this.items.length);
+		return this.emit('show', item, this.items.length);
 	},
 
 	remove: function(item) {
@@ -138,7 +138,7 @@ module.exports = new Class({
 			return this;
 		}
 		this.items.splice(index, 1);
-		item.removeEvents();
+		item.removeListeners();
 		var to = {opacity: 0};
 		to[this.align.y] = parseInt(item.getStyle(this.align.y), 10) - item.get('offsetHeight') - this.options.offset;
 
@@ -186,7 +186,7 @@ module.exports = new Class({
 			this.moveTo = anim.start.bind(anim);
 		}
 		var repos = this.reposition.bind(this);
-		dom.window.addEvents({
+		dom.window.addListeners({
 			scroll: repos,
 			resize: repos
 		});
