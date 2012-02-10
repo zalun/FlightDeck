@@ -130,9 +130,7 @@ def prepare_download(r, id_number, revision_number=None):
     Prepare download XPI.  This package is built asynchronously and we assume
     it works. It will be downloaded in %``get_download``
     """
-    revision = get_object_with_related_or_404(PackageRevision,
-                        package__id_number=id_number, package__type='a',
-                        revision_number=revision_number)
+    revision = _get_addon(r.user, id_number, revision_number)
     hashtag = r.POST.get('hashtag')
     if not hashtag:
         return HttpResponseForbidden('Add-on Builder has been updated!'

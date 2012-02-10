@@ -15,8 +15,6 @@ from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
 from django.conf import settings
 
-from base.shortcuts import get_object_with_related_or_404
-
 from base.helpers import hashtag
 from xpi import tasks
 from jetpack.models import PackageRevision, Package
@@ -59,7 +57,6 @@ class TestViews(TestCase):
     def test_downloading_xpi(self):
         """Check if the right file is downloaded
         """
-        mimetype = 'text/plain; charset=x-user-defined'
         uri = reverse('jp_test_xpi', args=[self.hashtag])
         # no file check
         response = self.client.get(uri)
@@ -116,16 +113,42 @@ class TestViews(TestCase):
             'hashtag': 'abc'})
         eq_(response.status_code, 200)
 
+    def test_prepare_download_private_addon(self):
+        user = User.objects.get(username='jan')
+        addon = Package.objects.create(author=user, type='a',
+                public_permission=0)
+        prepare_download_url = reverse('jp_addon_revision_xpi',
+                args=[addon.id_number, addon.latest.revision_number])
+        # test unauthenticated
+        response = self.client.post(prepare_download_url, {
+            'hashtag': 'abc'})
+        eq_(response.status_code, 404)
+        # test with unpriviledged user
+        user2 = User.objects.get(username='john')
+        user2.set_password('secure')
+        user2.save()
+        self.client.login(username=user2.username, password='secure')
+        response = self.client.post(prepare_download_url, {
+            'hashtag': 'abc'})
+        eq_(response.status_code, 404)
+        # test the right user
+        user.set_password('secure')
+        user.save()
+        self.client.login(username=user.username, password='secure')
+        response = self.client.post(prepare_download_url, {
+            'hashtag': 'abc'})
+        eq_(response.status_code, 200)
+
     def test_cach_hashtag(self):
         mock_backup = os.path.exists
         os.path.exists = mock.Mock(return_value=True)
         tasks.xpi_build_task = mock.Mock()
-        response = self.client.post(self.prepare_test_url, {
+        self.client.post(self.prepare_test_url, {
             'hashtag': 'abc'})
         os.path.exists = mock_backup
         assert not tasks.xpi_build_task.called
         os.path.exists = mock.Mock(return_value=False)
-        response = self.client.post(self.prepare_test_url, {
+        self.client.post(self.prepare_test_url, {
             'hashtag': 'abc'})
         os.path.exists = mock_backup
         assert tasks.xpi_build_task.called
