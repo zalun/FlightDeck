@@ -8,7 +8,7 @@ from statsd import statsd
 from django.core.cache import cache
 from django.views.static import serve
 from django.http import (HttpResponse, HttpResponseForbidden,
-        HttpResponseServerError, HttpResponseNotFound, Http404)
+        HttpResponseNotFound, Http404, HttpResponseBadRequest)
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
@@ -44,10 +44,10 @@ def prepare_test(r, id_number, revision_number=None):
     hashtag = r.POST.get('hashtag')
     if not hashtag:
         log.warning('[security] No hashtag provided')
-        return HttpResponseForbidden('{"error": "No hashtag"}')
+        return HttpResponseBadRequest('{"error": "No hashtag"}')
     if not validator.is_valid('alphanum', hashtag):
         log.warning('[security] Wrong hashtag provided')
-        return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
+        return HttpResponseBadRequest("{'error': 'Wrong hashtag'}")
     # prepare codes to be sent to the task
     mod_codes = {}
     att_codes = {}
@@ -138,7 +138,7 @@ def prepare_download(r, id_number, revision_number=None):
                 'empty your cache and reload to get changes.')
     if not validator.is_valid('alphanum', hashtag):
         log.warning('[security] Wrong hashtag provided')
-        return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
+        return HttpResponseBadRequest("{'error': 'Wrong hashtag'}")
     log.info('[xpi:%s] Addon added to queue' % hashtag)
     tqueued = time.time()
     tkey = xpi_utils.get_queued_cache_key(hashtag, r)

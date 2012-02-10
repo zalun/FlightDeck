@@ -74,14 +74,14 @@ class TestViews(TestCase):
         uri = reverse('jp_addon_revision_test',
             args=[revision.package.id_number, revision.revision_number])
         response = self.client.post(uri, {'hashtag': 'abc/123'})
-        eq_(response.status_code, 403)
+        eq_(response.status_code, 400)
         response = self.client.post(uri, {'hashtag': self.hashtag})
         eq_(response.status_code, 200)
         response = self.client.post(
                 reverse('jp_addon_revision_xpi', args=[
                     revision.package.id_number, revision.revision_number]),
                 {'hashtag': 'abc.123'})
-        eq_(response.status_code, 403)
+        eq_(response.status_code, 400)
         response = self.client.get('/xpi/test/abc/123')
         eq_(response.status_code, 404)
         response = self.client.get('/xpi/check_download/abc%20123')
