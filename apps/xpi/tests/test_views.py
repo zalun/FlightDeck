@@ -12,13 +12,14 @@ from nose.tools import eq_
 from mock import patch
 
 from django.core.urlresolvers import reverse
+from django.contrib.auth.models import User
 from django.conf import settings
 
 from base.shortcuts import get_object_with_related_or_404
 
 from base.helpers import hashtag
 from xpi import tasks
-from jetpack.models import PackageRevision
+from jetpack.models import PackageRevision, Package
 
 log = commonware.log.getLogger('f.test')
 
@@ -88,6 +89,32 @@ class TestViews(TestCase):
         eq_(response.status_code, 404)
         response = self.client.get('/xpi/check_download/abc%20123')
         eq_(response.status_code, 404)
+
+    def test_prepare_test_private_addon(self):
+        user = User.objects.get(username='jan')
+        addon = Package.objects.create(author=user, type='a',
+                public_permission=0)
+        prepare_test_url = reverse('jp_addon_revision_test',
+                args=[addon.id_number, addon.latest.revision_number])
+        # test unauthenticated
+        response = self.client.post(prepare_test_url, {
+            'hashtag': 'abc'})
+        eq_(response.status_code, 404)
+        # test with unpriviledged user
+        user2 = User.objects.get(username='john')
+        user2.set_password('secure')
+        user2.save()
+        self.client.login(username=user2.username, password='secure')
+        response = self.client.post(prepare_test_url, {
+            'hashtag': 'abc'})
+        eq_(response.status_code, 404)
+        # test the right user
+        user.set_password('secure')
+        user.save()
+        self.client.login(username=user.username, password='secure')
+        response = self.client.post(prepare_test_url, {
+            'hashtag': 'abc'})
+        eq_(response.status_code, 200)
 
     def test_cach_hashtag(self):
         mock_backup = os.path.exists

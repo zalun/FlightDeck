@@ -1825,7 +1825,7 @@ class Package(BaseModel, SearchMixin):
         self.save()
 
     def disable(self):
-        """Mark package as private"""
+        """Mark package as inactive"""
         self.active = False
         self.save()
 

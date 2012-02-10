@@ -7,7 +7,8 @@ from statsd import statsd
 
 from django.core.cache import cache
 from django.views.static import serve
-from django.http import HttpResponse, HttpResponseForbidden, HttpResponseServerError, HttpResponseNotFound
+from django.http import (HttpResponse, HttpResponseForbidden,
+        HttpResponseServerError, HttpResponseNotFound, Http404)
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
@@ -23,15 +24,23 @@ from xpi import tasks
 
 log = commonware.log.getLogger('f.xpi')
 
+
+def _get_addon(user, id_number, revision_number):
+    revision = get_object_with_related_or_404(PackageRevision,
+                        package__id_number=id_number, package__type='a',
+                        revision_number=revision_number)
+    if (revision.package.get_public_permission_display() == 'private' and
+            user != revision.package.author):
+        raise Http404()
+    return revision
+
 @csrf_exempt
 @require_POST
 def prepare_test(r, id_number, revision_number=None):
     """
     Test XPI from data saved in the database
     """
-    revision = get_object_with_related_or_404(PackageRevision,
-                        package__id_number=id_number, package__type='a',
-                        revision_number=revision_number)
+    revision = _get_addon(r.user, id_number, revision_number)
     hashtag = r.POST.get('hashtag')
     if not hashtag:
         log.warning('[security] No hashtag provided')
