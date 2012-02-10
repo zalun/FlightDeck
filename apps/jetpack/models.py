@@ -1541,6 +1541,8 @@ class Package(BaseModel, SearchMixin):
             # a common error here is "Full Name and Author already exists"
             if ('__all__' in err and
                 'Package with this Author and Name already exists.' in err['__all__']):
+                log.warning('[save] name conflict (%s), trying again with new name'
+                          % self.name)
                 self.full_name = None
                 self.name = None
                 return self.save()
