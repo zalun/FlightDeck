@@ -2381,10 +2381,12 @@ def _get_next_id_number():
     """
     get the highest id number and increment it
     """
-    all_packages_ids = [int(x.id_number) for x in Package.objects.all()]
-    all_packages_ids.sort()
-    return str(all_packages_ids[-1] + 1) \
-            if all_packages_ids else str(settings.MINIMUM_PACKAGE_ID)
+    
+    last_id = Package.objects.order_by('-id')[0].id_number
+    if last_id:
+        return str(int(last_id) + 1)
+    else:
+        return str(settings.MINIMUM_PACKAGE_ID)
 
 
 # Catching Signals
