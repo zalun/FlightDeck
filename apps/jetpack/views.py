@@ -19,7 +19,7 @@ from django.http import (HttpResponseRedirect, HttpResponse,
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator, EmptyPage, InvalidPage
 from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import Q, ObjectDoesNotExist
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
@@ -955,6 +955,7 @@ def save(request, id_number, type_id, revision_number=None,
 
 
 @login_required
+@transaction.commit_on_success
 def create(request, type_id):
     """
     Create new Package (Add-on or Library)
@@ -973,6 +974,9 @@ def create(request, type_id):
     try:
         item.save()
     except ValidationError, err:
+        log.exception('Error creating new package.')
+        # does returning an HttpResponse let the transaction commit?
+        # It probably shouldn't...
         if NON_FIELD_ERRORS in err.message_dict:
             return HttpResponseForbidden(
                 "You already have a %s with that name (%s)" % (
