@@ -971,18 +971,7 @@ def create(request, type_id):
         description=description,
         type=type_id)
 
-    try:
-        item.save()
-    except ValidationError, err:
-        log.exception('Error creating new package.')
-        # does returning an HttpResponse let the transaction commit?
-        # It probably shouldn't...
-        if NON_FIELD_ERRORS in err.message_dict:
-            return HttpResponseForbidden(
-                "You already have a %s with that name (%s)" % (
-                    escape(settings.PACKAGE_SINGULAR_NAMES[type_id]),
-                    item.full_name))
-        return HttpResponseForbidden(str(err))
+    item.save()
 
     return HttpResponseRedirect(reverse(
         'jp_%s_latest' % item.get_type_name(), args=[item.id_number]))
