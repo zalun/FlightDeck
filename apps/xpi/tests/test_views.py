@@ -90,7 +90,7 @@ class TestViews(TestCase):
     def test_prepare_test_private_addon(self):
         user = User.objects.get(username='jan')
         addon = Package.objects.create(author=user, type='a',
-                public_permission=0)
+                active=False)
         prepare_test_url = reverse('jp_addon_revision_test',
                 args=[addon.id_number, addon.latest.revision_number])
         # test unauthenticated
@@ -116,7 +116,7 @@ class TestViews(TestCase):
     def test_prepare_download_private_addon(self):
         user = User.objects.get(username='jan')
         addon = Package.objects.create(author=user, type='a',
-                public_permission=0)
+                active=False)
         prepare_download_url = reverse('jp_addon_revision_xpi',
                 args=[addon.id_number, addon.latest.revision_number])
         # test unauthenticated

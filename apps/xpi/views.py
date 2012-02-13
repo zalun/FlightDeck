@@ -29,8 +29,7 @@ def _get_addon(user, id_number, revision_number):
     revision = get_object_with_related_or_404(PackageRevision,
                         package__id_number=id_number, package__type='a',
                         revision_number=revision_number)
-    if (revision.package.get_public_permission_display() == 'private' and
-            user != revision.package.author):
+    if not revision.package.active and user != revision.package.author:
         raise Http404()
     return revision
 
