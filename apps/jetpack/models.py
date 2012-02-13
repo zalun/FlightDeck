@@ -1524,22 +1524,19 @@ class Package(BaseModel, SearchMixin):
         " save with finding a next id number "
         if not self.id_number:
             self.id_number = _get_next_id_number()
-        try:
+        try:            
             super(Package, self).save(**kwargs)
-        except IntegrityError, err:
+        except ValidationError, err:
             # if id_number exists we should try again
-            if 'id_number' in err[1]:
+            
+            if 'id_number' in err.message_dict:             
                 self.id_number = str(int(self.id_number) + 1)
                 iteration += 1
-                log.debug('[save] new id_number %s' % self.id_number)
+                log.debug('[save] ValidationError - new id_number %s' % self.id_number)
                 return self.save(iteration=iteration, **kwargs)
-            else:
-                log.critical('[save] Error saving Package\n%s\n%s' % (
-                    self.__dict__, str(err)))
-                raise
-        except ValidationError, err:
+                
             # a common error here is "Full Name and Author already exists"
-            if ('__all__' in err and
+            elif ('__all__' in err and
                 'Package with this Author and Name already exists.' in err['__all__']):
                 log.warning('[save] name conflict (%s), trying again with new name'
                           % self.name)
@@ -1549,10 +1546,23 @@ class Package(BaseModel, SearchMixin):
             else:
                 log.error('[save] Save package validation error: %s', str(err))
                 raise
+            
+        except IntegrityError, err:
+            # if id_number exists we should try again
+            
+            if 'id_number' in err[1]:
+                self.id_number = str(int(self.id_number) + 1)
+                iteration += 1
+                log.debug('[save] IntegrityError - new id_number %s' % self.id_number)
+                return self.save(iteration=iteration, **kwargs)
+            else:
+                log.error('[save] Save package IntegrityError error: %s', str(err))
+                raise
+                
         except Exception, err:
             log.exception('[save] Save package failed')
             raise
-
+        
         if self.pk is None:
             log.critical('[save] Save failed - self.pk is None')
         elif not self.pk:
@@ -2382,7 +2392,7 @@ def _get_next_id_number():
     get the highest id number and increment it
     """
     
-    last_id = Package.objects.order_by('-id')[0].id_number
+    last_id = Package.objects.order_by('-id')[0].id_number    
     if last_id:
         return str(int(last_id) + 1)
     else:
