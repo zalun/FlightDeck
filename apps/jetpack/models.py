@@ -1590,7 +1590,7 @@ class Package(BaseModel, SearchMixin):
                 max_revisions = (package, package.revisions.count())
         for package in packages.exclude(pk=max_revisions[0].pk):
             package.full_name += (
-                    " [fixed uniqueness - %s]") % get_random_string(5)
+                    " - force unique %s") % get_random_string(5)
             log.info(('[%d] Forcing uniqueness, full_name changed'
                       '(%s)') % (package.pk, package.full_name))
             package.save()
