@@ -1536,25 +1536,28 @@ class Package(BaseModel, SearchMixin):
                 return self.save(iteration=iteration, **kwargs)
                 
             # a common error here is "Full Name and Author already exists"
-            elif ('__all__' in err and
-                'Package with this Author and Name already exists.' in err['__all__']):
+            elif ('__all__' in err.message_dict and
+                'Package with this Author and Name already exists.' in err.message_dict['__all__']):
                 log.warning('[save] name conflict (%s), trying again with new name'
                           % self.name)
                 self.full_name = None
                 self.name = None
                 return self.save()
-            else:
+                
+            else:                
                 log.error('[save] Save package validation error: %s', str(err))
                 raise
             
         except IntegrityError, err:
             # if id_number exists we should try again
+            log.debug('Integrity error %s ' % err)
             
             if 'id_number' in err[1]:
                 self.id_number = str(int(self.id_number) + 1)
                 iteration += 1
                 log.debug('[save] IntegrityError - new id_number %s' % self.id_number)
                 return self.save(iteration=iteration, **kwargs)
+                
             else:
                 log.error('[save] Save package IntegrityError error: %s', str(err))
                 raise
@@ -1748,13 +1751,14 @@ class Package(BaseModel, SearchMixin):
         """
         if self.full_name:
             return
-
+        
         username = self.author.username
         if self.author.get_profile():
             username = self.author.get_profile().nickname or username
 
         name = username + settings.DEFAULT_PACKAGE_SUFFIX.get(self.type, '')
         self.full_name = _get_full_name(name, self.author.username, self.type)
+        log.debug('setting package name: %s' % self.full_name)
 
     def generate_key(self):
         """
