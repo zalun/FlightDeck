@@ -1549,8 +1549,7 @@ class Package(BaseModel, SearchMixin):
             
         except IntegrityError, err:
             # if id_number exists we should try again
-            log.debug('Integrity error %s ' % err)
-            
+           
             if 'id_number' in err[1]:
                 self.id_number = str(int(self.id_number) + 1)
                 iteration += 1
