@@ -1510,10 +1510,10 @@ module.exports = new Class({
 			}
 		});
 
-		// to prevent ctrl+n opening a new window
+		// to prevent Firefox's default shortcuts
 		// keyup is too late
 		dom.document.addListener('keypress', function(e) {
-			if (e.key === 'n' && e.control) {
+			if (e.control && (e.key === 'n'|| e.key === 's')) {
 				e.preventDefault();
 			}
 		});
