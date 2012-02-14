@@ -1,0 +1,1 @@
+ALTER TABLE jetpack_package ADD UNIQUE INDEX full_name_author_id (full_name, author_id);
