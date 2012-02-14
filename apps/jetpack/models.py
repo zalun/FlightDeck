@@ -1542,8 +1542,7 @@ class Package(BaseModel, SearchMixin):
                           % self.name)
                 self.full_name = None
                 self.name = None
-                return self.save()
-                
+                return self.save()                
             else:                
                 log.error('[save] Save package validation error: %s', str(err))
                 raise
@@ -1556,8 +1555,7 @@ class Package(BaseModel, SearchMixin):
                 self.id_number = str(int(self.id_number) + 1)
                 iteration += 1
                 log.debug('[save] IntegrityError - new id_number %s' % self.id_number)
-                return self.save(iteration=iteration, **kwargs)
-                
+                return self.save(iteration=iteration, **kwargs)                
             else:
                 log.error('[save] Save package IntegrityError error: %s', str(err))
                 raise
@@ -1758,7 +1756,6 @@ class Package(BaseModel, SearchMixin):
 
         name = username + settings.DEFAULT_PACKAGE_SUFFIX.get(self.type, '')
         self.full_name = _get_full_name(name, self.author.username, self.type)
-        log.debug('setting package name: %s' % self.full_name)
 
     def generate_key(self):
         """
