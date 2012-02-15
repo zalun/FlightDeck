@@ -1389,6 +1389,10 @@ module.exports = new Class({
     },
 
     save: function() {
+		if (this.saving) {
+			log.debug('Already saving, stopping second request.');
+			return;
+		}
         var controller = this;
         this.collectData();
         this.saving = true;
