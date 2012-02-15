@@ -1,1 +1,2 @@
-ALTER TABLE jetpack_package ADD UNIQUE INDEX full_name_author_id (full_name, author_id);
+-- Apparently this was already run in production on 2012-02-15.  Commenting out.
+-- ALTER TABLE jetpack_package ADD UNIQUE INDEX full_name_author_id (full_name, author_id);
