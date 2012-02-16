@@ -1278,6 +1278,11 @@ module.exports = new Class({
      * display the EditInfoModalWindow
      */
     editInfo: function() {
+        if (fd().editPackageInfoModal) {
+            log.debug('Only show 1 Properties Modal at a time.');
+            return;
+        }
+
         var controller = this;
         this.savenow = false;
         var modal = fd().editPackageInfoModal = fd().displayModal(
