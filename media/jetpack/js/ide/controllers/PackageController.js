@@ -443,7 +443,6 @@ module.exports = new Class({
 		if (this._is_copying) {
 			return;
 		}
-		this._is_copying = true;
 
         if (!settings.user) {
             fd().alertNotAuthenticated();
@@ -456,6 +455,7 @@ module.exports = new Class({
             return;
         }
 
+        this._is_copying = true;
 		var controller = this;
         var loader = this.copy_el.getElement('a');
         loader.addClass(LOADING_CLASS).addClass('small');
