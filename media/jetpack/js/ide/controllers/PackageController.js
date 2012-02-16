@@ -23,7 +23,7 @@ var Class = require('shipyard/class/Class'),
     settings = dom.window.get('settings');
 
 function fd() {
-	return dom.window.get('fd');
+    return dom.window.get('fd');
 }
 
 var LOADING_CLASS = 'loading';
@@ -164,7 +164,7 @@ module.exports = new Class({
         this.attachEditor();
         this.attachSidebar();
         this.attachTabs();
-		this.bind_keyboard();
+        this.bind_keyboard();
 
         if (this.getOption('readonly')) {
             this.assignViewActions();
@@ -311,12 +311,12 @@ module.exports = new Class({
             data.pk = data.uid;
         }
         var att = new Attachment(data),
-			controller = this;
+            controller = this;
         this.attachments[att.get('uid')] = att;
-		att.observe('uid', function(updated, old) {
-			controller.attachments[updated] = att;
-			delete controller.attachments[old];
-		});
+        att.observe('uid', function(updated, old) {
+            controller.attachments[updated] = att;
+            delete controller.attachments[old];
+        });
 
         if (this.sidebar) {
             // if check is for tests
@@ -440,9 +440,9 @@ module.exports = new Class({
      * create a new Package with the same name for the current user
      */
     copyPackage: function() {
-		if (this._is_copying) {
-			return;
-		}
+        if (this._is_copying) {
+            return;
+        }
 
         if (!settings.user) {
             fd().alertNotAuthenticated();
@@ -456,7 +456,8 @@ module.exports = new Class({
         }
 
         this._is_copying = true;
-		var controller = this;
+
+        var controller = this;
         var loader = this.copy_el.getElement('a');
         loader.addClass(LOADING_CLASS).addClass('small');
         new Request({
@@ -466,18 +467,18 @@ module.exports = new Class({
                 var response = JSON.parse(text);
                 dom.window.set('location', response.view_url);
             },
-			onComplete: function() {
-				controller._is_copying = false;
+            onComplete: function() {
+                controller._is_copying = false;
                 loader.removeClass(LOADING_CLASS);
-			}
+            }
         }).send();
     },
 
     downloadAddon: function() {
         var el = dom.$(this.options.download_el).getElement('a');
         if (el.hasClass('clicked')) {
-			return;
-		}
+            return;
+        }
         el.addClass('clicked');
 
         fd().tests[this.options.hashtag] = {
@@ -493,7 +494,7 @@ module.exports = new Class({
             data: data,
             onComplete: function() {
                 el.removeClass('clicked');
-			},
+            },
             onSuccess: function() {
                 fd().downloadXPI(data);
             }
@@ -1220,7 +1221,7 @@ module.exports = new Class({
      */
     makePublic: function(e) {
         e.stop();
-		var controller = this;
+        var controller = this;
 
         this.savenow = false;
         var activateButton = dom.$('UI_ActivateLink');
@@ -1236,7 +1237,7 @@ module.exports = new Class({
                 fd().emit('activate_' + response.package_type);
                 activateButton.addClass('pressed').getElement('a').addClass('inactive');
                 dom.$('UI_DisableLink').removeClass('pressed').getElement('a').removeClass('inactive');
-				controller.package_.set('active', true);
+                controller.package_.set('active', true);
             },
             onComplete: function() {
                 activateButton.removeClass(LOADING_CLASS);
@@ -1260,12 +1261,12 @@ module.exports = new Class({
         return new Request({
             url: deactivateButton.getElement('a').get('href'),
             onSuccess: function(response) {
-				response = JSON.parse(response);
+                response = JSON.parse(response);
                 fd().message.alert(response.message_title, response.message);
                 fd().emit('disable_' + response.package_type);
                 deactivateButton.addClass('pressed').getElement('a').addClass('inactive');
                 dom.$('UI_ActivateLink').removeClass('pressed').getElement('a').removeClass('inactive');
-				controller.package_.set('active', false);
+                controller.package_.set('active', false);
             },
             onComplete: function() {
                 deactivateButton.removeClass(LOADING_CLASS);
@@ -1308,18 +1309,18 @@ module.exports = new Class({
         dom.$('UI_ActivateLink').getElement('a').addListener('click', this.makePublic.bind(this));
         dom.$('UI_DisableLink').getElement('a').addListener('click', this.makePrivate.bind(this));
 
-		// adjust button if package has been made private or public
-		// since last page load
-		var pressedBtn, notPressedBtn;
-		if (this.package_.get('active')) {
-			pressedBtn = dom.$('UI_ActivateLink');
-			notPressedBtn = dom.$('UI_DisableLink');
-		} else {
-			notPressedBtn = dom.$('UI_ActivateLink');
-			pressedBtn = dom.$('UI_DisableLink');
-		}
-		pressedBtn.addClass('pressed').getElement('a').addClass('inactive');
-		notPressedBtn.removeClass('pressed').getElement('a').removeClass('inactive');
+        // adjust button if package has been made private or public
+        // since last page load
+        var pressedBtn, notPressedBtn;
+        if (this.package_.get('active')) {
+            pressedBtn = dom.$('UI_ActivateLink');
+            notPressedBtn = dom.$('UI_DisableLink');
+        } else {
+            notPressedBtn = dom.$('UI_ActivateLink');
+            pressedBtn = dom.$('UI_DisableLink');
+        }
+        pressedBtn.addClass('pressed').getElement('a').addClass('inactive');
+        notPressedBtn.removeClass('pressed').getElement('a').removeClass('inactive');
 
         var validator = new Validator('full_name', {
             pattern: /^[A-Za-z0-9\s\-_\.\(\)]*$/,
@@ -1397,10 +1398,10 @@ module.exports = new Class({
     },
 
     save: function() {
-		if (this.saving) {
-			log.debug('Already saving, stopping second request.');
-			return;
-		}
+        if (this.saving) {
+            log.debug('Already saving, stopping second request.');
+            return;
+        }
         var controller = this;
         this.collectData();
         this.saving = true;
@@ -1426,7 +1427,7 @@ module.exports = new Class({
                             if (this.attachments[uid]) {
                                 // updating attachment's uid
                                 var att = this.attachments[uid];
-								options.pk = options.uid;
+                                options.pk = options.uid;
                                 att.set(options);
                             }
                         }, this
@@ -1487,48 +1488,48 @@ module.exports = new Class({
     bind_keyboard: function() {
         var controller = this;
 
-		dom.document.addListener('keyup', function(e) {
-			if (!e.control) {
-				return;
-			}
-			switch (e.key) {
-				case 's':
-					e.preventDefault();
-					controller.save();
-					break;
-				case 'enter':
-					if (controller.package_.isAddon()) {
-						e.preventDefault();
-						controller.testAddon();
-					}
-					break;
-				case 'n':
-					e.preventDefault();
-					if (e.shift) {
-						//new module
-						controller.sidebar.promptNewFile();
-					} else {
-						//new attachment
-						controller.sidebar.promptAttachment();
-					}
-					break;
-				// keypress isn't fired for this key... awesome!
-				case '/':
-					if (e.shift) {
-						e.preventDefault();
-						controller.toggleShortcutsModal();
-					}
-					break;
-			}
-		});
+        dom.document.addListener('keyup', function(e) {
+            if (!e.control) {
+                return;
+            }
+            switch (e.key) {
+                case 's':
+                    e.preventDefault();
+                    controller.save();
+                    break;
+                case 'enter':
+                    if (controller.package_.isAddon()) {
+                        e.preventDefault();
+                        controller.testAddon();
+                    }
+                    break;
+                case 'n':
+                    e.preventDefault();
+                    if (e.shift) {
+                        //new module
+                        controller.sidebar.promptNewFile();
+                    } else {
+                        //new attachment
+                        controller.sidebar.promptAttachment();
+                    }
+                    break;
+                // keypress isn't fired for this key... awesome!
+                case '/':
+                    if (e.shift) {
+                        e.preventDefault();
+                        controller.toggleShortcutsModal();
+                    }
+                    break;
+            }
+        });
 
-		// to prevent Firefox's default shortcuts
-		// keyup is too late
-		dom.document.addListener('keypress', function(e) {
-			if (e.control && (e.key === 'n'|| e.key === 's')) {
-				e.preventDefault();
-			}
-		});
+        // to prevent Firefox's default shortcuts
+        // keyup is too late
+        dom.document.addListener('keypress', function(e) {
+            if (e.control && (e.key === 'n'|| e.key === 's')) {
+                e.preventDefault();
+            }
+        });
     },
     
     toggleShortcutsModal: function() {
@@ -1541,28 +1542,28 @@ module.exports = new Class({
     
     showShortcuts: function() {
         var shortcuts = [
-			{
-				keys: 'ctrl+s',
-				description: 'Save current outstanding changes.'
-			},
-			{
-				keys: 'ctrl+enter',
-				description: 'Toggle testing.'
-			},
-			{
-				keys: 'ctrl+shift+n',
-				description: 'Open the new Module prompt.'
-			},
-			{
-				keys: 'ctrl+n',
-				description: 'Open the new Attachment prompt.'
-			},
-			{
-				keys: 'ctrl+shift+/',
-				description: 'Show these keyboard shortcuts.'
-			}
-		];
-		var output = [];
+            {
+                keys: 'ctrl+s',
+                description: 'Save current outstanding changes.'
+            },
+            {
+                keys: 'ctrl+enter',
+                description: 'Toggle testing.'
+            },
+            {
+                keys: 'ctrl+shift+n',
+                description: 'Open the new Module prompt.'
+            },
+            {
+                keys: 'ctrl+n',
+                description: 'Open the new Attachment prompt.'
+            },
+            {
+                keys: 'ctrl+shift+/',
+                description: 'Show these keyboard shortcuts.'
+            }
+        ];
+        var output = [];
         function buildLines(shortcut) {
             var keys = '<kbd>'+ shortcut.keys.split('+').join('</kbd> + <kbd>').split('|').join('</kbd> or <kbd>').replace(/meta/g, 'cmd') + '</kbd>';
             output.push(keys + ': ' + shortcut.description);
@@ -1578,11 +1579,11 @@ module.exports = new Class({
                         '<div class="UI_Modal_Section"><p>'+
                         output.join('</p><p>')+
                         '</p></div>'+
-						'<div class="UI_Modal_Actions">'+
-							'<ul>'+
-								'<li><input type="reset" class="closeModal" value="Close"/></li>'+
-							'</ul>'+
-						'</div>'
+                        '<div class="UI_Modal_Actions">'+
+                            '<ul>'+
+                                '<li><input type="reset" class="closeModal" value="Close"/></li>'+
+                            '</ul>'+
+                        '</div>'
         );
         this._shortcutsModal.addListener('destroy', function() {
             this._shortcutsModal = null;
