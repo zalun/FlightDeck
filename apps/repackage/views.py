@@ -111,7 +111,7 @@ def rebuild_addons(request):
               pingback response
     """
     # log whole request without SECRET
-    log.debug(("Rebuild request:\n - addons: %s\n - sdk_version: %s\n"
+    log.debug(("Rebuild request (rebuild_addons):\n - addons: %s\n - sdk_version: %s\n"
         " - options: %s\n - pingback: %s\n - priority: %s") % (
             request.POST.get('addons'), request.POST.get('sdk_version'),
             request.POST.get('options', 'None'),
@@ -231,6 +231,12 @@ def rebuild(request):
               the xpi using :meth:`xpi.views.check_download` and
               :meth:`xpi.views.get_download`
     """
+    # log whole request without SECRET
+    keys = ('package_key', 'location', 'addons', 'upload', 'priority',
+            'options')
+    log.debug(("Rebuild request (rebuild):\n - "
+        "%s\n") % "\n - ".join(["%s: %s" % (key, request.POST.get(key, 'None'))
+            for key in keys]))
     # validate entries
     secret = request.POST.get('secret', None)
     if not secret or secret != settings.AMO_SECRET_KEY:
