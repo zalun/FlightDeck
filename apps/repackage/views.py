@@ -107,10 +107,16 @@ def rebuild_addons(request):
         :attr: priority (string) if equals ``high``, the task will run at
                higher priority.
 
-    :returns: (JSON) contains one field - hashtag it is later used to download
-              the xpi using :meth:`xpi.views.check_download` and
-              :meth:`xpi.views.get_download`
+    :returns: (JSON) contains status and errors, actual xpi URLs are given in
+              pingback response
     """
+    # log whole request without SECRET
+    log.debug(("Rebuild request:\n - addons: %s\n - sdk_version: %s\n"
+        " - options: %s\n - pingback: %s\n - priority: %s") % (
+            request.POST.get('addons'), request.POST.get('sdk_version'),
+            request.POST.get('options', 'None'),
+            request.POST.get('pingback', 'None'),
+            request.POST.get('priority', 'None')))
     # validate entries
     secret = request.POST.get('secret', None)
     if not secret or secret != settings.AMO_SECRET_KEY:

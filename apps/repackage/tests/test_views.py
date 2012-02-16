@@ -136,6 +136,7 @@ class RepackageViewsTest(TestCase):
         assert 'callback' in tasks.low_rebuild.delay.call_args[1]
         eq_(tasks.low_rebuild.delay.call_args[1]['callback'],
             tasks.rebuild_addon)
+
     def test_bulk_repackage_from_pk(self):
         tasks.low_rebuild.delay = Mock(return_value=None)
         response = self.client.post(self.rebuild_url, {
