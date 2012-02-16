@@ -1280,9 +1280,13 @@ module.exports = new Class({
     editInfo: function() {
         var controller = this;
         this.savenow = false;
-        fd().editPackageInfoModal = fd().displayModal(
+        var modal = fd().editPackageInfoModal = fd().displayModal(
                 string.substitute(settings.edit_package_info_template,
                     object.merge({}, this.data, this.options)));
+
+        modal.addListener('destroy', function() {
+            delete fd().editPackageInfoModal;
+        });
         dom.$('full_name').addListener('change', function() {
             fd().emit('change');
         });
@@ -1329,7 +1333,6 @@ module.exports = new Class({
         object.forEach(this.data, function(value, key) {
             var el = dom.$(key);
             if (el) {
-                log.debug(key + ': ' + value);
                 el.set('value', value);
             }
         });
