@@ -253,6 +253,7 @@ MIDDLEWARE_CLASSES = [
     'waffle.middleware.WaffleMiddleware',
     'commonware.middleware.FrameOptionsHeader',
     'commonware.middleware.ScrubRequestOnException',
+    'utils.middleware.GetUserInfoOnException',
 ]
 
 TEMPLATE_CONTEXT_PROCESSORS = (
