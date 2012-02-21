@@ -469,3 +469,15 @@ require('b');
                               active=True)
         self.addonrev.build_xpi(hashtag=self.hashtag)
         assert 'harness-option' in xpi_utils.build.call_args[1]['options']
+
+    def test_components_classes(self):
+        log.debug(self.addon.latest.modules.all())
+        mod = self.addon.latest.modules.all()[0]
+        mod.code = "Components.classes"
+        self.addon.latest.update(mod)
+        log.debug(self.addon.latest.modules.all()[0].code)
+        assert not os.path.isfile('%s.xpi' % self.target_basename)
+        response = self.addon.latest.build_xpi(hashtag=self.hashtag)
+        assert response[1]
+        assert not os.path.isfile('%s.xpi' % self.target_basename)
+        assert os.path.exists('%s.json' % self.target_basename)
