@@ -2092,8 +2092,7 @@ class Module(BaseModel):
         ordering = ('filename',)
 
     def __unicode__(self):
-        return '%s by %s (%s)' % (self.get_filename(),
-                                  self.author, self.get_package_fullName())
+        return '%s by %s' % (self.get_filename(), self.author)
 
     def get_path(self):
         """

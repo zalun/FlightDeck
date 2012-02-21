@@ -95,17 +95,17 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None,
         badresponse = response[0]
         response = ['', '']
         response[1] = badresponse
+    xpi_path = os.path.join(package_dir, "%s.xpi" % filename)
     if process.returncode != 0:
         info_write(info_targetpath, 'error', response[1], hashtag)
-        log.critical("[xpi:%s] Failed to build xpi., returncode: %d" % (
-            hashtag, process.returncode))
+        log.critical("[xpi:%s] Failed to build xpi., stderr: %s" % (
+            hashtag, response[1]))
         shutil.rmtree(temp_dir)
         return response
 
     t2 = time.time()
 
     # XPI: move the XPI created to the XPI_TARGETDIR (local to NFS)
-    xpi_path = os.path.join(package_dir, "%s.xpi" % filename)
     xpi_targetfilename = "%s.xpi" % hashtag
     xpi_targetpath = os.path.join(settings.XPI_TARGETDIR, xpi_targetfilename)
     try:
