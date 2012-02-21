@@ -92,8 +92,11 @@
     <div id="editor-menu-wrapper">
         <ul class="UI_Editor_Menu">
             {% block app_content_menu_items %}{% endblock %}
-            <li title="Save" class="UI_Editor_Menu_Button Icon_save UI_Editor_Menu_Parent">
-            <a id="package-save" href="#"><span></span></a>
+            <li title="Save" class="UI_Editor_Menu_Button Icon_save">
+                <a id="package-save" href="#"><span></span></a>
+            </li>
+            <li title="Save Options" class="UI_Editor_Menu_Button UI_Editor_Menu_SplitButton UI_Editor_Menu_Parent">
+                <a id="package-save-options" href="#"><span>&#8964;</span></a>
                 <form class="UI_Forms UI_Editor_Menu_Descendant">
                     <fieldset>
                         <p class="UI_Field">
@@ -107,6 +110,7 @@
                     </fieldset>
                 </form>
             </li>
+            <li class="UI_Editor_Menu_Separator"></li>
             {% if revision.package.public_permission != 2 %}
                 <li id="package-copy" title="Copy" class="UI_Editor_Menu_Button Icon_copy">
                 <a href="#"><span></span></a>

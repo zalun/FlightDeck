@@ -213,6 +213,7 @@ module.exports = new Class({
             controller.saveAction();
         });
         
+        this.setupSaveOptions();
         // when typing in Save popover, you should be able to tab in a
         // logical order
         this.save_el.addListener('mouseenter', function(e) {
@@ -262,6 +263,35 @@ module.exports = new Class({
         }
     },
 
+    setupSaveOptions: function() {
+        // when typing in Save popover, you should be able to tab in a
+        // logical order
+        var saveOptionsEl = dom.$('package-save-options');
+        var controller = this;
+
+        saveOptionsEl.addListener('click', function(e) {
+            e.preventDefault();
+            var li = this.getParent('li');
+            if (li.hasClass('open')) {
+                li.removeClass('open');
+            } else {
+                li.addClass('open');
+                controller.versionEl.focus();
+            }
+        });
+        this.revision_message_el = dom.$('revision_message');
+        this.revision_message_el.addListener('keypress', function(e) {
+            if (e.key === 'tab') {
+                e.preventDefault();
+                controller.save_el.focus();
+            }
+        });
+
+        this.addListener('saving', function() {
+            saveOptionsEl.getParent('li').removeClass('open');
+        });
+    },
+
     instantiate_modules: function() {
         // iterate by modules and instantiate Module
         var mainLoaded;
@@ -274,7 +304,7 @@ module.exports = new Class({
             }
         }, this);
 
-        if (!mainLoaded) {
+        if (!mainLoaded && this.options.modules[0]) {
             this.editFile(this.options.modules[0]);
         }
     },
@@ -1411,6 +1441,7 @@ module.exports = new Class({
         var controller = this;
         this.collectData();
         this.saving = true;
+        this.emit('saving');
 
         var loader = this.save_el;
         loader.addClass(LOADING_CLASS).addClass('small');
@@ -1462,6 +1493,7 @@ module.exports = new Class({
             }.bind(this),
             onComplete: function() {
                 loader.removeClass(LOADING_CLASS);
+                controller.emit('save');
                 controller.saving = false;
             }
         }).send();
