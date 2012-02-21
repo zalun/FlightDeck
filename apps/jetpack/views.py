@@ -1143,6 +1143,8 @@ def latest_dependencies(request, id_number, type_id, revision_number):
 def get_revisions_list_html(request, id_number, revision_number=None):
     " returns revision list to be displayed in the modal window "
     package = get_object_with_related_or_404(Package, id_number=id_number)
+    if not package.can_view(request.user):
+        raise Http404
     revisions = package.revisions.all()
     if revision_number:
         current = package.revisions.get(revision_number=revision_number)
@@ -1162,6 +1164,8 @@ def get_revisions_list_html(request, id_number, revision_number=None):
 def get_latest_revision_number(request, package_id):
     """ returns the latest revision number for given package """
     package = get_object_or_404(Package, id_number=package_id)
+    if not package.can_view(request.user):
+        raise Http404
     return HttpResponse(simplejson.dumps({
         'revision_number': package.latest.revision_number}))
 
