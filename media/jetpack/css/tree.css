@@ -51,6 +51,11 @@ ul.tree li {
 	/*background: url(../Assets/Bullet.png) no-repeat 0 2px;*/
 }
 
+ul.tree li span.label {
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-width: 100px;
+}
 
 ul.tree li.nodrop {
 	/*background-image: url(../Assets/Blocked.png);*/
