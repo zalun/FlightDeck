@@ -74,6 +74,11 @@ module.exports = new Class({
                 that.emit(ev);
             });
         });
+        this.editor.on('blur', function() {
+            log.debug('Editor blurred, forcing resize of renderer.');
+            that.editor.renderer.onResize(true); // force = true
+        });
+
     },
 
     setEditable: function() {
