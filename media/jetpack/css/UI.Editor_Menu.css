@@ -215,6 +215,26 @@ form.UI_Editor_Menu_Descendant {
 		background-position: -196px 0;
 	}
 	
+.UI_Editor_Menu_Button.Icon_save a { 
+    padding-left:7px;
+    padding-right:7px;
+}
+.UI_Editor_Menu_SplitButton {
+    
+}
+
+	.UI_Editor_Menu_SplitButton a {
+		padding-left:2px;
+		padding-right:2px;
+	}
+		.UI_Editor_Menu_SplitButton a span {
+			background:none;
+			width:auto;
+			font-weight:bold;
+			font-size:14px;
+			line-height:12px;
+		}
+
 /* SUBMENU */
 .UI_Editor_Menu_Parent > .UI_Editor_Menu_Descendant {
     display: none;
@@ -225,7 +245,7 @@ form.UI_Editor_Menu_Descendant {
 	border-right: 1px solid black;
 }
 
-.UI_Editor_Menu_Parent:hover > .UI_Editor_Menu_Descendant {
+.UI_Editor_Menu_Parent.open > .UI_Editor_Menu_Descendant {
     display: block;
 }
 .UI_Editor_Menu_Parent .UI_Editor_Menu_Descendant.UI_Forms {

@@ -43,6 +43,10 @@ function resetDom() {
     body.grab(new dom.Element('div', { id: 'revisions_list' }));
     body.grab(new dom.Element('input', { id: 'revision_message' }));
     body.grab(new dom.Element('a', { id: 'package-save' }));
+
+    var li = new dom.Element('li');
+    li.grab(new dom.Element('a', { id: 'package-save-options' }));
+    body.grab(li);
     
     object.forEach(BUTTONS, function(href, id) {
         var a = new dom.Element('a', { href: href });
@@ -258,14 +262,14 @@ module.exports = {
             pc.versionEl.addListener('focus', versionFocus);
             pc.save_el.addListener('focus', saveFocus);
 
-            pc.save_el.emit('mouseenter', new E('mouseenter'));
-            expect(versionFocus.getCallCount()).toBe(1);
+            dom.$('package-save-options').emit('click', new E('click'));
+            expect(versionFocus).toHaveBeenCalled();
 
             var tab = new E('keypress');
             tab.keyCode = 9;
             //tab.key = 'tab';
             pc.revision_message_el.emit('keypress', tab);
-            expect(saveFocus.getCallCount()).toBe(1);
+            expect(saveFocus).toHaveBeenCalled();
         });
 
         it('should be able to upload Files as Attachments', function(expect) {
