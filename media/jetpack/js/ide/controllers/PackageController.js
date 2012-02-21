@@ -264,13 +264,19 @@ module.exports = new Class({
 
     instantiate_modules: function() {
         // iterate by modules and instantiate Module
+        var mainLoaded;
         this.options.modules.forEach(function(module) {
             module.readonly = this.options.readonly;
             var mod = this.newModule(module);
             if (module.main) {
+                mainLoaded = true;
                 this.editFile(mod);
             }
         }, this);
+
+        if (!mainLoaded) {
+            this.editFile(this.options.modules[0]);
+        }
     },
 
     instantiate_attachments: function() {
