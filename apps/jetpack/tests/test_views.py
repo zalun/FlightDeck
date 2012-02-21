@@ -141,6 +141,31 @@ class TestPackage(TestCase):
         response = self.client.get(lib.get_absolute_url())
         eq_(response.status_code, 200)
 
+    def test_ability_to_see_revisions_list(self):
+        user = User.objects.get(username='jan')
+        user.set_password('secure')
+        user.save()
+
+        # Public add-on
+        addon = Package.objects.create(
+                full_name='Public Add-on', author=user, type='a')
+        response = self.client.get(reverse('jp_revisions_list_html',
+            args=[addon.id_number,]))
+        eq_(response.status_code, 200)
+
+        # Private add-on
+        addon = Package.objects.create(
+                full_name='Priv Add-on', author=user, type='a', active=False)
+        # not logged in
+        response = self.client.get(reverse('jp_revisions_list_html',
+            args=[addon.id_number,]))
+        eq_(response.status_code, 404)
+        # authenticated
+        self.client.login(username=user.username, password='secure')
+        response = self.client.get(reverse('jp_revisions_list_html',
+            args=[addon.id_number,]))
+        eq_(response.status_code, 200)
+
 
 class TestEmptyDirs(TestCase):
     fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']
