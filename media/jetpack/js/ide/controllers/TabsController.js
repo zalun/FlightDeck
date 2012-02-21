@@ -23,8 +23,10 @@ module.exports = new Class({
         var controller = this;
 		this.tabs = new tabs.TabBar('editor-tabs', {
 			arrows: false,
-			onTabDown: function(tab) {
-				if (!tab.hasClass('selected')) {
+			onTabDown: function(tab, ev) {
+                if (ev && ev.middleClick) {
+                    this.emit('closeDown', tab.getElement('.tab-close'), ev);
+                } else if (!tab.hasClass('selected')) {
 					controller.emit('select', tab.retrieve('tab:instance'));
 				}
 			},
