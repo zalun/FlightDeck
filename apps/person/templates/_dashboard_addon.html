@@ -12,7 +12,7 @@
     </p>
     {# <p>last updated: <span class="amo-last_updated no-data">---</span></p> #}
     <p>review status: 
-    <span class="amo-review_status">{{ item.latest_uploaded.get_status_name() if item.latest_uploaded else '---' }}</span>
+    <span class="amo-review_status">{{ item.latest_uploaded.get_status_name() if item.latest_uploaded else item.latest.get_status_name() }}</span>
     </p>
 
     <ul class="UI_AMO_Actions">

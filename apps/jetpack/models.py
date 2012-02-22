@@ -174,7 +174,7 @@ class PackageRevision(BaseModel):
     def get_status_name(self):
         """:returns: (string) the name of the AMO status or None
         """
-        return constants.STATUS_NAMES.get(self.amo_status, None)
+        return constants.STATUS_NAMES.get(self.amo_status, '---')
 
     def upload_to_amo(self, hashtag):
         """Uploads Package to AMO, updates or creates as a new Addon
