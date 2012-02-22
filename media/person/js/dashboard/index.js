@@ -132,7 +132,10 @@ var uploadToAMO = function(e) {
 				getStatus(amo_info);
 			}, 5 * 1000);
             updateStatus(amo_info, {'status': 'Upload Scheduled'});
-        }.bind(this)
+        }.bind(this),
+		onComplete: function() {
+			spinner.removeClass(LOADING_CLASS);
+		}
     }).send();
 
 	r.addListener('failure', function() {
