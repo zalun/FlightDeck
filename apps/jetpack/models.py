@@ -19,6 +19,8 @@ from django.utils import simplejson
 from django.utils.html import escape
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
+from django.template import Context
+from django.template.loader import get_template
 from django.template.defaultfilters import slugify
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -2449,15 +2451,23 @@ def save_first_revision(instance, **kwargs):
     instance.version = revision
     instance.latest = revision
     if instance.is_addon():
-        first_module_code = """// This is an active module of the %s Add-on
+        is_first_addon = instance.author.packages_originated.count() < 2
+        if is_first_addon:
+            t = get_template('js/first_addon.js')
+            c = Context({ 'name': instance.name })
+            first_module_code = t.render(c)
+        else:
+            first_module_code = """// This is an active module of the %s Add-on
 exports.main = function() {};"""
     elif instance.is_library():
         first_module_code = "// This is the main module of the %s Library"
+    if '%' in first_module_code:
+        first_module_code = first_module_code % instance.full_name
     first_module_name = revision.module_main
     mod = Module.objects.create(
         filename=first_module_name,
         author=instance.author,
-        code=first_module_code % instance.full_name
+        code=first_module_code
     )
     revision.modules.add(mod)
     instance.save()
