@@ -113,7 +113,7 @@ function getStatusFromAMO(status_el) {
 	}).send();
 }
 
-function uploadToAMO(e) {
+var uploadToAMO = function(e) {
     var el = this.getParent('li'),
         amo_info = el.getParent('.UI_AMO_Info');
 
@@ -157,7 +157,6 @@ exports.init = function(fd_) {
     }
 
     var body = dom.document.body;
-    body.delegate('.UI_AMO_Upload_New_Version a', CLICK, uploadToAMO);
-    body.delegate('.UI_AMO_Upload_New_Addon a', CLICK, uploadToAMO);
+    body.delegate('.upload_link a', CLICK, uploadToAMO);
     dom.$$('.UI_AMI_Info').forEach(getStatusFromAMO, fd);
 };
