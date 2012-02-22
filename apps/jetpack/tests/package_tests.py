@@ -446,3 +446,15 @@ class PackageTest(TestCase):
         eq_(addon.name, 'add-on')
         addon = Package.objects.create(author=author, type='a')
         eq_(addon.name, 'add-on-1')
+
+    def test_first_addon_template(self):
+        author = User.objects.create(username='first-time')
+        addon = Package(full_name='First Addon', author=author, type='a')
+        addon.save()
+        mod = addon.latest.modules.all()[0]
+        assert 'id: "first-addon-widget' in mod.code
+
+        addon2 = Package(full_name='Second Addon', author=author, type='a')
+        addon2.save()
+        mod2 = addon2.latest.modules.all()[0]
+        assert 'id: "second-addon-widget' not in mod2.code
