@@ -1580,6 +1580,11 @@ class Package(BaseModel, SearchMixin):
         if not self.full_name:
             self.set_full_name()
         self.name = make_name(self.full_name)
+        if not self.name:
+            self.full_name = _get_full_name(
+                self.get_type_name_with_dash(),
+                self.author.username, self.type)
+            self.update_name()
 
 
     def __unicode__(self):
@@ -2427,6 +2432,21 @@ def index_package_m2m(instance, action, **kwargs):
         index_one.delay(instance.package.id)
 m2m_changed.connect(index_package_m2m,
                     sender=PackageRevision.dependencies.through)
+
+
+def fix_empty_full_name(instance, **kwargs):
+    """
+    This is a workaround for
+    https://bugzilla.mozilla.org/show_bug.cgi?id=729217
+    """
+    if kwargs.get('raw', False) or instance.full_name:
+        return
+
+    instance.full_name = _get_full_name(
+        instance.get_type_name_with_dash(),
+        instance.author.username, instance.type)
+    instance.update_name()
+post_save.connect(fix_empty_full_name, sender=Package)
 
 
 def save_first_revision(instance, **kwargs):
