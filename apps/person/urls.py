@@ -9,7 +9,7 @@ urlpatterns = patterns('person.views',
     url(r'^signin/$', login,
         {'authentication_form': AuthenticationForm}, name='login'),
     url(r'^signout/$', logout, {"next_page": "/"}, name='logout'),
-    
+
     url('^browserid-login/', 'browserid_login', name='browserid_login'),
 
     # dashboard
@@ -37,6 +37,6 @@ urlpatterns = patterns('person.views',
         'dashboard_browser', {'type': 'l'}, name='person_libraries_page'),
 
     # public profile
-    url(r'^(?P<username>[-\w]+)/$', 'public_profile',
+    url(u'^(?P<username>[-\w]+)/$', 'public_profile',
         name='person_public_profile'),
 )
