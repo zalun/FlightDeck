@@ -9,6 +9,12 @@ revision_string: '{{ revision|escapejs }}',
 // description: '',
 type: '{{ revision.package.type }}',
 package_author: '{{ revision.package.author }}',
+active: {% if revision.package.active %}
+            true
+        {% else %}
+            false
+        {% endif %}
+        ,
 // url: '',
 license: '{{ revision.package.license }}',
 package_version_name: '{{ revision.package.version_name }}',
