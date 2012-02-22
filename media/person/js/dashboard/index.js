@@ -50,7 +50,7 @@ function updateStatus(status_el, data, created) {
     if (edit_on_amo && data.edit_on_amo_url && data.status_code === 0) {
         edit_on_amo.getElement('a').set('href', data.edit_on_amo_url);
         edit_on_amo.removeClass('hidden');
-        highlight(edit_on_amo.highlight());
+        highlight(edit_on_amo);
         if (view_on_amo) {
             view_on_amo.addClass('hidden');
         }
