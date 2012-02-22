@@ -1,3 +1,4 @@
+# coding=utf-8
 import os
 import datetime
 import commonware
@@ -16,6 +17,7 @@ from jetpack.models import Package, PackageRevision
 from jetpack.errors import DependencyException
 from jetpack.package_helpers import create_from_archive, \
         create_package_from_xpi
+from person.models import Profile
 
 log = commonware.log.getLogger('f.test')
 
@@ -436,3 +438,11 @@ class PackageTest(TestCase):
                 active=False)
         assert not addon.can_view()
         assert addon.can_view(author)
+
+    def test_package_user_utf(self):
+        author = User.objects.create(username='1234')
+        Profile.objects.create(user=author, nickname='ą')
+        addon = Package.objects.create(author=author, type='a')
+        eq_(addon.name, 'add-on')
+        addon = Package.objects.create(author=author, type='a')
+        eq_(addon.name, 'add-on-1')
