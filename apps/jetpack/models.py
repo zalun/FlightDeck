@@ -1693,7 +1693,7 @@ class Package(BaseModel, SearchMixin):
         " returns the url to view the add-on on AMO "
         if not self.amo_slug:
             return ""
-        return "%s://%s/en-US/firefox/addon/%s/" % (
+        return "%s://%s/en-US/developers/addon/%s/" % (
                 settings.AMO_SITE_PROTOCOL, settings.AMO_SITE_DOMAIN,
                 self.amo_slug)
 
