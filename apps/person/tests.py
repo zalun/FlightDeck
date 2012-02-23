@@ -60,9 +60,13 @@ class ProfileTest(TestCase):
         response = self.client.get(reverse('person_dashboard'))
         eq_(response.status_code, 200)
 
-    def test_dashboard_with_question_mark(self):
+    def test_user_with_question_mark(self):
         user = User.objects.create(username='12345')
         profile = Profile.objects.create(user=user, nickname='b?c')
+        # profile
+        response = self.client.get(profile.get_addons_url())
+        eq_(response.status_code, 200)
+        # dashboard
         user.set_password('secure')
         user.save()
         self.client.login(username=user.username, password='secure')
