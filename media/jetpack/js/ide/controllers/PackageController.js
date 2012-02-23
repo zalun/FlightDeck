@@ -897,7 +897,7 @@ module.exports = new Class({
                     author: response.author,
                     content: response.code,
                     get_url: response.get_url,
-                    id: response.uid
+                    uid: response.uid
                 });
                 if (!attachmentEl) {
                     that.sidebar.addData(att);
@@ -1464,7 +1464,6 @@ module.exports = new Class({
                             if (this.attachments[uid]) {
                                 // updating attachment's uid
                                 var att = this.attachments[uid];
-                                options.pk = options.uid;
                                 att.set(options);
                             }
                         }, this

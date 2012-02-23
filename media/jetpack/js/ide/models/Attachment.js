@@ -21,8 +21,14 @@ module.exports = new Class({
         data: fields.TextField()
     },
 
-    uid: property(function uid() {
-        return this.get('pk');
+    uid: property(function uid(pk) {
+        if (arguments.length === 0) {
+            // getter
+            return this.get('pk');
+        } else {
+            // setter
+            return this.set('pk', pk);
+        }
     }, 'id')
 
 });

@@ -20,8 +20,15 @@ module.exports = new Class({
 	fields: {
 	},
 
-    uid: property(function uid() {
-         return this.get('filename');
+    uid: property(function uid(filename) {
+        if (arguments.length === 0) {
+            // getter
+            return this.get('filename');
+        } else {
+            // setter
+            return this.set('filename', filename);
+        }
+             
     }, 'filename'),
 
     loadContent: function(callback) {

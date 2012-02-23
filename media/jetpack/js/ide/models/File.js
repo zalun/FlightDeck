@@ -51,7 +51,6 @@ var File = module.exports = new Class({
     },
 
     uid: function() {
-         //TODO: this should be the unique hash from the new API
         return this._uid || (this._uid = string.uniqueID());
     },
 
