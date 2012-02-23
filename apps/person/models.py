@@ -47,10 +47,12 @@ class Profile(models.Model):
         return self.get_name()
 
     def get_addons_url(self):
-        return reverse('jp_browser_user_addons', args=[self.get_nickname()])
+        #return reverse('jp_browser_user_addons', args=[self.get_nickname()])
+        return reverse('jp_browser_user_addons', args=[self.user.username])
 
     def get_libraries_url(self):
-        return reverse('jp_browser_user_libraries', args=[self.get_nickname()])
+        #return reverse('jp_browser_user_libraries', args=[self.get_nickname()])
+        return reverse('jp_browser_user_libraries', args=[self.user.username])
 
     def get_profile_url(self):
         #if self.nickname and not '?' in self.nickname:
