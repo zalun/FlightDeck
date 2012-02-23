@@ -1448,6 +1448,12 @@ module.exports = new Class({
         return new Request({
             url: this.options.save_url,
             data: this.data,
+            onFailure: function() {
+                fd().error.alert(
+                    string.substitute('Error {status}', this.xhr),
+                    string.substitute('{statusText}<br/>{responseText}', this.xhr)
+                );
+            },
             onSuccess: function(text) {
                 var response = JSON.parse(text);
                 // set the redirect data to view_url of the new revision
