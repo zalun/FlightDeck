@@ -37,6 +37,6 @@ urlpatterns = patterns('person.views',
         'dashboard_browser', {'type': 'l'}, name='person_libraries_page'),
 
     # public profile
-    url(u'^(?P<username>[-\w]+)/$', 'public_profile',
+    url(u'^(?P<username>.*)/$', 'public_profile',
         name='person_public_profile'),
 )
