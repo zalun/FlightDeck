@@ -24,10 +24,10 @@ module.exports = new Class({
     uid: property(function uid(pk) {
         if (arguments.length === 0) {
             // getter
-            return this.get('pk');
+            return this.get('id');
         } else {
             // setter
-            return this.set('pk', pk);
+            return this.set('id', pk);
         }
     }, 'id')
 

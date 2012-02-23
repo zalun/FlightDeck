@@ -37,12 +37,9 @@ def app_manifest(request):
                 'url': 'https://builder.addons.mozilla.org/',
             },
             'installs_allowed_from': [
-                 'https://apps-preview-dev.allizom.org',
-                 'https://apps-preview.allizom.org',
-                 'https://apps-preview.mozilla.org',
-                 'https://addons-dev.allizom.org',
-                 'https://addons.allizom.org',
-                 'https://addons.mozilla.org',
+                 'https://marketplace-dev.allizom.org',
+                 'https://marketplace.allizom.org',
+                 'https://marketplace.mozilla.org',
             ],
             'default_locale': 'en',
            }
@@ -56,7 +53,7 @@ def graphite(request, site):
     # have to hack together our own.  This is temporary until we can replace it
     # with jinja code.
 
-    v = {}    
+    v = {}
     v['ns'] = {"trunk": "builder.preview",
                "stage": "builder.next",
                "prod": "builder"}[site]  # Validated by url regex
@@ -87,11 +84,11 @@ def admin(request):
         if action == 'setup_mapping':
             msg = 'setup_mapping triggered'
             log.info(log_msg % (msg, request.user, request.user.pk))
-            threading.Thread(target=setup_mapping).start()            
+            threading.Thread(target=setup_mapping).start()
         elif action == 'index_all':
             msg = 'index_all triggered'
             log.info(log_msg % (msg , request.user, request.user.pk))
-            threading.Thread(target=index_all).start()            
+            threading.Thread(target=index_all).start()
         elif action == 'update_package_activity':
             msg = 'update_package_activity triggered'
             log.info(log_msg % (msg , request.user, request.user.pk))
@@ -205,25 +202,25 @@ def monitor(request):
     return HttpResponse(template.render(context), status=status)
 
 
-def get_package(request):    
-    package = get_object_or_404(Package, id_number=request.GET['package_id'])    
+def get_package(request):
+    package = get_object_or_404(Package, id_number=request.GET['package_id'])
     return render_to_response('admin/_package_result.html', {
             'package': package
         }, context_instance=RequestContext(request))
 
 @user_passes_test(lambda u: u.is_superuser)
 def update_package(request):
-    package = get_object_or_404(Package, pk=request.POST['package_id'])  
-    if 'featured' in request.POST:        
+    package = get_object_or_404(Package, pk=request.POST['package_id'])
+    if 'featured' in request.POST:
         package.featured = request.POST.get('featured') == 'true'
-        
-    if 'example' in request.POST:       
+
+    if 'example' in request.POST:
         package.example = request.POST.get('example') == 'true'
-        
-    package.save()    
+
+    package.save()
     return HttpResponse({'status':'ok'}, content_type='text/javascript')
-    
-    
+
+
 def homepage(r):
     # one more for the main one
     pkgs_limit = settings.HOMEPAGE_PACKAGES_NUMBER
