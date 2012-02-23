@@ -294,7 +294,8 @@ module.exports = new Class({
 
     instantiate_modules: function() {
         // iterate by modules and instantiate Module
-        var mainLoaded;
+        var mainLoaded = false,
+            firstModule;
         this.options.modules.forEach(function(module) {
             module.readonly = this.options.readonly;
             var mod = this.newModule(module);
@@ -302,10 +303,13 @@ module.exports = new Class({
                 mainLoaded = true;
                 this.editFile(mod);
             }
+            if (!firstModule) {
+                firstModule = mod;
+            }
         }, this);
 
-        if (!mainLoaded && this.options.modules[0]) {
-            this.editFile(this.options.modules[0]);
+        if (!mainLoaded && firstModule) {
+            this.editFile(firstModule);
         }
     },
 
