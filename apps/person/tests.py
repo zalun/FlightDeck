@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 person.urls
 -----------
@@ -44,6 +45,21 @@ class ProfileTest(TestCase):
         with_underscore_url = reverse('person_public_profile', args=['abc_de'])
         eq_(with_underscore_url, x_url.replace('xxx', 'abc_de'))
 
+    def test_public_utf_profile_url(self):
+        user = User.objects.create(username='12345')
+        profile = Profile.objects.create(user=user, nickname='ąbc')
+        response = self.client.get('/user/ąbc/')
+        eq_(response.status_code, 200)
+
+    def test_dashboard_utf(self):
+        user = User.objects.create(username='12345')
+        profile = Profile.objects.create(user=user, nickname='ąbc')
+        user.set_password('secure')
+        user.save()
+        self.client.login(username=user.username, password='secure')
+        response = self.client.get(reverse('person_dashboard'))
+        eq_(response.status_code, 200)
+
     def test_fake_profile(self):
         resp = self.client.get(reverse('person_public_profile', args=['xxx']))
         eq_(404, resp.status_code)
@@ -86,7 +102,7 @@ class BrowserIDLoginTest(TestCase):
         response = self.client.post(reverse('browserid_login'),
                         {'assertion': 'some-assertion'})
         eq_(response.status_code, 200)
-        assert self.user.is_authenticated()        
+        assert self.user.is_authenticated()
         assert User.objects.filter(email='some@example.com')
         self.assertRaises(User.DoesNotExist,
                 User.objects.get, email=self.TESTEMAIL)
