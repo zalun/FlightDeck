@@ -53,7 +53,9 @@ class Profile(models.Model):
         return reverse('jp_browser_user_libraries', args=[self.get_nickname()])
 
     def get_profile_url(self):
-        return reverse('person_public_profile', args=[self.get_nickname()])
+        if self.nickname and not '?' in self.nickname:
+            return reverse('person_public_profile', args=[self.nickname])
+        return reverse('person_public_profile', args=[self.user.username])
 
     def update_from_AMO(self, data=None):
         if not data:

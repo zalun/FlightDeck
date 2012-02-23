@@ -20,6 +20,6 @@ class Command(BaseCommand):
         """
         profiles = Profile.objects.filter(nickname__contains='?')
         for profile in profiles:
-            self.stdout.write("* Updating nickname: %s (%s)\n" % (
-                profile.nickname, profile.user.email))
+            self.stdout.write("[%s] Updating nickname: %s (%s)\n" % (
+                profile.user.username, profile.nickname, profile.user.email))
             profile.update_from_AMO()
