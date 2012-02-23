@@ -8,10 +8,12 @@ var Class = require('shipyard/class/Class'),
     log = require('shipyard/utils/log'),
     dom = require('shipyard/dom'),
     
-    tabs = require('../views/Tabs'),
+    tabs = require('../views/Tabs');
     
-    //TODO: this is terrible practice
-    fd = dom.window.get('fd');
+//TODO: this is terrible practice
+function fd() {
+    return dom.window.get('fd');
+}
 
 module.exports = new Class({
 
@@ -42,7 +44,7 @@ module.exports = new Class({
 						
 					
 					if (file.changed) {
-						fd.showQuestion({
+						fd().showQuestion({
 							title: 'Lose unsaved changes?',
 							message: 'The tab "'+file.get('shortName')+'" that you are trying to close has unsaved changes.',
 							buttons: [
@@ -64,9 +66,9 @@ module.exports = new Class({
 										setTimeout(function() {
 											file.set('content', file.original_content);
 											file.setChanged(false);
-											fd.item.edited--;
-											if(!fd.item.edited) {
-												fd.item.emit('reset');
+											fd().item.edited--;
+											if(!fd().item.edited) {
+												fd().item.emit('reset');
 											}
 										}, 1);
 									}
