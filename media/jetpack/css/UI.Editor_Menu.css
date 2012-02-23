@@ -228,11 +228,8 @@ form.UI_Editor_Menu_Descendant {
 		padding-right:2px;
 	}
 		.UI_Editor_Menu_SplitButton a span {
-			background:none;
-			width:auto;
-			font-weight:bold;
-			font-size:14px;
-			line-height:12px;
+			background-position: -231px 2px;
+			width:10px;
 		}
 
 /* SUBMENU */
