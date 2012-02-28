@@ -1,3 +1,4 @@
+# coding=utf-8
 import commonware
 import tempfile
 import os
@@ -393,7 +394,7 @@ class PackageRevisionTest(TestCase):
         assert old_rev.name
         assert old_package.full_name
         assert old_package.name
-        
+
     def test_update_package_activity_cron(self):
         addon = Package(type='a', author=self.author)
         addon.save()
@@ -402,19 +403,24 @@ class PackageRevisionTest(TestCase):
 
         # Create 1 weeks worth of revisions... should equal .30 of score
         # see models.py def Packages for weights
-        
+
         for i in range(1,8):
             r = addon.revisions.create(author=self.author, revision_number=i)
             r.created_at=now-datetime.timedelta(i)
             super(PackageRevision, r).save()
-        
+
         #run task on this one package
         calculate_activity_rating([addon.pk])
-            
+
         addon = Package.objects.get(pk=addon.pk)
-        
+
         eq_(addon.activity_rating, addon.calc_activity_rating())
 
+    def test_commit_message_utf8(self):
+        self.addon.latest.message = u'some ut8 - ą'
+        self.addon.latest.save();
+        rev = self.addon.revisions.latest('pk')
+        eq_(rev.message, self.addon.latest.message)
 
 
     """

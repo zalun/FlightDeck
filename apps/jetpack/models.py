@@ -2,7 +2,9 @@ import os
 import re
 import csv
 import shutil
+import sys
 import time
+import traceback
 import commonware
 import tempfile
 import hashlib
@@ -11,7 +13,9 @@ import waffle
 from decimal import Decimal, getcontext
 from copy import deepcopy
 
-from django.core.exceptions import ObjectDoesNotExist, ValidationError, MultipleObjectsReturned
+from django.core.exceptions import (ObjectDoesNotExist, ValidationError,
+        MultipleObjectsReturned)
+from django.core.mail import mail_admins
 from django.db.models.signals import (pre_save, post_delete, post_save,
                                       m2m_changed)
 from django.db import models, transaction, IntegrityError
@@ -2268,8 +2272,20 @@ class Attachment(BaseModel):
             with codecs.open(self.get_file_path(), **kwargs) as f:
                 f.write(data)
         except UnicodeDecodeError, err:
-            log.error('Attachment write failure: (%s)\n%s' % (
+            log.error('Attachment write failure (UTF8 decode): (%s)\n%s' % (
                 self.pk, str(err)))
+            raise AttachmentWriteException(
+                'Attachment failed to save properly<br/>'
+                'Unknown Unicode in file')
+        except UnicodeEncodeError, err:
+            log.error('Attachment write failure (UTF8 encode): (%s)\n%s' % (
+                self.pk, str(err)))
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            tb = traceback.format_exception(exc_type, exc_value, exc_traceback)
+
+            mail_admins(
+                    '[Django] ERROR: Unicode Encode in writing attachment',
+                    "Attachment [%d] writing error\n\n %s" % (self.pk, tb))
             raise AttachmentWriteException(
                 'Attachment failed to save properly<br/>'
                 'Unknown Unicode in file')
