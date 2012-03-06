@@ -46,7 +46,8 @@ from jetpack.errors import (SelfDependencyException, FilenameExistException,
 from jetpack.managers import SDKManager, PackageManager
 
 from utils import validator
-from utils.helpers import pathify, alphanum, alphanum_plus, get_random_string
+from utils.helpers import (pathify, alphanum, alphanum_plus, get_random_string,
+        sanitize_for_frontend)
 from utils.os_utils import make_path
 from utils.amo import AMOOAuth
 from xpi import xpi_utils
@@ -1953,10 +1954,9 @@ class Package(BaseModel, SearchMixin):
     def clean(self):
         self.full_name = alphanum_plus(self.full_name)
         if self.description:
-            self.description = alphanum_plus(self.description)
+            self.description = sanitize_for_frontend(self.description)
         if self.version_name:
             self.version_name = alphanum_plus(self.version_name)
-
 
     def calc_activity_rating(self):
         """

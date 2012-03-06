@@ -88,8 +88,9 @@ class PackageTest(TestCase):
         eq_(package.full_name, 'Samuel-lib')
 
     def test_package_sanitization(self):
-        bad_text = 'Te$t"><script src="google.com"></script>!#'
+        bad_text = u'Te$tąć"><script src="google.com"></script>!#'
         good_text = 'Te$tscript srcgoogle.com/script!#'
+        good_text_utf8 = u'Te$tąćscript srcgoogle.com/script!#'
 
         package = Package(
             author=self.author,
@@ -101,7 +102,7 @@ class PackageTest(TestCase):
         package.save()
 
         eq_(package.full_name, good_text)
-        eq_(package.description, good_text)
+        eq_(package.description, good_text_utf8)
         eq_(package.version_name, good_text)
 
     def test_automatic_numbering(self):
@@ -458,3 +459,4 @@ class PackageTest(TestCase):
         addon2.save()
         mod2 = addon2.latest.modules.all()[0]
         assert 'id: "second-addon-widget' not in mod2.code
+
