@@ -454,6 +454,15 @@ require('b');
                             self.library.latest.get_lib_dir(),
                             'test_module')))
 
+    def test_utf8_description(self):
+        utf8string = 'utf8 ą utf8'
+        self.addon.description = utf8string
+        self.addon.save()
+        response = self.addon.latest.build_xpi(hashtag=self.hashtag)
+        assert not response[1]
+        assert os.path.isfile('%s.xpi' % self.target_basename)
+
+
     def test_package_included_multiple_times(self):
         """ If separate dependencies require the same library, it shouldn't error """
         pack = Package.objects.create(type='l', author=self.author)
