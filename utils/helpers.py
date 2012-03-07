@@ -23,7 +23,7 @@ def alphanum_plus(text):
     return re.sub('[^a-zA-Z0-9\s\.,_\-\*&%\$#@:\(\)!\{\}\[\]\^\'\\/\?]+', '', text.strip())
 
 
-def filter_illegal_utf8(dirty):
+def filter_illegal_utf8(dirty, repl=''):
     """via StackOverflow:
     http://stackoverflow.com/questions/1707890/fast-way-to-filter-illegal-xml-unicode-chars-in-python
     XML specification lists a bunch of Unicode characters that are either
@@ -43,19 +43,19 @@ def filter_illegal_utf8(dirty):
                       if low < sys.maxunicode]
 
     illegal_xml_re = re.compile(u'[%s]' % u''.join(illegal_ranges))
-    return illegal_xml_re.sub('', dirty)
+    return illegal_xml_re.sub(repl, dirty)
 
-def filter_illegal_chars(dirty):
+def filter_illegal_chars(dirty, repl=''):
     """Remove character which allow to inject code which would be run by
     displaying on the page
     """
     illegal_chars_re = re.compile('[<>="]')
-    return illegal_chars_re.sub('', dirty)
+    return illegal_chars_re.sub(repl, dirty)
 
-def sanitize_for_frontend(dirty):
+def sanitize_for_frontend(dirty, repl=''):
     """Remove illegal XML and dangerous frontend characters
     """
-    return filter_illegal_utf8(filter_illegal_chars(dirty))
+    return filter_illegal_utf8(filter_illegal_chars(dirty, repl))
 
 def pathify(path):
     """ Replaces all characters except alpanum, dash, underscore, and slash with a dash """
