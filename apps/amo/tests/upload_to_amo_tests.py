@@ -20,6 +20,8 @@ from utils.amo import AMOOAuth
 log = commonware.log.getLogger('f.test')
 
 
+OLD_AMOOAUTH_SEND = AMOOAuth._send
+
 class UploadTest(TestCase):
     fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']
     ADDON_AMO_ID = 1
@@ -35,6 +37,8 @@ class UploadTest(TestCase):
                            protocol=settings.AMOOAUTH_PROTOCOL,
                            prefix=settings.AMOOAUTH_PREFIX)
 
+    def tearDown(self):
+        AMOOAuth._send = OLD_AMOOAUTH_SEND
 
     def test_create_new_amo_addon(self):
         AMOOAuth._send = Mock(return_value={

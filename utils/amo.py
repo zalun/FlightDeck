@@ -214,6 +214,9 @@ class AMOOAuth:
     def get_user(self):
         return self._send(self.url('user'), 'GET', {})
 
+    def get_user_by_email(self, email):
+        return self._send(self.url('user'), 'GET', {'email': email})
+
     def create_addon(self, data):
         return self._send(self.url('addon'), 'POST', data)
 
