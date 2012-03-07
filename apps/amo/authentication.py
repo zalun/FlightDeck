@@ -7,6 +7,7 @@ from django.conf import settings
 
 from amo.helpers import get_amo_cursor
 from person.models import Profile
+from utils.amo import AMOOAuth
 
 DEFAULT_AMO_PASSWORD = 'saved in AMO'
 
@@ -104,7 +105,7 @@ class AMOAuthentication:
         username = user_data['id']
         self.user_data = user_data
         return username
-    
+
     @staticmethod
     def auth_browserid_authenticate(email):
         """
@@ -112,25 +113,11 @@ class AMOAuthentication:
             browserid
         """
         return AMOAuthentication.fetch_amo_user(email)
-        
+
     @staticmethod
     def fetch_amo_user(email):
-        columns = ('id', 'email', 'username', 'password',
-                   'display_name', 'homepage')
-        auth_cursor = get_amo_cursor()
-
-        SQL = ('SELECT %s FROM %s WHERE email=%%s') % (
-                ','.join(columns), settings.AUTH_DATABASE['TABLE'])
-        auth_cursor.execute(SQL, email)
-        data = auth_cursor.fetchone()
-        if data == None:
-            return None
-        
-        user_data = {}
-        for i in range(len(data)):
-            user_data[columns[i]] = data[i]        
-        
-        return user_data
+        amo = AMOOAuth()
+        return amo.get_user_by_email(email) or None
 
 
 def get_hexdigest(algorithm, salt, raw_password):
