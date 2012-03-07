@@ -115,10 +115,28 @@ class AMOAuthentication:
         return AMOAuthentication.fetch_amo_user(email)
 
     @staticmethod
-    def fetch_amo_user(email):
+    def fetch_amo_user_api(email):
         amo = AMOOAuth()
         return amo.get_user_by_email(email) or None
 
+    @staticmethod
+    def fetch_amo_user(email):
+        columns = ('id', 'email', 'username', 'password',
+                   'display_name', 'homepage')
+        auth_cursor = get_amo_cursor()
+
+        SQL = ('SELECT %s FROM %s WHERE email=%%s') % (
+                ','.join(columns), settings.AUTH_DATABASE['TABLE'])
+        auth_cursor.execute(SQL, email)
+        data = auth_cursor.fetchone()
+        if data == None:
+            return None
+
+        user_data = {}
+        for i in range(len(data)):
+            user_data[columns[i]] = data[i]
+
+        return user_data
 
 def get_hexdigest(algorithm, salt, raw_password):
     return hashlib.new(algorithm, smart_str(salt + raw_password)).hexdigest()
