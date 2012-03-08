@@ -125,35 +125,8 @@ class AMOAuthentication:
                        prefix=settings.AMOOAUTH_PREFIX)
         amo.set_consumer(consumer_key=settings.AMOOAUTH_CONSUMERKEY,
                          consumer_secret=settings.AMOOAUTH_CONSUMERSECRET)
-        try:
-            return amo.get_user_by_email(email) or None
-        except:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            tb = traceback.format_exception(exc_type, exc_value, exc_traceback)
-            mail_admins(
-                    '[Django] ERROR: Unknown error in AMOOauth',
-                    "Might be an issue with OAuth in -dev\n %s" % tb)
+        return amo.get_user_by_email(email) or None
 
-            return AMOAuthentication.fetch_amo_user_old(email)
-
-    @staticmethod
-    def fetch_amo_user_old(email):
-        columns = ('id', 'email', 'username', 'password',
-                   'display_name', 'homepage')
-        auth_cursor = get_amo_cursor()
-
-        SQL = ('SELECT %s FROM %s WHERE email=%%s') % (
-                ','.join(columns), settings.AUTH_DATABASE['TABLE'])
-        auth_cursor.execute(SQL, email)
-        data = auth_cursor.fetchone()
-        if data == None:
-            return None
-
-        user_data = {}
-        for i in range(len(data)):
-            user_data[columns[i]] = data[i]
-
-        return user_data
 
 def get_hexdigest(algorithm, salt, raw_password):
     return hashlib.new(algorithm, smart_str(salt + raw_password)).hexdigest()
