@@ -1,7 +1,10 @@
 import hashlib
 import commonware
+import traceback
+import sys
 
 from django.contrib.auth.models import User
+from django.core.mail import mail_admins
 from django.utils.encoding import smart_str
 from django.conf import settings
 
@@ -120,7 +123,16 @@ class AMOAuthentication:
                        port=settings.AMOOAUTH_PORT,
                        protocol=settings.AMOOAUTH_PROTOCOL,
                        prefix=settings.AMOOAUTH_PREFIX)
-        return amo.get_user_by_email(email) or None
+        try:
+            return amo.get_user_by_email(email) or None
+        except:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            tb = traceback.format_exception(exc_type, exc_value, exc_traceback)
+            mail_admins(
+                    '[Django] ERROR: Unknown error in AMOOauth',
+                    "Might be an issue with OAuth in -dev\n %s" % tb)
+
+            return AMOAuthentication.fetch_amo_user_old(email)
 
     @staticmethod
     def fetch_amo_user_old(email):
