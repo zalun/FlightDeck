@@ -203,6 +203,26 @@ class PackageRevisionTest(TestCase):
         john_lib2.latest.dependency_add(jan_conflict.latest)
         self.assertRaises(DependencyException, addon.dependency_add, john_lib2.latest)
 
+    def test_adding_libs_with_common_dependency(self):
+        # if B and C both depend on D, at the same version, then it should
+        # be able to add both to A
+        addon = Package(author=self.author, type='a')
+        addon.save()
+        lib1 = Package(author=self.author, type='l')
+        lib1.save()
+        lib2 = Package(author=self.author, type='l')
+        lib2.save()
+        lib3 = Package(author=self.author, type='l')
+        lib3.save()
+
+        lib1.latest.dependency_add(lib3.latest)
+        lib2.latest.dependency_add(lib3.latest)
+
+        addon.latest.dependency_add(lib1.latest)
+        addon.latest.dependency_add(lib2.latest)
+
+        assert True
+
     def test_adding_library_self(self):
         " Check recurrent dependency (one level only) "
         lib = self.library.latest
