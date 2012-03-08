@@ -115,3 +115,4 @@ def update(ctx):
 
     # Run management commands like this:
     # manage_cmd(ctx, 'cmd')
+    manage_cmd(ctx, 'add_core_lib addon-sdk-1.6b1 --useversion=1.6b1')
