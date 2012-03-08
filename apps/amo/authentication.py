@@ -123,6 +123,8 @@ class AMOAuthentication:
                        port=settings.AMOOAUTH_PORT,
                        protocol=settings.AMOOAUTH_PROTOCOL,
                        prefix=settings.AMOOAUTH_PREFIX)
+        amo.set_consumer(consumer_key=settings.AMOOAUTH_CONSUMERKEY,
+                         consumer_secret=settings.AMOOAUTH_CONSUMERSECRET)
         try:
             return amo.get_user_by_email(email) or None
         except:
