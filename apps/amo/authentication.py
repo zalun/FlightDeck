@@ -115,12 +115,15 @@ class AMOAuthentication:
         return AMOAuthentication.fetch_amo_user(email)
 
     @staticmethod
-    def fetch_amo_user_api(email):
-        amo = AMOOAuth()
+    def fetch_amo_user(email):
+        amo = AMOOAuth(domain=settings.AMOOAUTH_DOMAIN,
+                       port=settings.AMOOAUTH_PORT,
+                       protocol=settings.AMOOAUTH_PROTOCOL,
+                       prefix=settings.AMOOAUTH_PREFIX)
         return amo.get_user_by_email(email) or None
 
     @staticmethod
-    def fetch_amo_user(email):
+    def fetch_amo_user_old(email):
         columns = ('id', 'email', 'username', 'password',
                    'display_name', 'homepage')
         auth_cursor = get_amo_cursor()

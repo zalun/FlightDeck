@@ -40,7 +40,6 @@ class AuthTest(TestCase):
 
     @staticmethod
     def test_get_user():
-        raise SkipTest()
         AMOOAuth._send = Mock(return_value={
                 "username": "some",
                 "display_name": "Some User",
