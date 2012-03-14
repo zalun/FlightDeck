@@ -900,6 +900,14 @@ def save(request, id_number, type_id, revision_number=None,
         revision.package.description = package_description
         response_data['package_description'] = package_description
 
+    extra_json = request.POST.get('extra_json')
+    if extra_json is not None:
+        # None means it wasn't submitted. We want to accept blank strings.
+        save_revision = True
+        revision.set_extra_json(extra_json, save=False)
+        response_data['extra_json'] = extra_json
+
+
     changes = []
     for mod in revision.modules.all():
         if request.POST.get(mod.filename, False):
