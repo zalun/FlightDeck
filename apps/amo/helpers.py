@@ -1,7 +1,10 @@
 import commonware.log
+import urllib2
+
 from django.conf import settings
 from lxml import etree
-import urllib2
+
+from utils.amo import AMOOAuth
 
 log = commonware.log.getLogger('f.amo')
 
@@ -65,3 +68,13 @@ def get_addon_details(amo_id, amo_file_id=None):
             amo_data['status_code'] = int(element.get('id'))
     # return dict
     return amo_data
+
+
+def fetch_amo_user(email):
+    amo = AMOOAuth(domain=settings.AMOOAUTH_DOMAIN,
+                   port=settings.AMOOAUTH_PORT,
+                   protocol=settings.AMOOAUTH_PROTOCOL,
+                   prefix=settings.AMOOAUTH_PREFIX)
+    amo.set_consumer(consumer_key=settings.AMOOAUTH_CONSUMERKEY,
+                     consumer_secret=settings.AMOOAUTH_CONSUMERSECRET)
+    return amo.get_user_by_email(email) or None

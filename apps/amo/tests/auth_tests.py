@@ -7,6 +7,7 @@ from nose import SkipTest
 from nose.tools import eq_
 
 from amo.authentication import AMOAuthentication
+from amo.helpers import fetch_amo_user
 from utils.amo import AMOOAuth
 
 
@@ -51,5 +52,5 @@ class AuthTest(TestCase):
                 "email": "some@example.com",
                 "occupation": "addon developer"
             })
-        eq_(AMOAuthentication.fetch_amo_user('some@example.com')['username'],
+        eq_(fetch_amo_user('some@example.com')['username'],
                 'some')

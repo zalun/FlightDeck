@@ -8,7 +8,7 @@ from django.core.mail import mail_admins
 from django.utils.encoding import smart_str
 from django.conf import settings
 
-from amo.helpers import get_amo_cursor
+from amo.helpers import get_amo_cursor, fetch_amo_user
 from person.models import Profile
 from utils.amo import AMOOAuth
 
@@ -48,41 +48,7 @@ class AMOAuthentication:
         except User.DoesNotExist:
             # username does not exist in FD database
             user = None
-
-        if not settings.AUTH_DATABASE:
-            return None
-
-        # here contact AMO and receive authentication status
-        email = username
-        username = self.auth_db_authenticate(username, password)
-
-        if not username:
-            return None
-
-        # check if user was already signed to FD
-        try:
-            user = User.objects.get(username=username)
-            # update user's email if needed
-            if user.email != email:
-                user.email = email
-                user.save()
-        except:
-            # save user into the database
-            user = User(
-                username=username,
-                email=email,
-                password=DEFAULT_AMO_PASSWORD,
-            )
-            user.save()
-
-        # Manage profile
-        try:
-            profile = user.get_profile()
-        except Profile.DoesNotExist:
-            profile = Profile(user=user)
-
-        profile.update_from_AMO(self.user_data)
-        return user
+        return None
 
     def get_user(self, user_id):
         try:
@@ -115,17 +81,7 @@ class AMOAuthentication:
             fetch the user from amo, no password validation, since we're using
             browserid
         """
-        return AMOAuthentication.fetch_amo_user(email)
-
-    @staticmethod
-    def fetch_amo_user(email):
-        amo = AMOOAuth(domain=settings.AMOOAUTH_DOMAIN,
-                       port=settings.AMOOAUTH_PORT,
-                       protocol=settings.AMOOAUTH_PROTOCOL,
-                       prefix=settings.AMOOAUTH_PREFIX)
-        amo.set_consumer(consumer_key=settings.AMOOAUTH_CONSUMERKEY,
-                         consumer_secret=settings.AMOOAUTH_CONSUMERSECRET)
-        return amo.get_user_by_email(email) or None
+        return fetch_amo_user(email)
 
 
 def get_hexdigest(algorithm, salt, raw_password):
