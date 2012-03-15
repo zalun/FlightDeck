@@ -39,7 +39,7 @@ class AMOAuthentication:
                 return None
         except User.DoesNotExist:
             # username does not exist in FD database
-            user = None
+            return None
         return None
 
     def get_user(self, user_id):
@@ -47,25 +47,6 @@ class AMOAuthentication:
             return User.objects.get(pk=user_id)
         except User.DoesNotExist:
             return None
-
-    def auth_db_authenticate(self, username, password):
-        " authenticate email/password pair in AMO database "
-
-        user_data = AMOAuthentication.fetch_amo_user(username)
-
-        if '$' not in user_data['password']:
-            valid = (get_hexdigest('md5', '',
-                                   password) == user_data['password'])
-        else:
-            algo, salt, hsh = user_data['password'].split('$')
-            valid = (hsh == get_hexdigest(algo, salt, password))
-
-        if not valid:
-            return None
-
-        username = user_data['id']
-        self.user_data = user_data
-        return username
 
     @staticmethod
     def auth_browserid_authenticate(email):
