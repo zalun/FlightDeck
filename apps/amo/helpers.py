@@ -25,20 +25,6 @@ def get_addon_amo_api_url(id, file_id):
     return url
 
 
-def get_amo_cursor():
-    import MySQLdb
-    try:
-        auth_conn = MySQLdb.connect(
-            host=settings.AUTH_DATABASE['HOST'],
-            user=settings.AUTH_DATABASE['USER'],
-            passwd=settings.AUTH_DATABASE['PASSWORD'],
-            db=settings.AUTH_DATABASE['NAME'])
-    except Exception, err:
-        log.critical("Authentication database connection failure: %s"
-                % str(err))
-        raise
-    return auth_conn.cursor()
-
 def get_addon_details(amo_id, amo_file_id=None):
     """Pull metadata from AMO using `generic AMO API
     <https://developer.mozilla.org/en/addons.mozilla.org_%28AMO%29_API_Developers%27_Guide/The_generic_AMO_API>`_

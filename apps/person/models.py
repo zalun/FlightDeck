@@ -1,11 +1,10 @@
 import commonware
 
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.db import models
 
-from amo.helpers import get_amo_cursor, fetch_amo_user
+from amo.helpers import fetch_amo_user
 from person.managers import ProfileManager
 
 log = commonware.log.getLogger('f.profile.models')

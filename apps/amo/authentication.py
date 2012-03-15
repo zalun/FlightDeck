@@ -1,16 +1,11 @@
 import hashlib
 import commonware
-import traceback
-import sys
 
 from django.contrib.auth.models import User
-from django.core.mail import mail_admins
 from django.utils.encoding import smart_str
-from django.conf import settings
 
-from amo.helpers import get_amo_cursor, fetch_amo_user
+from amo.helpers import fetch_amo_user
 from person.models import Profile
-from utils.amo import AMOOAuth
 
 DEFAULT_AMO_PASSWORD = 'saved in AMO'
 
@@ -27,9 +22,6 @@ class AMOAuthentication:
         """
             Authenticate user by contacting with AMO
         """
-
-        # TODO: Validate alphanum + .-_@
-
         # check if username exists in database
         try:
             user = User.objects.get(username=username)
@@ -39,7 +31,7 @@ class AMOAuthentication:
                 if user.check_password(password):
                     try:
                         profile = user.get_profile()
-                    except:
+                    except Profile.DoesNotExist:
                         # create empty profile for users stored in FD database
                         profile = Profile(user=user)
                         profile.save()
@@ -53,7 +45,7 @@ class AMOAuthentication:
     def get_user(self, user_id):
         try:
             return User.objects.get(pk=user_id)
-        except:
+        except User.DoesNotExist:
             return None
 
     def auth_db_authenticate(self, username, password):
