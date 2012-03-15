@@ -1,3 +1,6 @@
+import commonware.log
+import waffle
+
 from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.models import User
@@ -11,10 +14,9 @@ from django import http
 
 from amo.authentication import  AMOAuthentication
 from django_browserid import auth as browserid_auth
-
-import waffle
-
 from person.models import Profile
+
+log = commonware.log.getLogger('f.profile.views')
 
 def public_profile(r, username):
     """
@@ -113,56 +115,53 @@ def browserid_authenticate(request, assertion):
     good, but no account exists on flightdeck, create one.
     """
     backend = browserid_auth.BrowserIDBackend()
-    
+
     result = backend.verify(assertion, settings.SITE_URL)
     if not result:
         return (None, None)
-    
+
     email = result['email']
-    
+
     amouser = AMOAuthentication.auth_browserid_authenticate(email)
-    
+
     if amouser == None:
         return (None,None)
-    
+
     users = User.objects.filter(username=amouser['id'])
     if len(users) == 1:
         try:
             profile = users[0].get_profile()
         except Profile.DoesNotExist:
             profile = Profile(user=users[0])
-            profile.user.save()
+            profile.save()
     else:
         user = User.objects.create(username=amouser['id'], email=email)
         profile = Profile(user=user)
-        profile.user.save()
-    
+        profile.save()
+
+
     profile.user.backend = 'django_browserid.auth.BrowserIDBackend'
     profile.update_from_AMO(amouser)
-    
+
     return (profile, None)
-    
+
 
 def browserid_login(request):
     """
     If browserID is enabled, then try to authenticate with the assertion
     """
-    if waffle.switch_is_active('browserid-login'):    
+    if waffle.switch_is_active('browserid-login'):
         if request.user.is_authenticated():
             return http.HttpResponse(status=200)
-            
+
         profile, msg = browserid_authenticate(
             request,
             assertion=request.POST['assertion'])
-       
-        if profile is not None:            
+
+        if profile is not None:
             auth.login(request, profile.user)
             return http.HttpResponse(status=200)
-            
+
         return http.HttpResponse(status=401)
     else:
         return http.HttpResponse(status=403)
-
-
-
-

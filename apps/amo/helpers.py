@@ -1,7 +1,10 @@
 import commonware.log
+import urllib2
+
 from django.conf import settings
 from lxml import etree
-import urllib2
+
+from utils.amo import AMOOAuth
 
 log = commonware.log.getLogger('f.amo')
 
@@ -21,20 +24,6 @@ def get_addon_amo_api_url(id, file_id):
     #    url = "%s/%d" % (url, file_id)
     return url
 
-
-def get_amo_cursor():
-    import MySQLdb
-    try:
-        auth_conn = MySQLdb.connect(
-            host=settings.AUTH_DATABASE['HOST'],
-            user=settings.AUTH_DATABASE['USER'],
-            passwd=settings.AUTH_DATABASE['PASSWORD'],
-            db=settings.AUTH_DATABASE['NAME'])
-    except Exception, err:
-        log.critical("Authentication database connection failure: %s"
-                % str(err))
-        raise
-    return auth_conn.cursor()
 
 def get_addon_details(amo_id, amo_file_id=None):
     """Pull metadata from AMO using `generic AMO API
@@ -65,3 +54,13 @@ def get_addon_details(amo_id, amo_file_id=None):
             amo_data['status_code'] = int(element.get('id'))
     # return dict
     return amo_data
+
+
+def fetch_amo_user(email):
+    amo = AMOOAuth(domain=settings.AMOOAUTH_DOMAIN,
+                   port=settings.AMOOAUTH_PORT,
+                   protocol=settings.AMOOAUTH_PROTOCOL,
+                   prefix=settings.AMOOAUTH_PREFIX)
+    amo.set_consumer(consumer_key=settings.AMOOAUTH_CONSUMERKEY,
+                     consumer_secret=settings.AMOOAUTH_CONSUMERSECRET)
+    return amo.get_user_by_email(email) or None

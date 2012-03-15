@@ -54,14 +54,18 @@
 				</p>
 				<p>
 					{% if waffle.switch('browserid-login') %}
-							<div id="UI_BrowserID_Img" title="Login with BrowserID">
-									&nbsp;
-							</div><span id="login_txt">or login using the <a id="old_auth" href="">old method</a>.</span>
+                        <div id="UI_BrowserID_Img" title="Login with BrowserID">
+                            &nbsp;
+                        </div>
+                        {% if waffle.switch('show-old-login') %}
+                        <span id="login_txt">or login using the <a id="old_auth" href="">old method</a>.</span>
+                        {% endif %}
 					{% endif %}
 				</p>
 			</div>		
 		
 		
+        {% if waffle.switch('show-old-login') %}
 		<form  id="login_form" class="UI_Forms {% if not waffle.switch('browserid-login') %}show-login{% endif %}" method="post" action="{{ url('django.contrib.auth.views.login') }}" accept-charset="utf-8">
 			{{ safe_csrf_token()|safe }}
 			<fieldset>
@@ -87,6 +91,7 @@
 				</ul>
 			</div> <!-- /UI_Form_Actions -->
 		</form> <!-- /UI_Forms -->
+        {% endif %}
 		<p class="really-seriously">*You must use the same email address you use to access addons.mozilla.org for both BrowserID and standard login.</p>
 	</div> <!-- /UI_Login -->
 {% endblock %}

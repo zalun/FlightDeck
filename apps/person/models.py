@@ -1,11 +1,10 @@
 import commonware
 
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.db import models
 
-from amo.helpers import get_amo_cursor
+from amo.helpers import fetch_amo_user
 from person.managers import ProfileManager
 
 log = commonware.log.getLogger('f.profile.models')
@@ -61,18 +60,7 @@ class Profile(models.Model):
 
     def update_from_AMO(self, data=None):
         if not data:
-            auth_cursor = get_amo_cursor()
-            columns = ('id', 'email', 'username', 'display_name', 'email' ,
-                       'homepage')
-
-            SQL = ('SELECT %s FROM %s WHERE id=%%s') % (
-                    ','.join(columns), settings.AUTH_DATABASE['TABLE'])
-            auth_cursor.execute(SQL, [self.user.username])
-            row = auth_cursor.fetchone()
-            data = {}
-            if row:
-                for i in range(len(row)):
-                    data[columns[i]] = row[i]
+            data = fetch_amo_user(self.user.email)
 
         if 'email' in data and self.user.email != data['email']:
             log.info('User (%s) updated email (%s)' % (
