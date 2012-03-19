@@ -26,15 +26,14 @@ class AMOAuthentication:
         try:
             user = User.objects.get(username=username)
             # was user signed up via AMO?
-            if user.password != DEFAULT_AMO_PASSWORD:
+            if user.password and user.password != DEFAULT_AMO_PASSWORD:
                 # standard authorisation
                 if user.check_password(password):
                     try:
                         profile = user.get_profile()
                     except Profile.DoesNotExist:
                         # create empty profile for users stored in FD database
-                        profile = Profile(user=user)
-                        profile.save()
+                        profile = Profile.objects.create(user=user)
                     return user
                 return None
         except User.DoesNotExist:
