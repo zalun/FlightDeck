@@ -65,9 +65,10 @@
 			</div>		
 		
 		
-        {% if waffle.switch('show-old-login') %}
 		<form  id="login_form" class="UI_Forms {% if not waffle.switch('browserid-login') %}show-login{% endif %}" method="post" action="{{ url('django.contrib.auth.views.login') }}" accept-charset="utf-8">
-			{{ safe_csrf_token()|safe }}
+            {{ safe_csrf_token()|safe }}
+            {% if waffle.switch('show-old-login') %}
+            <input type="hidden" name="next" value="{{ next }}" />
 			<fieldset>
 				<legend>Sign In</legend>
 				
@@ -84,14 +85,12 @@
 			</fieldset>
 
 			<div class="UI_Form_Actions">
-				<input type="hidden" name="next" value="{{ next }}" />
-
 				<ul>
 					<li><input type="submit" name="save" value="Sign in" /></li>
 				</ul>
 			</div> <!-- /UI_Form_Actions -->
+            {% endif %}
 		</form> <!-- /UI_Forms -->
-        {% endif %}
 		<p class="really-seriously">*You must use the same email address you use to access addons.mozilla.org for both BrowserID and standard login.</p>
 	</div> <!-- /UI_Login -->
 {% endblock %}
