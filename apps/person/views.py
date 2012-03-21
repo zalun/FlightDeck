@@ -127,18 +127,20 @@ def browserid_authenticate(request, assertion):
     if amouser == None:
         return (None,None)
 
-    users = User.objects.filter(username=amouser['id'])
-    if len(users) == 1:
-        try:
-            profile = users[0].get_profile()
-        except Profile.DoesNotExist:
-            profile = Profile(user=users[0])
-            profile.save()
-    else:
+    try:
+        user = User.objects.get(username=amouser['id'])
+    except User.DoesNotExist:
         user = User.objects.create(username=amouser['id'], email=email)
-        profile = Profile(user=user)
-        profile.save()
-
+        profile = Profile.objects.create(user=user)
+    except Exception:
+        # we should raise or treat somehow multiple users with the same
+        # username
+        raise
+    else:
+        try:
+            profile = user.get_profile()
+        except Profile.DoesNotExist:
+            profile = Profile.objects.create(user=user)
 
     profile.user.backend = 'django_browserid.auth.BrowserIDBackend'
     profile.update_from_AMO(amouser)
