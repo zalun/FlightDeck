@@ -279,7 +279,7 @@ class TestEditing(TestCase):
         homepage = 'https://builder.addons.mozilla.org'
         extra_json = '{ "homepage": "%s" }' % homepage
         response = self.client.post(addon.latest.get_save_url(), {
-            'extra_json': extra_json})
+            'package_extra_json': extra_json})
 
         addon = Package.objects.get(pk=pk) # old one is cached
 

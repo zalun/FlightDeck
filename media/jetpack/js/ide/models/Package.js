@@ -31,6 +31,7 @@ var Package = module.exports = new Class({
 		revision_number: fields.NumberField(),
         view_url: fields.TextField(),
 		active: fields.BooleanField(),
+		extra_json: fields.TextField(),
 
         latest: fields.NumberField() // a FK to PackageRevision
 

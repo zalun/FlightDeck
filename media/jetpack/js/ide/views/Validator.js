@@ -10,7 +10,12 @@ module.exports = new Class({
 
     options: {
         pattern: /.*/,
-        message: 'Illegal characters found.'
+		messageTarget: null,
+        message: 'Illegal characters found.',
+		messageStyles: {
+			'visibility': 'visible',
+			'position': 'static'
+		}
     },
 
     initialize: function Validator(element, options) {
@@ -42,37 +47,39 @@ module.exports = new Class({
         return this.options.pattern.test(value);
     },
 
+	createElement: function() {
+		var messageTarget = dom.$(this.getOption('messageTarget')) || this.target;
+		this.element = new dom.Element('div', {
+			'class': 'validation-advice',
+			'text': this.getOption('message'),
+			'styles': {
+				'height': 0,
+				'display': 'block',
+				'overflow': 'hidden',
+				'opacity': 0
+			}
+		});
+		
+		//measure the height
+		this.element.setStyles({
+			'visibility': 'hidden',
+			'position': 'absolute'
+		});
+		this.element.inject(messageTarget, 'after');
+		this.height = this.element.getHeight();
+		this.element.dispose().setStyles(this.getOption('messageStyles'));
+
+		this.anim = new Anim(this.element, {
+			transition: Sine
+		});
+	},
+
     show: function show() {
         var validator = this;
 
         if (!this.element) {
-            this.element = new dom.Element('div', {
-                'class': 'validation-advice',
-                'text': this.getOption('message'),
-                'styles': {
-                    'height': 0,
-                    'display': 'block',
-                    'overflow': 'hidden',
-                    'opacity': 0
-                }
-            });
-            
-            //measure the height
-            this.element.setStyles({
-                'visibility': 'hidden',
-                'position': 'absolute'
-            });
-            this.element.inject(validator.target, 'after');
-            this.height = this.element.getHeight();
-            this.element.dispose().setStyles({
-                visibility: 'visible',
-                position: 'static'
-            });
-
-            this.anim = new Anim(this.element, {
-                transition: Sine
-            });
-        }
+			this.createElement();
+		}
 
         this.anim.once('start', function() {
             validator.element.inject(validator.target, 'after');

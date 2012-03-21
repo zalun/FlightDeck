@@ -287,3 +287,29 @@ authors:
 		width:69%;
 		padding:0 5px;
 	}
+
+.UI_Modal .UI_Field.ace_editor_container {
+	position:relative;
+}
+	.UI_Modal .UI_Field.ace_editor_container .ace_editor {
+		height:100px;
+		position:relative;
+		float:right;
+		width:260px;
+	}
+
+		.UI_Modal .UI_Field.ace_editor_container .ace_editor .ace_gutter {
+			width:15px;
+		}
+
+	.UI_Modal .UI_Field.ace_editor_container .validation-advice {
+		left:135px;
+		width:273px !important;
+	}
+
+	.UI_Modal .UI_Field.ace_editor_container textarea {
+		width:10px;
+		height:30px;
+		float:none;
+		padding:0;
+	}
