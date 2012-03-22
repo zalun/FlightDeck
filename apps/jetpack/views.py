@@ -7,6 +7,7 @@ import shutil
 import codecs
 import tempfile
 import urllib2
+from simplejson import JSONDecodeError
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -904,7 +905,12 @@ def save(request, id_number, type_id, revision_number=None,
     if extra_json is not None:
         # None means it wasn't submitted. We want to accept blank strings.
         save_revision = True
-        revision.set_extra_json(extra_json, save=False)
+        log.debug('extra_json: %s' % extra_json)
+        try:
+            revision.set_extra_json(extra_json, save=False)
+        except JSONDecodeError:
+            return HttpResponseBadRequest(
+                    'Extra package properties were invalid JSON.')
         response_data['package_extra_json'] = extra_json
 
 

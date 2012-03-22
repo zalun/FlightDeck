@@ -382,6 +382,19 @@ class PackageRevisionTest(TestCase):
 
         assert 'Extra JSON' in addon.latest.commit_message
 
+    def test_adding_invalid_extra_json(self):
+        addon = Package(type='a', author=self.author)
+        addon.save()
+        pk = addon.pk
+        rev = addon.latest
+
+        from simplejson import JSONDecodeError
+        self.assertRaises(JSONDecodeError, rev.set_extra_json, '''
+        {
+            foo: baz
+        }
+        ''')
+
     def test_add_commit_message(self):
         author = User.objects.all()[0]
         addon = Package(type='a', author=author)

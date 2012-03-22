@@ -789,8 +789,15 @@ class PackageRevision(BaseModel):
         """
         Sets self.extra_json, adds commit message, and saves revision
         by default. Pass save=False if you will save later.
+
+        raises JSONDecodeError
         """
         self.add_commit_message('Extra JSON properties changed')
+        if extra_json:
+            # if not an empty string or None, just check it is
+            # valid JSON
+            simplejson.loads(extra_json)
+
         self.extra_json = extra_json
         if save:
             self.save()

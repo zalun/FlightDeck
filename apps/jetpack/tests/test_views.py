@@ -297,11 +297,24 @@ class TestEditing(TestCase):
         addon.latest.save()
 
         response = self.client.post(addon.latest.get_save_url(), {
-            'extra_json': ''})
+            'package_extra_json': ''})
 
         addon = Package.objects.get(pk=pk) # old on is cached
 
         eq_(addon.latest.extra_json, '')
+
+    def test_package_invalid_extra_json(self):
+        author = self._login()
+        addon = Package(author=author, type='a')
+        addon.save()
+
+        extra_json = '{ foo: bar }'
+        response = self.client.post(addon.latest.get_save_url(), {
+            'package_extra_json': extra_json})
+
+        eq_(response.status_code, 400)
+        assert 'invalid JSON' in response.content
+
 
 class TestRevision(TestCase):
     fixtures = ('mozilla_user', 'core_sdk', 'users', 'packages')
