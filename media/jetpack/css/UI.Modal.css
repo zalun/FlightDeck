@@ -295,7 +295,7 @@ authors:
 		height:100px;
 		position:relative;
 		float:right;
-		width:260px;
+		width: 70%;
 	}
 
 		.UI_Modal .UI_Field.ace_editor_container .ace_editor .ace_gutter {
