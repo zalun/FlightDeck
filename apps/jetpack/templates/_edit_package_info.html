@@ -1,9 +1,9 @@
 <form class="UI_Forms" id="package-info_form" method="post" accept-charset="utf-8">
-	<h3>Edit {full_name} info</h3>
+	<h3>Edit #{full_name} info</h3>
 	<fieldset>
 		<label class="UI_Field">
 			<span>{{ revision.package.get_type_name_with_dash()|capfirst }} Name</span>
-            <input type="text" name="full_name" id="full_name" class="validate-alphanum_plus_space" value="{full_name}"/>
+            <input type="text" name="full_name" id="full_name" class="validate-alphanum_plus_space" value="#{full_name}"/>
 		</label>
 		<label class="UI_Field">
 			<span>{{ revision.package.get_type_name_with_dash()|capfirst }} Description</span>
@@ -14,6 +14,10 @@
             <ul class="UI_Actions">
 		    	{% include "_package_privacy_toggle.html" %}
             </ul>
+        </label>
+        <label class="UI_Field ace_editor_container">
+            <span>Extra package.json Properties</span>
+            <textarea id="package_extra_json" name="package_extra_json" rows="8" cols="40">{{revision.extra_json}}</textarea>
         </label>
 	</fieldset>
 	<div class="UI_Modal_Actions">

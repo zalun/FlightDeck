@@ -144,6 +144,9 @@ class PackageRevision(BaseModel):
     #: SDK which should be used to create the XPI
     sdk = models.ForeignKey('SDK', blank=True, null=True)
 
+    #: Extra package.json properties
+    extra_json = models.TextField(blank=True)
+
     class Meta:
         " PackageRevision ordering and uniqueness "
         ordering = ('-revision_number',)
@@ -528,8 +531,12 @@ class PackageRevision(BaseModel):
         name = self.name
         #if not self.package.is_addon():
         #    name = "%s-%s" % (name, self.package.id_number)
+        try:
+            manifest = simplejson.loads(self.extra_json)
+        except simplejson.JSONDecodeError:
+            manifest = {}
 
-        manifest = {
+        manifest.update({
             'fullName': self.full_name,
             'name': name,
             'description': escape(self.package.description),
@@ -543,7 +550,7 @@ class PackageRevision(BaseModel):
             'url': str(self.package.url),
             'contributors': self.get_contributors_list(),
             'lib': self.get_lib_dir()
-        }
+        })
         if (self.package.is_library()
                 and waffle.switch_is_active(
                     'LibDirInMainAttributeWorkaround')):
@@ -777,6 +784,24 @@ class PackageRevision(BaseModel):
             self.package.save()
 
         return super(PackageRevision, self).save()
+
+    def set_extra_json(self, extra_json, save=True):
+        """
+        Sets self.extra_json, adds commit message, and saves revision
+        by default. Pass save=False if you will save later.
+
+        raises JSONDecodeError
+        """
+        self.add_commit_message('Extra JSON properties changed')
+        if extra_json:
+            # if not an empty string or None, just check it is
+            # valid JSON
+            simplejson.loads(extra_json)
+
+        self.extra_json = extra_json
+        if save:
+            self.save()
+
 
     def validate_module_filename(self, filename):
         """

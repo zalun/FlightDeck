@@ -236,6 +236,13 @@ class TestEditing(TestCase):
     def setUp(self):
         self.hashtag = hashtag()
 
+    def _login(self):
+        self.author = User.objects.get(username='jan')
+        self.author.set_password('test')
+        self.author.save()
+        self.client.login(username=self.author.username, password='test')
+        return self.author
+
     def test_revision_list_contains_added_modules(self):
         author = User.objects.get(username='john')
         addon = Package(author=author, type='a')
@@ -251,13 +258,10 @@ class TestEditing(TestCase):
         assert 'test_filename' in r.content
 
     def test_package_name_change(self):
-        author = User.objects.get(username='jan')
-        author.set_password('secure')
-        author.save()
+        author = self._login()
         addon1 = Package(author=author, type='a')
         addon1.save()
         rev1 = addon1.latest
-        self.client.login(username=author.username, password='secure')
         response = self.client.post(addon1.latest.get_save_url(), {
             'full_name': 'FULL NAME'})
         eq_(response.status_code, 200)
@@ -265,6 +269,51 @@ class TestEditing(TestCase):
         eq_(len(addon2.revisions.all()), 2)
         eq_(addon2.full_name, addon2.latest.full_name)
         assert rev1.name != addon2.latest.name
+
+    def test_package_extra_json_change(self):
+        author = self._login()
+        addon = Package(author=author, type='a')
+        addon.save()
+        pk = addon.pk
+
+        homepage = 'https://builder.addons.mozilla.org'
+        extra_json = '{ "homepage": "%s" }' % homepage
+        response = self.client.post(addon.latest.get_save_url(), {
+            'package_extra_json': extra_json})
+
+        addon = Package.objects.get(pk=pk) # old one is cached
+
+        eq_(addon.latest.extra_json, extra_json)
+
+    def test_package_remove_extra_json(self):
+        author = self._login()
+        addon = Package(author=author, type='a')
+        addon.save()
+        pk = addon.pk
+
+        homepage = 'https://builder.addons.mozilla.org'
+        extra_json = '{ "homepage": "%s" }' % homepage
+        addon.latest.extra_json = extra_json
+        addon.latest.save()
+
+        response = self.client.post(addon.latest.get_save_url(), {
+            'package_extra_json': ''})
+
+        addon = Package.objects.get(pk=pk) # old on is cached
+
+        eq_(addon.latest.extra_json, '')
+
+    def test_package_invalid_extra_json(self):
+        author = self._login()
+        addon = Package(author=author, type='a')
+        addon.save()
+
+        extra_json = '{ foo: bar }'
+        response = self.client.post(addon.latest.get_save_url(), {
+            'package_extra_json': extra_json})
+
+        eq_(response.status_code, 400)
+        assert 'invalid JSON' in response.content
 
 
 class TestRevision(TestCase):
