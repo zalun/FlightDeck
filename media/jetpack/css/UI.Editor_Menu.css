@@ -63,32 +63,24 @@ form.UI_Editor_Menu_Descendant {
 	/* Starting element */
 	.UI_Editor_Menu_Button:first-child a,
 	.UI_Section_Open a {
-		border-radius: 3px;
-		border-radius-topright: 0;
-		border-radius-bottomright: 0;
+        border-radius: 3px 0 0 3px;
 	}
 
 		.UI_Editor_Menu_Button:first-child a span,
 		.UI_Section_Open a {
-			border-radius: 2px;
-			border-radius-topright: 0;
-			border-radius-bottomright: 0;
+            border-radius: 2px 0 0 2px;
 		}
 
 	/* Ending element */
 	.UI_Editor_Menu_Button:last-child a,
 	.UI_Section_Close a {
 		border-right: 1px solid #888;
-		border-radius: 3px;
-		border-radius-topleft: 0;
-		border-radius-bottomleft: 0;
+        border-radius: 0 3px 3px 0;
 	}
 
 		.UI_Editor_Menu_Button:last-child a span,
 		.UI_Section_Close a {
-			border-radius: 2px;
-			border-radius-topleft: 0;
-			border-radius-bottomleft: 0;
+            border-radius: 0 2px 2px 0;
 		}
 
 	.UI_Editor_Menu_Button a:hover,

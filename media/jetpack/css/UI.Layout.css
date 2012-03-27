@@ -382,24 +382,24 @@ a:hover, a:focus {
 
 	/* Starting element */
 	.UI_Actions li:first-child {
-		border-radius-topleft: 3px;
-        border-radius-bottomleft: 3px;
+		border-radius-top-left: 3px;
+        border-radius-bottom-left: 3px;
 	}
 
 		.UI_Actions li:first-child a {
-			border-radius-topleft: 2px;
-            border-radius-bottomleft: 2px;
+			border-radius-top-left: 2px;
+            border-radius-bottom-left: 2px;
 		}
 
 	/* Ending element */
 	.UI_Actions li:last-child {
-		border-radius-topright: 3px;
-        border-radius-bottomright: 3px;
+		border-radius-top-right: 3px;
+        border-radius-bottom-right: 3px;
 	}
 
 		.UI_Actions li:last-child a {
-			border-radius-topright: 2px;
-            border-radius-bottomright: 2px;
+			border-radius-top-right: 2px;
+            border-radius-bottom-right: 2px;
 		}
 		
 	/* There's only one element */
@@ -432,11 +432,11 @@ a:hover, a:focus {
 	}
 
 		.UI_Actions li.UI_Pick_Version.active {
-			border-radius-bottomright: 0;
+			border-radius-bottom-right: 0;
 		}
 
 			.UI_Actions li.UI_Pick_Version.active a {
-				border-radius-bottomright: 0;
+				border-radius-bottom-right: 0;
 			}
 #app-footer
 		.UI_Actions li.UI_Pick_Version a span {
@@ -458,8 +458,8 @@ a:hover, a:focus {
 			padding: 5px 0;
 			opacity: 0;
 			box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
-			border-radius-bottomleft: 6px;
-			border-radius-bottomright: 6px;
+			border-radius-bottom-left: 6px;
+			border-radius-bottom-right: 6px;
 		}
 
 		.UI_Actions li.UI_Pick_Version .UI_Versions.loading {
