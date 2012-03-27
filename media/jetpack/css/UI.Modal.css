@@ -302,10 +302,6 @@ authors:
 			width:15px;
 		}
 
-	.UI_Modal .UI_Field.ace_editor_container .validation-advice {
-		left:135px;
-		width:273px !important;
-	}
 
 	.UI_Modal .UI_Field.ace_editor_container textarea {
 		width:10px;
