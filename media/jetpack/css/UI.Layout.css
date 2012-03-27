@@ -67,7 +67,7 @@ a:hover, a:focus {
 	border-bottom: 2px solid #153877;
 	background: url(../img/mozilla/header.png) repeat-x left top;
 	z-index: 1;
-	-moz-box-shadow: 0 2px 2px -2px #666;
+	box-shadow: 0 2px 2px -2px #666;
 }
 
 	#app-header nav {
@@ -101,8 +101,8 @@ a:hover, a:focus {
       
 	#app-header nav li.active {
 		background: -moz-linear-gradient(top, #000, #222);
-		-moz-border-radius: 3px;
-		-moz-box-shadow: 0 1px 0 #5077BF;
+		border-radius: 3px;
+		box-shadow: 0 1px 0 #5077BF;
 		margin: 0 3px;
 		padding: 1px;
 		color: #fff;
@@ -111,7 +111,7 @@ a:hover, a:focus {
       
 		#app-header nav li.active span {
 			background: -moz-linear-gradient(top, #555, #666);
-			-moz-border-radius: 2px;
+			border-radius: 2px;
 			padding: 2px 8px;
 			display: inline-block;
 		}
@@ -135,7 +135,7 @@ a:hover, a:focus {
 		
 		#app-header nav li .pointytip ul {
 			background:rgba(0,0,0, 0.7);
-			-moz-border-radius:5px;
+			border-radius:5px;
 			overflow:hidden;
 			padding:5px;
 		}
@@ -233,8 +233,8 @@ a:hover, a:focus {
 	border: solid 1px;
 	border-color: #333 #222 #000;
 	background: -moz-linear-gradient(top , #666, #444);
-	-moz-border-radius: 3px;
-	-moz-box-shadow: 0 2px 2px -1px #666;
+	border-radius: 3px;
+	box-shadow: 0 2px 2px -1px #666;
 }
 
 	#package-info span {
@@ -307,7 +307,7 @@ a:hover, a:focus {
 	font-size: .9em;
 	text-shadow: 0 1px 0 #000;
 	min-width: 120px;
-	-moz-border-radius: 3px;
+	border-radius: 3px;
 	width: 220px;
     z-index:9999;
 }
@@ -372,7 +372,7 @@ a:hover, a:focus {
 
 		.UI_Actions li a {
 			background: -moz-linear-gradient(center top , #F4F8FC, #CED4DB);
-			-moz-box-shadow: 0 -1px 0 #fff;
+			box-shadow: 0 -1px 0 #fff;
 			display: block;
 			padding: 7px 10px;
 			margin: 1px 0 0;
@@ -382,24 +382,24 @@ a:hover, a:focus {
 
 	/* Starting element */
 	.UI_Actions li:first-child {
-		-moz-border-radius-topleft: 3px;
-        -moz-border-radius-bottomleft: 3px;
+		border-radius-topleft: 3px;
+        border-radius-bottomleft: 3px;
 	}
 
 		.UI_Actions li:first-child a {
-			-moz-border-radius-topleft: 2px;
-            -moz-border-radius-bottomleft: 2px;
+			border-radius-topleft: 2px;
+            border-radius-bottomleft: 2px;
 		}
 
 	/* Ending element */
 	.UI_Actions li:last-child {
-		-moz-border-radius-topright: 3px;
-        -moz-border-radius-bottomright: 3px;
+		border-radius-topright: 3px;
+        border-radius-bottomright: 3px;
 	}
 
 		.UI_Actions li:last-child a {
-			-moz-border-radius-topright: 2px;
-            -moz-border-radius-bottomright: 2px;
+			border-radius-topright: 2px;
+            border-radius-bottomright: 2px;
 		}
 		
 	/* There's only one element */
@@ -421,7 +421,7 @@ a:hover, a:focus {
 		.UI_Actions li.UI_Pick_Version a:active,
 		.UI_Actions li.pressed a {
 			background: -moz-linear-gradient(270deg, #BEC5CC, #D9DDE0);
-			-moz-box-shadow: none;
+			box-shadow: none;
 			border-top: none;
 			color: #6D7880;
 		}
@@ -432,11 +432,11 @@ a:hover, a:focus {
 	}
 
 		.UI_Actions li.UI_Pick_Version.active {
-			-moz-border-radius-bottomright: 0;
+			border-radius-bottomright: 0;
 		}
 
 			.UI_Actions li.UI_Pick_Version.active a {
-				-moz-border-radius-bottomright: 0;
+				border-radius-bottomright: 0;
 			}
 #app-footer
 		.UI_Actions li.UI_Pick_Version a span {
@@ -457,9 +457,9 @@ a:hover, a:focus {
 			z-index: 50;
 			padding: 5px 0;
 			opacity: 0;
-			-moz-box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
-			-moz-border-radius-bottomleft: 6px;
-			-moz-border-radius-bottomright: 6px;
+			box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
+			border-radius-bottomleft: 6px;
+			border-radius-bottomright: 6px;
 		}
 
 		.UI_Actions li.UI_Pick_Version .UI_Versions.loading {
@@ -469,7 +469,7 @@ a:hover, a:focus {
 
 			.UI_Actions li.UI_Pick_Version .UI_Versions li {
 				background: transparent;
-				-moz-border-radius: 0;
+				border-radius: 0;
 				padding: 0;
 				margin: 0;
 				float: none;
@@ -478,7 +478,7 @@ a:hover, a:focus {
 
 				.UI_Actions li.UI_Pick_Version .UI_Versions li a {
 					background: transparent;
-					-moz-border-radius: 0;
+					border-radius: 0;
 					margin: 0;
 					display: block;
 					float: none;

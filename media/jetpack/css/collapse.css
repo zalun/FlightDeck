@@ -73,7 +73,7 @@ ul li.top_branch > .holder > .label
 	border-width: 1px;
 	border-style: solid;
 	border-color: #dadada #d0d0d0 #cacaca;
-	-moz-border-radius:3px;
+	border-radius:3px;
 	display:block;
 	float:left;
 }

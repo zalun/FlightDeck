@@ -39,7 +39,7 @@ form.UI_Editor_Menu_Descendant {
 	float: left;
 	position: relative;
 	background: -moz-linear-gradient(top, #F4F8FC, #CED4DB);
-	-moz-box-shadow: 0 1px 0 #fff inset;
+	box-shadow: 0 1px 0 #fff inset;
 	display: block;
 	margin: 1px 0 0;
 	padding: 4px 5px;
@@ -52,7 +52,7 @@ form.UI_Editor_Menu_Descendant {
 
 	.UI_Editor_Menu_Descendant fieldset {
 		background: -moz-linear-gradient(270deg, #EBEFF2, #D4D9DF);
-		-moz-box-shadow: 0 -1px 0 #fff;
+		box-shadow: 0 -1px 0 #fff;
 		display: block;
 		padding: 0px 7px 7px 7px;
 		margin: 1px 0 0;
@@ -63,32 +63,32 @@ form.UI_Editor_Menu_Descendant {
 	/* Starting element */
 	.UI_Editor_Menu_Button:first-child a,
 	.UI_Section_Open a {
-		-moz-border-radius: 3px;
-		-moz-border-radius-topright: 0;
-		-moz-border-radius-bottomright: 0;
+		border-radius: 3px;
+		border-radius-topright: 0;
+		border-radius-bottomright: 0;
 	}
 
 		.UI_Editor_Menu_Button:first-child a span,
 		.UI_Section_Open a {
-			-moz-border-radius: 2px;
-			-moz-border-radius-topright: 0;
-			-moz-border-radius-bottomright: 0;
+			border-radius: 2px;
+			border-radius-topright: 0;
+			border-radius-bottomright: 0;
 		}
 
 	/* Ending element */
 	.UI_Editor_Menu_Button:last-child a,
 	.UI_Section_Close a {
 		border-right: 1px solid #888;
-		-moz-border-radius: 3px;
-		-moz-border-radius-topleft: 0;
-		-moz-border-radius-bottomleft: 0;
+		border-radius: 3px;
+		border-radius-topleft: 0;
+		border-radius-bottomleft: 0;
 	}
 
 		.UI_Editor_Menu_Button:last-child a span,
 		.UI_Section_Close a {
-			-moz-border-radius: 2px;
-			-moz-border-radius-topleft: 0;
-			-moz-border-radius-bottomleft: 0;
+			border-radius: 2px;
+			border-radius-topleft: 0;
+			border-radius-bottomleft: 0;
 		}
 
 	.UI_Editor_Menu_Button a:hover,
@@ -100,18 +100,18 @@ form.UI_Editor_Menu_Descendant {
 	.UI_Editor_Menu_Button a:active,
 	.UI_Editor_Menu_Button.pressed a {
 		background: -moz-linear-gradient(270deg, #BEC5CC, #D9DDE0);
-		-moz-box-shadow: none;
+		box-shadow: none;
 		color: #6D7880;
         border-top-color:#555;
         border-bottom-color:#bbb;
 	}
 
 	.UI_Editor_Menu_Button.UI_Single a {
-		-moz-border-radius: 3px;
+		border-radius: 3px;
 	}
 
 		.UI_Editor_Menu_Button.UI_Single a span {
-			-moz-border-radius: 2px;
+			border-radius: 2px;
 		}
 
 		/* Lighten the icon when active */
@@ -132,7 +132,7 @@ form.UI_Editor_Menu_Descendant {
 		background: -moz-linear-gradient(270deg, #BEC5CC, #D9DDE0);
 		color: #6D7880;
 		cursor: default;
-		-moz-box-shadow: none;
+		box-shadow: none;
 	}
 
 		.UI_Editor_Menu_Button.disabled a span,
@@ -145,7 +145,7 @@ form.UI_Editor_Menu_Descendant {
 		background-position: 0 0;
 		color: #fff;
 		text-shadow: 0 1px 0 #011E4F;
-		-moz-box-shadow: 0 -1px 0 #59A1F2;
+		box-shadow: 0 -1px 0 #59A1F2;
 	}
 
 		.UI_Editor_Menu_Button.Icon_new.Icon_new_extension a span {
