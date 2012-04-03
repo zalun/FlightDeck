@@ -15,6 +15,8 @@ from django import http
 from django.core.mail import mail_admins
 
 from amo.authentication import  AMOAuthentication
+from amo.helpers import AMOOAuth
+
 from django_browserid import auth as browserid_auth
 from person.models import Profile
 
@@ -134,7 +136,16 @@ def browserid_authenticate(request, assertion):
     except Http404, err:
         # AMO responded with 404
         log.error("[browserID] 404 Error from AMO: %s" % str(err))
-        mail_admins( 'AMO get_user responding with 404', str(err))
+        # get the API url
+        # TODO think about a simpler way to return the URL to admins
+        amo = AMOOAuth(domain=settings.AMOOAUTH_DOMAIN,
+                   port=settings.AMOOAUTH_PORT,
+                   protocol=settings.AMOOAUTH_PROTOCOL,
+                   prefix=settings.AMOOAUTH_PREFIX)
+        amo.set_consumer(consumer_key=settings.AMOOAUTH_CONSUMERKEY,
+                     consumer_secret=settings.AMOOAUTH_CONSUMERSECRET)
+        mail_admins( 'AMO get_user responding with 404',
+                'Requested URL: %s' % amo.url('user'))
     else:
         if amouser == None:
             return (None, None)
