@@ -12,6 +12,8 @@ from django.template import RequestContext
 from django.http import Http404
 from django import http
 
+from django.core.mail import mail_admins
+
 from amo.authentication import  AMOAuthentication
 from django_browserid import auth as browserid_auth
 from person.models import Profile
@@ -128,9 +130,11 @@ def browserid_authenticate(request, assertion):
     except ValueError, err:
         # Some issue with connecting to AMO let's not raise an error
         log.error("[browserID] Error from AMO: %s" % str(err))
+        mail_admins( 'Problem with browserID authentication', str(err))
     except Http404, err:
         # AMO responded with 404
         log.error("[browserID] 404 Error from AMO: %s" % str(err))
+        mail_admins( 'AMO get_user responding with 404', str(err))
     else:
         if amouser == None:
             return (None, None)
