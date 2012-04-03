@@ -121,29 +121,55 @@ def browserid_authenticate(request, assertion):
         return (None, None)
 
     email = result['email']
-
-    amouser = AMOAuthentication.auth_browserid_authenticate(email)
-
-    if amouser == None:
-        return (None,None)
+    id = None
 
     try:
-        user = User.objects.get(username=amouser['id'])
-    except User.DoesNotExist:
-        user = User.objects.create(username=amouser['id'], email=email)
-        profile = Profile.objects.create(user=user)
-    except Exception:
-        # we should raise or treat somehow multiple users with the same
-        # username
-        raise
+        amouser = AMOAuthentication.auth_browserid_authenticate(email)
+    except ValueError, err:
+        # Some issue with connecting to AMO let's not raise an error
+        log.error("[browserID] Error from AMO: %s" % str(err))
+    except Http404, err:
+        # AMO responded with 404
+        log.error("[browserID] 404 Error from AMO: %s" % str(err))
+    else:
+        if amouser == None:
+            return (None, None)
+        id = amouser['id']
+    if id:
+        try:
+            user = User.objects.get(username=id)
+        except User.DoesNotExist:
+            user = User.objects.create(username=id, email=email)
+            profile = Profile.objects.create(user=user)
+        except Exception:
+            # we should raise or treat somehow multiple users with the same
+            # username
+            raise
+        else:
+            try:
+                profile = user.get_profile()
+            except Profile.DoesNotExist:
+                profile = Profile.objects.create(user=user)
     else:
         try:
-            profile = user.get_profile()
-        except Profile.DoesNotExist:
-            profile = Profile.objects.create(user=user)
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            # we can't create a new user as there is no connection to AMO
+            # TODO give a better response
+            raise
+        except Exception:
+            # we should raise or treat somehow multiple users with the same
+            # email
+            raise
+        else:
+            try:
+                profile = user.get_profile()
+            except Profile.DoesNotExist:
+                profile = Profile.objects.create(user=user)
 
     profile.user.backend = 'django_browserid.auth.BrowserIDBackend'
-    profile.update_from_AMO(amouser)
+    if id:
+        profile.update_from_AMO(amouser)
 
     return (profile, None)
 
