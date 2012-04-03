@@ -6,7 +6,6 @@ import commonware
 # Wherein import almost every http or urllib in Python
 import urllib
 import urllib2
-from urlparse import urlparse, urlunparse, parse_qsl
 import httplib2
 import oauth2 as oauth
 import os
@@ -14,6 +13,9 @@ import re
 import time
 import json
 import mimetools
+
+from django.http import Http404
+from urlparse import urlparse, urlunparse, parse_qsl
 
 from helpers import encode_multipart, data_keys
 
@@ -204,6 +206,8 @@ class AMOOAuth:
     def _send(self, url, method, data):
         resp, content = self._request(None, method, url,
                                       data=data)
+        if resp.status == 404:
+            raise Http404
         if resp.status != 200:
             raise ValueError('%s: %s' % (resp.status, content))
         try:
@@ -215,6 +219,7 @@ class AMOOAuth:
         return self._send(self.url('user'), 'GET', {})
 
     def get_user_by_email(self, email):
+        log.debug("Accessing API %s" % self.url('user'))
         return self._send(self.url('user'), 'GET', {'email': email})
 
     def create_addon(self, data):

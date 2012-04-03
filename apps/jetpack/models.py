@@ -2309,7 +2309,7 @@ class Attachment(BaseModel):
             tb = traceback.format_exception(exc_type, exc_value, exc_traceback)
 
             mail_admins(
-                    '[Django] ERROR: Unicode Encode in writing attachment',
+                    'Unicode Encode in writing attachment',
                     "Attachment [%d] writing error\n\n %s" % (self.pk, tb))
             raise AttachmentWriteException(
                 'Attachment failed to save properly<br/>'
