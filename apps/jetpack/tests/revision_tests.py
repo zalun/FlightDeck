@@ -354,6 +354,47 @@ class PackageRevisionTest(TestCase):
         )
         self.assertRaises(FilenameExistException, first.attachment_add, att)
 
+    def test_adding_extra_package_properties(self):
+        addon = Package(type='a', author=self.author)
+        addon.save()
+        pk = addon.pk
+        rev = addon.latest
+
+        rev.set_extra_json('''
+        {
+            "preferences": [{
+                "name": "example",
+                "type": "string",
+                "title": "foo",
+                "value": "bar"
+            }],
+            "id": "baz"
+        }
+        ''')
+
+        addon = Package.objects.get(pk=pk) # breaking cache
+        manifest = addon.latest.get_manifest()
+        assert 'preferences' in manifest
+        eq_(manifest['preferences'][0]['name'], 'example')
+
+        # user-provide values don't override our generated ones
+        self.assertNotEqual(manifest['id'], 'baz')
+
+        assert 'Extra JSON' in addon.latest.commit_message
+
+    def test_adding_invalid_extra_json(self):
+        addon = Package(type='a', author=self.author)
+        addon.save()
+        pk = addon.pk
+        rev = addon.latest
+
+        from simplejson import JSONDecodeError
+        self.assertRaises(JSONDecodeError, rev.set_extra_json, '''
+        {
+            foo: baz
+        }
+        ''')
+
     def test_add_commit_message(self):
         author = User.objects.all()[0]
         addon = Package(type='a', author=author)

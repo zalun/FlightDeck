@@ -78,7 +78,7 @@ authors:
 			color: #4D5860;
 			text-shadow: 0 1px 0 #fff;
 			background: -moz-linear-gradient(270deg, #EBEFF2, #D4D9DF);
-			-moz-border-radius: 4px;
+			border-radius: 4px;
 			padding: 2px 7px;
 			margin-left: 5px;
 			cursor: pointer;
@@ -108,7 +108,7 @@ authors:
 			padding: 1px;
 			float: right;
 			position: relative;
-			-moz-border-radius: 6px;
+			border-radius: 6px;
 		}
 
 			.UI_Forms .UI_Form_Actions li input,
@@ -120,6 +120,6 @@ authors:
 				font-size: .9em;
 				color: #136B00;
 				text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
-				-moz-border-radius: 5px;
+				border-radius: 5px;
 				cursor: pointer;
 			}

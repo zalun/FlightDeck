@@ -18,6 +18,7 @@ var Class = require('shipyard/class/Class'),
 
     FloatingTips = require('../views/FloatingTips'),
     Validator = require('../views/Validator'),
+	JSONValidator = require('../views/JSONValidator'),
     
     //TODO: this is bad practice
     settings = dom.window.get('settings');
@@ -48,7 +49,11 @@ module.exports = new Class({
         save_el: 'package-save',
         menu_el: 'UI_Editor_Menu',
 
-        package_info_form_elements: ['full_name', 'package_description'],
+        package_info_form_elements: [
+			'full_name',
+			'package_description',
+			'package_extra_json'
+		],
         
         check_dependencies: true,
         check_if_latest: true  // switch to false if displaying revisions
@@ -1328,7 +1333,8 @@ module.exports = new Class({
         this.savenow = false;
         var modal = fd().editPackageInfoModal = fd().displayModal(
                 string.substitute(settings.edit_package_info_template,
-                    object.merge({}, this.data, this.options)));
+                    object.merge({}, this.data, this.options),
+					/#\{([^{}]+)\}/g));
 
         modal.addListener('destroy', function() {
             delete fd().editPackageInfoModal;
@@ -1339,6 +1345,8 @@ module.exports = new Class({
         dom.$('package_description').addListener('change', function() {
             fd().emit('change');
         });
+		
+
         var savenow = dom.$('savenow');
         if (savenow) {
             savenow.addListener('click', function() {
@@ -1362,16 +1370,31 @@ module.exports = new Class({
         pressedBtn.addClass('pressed').getElement('a').addClass('inactive');
         notPressedBtn.removeClass('pressed').getElement('a').removeClass('inactive');
 
-        var validator = new Validator('full_name', {
+        var fullNameValidator = new Validator('full_name', {
             pattern: /^[A-Za-z0-9\s\-_\.\(\)]*$/,
             message: 'Please use only letters, numbers, spaces, or "_().-" in this field.'
         });
+		var jsonValidator = new JSONValidator('package_extra_json', {
+			message: 'Must be blank or a valid JSON object.'
+		});
+
+		var package_extra_json_el = dom.$('package_extra_json');
+		package_extra_json_el.store('json-validator', jsonValidator);
+		if ('package_extra_json' in this.options) {
+			package_extra_json_el.set('value', this.options.package_extra_json);
+		}
+
+		this._setupExtraPropertiesEditor();
+
+		function isValid() {
+			return fullNameValidator.validate() && jsonValidator.validate();
+		}
         dom.$('package-info_form').addListener('submit', function(e) {
             e.stop();
-            if (validator.validate()) {
+            if (isValid()) {
                 controller.submitInfo();
             } else {
-                log.debug('Form field full_name field has invalid characters.');
+                log.debug('Invalid name or JSON.');
             }
         });
 
@@ -1383,6 +1406,34 @@ module.exports = new Class({
             }
         });
     },
+
+	_setupExtraPropertiesEditor: function() {
+		// Make package.json textarea an ACE editor
+		var ace = require('ace/ace');
+
+		var extra_json_el = dom.$('package_extra_json');
+		extra_json_el.setStyle('display', 'none');
+		var extra_json_editor_el = new dom.Element('div', {
+			id: 'extra_json_ace',
+			text: extra_json_el.get('value')
+		});
+		extra_json_editor_el.inject(extra_json_el, 'before');
+		var editor = ace.edit(extra_json_editor_el.getNode());
+		var editorSession = editor.getSession();
+		editorSession.on('change', function() {
+			extra_json_el.set('value', editorSession.getValue());
+			fd().emit('change');
+		});
+
+		var validator = extra_json_el.retrieve('json-validator');
+		editor.on('blur', function() {
+			if (!validator.validate()) {
+				validator.show();
+			} else {
+				validator.hide();
+			}
+		});
+	},
 
     /*
      * Method: submitInfo

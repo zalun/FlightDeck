@@ -29,7 +29,7 @@ body .UI_middleWrapper.page {
 	background: -moz-linear-gradient(270deg, #FFFFFE, #F3F5F7);
 	height: 100%;
 	padding: 1.5em 0;
-	-moz-box-shadow: 0 1px 0 #D0D5DB;
+	box-shadow: 0 1px 0 #D0D5DB;
 
 
 }
@@ -46,7 +46,7 @@ body .UI_middleWrapper.page {
         padding-top: 1em;
 		padding-right: 40px;
 		border-right: solid 1px #D0D5DB;
-		-moz-box-shadow: 1px 0 0 #fff;
+		box-shadow: 1px 0 0 #fff;
 	}
 
 		#features-wrapper .UI_Feature_Copy h3 {
@@ -98,18 +98,18 @@ body .UI_middleWrapper.page {
     .fd_button {
         background: -moz-linear-gradient(270deg, #8CC472, #5E9045);
         padding: 15px 1px 13px 1px;
-        -moz-border-radius: 6px;
+        border-radius: 6px;
         display: block;
     }
 
     .fd_button:hover {
-        -moz-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
     }
 
     .fd_button a {
         background: -moz-linear-gradient(270deg, #C5F3AE, #96CE79);
-        -moz-border-radius: 5px;
-        -moz-box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.8);
+        border-radius: 5px;
+        box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.8);
         overflow: hidden;
         color: #136B00;
         font-family: Helvetica, Arial, Tahoma, sans-serif;
@@ -125,7 +125,7 @@ body .UI_middleWrapper.page {
         padding: 15px 30px 12px 75px;
         background: url(../img/UI_Buttons/button-home-addon.png) 0 50% no-repeat;
         text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
-        -moz-border-radius: 5px;
+        border-radius: 5px;
         font-size: 17px;
     }
 
@@ -140,7 +140,7 @@ body .UI_middleWrapper.page {
     .fd_dropdown {
         background: -moz-linear-gradient(270deg, #8CC472, #5E9045);
         padding: 14px 1px 13px 1px;
-        -moz-border-radius: 6px;
+        border-radius: 6px;
         margin-right: 3em;
     }
 
@@ -156,13 +156,13 @@ body .UI_middleWrapper.page {
 
     .fd_dropdown div.left:hover,
     .fd_dropdown div.right:hover {
-        -moz-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
     }
 
     .fd_dropdown div.left a {
         background: -moz-linear-gradient(270deg, #C5F3AE, #96CE79);
-        -moz-border-radius: 5px 0px 0px 5px;
-        -moz-box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.8);
+        border-radius: 5px 0px 0px 5px;
+        box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.8);
         color: #136B00;
         padding: 18px 0px 13px 0px;
         margin-right: 1px;
@@ -172,7 +172,7 @@ body .UI_middleWrapper.page {
         padding: 15px 30px 12px 65px;
         background: url(../img/UI_Buttons/button-home-addon.png) 0 50% no-repeat;
         text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
-        -moz-border-radius: 5px;
+        border-radius: 5px;
         font-size: 17px;
     }
 
@@ -180,7 +180,7 @@ body .UI_middleWrapper.page {
     .fd_dropdown div.right {
         padding: 0px 0px 15px 0px;
         text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
-        -moz-border-radius: 0px 6px 6px 0px;
+        border-radius: 0px 6px 6px 0px;
         font-size: 17px;
     }
 
@@ -199,9 +199,9 @@ body .UI_middleWrapper.page {
 
     .fd_dropdown div.right a {
         background: -moz-linear-gradient(270deg, #C5F3AE, #96CE79);
-        -moz-box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.8);
+        box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.8);
         color: #136B00;
-        -moz-border-radius: 0px 5px 5px 0px;
+        border-radius: 0px 5px 5px 0px;
         padding: 14px 15px 12px 15px;
     }
 
@@ -249,7 +249,7 @@ body .UI_middleWrapper.page {
         border-top: 0;
         padding: 0 0 4px 0;
         width: 190px;
-        -moz-box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.8);
+        box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.8);
         -webkit-box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.8);
         box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.8);
     }
@@ -259,7 +259,7 @@ body .UI_middleWrapper.page {
     .fd_dropdown div.right ul li ul li a:visited,
     .fd_dropdown div.right ul li ul li span {
         margin: 0;
-        -moz-border-radius: 0;
+        border-radius: 0;
         height: auto;
         float: none;
         display: block;
@@ -353,12 +353,12 @@ body .UI_middleWrapper.page {
 	.UI_Mini_Button {
 		background: -moz-linear-gradient(270deg, #8CC472, #5E9045);
 		padding: 2px 1px 1px;
-		-moz-border-radius: 6px;
+		border-radius: 6px;
 		margin-top: 10px;
 	}
 
 	.UI_Mini_Button:hover {
-		-moz-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+		box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
 	}
 
 		.UI_Bottom_Info li {
@@ -367,8 +367,8 @@ body .UI_middleWrapper.page {
 
 		.UI_Mini_Button a {
 			background: -moz-linear-gradient(270deg, #C5F3AE, #96CE79);
-			-moz-border-radius: 5px;
-			-moz-box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.8);
+			border-radius: 5px;
+			box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.8);
 			overflow: hidden;
 			display: block;
 		}
@@ -385,7 +385,7 @@ body .UI_middleWrapper.page {
 				color: #136B00;
 				text-shadow: 0 1px 0  rgba(255, 255, 255, 0.7);
 				font-weight: bold;
-				-moz-border-radius: 5px;
+				border-radius: 5px;
 			}
 
 			.UI_Mini_Button a:hover span {

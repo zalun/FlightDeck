@@ -58,18 +58,18 @@ pre {
 		background: -moz-linear-gradient(270deg, #8CC472, #5E9045);
 		margin: 10px auto;
 		padding: 2px 1px 1px;
-		-moz-border-radius: 6px;
+		border-radius: 6px;
 		width: 250px;
 	}
 
 	#new-addon li:hover {
-		-moz-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+		box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
 	}
 
 		#new-addon li a {
 			background: -moz-linear-gradient(270deg, #C5F3AE, #96CE79);
-			-moz-border-radius: 5px;
-			-moz-box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.8);
+			border-radius: 5px;
+			box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.8);
 			overflow: hidden;
 			display: block;
 			color: #136B00;
@@ -86,7 +86,7 @@ pre {
 				padding: 14px 31px 12px 76px;
 				background: url(/media/jetpack/img/UI_Buttons/button-home-addon.png) 0 50% no-repeat;
 				text-shadow: 0 1px 0  rgba(255, 255, 255, 0.7);
-				-moz-border-radius: 5px;
+				border-radius: 5px;
 				font-size: 1.3em;
 			}
 			

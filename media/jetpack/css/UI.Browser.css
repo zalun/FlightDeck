@@ -100,7 +100,7 @@ body {
 			font-style: bold;
 			background: #A6AEB5;
 			color: #F8F8F8;
-			-moz-border-radius: 3px;
+			border-radius: 3px;
 			padding: 1px 3px;
 			margin: 5px 0 0;
 			display: inline-block;
