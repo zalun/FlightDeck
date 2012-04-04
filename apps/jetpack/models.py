@@ -535,6 +535,8 @@ class PackageRevision(BaseModel):
             manifest = simplejson.loads(self.extra_json)
         except simplejson.JSONDecodeError:
             manifest = {}
+        except TypeError:
+            manifest = {}
 
         manifest.update({
             'fullName': self.full_name,
