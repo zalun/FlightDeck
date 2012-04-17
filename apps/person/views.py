@@ -135,25 +135,19 @@ def browserid_authenticate(request, assertion):
         mail_admins( 'Problem with browserID authentication', str(err))
     except Http404, err:
         # AMO responded with 404
-        log.error("[browserID] 404 Error from AMO: %s" % str(err))
-        # get the API url
-        # TODO think about a simpler way to return the URL to admins
-        amo = AMOOAuth(domain=settings.AMOOAUTH_DOMAIN,
-                   port=settings.AMOOAUTH_PORT,
-                   protocol=settings.AMOOAUTH_PROTOCOL,
-                   prefix=settings.AMOOAUTH_PREFIX)
-        amo.set_consumer(consumer_key=settings.AMOOAUTH_CONSUMERKEY,
-                     consumer_secret=settings.AMOOAUTH_CONSUMERSECRET)
-        mail_admins( 'AMO get_user responding with 404',
-                'Requested URL: %s' % amo.url('user'))
+        log.error("[browserID] 404 Error from AMO, probably user not found")
+        return (None, None)
     else:
-        if amouser == None:
+        if not amouser or 'id' not in amouser:
+            mail_admins('AMO user API returned no data',
+                    'It supposed to raise 404')
             return (None, None)
         id = amouser['id']
     if id:
         try:
             user = User.objects.get(username=id)
         except User.DoesNotExist:
+            # user exists on AMO, but not on Builder - create user
             user = User.objects.create(username=id, email=email)
             profile = Profile.objects.create(user=user)
         except Exception:
@@ -166,6 +160,8 @@ def browserid_authenticate(request, assertion):
             except Profile.DoesNotExist:
                 profile = Profile.objects.create(user=user)
     else:
+        # this now happens only for ValueError (probably never)
+        mail_admins('No id returned from AMO', 'Just a flag this code is used')
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
