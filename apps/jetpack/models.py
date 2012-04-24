@@ -369,19 +369,16 @@ class PackageRevision(BaseModel):
             if self.package.version.revision_number == self.revision_number:
                 return self.package.get_absolute_url()
             return reverse(
-                'jp_%s_version_details' \
-                % settings.PACKAGE_SINGULAR_NAMES[self.package.type],
-                args=[self.package.id_number, self.version_name])
+                'jp_version_details',
+                args=[self.package.pk, self.version_name])
         return reverse(
-            'jp_%s_revision_details' \
-            % settings.PACKAGE_SINGULAR_NAMES[self.package.type],
-            args=[self.package.id_number, self.revision_number])
+            'jp_revision_details',
+            args=[self.package.pk, self.revision_number])
 
     def get_save_url(self):
         " returns URL to save the package revision "
-        return reverse(
-            'jp_%s_revision_save' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_revision_save',
+            args=[self.package.pk, self.revision_number])
 
     def get_add_module_url(self):
         " returns URL to add module to the package revision "
@@ -1712,13 +1709,11 @@ class Package(BaseModel, SearchMixin):
 
     def get_absolute_url(self):
         " returns the URL View Source "
-        return reverse('jp_%s_details' % self.get_type_name(),
-                        args=[self.id_number])
+        return reverse('jp_details', args=[self.pk])
 
     def get_latest_url(self):
         " returns the URL to view the latest saved Revision "
-        return reverse('jp_%s_latest' % self.get_type_name(),
-                        args=[self.id_number])
+        return reverse('jp_latest', args=[self.pk])
 
     def get_latest_revision_number_url(self):
         " returns url to get the latest revision number "

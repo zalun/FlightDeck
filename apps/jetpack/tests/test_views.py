@@ -166,6 +166,34 @@ class TestPackage(TestCase):
             args=[addon.id_number,]))
         eq_(response.status_code, 200)
 
+    def test_urls(self):
+        user = User.objects.get(username='jan')
+        addon = Package.objects.create(author=user, type='a')
+        revision = addon.latest
+        log.debug(revision.get_absolute_url())
+        eq_(revision.get_absolute_url(),
+                '/package/%d/' % revision.package.pk)
+        revision.save()
+        eq_(revision.get_absolute_url(),
+                '/package/%d/revision/%d/' % (revision.package.pk,
+                                              revision.revision_number))
+        revision.set_version('test')
+        version = PackageRevision.objects.get(pk=revision.pk)
+        version_pk = version.pk
+        eq_(revision.get_absolute_url(),
+                '/package/%d/' % revision.package.pk)
+        revision.save()
+        eq_(version.pk, version_pk)
+        eq_(revision.get_absolute_url(),
+                '/package/%d/revision/%s/' % (revision.package.pk,
+                                              revision.revision_number))
+        revision.set_version('test2')
+        eq_(revision.get_absolute_url(),
+                '/package/%d/' % revision.package.pk)
+        eq_(version.get_absolute_url(),
+                '/package/%d/version/%s/' % (version.package.pk,
+                                             version.version_name))
+
 
 class TestEmptyDirs(TestCase):
     fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']

@@ -38,8 +38,16 @@ urlpatterns = patterns('jetpack.views',
     url(r'^library/new/',
         'create', {"type_id": "l"}, name='jp_library_create'),
 
+    # package - display details of the PackageRevision
+    url(r'^package/(?P<pk>\d+)/latest/$',
+        'view_or_edit', {'latest': True}, name='jp_latest'),
+    url(r'^package/(?P<pk>\d+)/$', 'view_or_edit', name='jp_details'),
+    url(r'^package/(?P<pk>\d+)/version/(?P<version_name>.*)/$',
+        'view_or_edit', name='jp_version_details'),
+    url(r'^package/(?P<pk>\d+)/revision/(?P<revision_number>\d+)/$',
+        'view_or_edit', name='jp_revision_details'),
 
-    # display details of the PackageRevision
+    # legacy - display details of the PackageRevision
     url(r'^addon/(?P<id_number>[-\w]+)/latest/$',
         'view_or_edit', {'type_id': 'a', 'latest': True},
         name='jp_addon_latest'),
@@ -83,6 +91,10 @@ urlpatterns = patterns('jetpack.views',
         'get_revisions_list_html', name='jp_revisions_list_html'),
 
     # save packagerevision
+    url(r'^package/save/(?P<pk>\d+)/revision/'
+            '(?P<revision_number>\d+)/$',
+        'save', name='jp_revision_save'),
+    # legacy
     url(r'^addon/save/(?P<id_number>[-\w]+)/revision/'
             '(?P<revision_number>\d+)/$',
         'save', {'type_id': 'a'}, name='jp_addon_revision_save'),

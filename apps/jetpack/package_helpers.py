@@ -14,17 +14,22 @@ from jetpack.errors import ManifestNotValid
 log = commonware.log.getLogger('f.package_helpers')
 
 
-def get_package_revision(id_name, type_id,
+def get_package_revision(pk=None, id_name=None, type_id=None,
                          revision_number=None,
                          version_name=None, latest=False):
     """
     Return revision of the package
     """
+    if not pk and not id_name:
+        raise Http404
 
     if not (revision_number or version_name):
         # get default revision - one linked via Package:version
-        package = get_object_with_related_or_404(Package, id_number=id_name,
-                                                 type=type_id)
+        if pk:
+            package = get_object_with_related_or_404(Package, pk=pk)
+        else:
+            package = get_object_with_related_or_404(Package,
+                    id_number=id_name, type=type_id)
         package_revision = package.latest if latest else package.version
         if not package_revision:
             log.critical("Package %s by %s has no latest or version "
@@ -33,12 +38,20 @@ def get_package_revision(id_name, type_id,
 
     elif revision_number:
         # get version given by revision number
-        package_revision = get_object_with_related_or_404(PackageRevision,
+        if pk:
+            package_revision = get_object_with_related_or_404(PackageRevision,
+                            package__pk=pk, revision_number=revision_number)
+        else:
+            package_revision = get_object_with_related_or_404(PackageRevision,
                             package__id_number=id_name, package__type=type_id,
                             revision_number=revision_number)
     elif version_name:
         # get version given by version name
-        package_revision = get_object_with_related_or_404(PackageRevision,
+        if pk:
+            package_revision = get_object_with_related_or_404(PackageRevision,
+                            package__pk=pk, version_name=version_name)
+        else:
+            package_revision = get_object_with_related_or_404(PackageRevision,
                             package__id_number=id_name, package__type=type_id,
                             version_name=version_name)
     # For unknown reason some revisions are not linked to any package
