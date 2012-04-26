@@ -8,7 +8,7 @@ var tabs = require('tabs');
 
 exports.main = function() {
 
-    // Widget documentation: https://addons.mozilla.org/en-US/developers/docs/sdk/latest/packages/addon-kit/docs/widget.html
+    // Widget documentation: https://addons.mozilla.org/en-US/developers/docs/sdk/latest/packages/addon-kit/widget.html
 
     new Widget({
         // Mandatory string used to identify your widget in order to
@@ -33,7 +33,7 @@ exports.main = function() {
         // Add a function to trigger when the Widget is clicked.
         onClick: function(event) {
             
-            // Tabs documentation: https://addons.mozilla.org/en-US/developers/docs/sdk/latest/packages/addon-kit/docs/tabs.html
+            // Tabs documentation: https://addons.mozilla.org/en-US/developers/docs/sdk/latest/packages/addon-kit/tabs.html
 
             // Open a new tab in the currently active window.
             tabs.open("http://www.mozilla.org");
