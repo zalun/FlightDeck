@@ -219,7 +219,7 @@ class AMOOAuth:
         return self._send(self.url('user'), 'GET', {})
 
     def get_user_by_email(self, email):
-        log.debug("Accessing API %s" % self.url('user'))
+        log.debug("Accessing API %s with %s" % (self.url('user'), email))
         return self._send(self.url('user'), 'GET', {'email': email})
 
     def create_addon(self, data):

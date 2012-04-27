@@ -124,8 +124,11 @@ def browserid_authenticate(request, assertion):
     if not result:
         return (None, None)
 
-    email = result['email']
     id = None
+    email = result.get('email')
+    if not email:
+        log.error('[browserID] Assertion did not return an email')
+        return (None, None)
 
     try:
         amouser = AMOAuthentication.auth_browserid_authenticate(email)
