@@ -17,6 +17,7 @@ license: MIT-style license
 	top: 31px;
 	right: 0;
 	background: #fff;
+    max-height:250px;
 	width: 110px;
 	border: solid 1px #BEC5CC;
 	z-index: 10005;
