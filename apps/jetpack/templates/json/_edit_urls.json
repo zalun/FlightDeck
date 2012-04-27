@@ -2,6 +2,7 @@
     "revision_string": "{{ revision|escapejs }}",
 	"save_url": "{{ revision.get_save_url() }}",
 	"view_url": "{{ revision.package.get_latest_url() }}",
+	"copy_url": "{{ revision.get_copy_url() }}",
 	"add_module_url": "{{ revision.get_add_module_url() }}",
 	"rename_module_url": "{{ revision.get_rename_module_url() }}",
 	"remove_module_url": "{{ revision.get_remove_module_url() }}",
