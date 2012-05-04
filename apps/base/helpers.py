@@ -71,16 +71,6 @@ def querystring(context, query, **params):
     return '&'.join(sorted(qs))
 
 
-@jinja2.contextfunction
-@register.function
-def select_selected(context, value):
-    bits = value.split('=');
-    if context['request'].GET.get(bits[0]) == bits[1]:
-        return 'selected=selected'
-    else:
-        return ''
-
-
 @register.function
 def replace(item, value):
     """Replaces first part of ``value`` with the second one
