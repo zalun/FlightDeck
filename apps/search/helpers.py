@@ -3,6 +3,7 @@ from django.core.cache import cache
 from elasticutils import S, F
 from jetpack.models import Package
 from jingo import register
+import jinja2
 
 
 def package_search(searchq='', user=None, score_on=None, **filters):
@@ -110,3 +111,13 @@ def _get_average_activity():
     
     cache.set(ACTIVITY_CACHE_KEY, average, 60*60*24)
     return average
+
+
+@jinja2.contextfunction
+@register.function
+def select_selected(context, value):
+    bits = value.split('=');
+    if context['request'].GET.get(bits[0]) == bits[1] or context.get('query')[bits[0]] == bits[1]:
+        return 'selected=selected'
+    else:
+        return ''
