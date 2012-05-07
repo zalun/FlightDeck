@@ -2048,14 +2048,14 @@ class Package(BaseModel, SearchMixin):
 
         del data['activity_rating']
 
-        if self.latest:
-            deps = self.latest.dependencies.all()
+        if self.version:
+            deps = self.version.dependencies.all()
             data['dependencies'] = [dep.package.id for dep in deps]
             size = 0
-            for m in self.latest.modules.all():
+            for m in self.version.modules.all():
                 size += len(m.code)
             data['size'] = size
-
+            data['full_name'] = self.version.full_name
 
         if self.is_library():
             data['times_depended'] = (Package.objects

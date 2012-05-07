@@ -1,7 +1,7 @@
 
 <div class="result package {{ package.is_addon()|yesno("addon,library") }}">
     <h3>
-        <a href="{{ package.get_absolute_url() }}">{{ package.full_name }}</a>
+        <a href="{{ package.get_absolute_url() }}">{{ package.version.full_name }}</a>
         {% if package.featured %}
             <span class="featured" title="Featured">featured</span>
         {% endif %}
