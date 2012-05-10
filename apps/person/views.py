@@ -134,10 +134,8 @@ def browserid_authenticate(request, assertion):
         amouser = AMOAuthentication.auth_browserid_authenticate(email)
     except ValueError, err:
         # Some issue with connecting to AMO let's not raise an error
-        # XXX: There is an error in logging - let's raise it for  now
-        raise
-        log.error("[browserID] Error from AMO (%s): %s" % (email, str(err)))
         mail_admins( 'Problem with browserID authentication', str(err))
+        log.error("[browserID] Error from AMO (%s): %s" % (email, str(err)))
     except Http404, err:
         # AMO responded with 404
         log.error("[browserID] 404 Error from AMO: %s" % email)
