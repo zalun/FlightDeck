@@ -206,6 +206,7 @@ class AMOOAuth:
     def _send(self, url, method, data):
         resp, content = self._request(None, method, url,
                                       data=data)
+        log.debug('response received: %d, %s' % (resp.status, content))
         if resp.status == 404:
             raise Http404
         if resp.status != 200:

@@ -57,6 +57,7 @@ def get_addon_details(amo_id, amo_file_id=None):
 
 
 def fetch_amo_user(email):
+    log.debug('#'*80)
     amo = AMOOAuth(domain=settings.AMOOAUTH_DOMAIN,
                    port=settings.AMOOAUTH_PORT,
                    protocol=settings.AMOOAUTH_PROTOCOL,
