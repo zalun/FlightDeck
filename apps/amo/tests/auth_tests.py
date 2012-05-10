@@ -1,3 +1,5 @@
+import json
+
 from django.conf import settings
 from django.test import TestCase
 from django.contrib.auth import authenticate
@@ -12,11 +14,13 @@ from utils.amo import AMOOAuth
 
 
 OLD_AMOOAUTH_SEND = AMOOAuth._send
+OLD_AMOOAUTH_REQUEST = AMOOAuth._request
 
 class AuthTest(TestCase):
 
     def tearDown(self):
         AMOOAuth._send = OLD_AMOOAUTH_SEND
+        AMOOAuth._request = OLD_AMOOAUTH_REQUEST
 
     def test_failing_login(self):
         # testing failed authentication on AMO
@@ -41,16 +45,22 @@ class AuthTest(TestCase):
 
     @staticmethod
     def test_get_user():
-        AMOOAuth._send = Mock(return_value={
-                "username": "some",
-                "display_name": "Some User",
-                "created": "2007-03-05 13:09:38",
-                "modified": "2012-01-31 12:38:50",
-                "id": 12345,
-                "location": "Portland, OR",
-                "homepage": "http://example.com",
-                "email": "some@example.com",
-                "occupation": "addon developer"
-            })
+        class Response:
+            status = 200
+
+        AMOOAuth._request = Mock(return_value=(
+                Response(),
+                json.dumps({
+                    "username": "some",
+                    "display_name": "Some User",
+                    "created": "2007-03-05 13:09:38",
+                    "modified": "2012-01-31 12:38:50",
+                    "id": 12345,
+                    "location": "Portland, OR",
+                    "homepage": "http://example.com",
+                    "email": "some@example.com",
+                    "occupation": "addon developer"
+                }))
+            )
         eq_(fetch_amo_user('some@example.com')['username'],
                 'some')

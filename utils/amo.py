@@ -204,6 +204,7 @@ class AMOOAuth:
                     oauth_version='1.0')
 
     def _send(self, url, method, data):
+        log.debug('starting request: (%s, %s, %s)' % (method, url, json.dumps(data)))
         resp, content = self._request(None, method, url,
                                       data=data)
         log.debug('response received: %d, %s' % (resp.status, content))
