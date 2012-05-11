@@ -120,7 +120,8 @@ class AMOOAuth:
                             'multipart/form-data; boundary=%s' % boundary})
         else:
             data = urllib.urlencode(data)
-        log.debug("AMOOAUTH: Sending  request %s" % strdata)
+        log.debug(("AMOOAUTH: Sending  request url: %s, data: %s, method: %s"
+            ) % (request.to_url(), strdata, method))
         return client.request(request.to_url(), method=method,
                               headers=headers, body=data)
 
