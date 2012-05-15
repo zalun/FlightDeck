@@ -106,13 +106,14 @@ class AMOOAuth:
                          content).groups()[0]
 
     def _request(self, token, method, url, data={}, headers={}, **kw):
-        log.debug('I am actually called')
         parameters = data_keys(data)
         parameters.update(kw)
         request = (oauth.Request
                         .from_consumer_and_token(self.get_consumer(), token,
                                                  method, url, parameters))
+        log.debug('request created')
         request.sign_request(self.signature_method, self.get_consumer(), token)
+        log.debug('request signed')
         client = httplib2.Http()
         if data and method == 'POST':
             data = encode_multipart(boundary, data)

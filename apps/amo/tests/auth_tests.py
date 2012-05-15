@@ -66,19 +66,5 @@ class AuthTest(TestCase):
                     "occupation": "addon developer"
                 })))
         httplib2.Http = Mock(return_value=Http())
-        #AMOOAuth._request = Mock(return_value=(
-        #        Response(),
-        #        json.dumps({
-        #            "username": "some",
-        #            "display_name": "Some User",
-        #            "created": "2007-03-05 13:09:38",
-        #            "modified": "2012-01-31 12:38:50",
-        #            "id": 12345,
-        #            "location": "Portland, OR",
-        #            "homepage": "http://example.com",
-        #            "email": "some@example.com",
-        #            "occupation": "addon developer"
-        #        }))
-        #    )
         eq_(fetch_amo_user('some@example.com')['username'],
                 'some')
