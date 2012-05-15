@@ -106,6 +106,7 @@ class AMOOAuth:
                          content).groups()[0]
 
     def _request(self, token, method, url, data={}, headers={}, **kw):
+        log.debug('I am actually called')
         parameters = data_keys(data)
         parameters.update(kw)
         request = (oauth.Request
@@ -113,7 +114,6 @@ class AMOOAuth:
                                                  method, url, parameters))
         request.sign_request(self.signature_method, self.get_consumer(), token)
         client = httplib2.Http()
-        strdata = str(data)
         if data and method == 'POST':
             data = encode_multipart(boundary, data)
             headers.update({'Content-Type':
@@ -121,7 +121,7 @@ class AMOOAuth:
         else:
             data = urllib.urlencode(data)
         log.debug(("AMOOAUTH: Sending  request url: %s, data: %s, method: %s"
-            ) % (request.to_url(), strdata, method))
+            ) % (request.to_url(), json.dumps(data), method))
         return client.request(request.to_url(), method=method,
                               headers=headers, body=data)
 
