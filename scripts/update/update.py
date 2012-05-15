@@ -67,6 +67,7 @@ def install_cron(ctx):
 def deploy_app(ctx):
     ctx.remote(settings.REMOTE_UPDATE_SCRIPT)
     ctx.remote("/bin/touch %s" % settings.REMOTE_WSGI)
+    ctx.remote("/sbin/service gunicorn-builder-addons graceful")
 
 
 @hostgroups(settings.CELERY_HOSTGROUP, remote_kwargs={'ssh_key': settings.SSH_KEY})
