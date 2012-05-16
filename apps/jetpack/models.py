@@ -32,8 +32,7 @@ from django.db import connection
 
 from cuddlefish.preflight import vk_to_jid, jid_to_programid, my_b32encode
 from ecdsa import SigningKey, NIST256p
-from elasticutils import es_required
-from elasticutils.models import SearchMixin
+from elasticutils import es_required, SearchMixin
 from pyes import djangoutils
 from pyes.exceptions import NotFoundException as PyesNotFoundException
 

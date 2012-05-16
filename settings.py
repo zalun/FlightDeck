@@ -371,7 +371,6 @@ ENGAGE_ROBOTS = False
 # For search:
 # Checkout flightdeck-es and run bin/elasticsearch -f
 ES_DISABLED = True
-ES_HOSTS = ['127.0.0.1:9200']
 ES_INDEXES = {
     'default': 'flightdeck',
 }
