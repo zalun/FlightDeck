@@ -322,6 +322,7 @@ INSTALLED_APPS = [
 
 # 3RD PARTY APPS
     'djcelery',
+    'raven.contrib.django',
     'waffle',
 ]
 
