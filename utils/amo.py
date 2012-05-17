@@ -111,16 +111,18 @@ class AMOOAuth:
         request = (oauth.Request
                         .from_consumer_and_token(self.get_consumer(), token,
                                                  method, url, parameters))
-        log.debug('request created a')
+        log.debug('request created')
         request.sign_request(self.signature_method, self.get_consumer(), token)
-        log.debug('request signed a')
+        log.debug('request signed')
         client = httplib2.Http()
+        log.debug('client is instantiated')
         if data and method == 'POST':
-            log.debug('this is a POST request a')
+            log.debug('this is a POST request')
             data = encode_multipart(boundary, data)
             headers.update({'Content-Type':
                             'multipart/form-data; boundary=%s' % boundary})
         else:
+            log.debug('this is not a POST request')
             data = urllib.urlencode(data)
         log.debug('request url: %s a' % request.to_url())
         log.debug(("AMOOAUTH: Sending  request url: %s, data: %s, method: %s"
@@ -215,6 +217,7 @@ class AMOOAuth:
         if resp.status == 404:
             raise Http404
         if resp.status != 200:
+            log.debug('failed request')
             raise ValueError('%s: %s' % (resp.status, content))
         try:
             return json.loads(content)
