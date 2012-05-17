@@ -111,18 +111,18 @@ class AMOOAuth:
         request = (oauth.Request
                         .from_consumer_and_token(self.get_consumer(), token,
                                                  method, url, parameters))
-        log.debug('request created')
+        log.debug('request created a')
         request.sign_request(self.signature_method, self.get_consumer(), token)
-        log.debug('request signed')
+        log.debug('request signed a')
         client = httplib2.Http()
         if data and method == 'POST':
-            log.debug('this is a POST request')
+            log.debug('this is a POST request a')
             data = encode_multipart(boundary, data)
             headers.update({'Content-Type':
                             'multipart/form-data; boundary=%s' % boundary})
         else:
             data = urllib.urlencode(data)
-        log.debug('request url:' % request.to_url())
+        log.debug('request url: %s a' % request.to_url())
         log.debug(("AMOOAUTH: Sending  request url: %s, data: %s, method: %s"
             ) % (request.to_url(), json.dumps(data), method))
         return client.request(request.to_url(), method=method,
