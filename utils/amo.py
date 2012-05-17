@@ -116,11 +116,13 @@ class AMOOAuth:
         log.debug('request signed')
         client = httplib2.Http()
         if data and method == 'POST':
+            log.debug('this is a POST request')
             data = encode_multipart(boundary, data)
             headers.update({'Content-Type':
                             'multipart/form-data; boundary=%s' % boundary})
         else:
             data = urllib.urlencode(data)
+        log.debug('request url:' % request.to_url())
         log.debug(("AMOOAUTH: Sending  request url: %s, data: %s, method: %s"
             ) % (request.to_url(), json.dumps(data), method))
         return client.request(request.to_url(), method=method,
