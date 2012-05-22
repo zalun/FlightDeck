@@ -137,7 +137,7 @@ def browserid_authenticate(request, assertion):
         mail_admins( 'Problem with browserID authentication', str(err))
         log.error("[browserID] Error from AMO error is emailed")
     except Http404, err:
-        # AMO responded with 404
+        # AMO responded with 404 - email doesn't exist on AMO side
         log.error("[browserID] 404 Error from AMO: %s" % email)
         return (None, None)
     else:
@@ -164,7 +164,8 @@ def browserid_authenticate(request, assertion):
                 profile = Profile.objects.create(user=user)
     else:
         # this now happens only for ValueError (probably never)
-        mail_admins('No id returned from AMO', 'Just a flag this code is used')
+        # XXX: actually every time for -dev
+        # mail_admins('No id returned from AMO', 'Just a flag this code is used')
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
