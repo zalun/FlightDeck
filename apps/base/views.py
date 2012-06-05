@@ -21,6 +21,7 @@ from jetpack.cron import update_package_activity
 from base.models import CeleryResponse
 
 log = commonware.log.getLogger('f.monitor')
+home_log = commonware.log.getLogger('f.homepage')
 
 
 def app_manifest(request):
@@ -228,10 +229,17 @@ def homepage(r):
     libraries = package_search(type='l').order_by('-activity')[:pkgs_limit]
     addons = package_search(type='a').order_by('-activity')[:pkgs_limit]
 
-    #libraries = Package.objects.libraries().active().sort_recently_active()[:pkgs_limit]
-    #addons = Package.objects.addons().active().sort_recently_active()[:pkgs_limit]
+    try:
+        # force the ES request here
+        addons = list(addons)
+        libraries = list(libraries)
+    except Exception, ex:
+        # can be MaxRetryError, TimeoutError, or internal ES error...
+        # we should catch them all, log it, but still let the homepage show
+        home_log.critical('ElasticSearch error: %s' % ex)
+        addons = []
+        libraries = []
 
-    addons = list(addons)
     page = 'homepage'
 
     return render_to_response(
