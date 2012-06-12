@@ -20,6 +20,8 @@ SORT_MAPPING = {
     'size':'-size',
 }
 
+REVERSE_SORT_MAPPING = dict((v, k) for k, v in SORT_MAPPING.items())
+
 def search(request):
     form = SearchForm(request.GET)
     form.is_valid()
@@ -33,12 +35,11 @@ def search(request):
 
     if q and query.get('sort') == '':
         sort = '_score'
-        query['sort'] = 'score'
     elif query.get('sort') == '':
         sort = '-activity'
-        query['sort'] = 'activity'
     else:
         sort = SORT_MAPPING.get(query.get('sort'), '_score')
+    query['sort'] = REVERSE_SORT_MAPPING.get(sort)
 
     filters = {}
     filters['user'] = request.user
