@@ -215,6 +215,15 @@ class TestViews(TestCase):
         now = datetime.now()
         eq_(bits[-4:-1], now.strftime('%Y-%m-%d').split('-'))
 
+    def test_attachment_filename_cleaning(self):
+        # see https://bugzilla.mozilla.org/show_bug.cgi?id=764793
+        res = self.upload(self.upload_url, 'bar', 'packages/../../../foo.txt')
+        revision = PackageRevision.objects.get(package=self.package,
+                                               revision_number=1)
+
+        att = revision.attachments.all()[0]
+        self.assertTrue(att.filename.find('../') == -1)
+
     def test_attachment_add_read(self):
         res = self.upload(self.upload_url, 'foo', 'some.txt')
         eq_(res.status_code, 200)

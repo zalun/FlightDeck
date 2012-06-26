@@ -114,6 +114,7 @@ File.EDITABLE_EXTS = ['js', 'html', 'css', 'txt', 'json', 'md'];
 File.IMAGE_EXTS = ['png', 'jpg', 'gif'];
 
 var sanitizeRE = /[^a-zA-Z0-9=!@#\$%\^&\(\)\+\-_\/\.]+/g;
-File.sanitize = function(name) {
-    return name.replace(sanitizeRE, '-');
+var dotDotSlashRE = /\.\.\//g;
+File.sanitize = function sanitize(name) {
+    return name.replace(sanitizeRE, '-').replace(dotDotSlashRE, '');
 };
