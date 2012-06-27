@@ -395,6 +395,13 @@ class PackageRevisionTest(TestCase):
         }
         ''')
 
+        from jetpack.errors import IllegalFilenameException
+        self.assertRaises(IllegalFilenameException, rev.set_extra_json, '''
+        {
+            "icon": "/user/sean/.ssh/config"
+        }
+        ''')
+
     def test_add_commit_message(self):
         author = User.objects.all()[0]
         addon = Package(type='a', author=author)

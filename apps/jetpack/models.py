@@ -805,12 +805,20 @@ class PackageRevision(BaseModel):
         raises JSONDecodeError
         """
         self.add_commit_message('Extra JSON properties changed')
+        cleaned_json = None
         if extra_json:
-            # if not an empty string or None, just check it is
-            # valid JSON
-            simplejson.loads(extra_json)
+            # check for valid JSON, plus clean out filenames
+            json = simplejson.loads(extra_json)
+            # possible file names: icon, icon64
+            # also possibly lib, tests, main, but FlightDeck overrides
+            properties_to_check = ('icon', 'icon64',)
+            for prop in properties_to_check:
+                if prop in json:
+                    json[prop] = _clean_filename(json.get(prop))
 
-        self.extra_json = extra_json
+            cleaned_json = simplejson.dumps(json)
+
+        self.extra_json = cleaned_json
         if save:
             self.save()
 
