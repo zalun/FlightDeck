@@ -142,6 +142,9 @@ class AttachmentTest(TestCase):
         att = Attachment(filename='.../...///foo.js')
         self.assertRaises(IllegalFilenameException, att.save)
 
+        att = Attachment(filename='/bin/python')
+        self.assertRaises(IllegalFilenameException, att.save)
+
 
 
 class TestViews(TestCase):

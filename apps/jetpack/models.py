@@ -94,7 +94,7 @@ TYPE_CHOICES = (
 
 
 FILENAME_RE = r'[^a-zA-Z0-9=!@#\$%\^&\(\)\+\-_\/\.]+'
-ILLEGAL_CHARS_RE = r'($\/|\.\.|\/\/)'
+ILLEGAL_CHARS_RE = r'(^\/|\.\.|\/\/)'
 
 def _clean_filename(filename):
     cleaned = re.sub(FILENAME_RE, '-', filename)
