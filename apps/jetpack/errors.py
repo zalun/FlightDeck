@@ -16,6 +16,8 @@ class DependencyException(SimpleException):
 class FilenameExistException(SimpleException):
     " This filename already exists - it has to be unique "
 
+class IllegalFilenameException(SimpleException):
+    " This filename contains illegal characters "
 
 class UpdateDeniedException(SimpleException):
     " This item may not be updated "

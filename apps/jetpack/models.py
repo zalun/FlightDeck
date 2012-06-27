@@ -42,7 +42,8 @@ from amo import constants
 from base.models import BaseModel
 from jetpack.errors import (SelfDependencyException, FilenameExistException,
                             UpdateDeniedException, SingletonCopyException,
-                            DependencyException, AttachmentWriteException)
+                            DependencyException, AttachmentWriteException,
+                            IllegalFilenameException)
 from jetpack.managers import SDKManager, PackageManager
 
 from utils import validator
@@ -93,7 +94,15 @@ TYPE_CHOICES = (
 
 
 FILENAME_RE = r'[^a-zA-Z0-9=!@#\$%\^&\(\)\+\-_\/\.]+'
-DOT_DOT_SLASH_RE = r'\.?\.\/'
+ILLEGAL_CHARS_RE = r'($\/|\.\.|\/\/)'
+
+def _clean_filename(filename):
+    cleaned = re.sub(FILENAME_RE, '-', filename)
+    # if illegal chars exist past that simple clean, raise
+    if re.search(ILLEGAL_CHARS_RE, cleaned):
+        raise IllegalFilenameException("Illegal characters in filename: %s"
+                                       % cleaned)
+    return cleaned
 
 
 class PackageRevision(BaseModel):
@@ -2174,17 +2183,12 @@ class Module(BaseModel):
         return self
 
     def clean(self):
+        # remove illegal characters from filename
+        self.filename = _clean_filename(self.filename)
+
         first_period = self.filename.find('.')
         if first_period > -1:
             self.filename = self.filename[:first_period]
-
-        # remove illegal characters from filename
-        self.filename = re.sub(FILENAME_RE, '-',
-                self.filename)
-        self.filename = re.sub(DOT_DOT_SLASH_RE, '', self.filename)
-        self.filename = re.sub('\/{2,}', '/', self.filename) # double slash
-        self.filename = re.sub('^\/', '', self.filename) # leading slash
-        self.filename = re.sub('\/$', '', self.filename) # trailing slash
 
     def can_view(self, viewer=None):
         can_view_q = models.Q(package__active=True)
@@ -2353,9 +2357,7 @@ class Attachment(BaseModel):
         return self
 
     def clean(self):
-        self.filename = re.sub(FILENAME_RE, '-', self.filename)
-        # remove ../ from the filename
-        self.filename = re.sub(DOT_DOT_SLASH_RE, '', self.filename)
+        self.filename = _clean_filename(self.filename)
         if self.ext:
             self.ext = alphanum(self.ext)
 

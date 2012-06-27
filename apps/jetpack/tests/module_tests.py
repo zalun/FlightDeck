@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
 from jetpack.models import Package, PackageRevision, Module
-from jetpack.errors import UpdateDeniedException
+from jetpack.errors import UpdateDeniedException, IllegalFilenameException
 
 log = commonware.log.getLogger('f.test')
 
@@ -41,6 +41,10 @@ class ModuleTest(TestCase):
                 code=u'ą')
         eq_(Module.objects.get(author=author).code, u'ą')
 
+    def test_illegal_filename(self):
+        mod = Module(filename='.../...///foo.js',
+                     author=User.objects.get(username='john'))
+        self.assertRaises(IllegalFilenameException, mod.save)
 
 class TestModules(TestCase):
 
