@@ -868,9 +868,15 @@ def save(request, id_number, type_id, revision_number=None,
     response_data = {}
 
     package_full_name = request.POST.get('full_name', False)
+    jid = request.POST.get('jid', None)
     version_name = request.POST.get('version_name', False)
 
     # validate package_full_name and version_name
+
+    if jid and not validator.is_valid(
+        'alphanum_plus', jid):
+        return HttpResponseForbidden(escape(
+            validator.get_validation_message('alphanum_plus')))
 
     if version_name and not validator.is_valid(
         'alphanum_plus', version_name):
@@ -955,6 +961,11 @@ def save(request, id_number, type_id, revision_number=None,
             revision.set_version(version_name)
         except Exception, err:
             return HttpResponseForbidden(escape(err.__str__()))
+
+    if jid:
+        revision.package.jid = jid
+        response_data['jid'] = jid
+        save_package = True
 
     if save_package:
         revision.package.save()

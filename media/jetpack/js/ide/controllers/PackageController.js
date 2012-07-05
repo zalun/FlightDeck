@@ -52,7 +52,8 @@ module.exports = new Class({
         package_info_form_elements: [
 			'full_name',
 			'package_description',
-			'package_extra_json'
+			'package_extra_json',
+      'jid'
 		],
         
         check_dependencies: true,
@@ -1513,6 +1514,10 @@ module.exports = new Class({
                 var response = JSON.parse(text);
                 // set the redirect data to view_url of the new revision
                 log.debug('Save succeeded');
+                if (response.jid) {
+                  this.package_.set('jid', response.jid);
+                  this.options.jid = response.jid;
+                }
                 if (response.full_name) {
                     this.packageInfoNameEl.set('text', response.full_name);
                     this.options.full_name = response.full_name;
