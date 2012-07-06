@@ -270,6 +270,25 @@ class TestEditing(TestCase):
         eq_(addon2.full_name, addon2.latest.full_name)
         assert rev1.name != addon2.latest.name
 
+    def test_package_jid_change(self):
+        jid = 'somejid'
+        author = self._login()
+        addon1 = Package(author=author, type='a')
+        addon1.save()
+        response = self.client.post(addon1.latest.get_save_url(), {
+            'jid': jid})
+        eq_(response.status_code, 200)
+        addon2 = Package.objects.get(pk=addon1.pk)
+        # no change in revision
+        eq_(len(addon2.revisions.all()), 1)
+        eq_(addon2.jid, jid)
+        # check adding an existing JID
+        addon3 = Package(author=author, type='a')
+        addon3.save()
+        response = self.client.post(addon1.latest.get_save_url(), {
+            'jid': jid})
+        eq_(response.status_code, 403)
+
     def test_package_extra_json_change(self):
         author = self._login()
         addon = Package(author=author, type='a')

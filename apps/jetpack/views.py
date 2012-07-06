@@ -963,6 +963,13 @@ def save(request, id_number, type_id, revision_number=None,
             return HttpResponseForbidden(escape(err.__str__()))
 
     if jid:
+        try:
+            Package.objects.get(jid=jid)
+        except Package.DoesNotExist:
+            pass
+        else:
+            return HttpResponseForbidden(('Package with JID "%s" already '
+                    'exists in the Builder') % jid)
         revision.package.jid = jid
         response_data['jid'] = jid
         save_package = True
