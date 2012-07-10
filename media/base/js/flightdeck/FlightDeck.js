@@ -143,7 +143,7 @@ module.exports = new Class({
      */
     downloadXPI: function(data) {
         var time = this.options.request_interval;
-		var fd = this;
+        var fd = this;
         
         log.debug('XPI delayed ... try to load every %d seconds', time / 1000);
         var hashtag = data.hashtag;
@@ -193,7 +193,7 @@ module.exports = new Class({
                     if (response.ready) {
                         var url = '/xpi/download/'+hashtag+'/'+filename+'/';
                         log.debug('downloading ' + filename + '.xpi from ' + url );
-                        dom.window.getNode().open(url, 'dl');
+                        dom.window.getNode().location = url;
                     }
                 }
             });
