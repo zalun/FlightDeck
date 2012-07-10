@@ -539,6 +539,8 @@ module.exports = new Class({
             data: data,
             onComplete: function() {
                 el.removeClass('clicked');
+                // remove spinner
+                el.removeClass('loading').removeClass('small');
             },
             onSuccess: function() {
                 fd().downloadXPI(data);
