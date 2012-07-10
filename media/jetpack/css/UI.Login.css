@@ -35,15 +35,10 @@ h3{
 }
 
 #UI_BrowserID_Img{
-    background: url("/media/person/img/card.png") no-repeat scroll center center transparent;
-    border-color: #CCCCCC #BBBBBB #AAAAAA;
-    border-radius: 4px 4px 4px 4px;
-    border-style: solid;
-    border-width: 1px;
-    box-shadow: 0 1px 4px -3px #000000;
+    background: url("/media/person/img/persona_sign_in_blue.png") no-repeat scroll center center transparent;
     cursor: pointer;
-    height: 32px;
-    width: 115px;
+    height: 34px;
+    width: 185px;
 	display:inline-block;
 }
 
