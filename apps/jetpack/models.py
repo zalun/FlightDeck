@@ -462,9 +462,7 @@ class PackageRevision(BaseModel):
 
     def get_copy_url(self):
         " returns URL to copy the package "
-        return reverse(
-            'jp_%s_revision_copy' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_copy', args=[self.pk])
 
     def get_switch_sdk_url(self):
         " returns URL to switch SDK on the package revision "

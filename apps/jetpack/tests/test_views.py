@@ -358,6 +358,7 @@ class TestRevision(TestCase):
         author.set_password('secure')
         author.save()
         self.client.login(username=author.username, password='secure')
+        log.debug(addon.latest.get_copy_url())
         response = self.client.get(addon.latest.get_copy_url())
         eq_(response.status_code, 200)
         assert 'Add-on' in response.content
