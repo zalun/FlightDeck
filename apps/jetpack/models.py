@@ -1282,10 +1282,7 @@ class PackageRevision(BaseModel):
         " returns modules list as JSON object "
         return [{
                 'path': m.filename,
-                'get_url': reverse('jp_get_module', args=[
-                    self.package.id_number,
-                    self.revision_number,
-                    m.filename])
+                'get_url': reverse('jp_get_module', args=[self.pk, m.filename])
                 } for m in self.modules.all()
             ] if self.modules.count() > 0 else []
 

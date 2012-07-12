@@ -48,8 +48,8 @@ urlpatterns = patterns('jetpack.views',
         'view_or_edit', name='jp_revision_details'),
 
     # get full module info
-    url(r'^get_module/(?P<id_number>[-\w]+)/(?P<revision_number>\d+)/'
-            '(?P<filename>.*)$', 'get_module', name='jp_get_module'),
+    url(r'^get_module/(?P<revision_id>\d+)/(?P<filename>.*)$',
+        'get_module', name='jp_get_module'),
     url(r'^module/(?P<pk>\d+)/$', 'download_module', name='jp_module'),
 
     # copy a PackageRevision

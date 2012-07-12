@@ -202,14 +202,12 @@ def download_module(request, pk):
     return HttpResponse(module.get_json())
 
 
-def get_module(request, id_number, revision_number, filename):
+def get_module(request, revision_id, filename):
     """
     return a JSON with all module info
     """
     try:
-        revision = PackageRevision.objects.get(
-                package__id_number=id_number,
-                revision_number=revision_number)
+        revision = PackageRevision.objects.get(pk=revision_id)
         mod = revision.modules.get(filename=filename)
     except PackageRevision.DoesNotExist, Module.DoesNotExist:
         log_msg = 'No such module %s' % filename
