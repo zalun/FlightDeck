@@ -506,9 +506,9 @@ def remove_folder(request, id_number, type_id, revision_number):
 
 @require_POST
 @login_required
-def switch_sdk(request, id_number, revision_number):
+def switch_sdk(request, revision_id):
     " switch SDK used to create XPI - sdk_id from POST "
-    revision = get_package_revision(None, id_number, 'a', revision_number)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
         return HttpResponseForbidden('You are not the author of this Add-on')
 

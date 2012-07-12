@@ -90,8 +90,7 @@ urlpatterns = patterns('jetpack.views',
         'rename_module', name='jp_package_revision_rename_module'),
 
     # switch SDK version
-    url(r'^addon/switch_sdk/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
+    url(r'^addon/switch_sdk/(?P<revision_id>\d+)/$',
         'switch_sdk', name='jp_addon_switch_sdk_version'),
 
     # add/remove attachment

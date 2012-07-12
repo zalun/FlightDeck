@@ -457,9 +457,7 @@ class PackageRevision(BaseModel):
 
     def get_switch_sdk_url(self):
         " returns URL to switch SDK on the package revision "
-        return reverse(
-            'jp_addon_switch_sdk_version',
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_addon_switch_sdk_version', args=[self.pk])
 
     def get_add_folder_url(self):
         return reverse(
