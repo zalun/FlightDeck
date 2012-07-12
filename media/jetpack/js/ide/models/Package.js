@@ -22,6 +22,7 @@ var Package = module.exports = new Class({
 		id_number: fields.NumberField(), // the real PK?
 		full_name: fields.TextField(),
 		name: fields.TextField(),
+    jid: fields.TextField(),
 		description: fields.TextField(),
 		type: fields.TextField(), //ChoiceField({ choices: ['a', 'l'] })
 		author: fields.TextField(),
