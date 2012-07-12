@@ -36,5 +36,5 @@ attachments: {{ revision.get_attachments_list_json()|safe }},
 folders: {{ revision.get_folders_list_json()|safe }},
 // Actions
 copy_url: '{{ revision.get_copy_url() }}',
-revisions_list_html_url: '{{ url('jp_revisions_list_html', revision.pk) }}/',
+revisions_list_html_url: '{{ url('jp_revisions_list_html', revision.pk) }}',
 check_if_latest: {{ revision.is_latest|yesno("true,false") }}
