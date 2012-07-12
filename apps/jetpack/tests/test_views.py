@@ -150,7 +150,7 @@ class TestPackage(TestCase):
         addon = Package.objects.create(
                 full_name='Public Add-on', author=user, type='a')
         response = self.client.get(reverse('jp_revisions_list_html',
-            args=[addon.id_number,]))
+            args=[addon.latest.pk,]))
         eq_(response.status_code, 200)
 
         # Private add-on
@@ -158,12 +158,12 @@ class TestPackage(TestCase):
                 full_name='Priv Add-on', author=user, type='a', active=False)
         # not logged in
         response = self.client.get(reverse('jp_revisions_list_html',
-            args=[addon.id_number,]))
+            args=[addon.latest.pk,]))
         eq_(response.status_code, 404)
         # authenticated
         self.client.login(username=user.username, password='secure')
         response = self.client.get(reverse('jp_revisions_list_html',
-            args=[addon.id_number,]))
+            args=[addon.latest.pk,]))
         eq_(response.status_code, 200)
 
     def test_urls(self):
@@ -282,7 +282,7 @@ class TestEditing(TestCase):
         rev = addon.latest
         rev.module_add(mod)
         r = self.client.get(
-                reverse('jp_revisions_list_html', args=[addon.id_number]))
+                reverse('jp_revisions_list_html', args=[addon.latest.pk]))
         assert 'test_filename' in r.content
 
     def test_package_name_change(self):

@@ -1153,21 +1153,16 @@ def latest_dependencies(request, id_number, type_id, revision_number):
 
 
 @never_cache
-def get_revisions_list_html(request, id_number, revision_number=None):
+def get_revisions_list_html(request, revision_id):
     " returns revision list to be displayed in the modal window "
-    package = get_object_with_related_or_404(Package, id_number=id_number)
-    if not package.can_view(request.user):
+    current = get_object_with_related_or_404(PackageRevision, pk=revision_id)
+    if not current.package.can_view(request.user):
         raise Http404
-    revisions = package.revisions.all()
-    if revision_number:
-        current = package.revisions.get(revision_number=revision_number)
-    else:
-        current = None
-    if revision_number:
-        revision_number = int(revision_number)
+    revisions = current.package.revisions.all()
+    revision_number = int(current.revision_number)
     return render(request,
         '_package_revisions_list.html', {
-            'package': package,
+            'package': current.package,
             'revisions': revisions,
             'revision_number': revision_number,
             'current': current})

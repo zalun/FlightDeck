@@ -57,9 +57,7 @@ urlpatterns = patterns('jetpack.views',
         'copy', name='jp_package_revision_copy'),
 
     # get Package revisions list
-    url(r'^revisions_list/(?P<id_number>[-\w]+)$',
-        'get_revisions_list_html', name='jp_revisions_list_html'),
-    url(r'^revisions_list/(?P<id_number>[-\w]+)/(?P<revision_number>\d+)/$',
+    url(r'^revisions_list/(?P<revision_id>\d+)/$',
         'get_revisions_list_html', name='jp_revisions_list_html'),
 
     # save packagerevision
