@@ -277,7 +277,7 @@ class TestEditing(TestCase):
         pk = addon.pk
 
         homepage = 'https://builder.addons.mozilla.org'
-        extra_json = '{ "homepage": "%s" }' % homepage
+        extra_json = '{"homepage": "%s"}' % homepage
         response = self.client.post(addon.latest.get_save_url(), {
             'package_extra_json': extra_json})
 
@@ -292,7 +292,7 @@ class TestEditing(TestCase):
         pk = addon.pk
 
         homepage = 'https://builder.addons.mozilla.org'
-        extra_json = '{ "homepage": "%s" }' % homepage
+        extra_json = '{"homepage": "%s"}' % homepage
         addon.latest.extra_json = extra_json
         addon.latest.save()
 
