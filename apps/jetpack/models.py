@@ -1711,18 +1711,15 @@ class Package(BaseModel, SearchMixin):
 
     def get_disable_url(self):
         " returns URL to the disable package functionality "
-        return reverse('jp_package_disable',
-                        args=[self.id_number])
+        return reverse('jp_package_disable', args=[self.pk])
 
     def get_activate_url(self):
         " returns URL to activate disabled package "
-        return reverse('jp_package_activate',
-                        args=[self.id_number])
+        return reverse('jp_package_activate', args=[self.pk])
 
     def get_delete_url(self):
         " returns URL to delete package "
-        return reverse('jp_package_delete',
-                        args=[self.id_number])
+        return reverse('jp_package_delete', args=[self.pk])
 
     def get_view_on_amo_url(self):
         " returns the url to view the add-on on AMO "

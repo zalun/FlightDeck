@@ -66,7 +66,7 @@ class TestPackage(TestCase):
         assert 'save_url' in response.content
         # after setting the addon to private
         response = self.client.get(reverse('jp_package_disable',
-            args=[addon.id_number]))
+            args=[addon.pk]))
         self.client.login(username=user.username, password='secure')
         response = self.client.get(addon.get_absolute_url())
         assert 'save_url' in response.content
@@ -84,8 +84,7 @@ class TestPackage(TestCase):
         # logging in the author
         self.client.login(username=author.username, password='secure')
         # deleting lib
-        response = self.client.get(reverse('jp_package_delete',
-            args=[lib.id_number]))
+        response = self.client.get(reverse('jp_package_delete', args=[lib.pk]))
         eq_(response.status_code, 200)
         response = self.client.get(lib.get_absolute_url())
         # lib deleted - shouldn't be visible by author
@@ -108,7 +107,7 @@ class TestPackage(TestCase):
         self.client.login(username=author.username, password='secure')
         # private on
         response = self.client.get(reverse('jp_package_disable',
-            args=[lib.id_number]))
+            args=[lib.pk]))
         eq_(response.status_code, 200)
         response = self.client.get(lib.get_absolute_url())
         # lib private - should be visible by author
@@ -133,7 +132,7 @@ class TestPackage(TestCase):
         self.client.login(username=author.username, password='secure')
         # private on
         response = self.client.get(reverse('jp_package_disable',
-            args=[lib.id_number]))
+            args=[lib.pk]))
         eq_(response.status_code, 200)
         # logging in the user
         self.client.login(username=user.username, password='secure')

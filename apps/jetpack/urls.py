@@ -65,11 +65,11 @@ urlpatterns = patterns('jetpack.views',
         'save', name='jp_revision_save'),
 
     # disable/activate/delete package
-    url(r'^package/disable/(?P<id_number>[-\w]+)/$',
+    url(r'^package/disable/(?P<pk>[-\w]+)/$',
         'disable', name='jp_package_disable'),
-    url(r'^package/activate/(?P<id_number>[-\w]+)/$',
+    url(r'^package/activate/(?P<pk>[-\w]+)/$',
         'activate', name='jp_package_activate'),
-    url(r'^package/delete/(?P<id_number>[-\w]+)/$',
+    url(r'^package/delete/(?P<pk>[-\w]+)/$',
         'delete', name='jp_package_delete'),
 
     # get all, conflicting modules

@@ -252,14 +252,14 @@ def copy(request, revision_id):
 
 
 @login_required
-def disable(request, id_number):
+def disable(request, pk):
     """
     Disable Package and return confirmation
     """
-    package = get_object_or_404(Package, id_number=id_number)
+    package = get_object_or_404(Package, pk=pk)
     if request.user.pk != package.author.pk:
         log_msg = 'User %s wanted to disable not his own Package %s.' % (
-            request.user, id_number)
+            request.user, pk)
         log.warning(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
@@ -273,14 +273,14 @@ def disable(request, id_number):
 
 
 @login_required
-def activate(request, id_number):
+def activate(request, pk):
     """
     Undelete Package and return confirmation
     """
-    package = get_object_or_404(Package, id_number=id_number)
+    package = get_object_or_404(Package, pk=pk)
     if request.user.pk != package.author.pk:
         log_msg = ("[security] Attempt to activate package (%s) by "
-                   "non-owner (%s)" % (id_number, request.user))
+                   "non-owner (%s)" % (pk, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
@@ -294,14 +294,14 @@ def activate(request, id_number):
 
 
 @login_required
-def delete(request, id_number):
+def delete(request, pk):
     """
     Delete Package and return confirmation
     """
-    package = get_object_or_404(Package, id_number=id_number)
+    package = get_object_or_404(Package, pk=pk)
     if request.user.pk != package.author.pk:
         log_msg = ("[security] Attempt to delete package (%s) by "
-                   "non-owner (%s)" % (id_number, request.user))
+                   "non-owner (%s)" % (pk, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
