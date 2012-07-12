@@ -203,8 +203,9 @@ class XPIBuildTest(TestCase):
             author=self.author,
             type='l'
         )
-        librev = PackageRevision.objects.filter(
-            package__id_number=lib.id_number)[0]
+        # librev = PackageRevision.objects.filter(
+        #     package__id_number=lib.id_number)[0]
+        librev = lib.latest
         self.addonrev.dependency_add(librev)
         tstart = time.time()
         xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)

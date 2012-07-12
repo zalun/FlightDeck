@@ -443,16 +443,14 @@ class PackageRevision(BaseModel):
         if self.package.type != 'a':
             raise Exception('XPI might be created only from an Add-on')
         return reverse(
-            'jp_addon_revision_test',
-            args=[self.package.id_number, self.revision_number])
+            'jp_addon_revision_test', args=[self.pk])
 
     def get_download_xpi_url(self):
         " returns URL to download Add-on's XPI "
         if self.package.type != 'a':
             raise Exception('XPI might be created only from an Add-on')
         return reverse(
-            'jp_addon_revision_xpi',
-            args=[self.package.id_number, self.revision_number])
+            'jp_addon_revision_xpi', args=[self.pk])
 
     def get_upload_to_amo_url(self):
         " returns URL to upload to AMO "

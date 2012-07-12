@@ -25,21 +25,21 @@ from xpi import tasks
 log = commonware.log.getLogger('f.xpi')
 
 
-def _get_addon(user, id_number, revision_number):
-    revision = get_object_with_related_or_404(PackageRevision,
-                        package__id_number=id_number, package__type='a',
-                        revision_number=revision_number)
-    if not revision.package.active and user != revision.package.author:
+def _get_addon(user, revision_id):
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
+    if ((not revision.package.active and user != revision.package.author)
+            or revision.package.type != 'a'):
+        # pretend add-on doesn't exist as it's a Library or is private
         raise Http404()
     return revision
 
 @csrf_exempt
 @require_POST
-def prepare_test(r, id_number, revision_number=None):
+def prepare_test(r, revision_id):
     """
     Test XPI from data saved in the database
     """
-    revision = _get_addon(r.user, id_number, revision_number)
+    revision = _get_addon(r.user, revision_id)
     hashtag = r.POST.get('hashtag')
     if not hashtag:
         log.warning('[security] No hashtag provided')
@@ -124,12 +124,12 @@ def get_test(r, hashtag):
 
 @csrf_exempt
 @require_POST
-def prepare_download(r, id_number, revision_number=None):
+def prepare_download(r, revision_id):
     """
     Prepare download XPI.  This package is built asynchronously and we assume
     it works. It will be downloaded in %``get_download``
     """
-    revision = _get_addon(r.user, id_number, revision_number)
+    revision = _get_addon(r.user, revision_id)
     hashtag = r.POST.get('hashtag')
     if not hashtag:
         return HttpResponseForbidden('Add-on Builder has been updated!'
