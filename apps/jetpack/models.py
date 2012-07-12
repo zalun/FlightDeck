@@ -377,8 +377,7 @@ class PackageRevision(BaseModel):
 
     def get_save_url(self):
         " returns URL to save the package revision "
-        return reverse('jp_revision_save',
-            args=[self.package.pk, self.revision_number])
+        return reverse('jp_revision_save', args=[self.pk])
 
     def get_add_module_url(self):
         " returns URL to add module to the package revision "
@@ -442,15 +441,13 @@ class PackageRevision(BaseModel):
         " returns URL to test Add-on "
         if self.package.type != 'a':
             raise Exception('XPI might be created only from an Add-on')
-        return reverse(
-            'jp_addon_revision_test', args=[self.pk])
+        return reverse('jp_addon_revision_test', args=[self.pk])
 
     def get_download_xpi_url(self):
         " returns URL to download Add-on's XPI "
         if self.package.type != 'a':
             raise Exception('XPI might be created only from an Add-on')
-        return reverse(
-            'jp_addon_revision_xpi', args=[self.pk])
+        return reverse('jp_addon_revision_xpi', args=[self.pk])
 
     def get_upload_to_amo_url(self):
         " returns URL to upload to AMO "

@@ -843,18 +843,17 @@ def download_attachment(request, uid):
 
 @require_POST
 @login_required
-def save(request, pk=None, id_number=None, type_id=None, revision_number=None,
-                 version_name=None):
+def save(request, revision_id, type_id=None):
     """
     Save package and modules
     @TODO: check how dynamic module loading affects save
     """
 
-    revision = get_package_revision(pk, id_number, type_id, revision_number,
-                                    version_name)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
         log_msg = ("[security] Attempt to save package (%s) by "
-                   "non-owner (%s)" % (id_number, request.user))
+                   "non-owner (%s)" % (revision.pk,
+                       request.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -869,7 +868,6 @@ def save(request, pk=None, id_number=None, type_id=None, revision_number=None,
     version_name = request.POST.get('version_name', False)
 
     # validate package_full_name and version_name
-
     if version_name and not validator.is_valid(
         'alphanum_plus', version_name):
         return HttpResponseForbidden(escape(

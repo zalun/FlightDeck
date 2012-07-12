@@ -61,16 +61,8 @@ urlpatterns = patterns('jetpack.views',
         'get_revisions_list_html', name='jp_revisions_list_html'),
 
     # save packagerevision
-    url(r'^package/save/(?P<pk>\d+)/revision/'
-            '(?P<revision_number>\d+)/$',
+    url(r'^package/save/(?P<revision_id>\d+)/$',
         'save', name='jp_revision_save'),
-    # legacy
-    url(r'^addon/save/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'save', {'type_id': 'a'}, name='jp_addon_revision_save'),
-    url(r'^library/save/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'save', {'type_id': 'l'},  name='jp_library_revision_save'),
 
     # disable/activate/delete package
     url(r'^package/disable/(?P<id_number>[-\w]+)/$',

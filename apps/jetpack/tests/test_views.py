@@ -290,6 +290,7 @@ class TestEditing(TestCase):
         addon1 = Package(author=author, type='a')
         addon1.save()
         rev1 = addon1.latest
+        log.debug(addon1.latest.get_save_url())
         response = self.client.post(addon1.latest.get_save_url(), {
             'full_name': 'FULL NAME'})
         eq_(response.status_code, 200)
