@@ -382,8 +382,7 @@ class PackageRevision(BaseModel):
     def get_add_module_url(self):
         " returns URL to add module to the package revision "
         return reverse(
-            'jp_%s_revision_add_module' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+            'jp_package_revision_add_module', args=[self.pk])
 
     def get_rename_module_url(self):
         " returns URL to rename module in the package revision "

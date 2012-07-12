@@ -80,14 +80,8 @@ urlpatterns = patterns('jetpack.views',
         name='jp_revision_get_conflicting_modules_list'),
 
     # add/remove module
-    url(r'^addon/add_module/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'add_module',
-        {'type_id': 'a'}, name='jp_addon_revision_add_module'),
-    url(r'^library/add_module/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'add_module',
-        {'type_id': 'l'},  name='jp_library_revision_add_module'),
+    url(r'^package/add_module/(?P<revision_id>\d+)/$',
+        'add_module', name='jp_package_revision_add_module'),
     url(r'^addon/remove_module/(?P<id_number>[-\w]+)/revision/'
             '(?P<revision_number>\d+)/$',
         'remove_module',
