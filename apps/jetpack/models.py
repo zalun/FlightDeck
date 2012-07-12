@@ -381,20 +381,15 @@ class PackageRevision(BaseModel):
 
     def get_add_module_url(self):
         " returns URL to add module to the package revision "
-        return reverse(
-            'jp_package_revision_add_module', args=[self.pk])
+        return reverse('jp_package_revision_add_module', args=[self.pk])
 
     def get_rename_module_url(self):
         " returns URL to rename module in the package revision "
-        return reverse(
-            'jp_%s_revision_rename_module' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_rename_module', args=[self.pk])
 
     def get_remove_module_url(self):
         " returns URL to remove module from the package revision "
-        return reverse(
-            'jp_%s_revision_remove_module' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_remove_module', args=[self.pk])
 
     def get_upload_attachment_url(self):
         " returns URL to upload attachment to the package revision "

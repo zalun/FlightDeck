@@ -350,14 +350,14 @@ def add_module(request, revision_id):
 
 @require_POST
 @login_required
-def rename_module(request, id_number, type_id, revision_number):
+def rename_module(request, revision_id):
     """
     Rename a module in a PackageRevision
     """
-    revision = get_package_revision(None, id_number, type_id, revision_number)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
         log_msg = ("[security] Attempt to rename a module to package (%s) by "
-                   "non-owner (%s)" % (id_number, request.user))
+                   "non-owner (%s)" % (revision_id, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -385,7 +385,7 @@ def rename_module(request, id_number, type_id, revision_number):
 
     if not module:
         log_msg = 'Attempt to rename a non existing module %s from %s.' % (
-            old_name, id_number)
+            old_name, revision_id)
         log.warning(log_msg)
         return HttpResponseForbidden(
             'There is no such module in %s' % escape(
@@ -402,14 +402,14 @@ def rename_module(request, id_number, type_id, revision_number):
 
 @require_POST
 @login_required
-def remove_module(request, id_number, type_id, revision_number):
+def remove_module(request, revision_id):
     """
     Remove module from PackageRevision
     """
-    revision = get_package_revision(None, id_number, type_id, revision_number)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
         log_msg = ("[security] Attempt to remove a module from package (%s) "
-                "by non-owner (%s)" % (id_number, request.user))
+                "by non-owner (%s)" % (revision_id, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -421,7 +421,7 @@ def remove_module(request, id_number, type_id, revision_number):
                 filenames)
     except Module.DoesNotExist:
         log_msg = 'Attempt to delete a non existing module(s) %s from %s.' % (
-            str(filenames), id_number)
+            str(filenames), revision_id)
         log.warning(log_msg)
         return HttpResponseForbidden(
             'There is no such module in %s' % escape(

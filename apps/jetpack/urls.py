@@ -82,24 +82,12 @@ urlpatterns = patterns('jetpack.views',
     # add/remove module
     url(r'^package/add_module/(?P<revision_id>\d+)/$',
         'add_module', name='jp_package_revision_add_module'),
-    url(r'^addon/remove_module/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'remove_module',
-        {'type_id': 'a'}, name='jp_addon_revision_remove_module'),
-    url(r'^library/remove_module/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'remove_module',
-        {'type_id': 'l'},  name='jp_library_revision_remove_module'),
+    url(r'^package/remove_module/(?P<revision_id>\d+)/$',
+        'remove_module', name='jp_package_revision_remove_module'),
 
     # rename module
-    url(r'^addon/rename_module/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'rename_module',
-        {'type_id': 'a'}, name='jp_addon_revision_rename_module'),
-    url(r'^library/rename_module/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'rename_module',
-        {'type_id': 'l'}, name='jp_library_revision_rename_module'),
+    url(r'^package/rename_module/(?P<revision_id>\d+)/$',
+        'rename_module', name='jp_package_revision_rename_module'),
 
     # switch SDK version
     url(r'^addon/switch_sdk/(?P<id_number>[-\w]+)/revision/'
