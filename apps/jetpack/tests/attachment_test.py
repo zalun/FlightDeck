@@ -181,21 +181,23 @@ class TestViews(TestCase):
         self.revision = next_revision(self.revision)
         return self.revision
 
-    def get_upload_url(self, revision):
-        args = [self.package.id_number, revision]
-        return reverse('jp_addon_revision_upload_attachment', args=args)
+    def get_upload_url(self, revision_number):
+        revision = self.package.revisions.get(revision_number=revision_number)
+        return reverse('jp_package_revision_upload_attachment',
+                args=[revision.pk])
 
     def get_add_url(self, revision):
         args = [revision.pk]
         return reverse('jp_revision_add_attachment', args=args)
 
-    def get_change_url(self, revision):
-        args = [self.package.id_number, revision]
-        return reverse('jp_addon_revision_save', args=args)
+    def get_change_url(self, revision_number):
+        revision = self.package.revisions.get(revision_number=revision_number)
+        return reverse('jp_revision_save', args=[revision.pk])
 
-    def get_delete_url(self, revision):
-        args = [self.package.id_number, revision]
-        return reverse('jp_addon_revision_remove_attachment', args=args)
+    def get_delete_url(self, revision_number):
+        revision = self.package.revisions.get(revision_number=revision_number)
+        return reverse('jp_package_revision_remove_attachment',
+                args=[revision.pk])
 
     def get_revision(self):
         return PackageRevision.objects.get(pk=self.revision.pk)
