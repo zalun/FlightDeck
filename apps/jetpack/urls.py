@@ -94,24 +94,12 @@ urlpatterns = patterns('jetpack.views',
         'switch_sdk', name='jp_addon_switch_sdk_version'),
 
     # add/remove attachment
-    url(r'^addon/upload_attachment/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'upload_attachment',
-        {'type_id': 'a'}, name='jp_addon_revision_upload_attachment'),
-    url(r'^library/upload_attachment/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'upload_attachment',
-        {'type_id': 'l'},  name='jp_library_revision_upload_attachment'),
+    url(r'^package/upload_attachment/(?P<revision_id>\d+)/$',
+        'upload_attachment', name='jp_package_revision_upload_attachment'),
     url(r'^revision/(?P<pk>\d+)/add_attachment/',
         'revision_add_attachment', name='jp_revision_add_attachment'),
-    url(r'^addon/remove_attachment/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'remove_attachment',
-        {'type_id': 'a'}, name='jp_addon_revision_remove_attachment'),
-    url(r'^library/remove_attachment/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'remove_attachment',
-        {'type_id': 'l'},  name='jp_library_revision_remove_attachment'),
+    url(r'^package/remove_attachment/(?P<revision_id>\d+)/$',
+        'remove_attachment', name='jp_package_revision_remove_attachment'),
 
      # rename attachment
     url(r'^addon/rename_attachment/(?P<id_number>[-\w]+)/revision/'

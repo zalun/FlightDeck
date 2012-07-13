@@ -530,15 +530,14 @@ def switch_sdk(request, revision_id):
 
 @require_POST
 @login_required
-def upload_attachment(request, id_number, type_id,
-                           revision_number=None, version_name=None):
+def upload_attachment(request, revision_id):
     """ Upload new attachment to the PackageRevision
     """
-    revision = get_package_revision(None, id_number, type_id, revision_number,
-                                    version_name)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
+    log.debug(revision)
     if request.user.pk != revision.author.pk:
         log_msg = ("[security] Attempt to upload attachment to package (%s) "
-                "by non-owner (%s)" % (id_number, request.user))
+                "by non-owner (%s)" % (revision_id, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
@@ -548,8 +547,8 @@ def upload_attachment(request, id_number, type_id,
     filename = request.META.get('HTTP_X_FILE_NAME')
 
     if not file:
-        log_msg = 'Path not found: %s, package: %s.' % (
-            filename, id_number)
+        log_msg = 'Path not found: %s, revision: %s.' % (
+            filename, revision_id)
         log.error(log_msg)
         return HttpResponseServerError('Path not found.')
 
@@ -791,14 +790,14 @@ def rmdir(request, pk, target, path):
 
 @require_POST
 @login_required
-def remove_attachment(request, id_number, type_id, revision_number):
+def remove_attachment(request, revision_id):
     """
     Remove attachment from PackageRevision
     """
-    revision = get_package_revision(None, id_number, type_id, revision_number)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
-        log_msg = ("[security] Attempt to remove attachment from package (%s) "
-                "by non-owner (%s)" % (id_number, request.user))
+        log_msg = ('[security] Attempt to remove attachment from revision '
+                '(%s) by non-owner (%s)' % (revision_id, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 

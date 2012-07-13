@@ -393,9 +393,7 @@ class PackageRevision(BaseModel):
 
     def get_upload_attachment_url(self):
         " returns URL to upload attachment to the package revision "
-        return reverse(
-            'jp_%s_revision_upload_attachment' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_upload_attachment', args=[self.pk])
 
     def get_add_attachment_url(self):
         " returns URL to add attachment to the package revision "
@@ -409,9 +407,7 @@ class PackageRevision(BaseModel):
 
     def get_remove_attachment_url(self):
         " returns URL to remove attachment from the package revision "
-        return reverse(
-            'jp_%s_revision_remove_attachment' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_remove_attachment', args=[self.pk])
 
     def get_assign_library_url(self):
         " returns url to assign library to the package revision "
