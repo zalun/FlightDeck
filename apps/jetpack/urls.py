@@ -106,15 +106,8 @@ urlpatterns = patterns('jetpack.views',
         'rename_attachment', name='jp_package_revision_rename_attachment'),
 
     #add empty dir
-    url(r'^addon/add_folder/(?P<id_number>[-\w]+)/revision'
-            '(?P<revision_number>\d+)/$',
-        'add_folder',
-        {'type_id': 'a'}, name='jp_addon_revision_add_folder',
-        ),
-    url(r'^library/add_folder/(?P<id_number>[-\w]+)/revision'
-            '(?P<revision_number>\d+)/$',
-        'add_folder',
-        {'type_id': 'l'}, name='jp_library_revision_add_folder',
+    url(r'^addon/add_folder/(?P<revision_id>\d+)/$',
+        'add_folder', name='jp_package_revision_add_folder',
         ),
 
     #remove empty dir

@@ -454,9 +454,7 @@ class PackageRevision(BaseModel):
         return reverse('jp_addon_switch_sdk_version', args=[self.pk])
 
     def get_add_folder_url(self):
-        return reverse(
-            'jp_%s_revision_add_folder' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_add_folder', args=[self.pk])
 
     def get_remove_folder_url(self):
         return reverse(

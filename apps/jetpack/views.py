@@ -436,12 +436,12 @@ def remove_module(request, revision_id):
 
 @require_POST
 @login_required
-def add_folder(request, id_number, type_id, revision_number):
+def add_folder(request, revision_id):
     " adds an EmptyDir to a revision "
-    revision = get_package_revision(None, id_number, type_id, revision_number)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
-        log_msg = ("[security] Attempt to add a folder to package (%s) by "
-                   "non-owner (%s)" % (id_number, request.user))
+        log_msg = ("[security] Attempt to add a folder to revision (%s) by "
+                   "non-owner (%s)" % (revision_id, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 

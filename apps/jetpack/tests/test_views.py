@@ -219,9 +219,9 @@ class TestEmptyDirs(TestCase):
         self.revision = next_revision(self.revision)
         return self.revision
 
-    def get_add_url(self, revision):
-        args = [self.package.id_number, revision]
-        return reverse('jp_addon_revision_add_folder', args=args)
+    def get_add_url(self, revision_number):
+        revision = self.package.revisions.get(revision_number=revision_number)
+        return reverse('jp_package_revision_add_folder', args=[revision.pk])
 
     def get_delete_url(self, revision):
         args = [self.package.id_number, revision]
