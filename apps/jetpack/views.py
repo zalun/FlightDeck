@@ -464,12 +464,12 @@ def add_folder(request, revision_id):
 
 @require_POST
 @login_required
-def remove_folder(request, id_number, type_id, revision_number):
+def remove_folder(request, revision_id):
     " removes an EmptyDir from a revision "
-    revision = get_package_revision(None, id_number, type_id, revision_number)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
-        log_msg = ("[security] Attempt to remove a folder from package (%s) "
-                "by non-owner (%s)" % (id_number, request.user))
+        log_msg = ("[security] Attempt to remove a folder from revision (%s) "
+                "by non-owner (%s)" % (revision_id, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -484,7 +484,7 @@ def remove_folder(request, id_number, type_id, revision_number):
             response = revision.attachment_rmdir(foldername)
         if not response:
             log_msg = 'Attempt to delete a non existing folder %s from %s.' % (
-                foldername, id_number)
+                foldername, revision_id)
             log.warning(log_msg)
             return HttpResponseForbidden(
                 'There is no such folder in %s' % escape(

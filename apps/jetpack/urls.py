@@ -107,20 +107,11 @@ urlpatterns = patterns('jetpack.views',
 
     #add empty dir
     url(r'^addon/add_folder/(?P<revision_id>\d+)/$',
-        'add_folder', name='jp_package_revision_add_folder',
-        ),
+        'add_folder', name='jp_package_revision_add_folder'),
 
     #remove empty dir
-    url(r'^addon/remove_folder/(?P<id_number>[-\w]+)/revision'
-            '(?P<revision_number>\d+)/$',
-        'remove_folder',
-        {'type_id': 'a'}, name='jp_addon_revision_remove_folder',
-        ),
-    url(r'^library/remove_folder/(?P<id_number>[-\w]+)/revision'
-            '(?P<revision_number>\d+)/$',
-        'remove_folder',
-        {'type_id': 'l'}, name='jp_library_revision_remove_folder',
-        ),
+    url(r'^addon/remove_folder/(?P<revision_id>\d+)/$',
+        'remove_folder', name='jp_package_revision_remove_folder'),
 
     # display attachment
     url(r'^attachment/(?P<uid>.*)$',
