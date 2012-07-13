@@ -865,16 +865,12 @@ def save(request, revision_id, type_id=None):
     jid = request.POST.get('jid', None)
     version_name = request.POST.get('version_name', False)
 
-    # validate package_full_name and version_name
-<<<<<<< HEAD
-
     if jid and not validator.is_valid(
         'alphanum_plus', jid):
         return HttpResponseForbidden(escape(
             validator.get_validation_message('alphanum_plus')))
 
-=======
->>>>>>> 6a3f701e611dafb03f4d828faa05968f70e07928
+    # validate package_full_name and version_name
     if version_name and not validator.is_valid(
         'alphanum_plus', version_name):
         return HttpResponseForbidden(escape(
