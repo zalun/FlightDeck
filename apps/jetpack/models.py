@@ -401,9 +401,7 @@ class PackageRevision(BaseModel):
 
     def get_rename_attachment_url(self):
         " returns URL to rename module in the package revision "
-        return reverse(
-            'jp_%s_revision_rename_attachment' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_rename_attachment', args=[self.pk])
 
     def get_remove_attachment_url(self):
         " returns URL to remove attachment from the package revision "

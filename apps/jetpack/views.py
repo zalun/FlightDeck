@@ -730,14 +730,14 @@ def revision_add_attachment(request, pk):
 
 @require_POST
 @login_required
-def rename_attachment(request, id_number, type_id, revision_number):
+def rename_attachment(request, revision_id):
     """
     Rename an attachment in a PackageRevision
     """
-    revision = get_package_revision(None, id_number, type_id, revision_number)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
-        log_msg = ("[security] Attempt to rename attachment in package (%s) "
-                "by non-owner (%s)" % (id_number, request.user))
+        log_msg = ("[security] Attempt to rename attachment in revision (%s) "
+                "by non-owner (%s)" % (revision_id, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -746,7 +746,7 @@ def rename_attachment(request, id_number, type_id, revision_number):
         attachment = revision.attachments.get(pk=uid)
     except:
         log_msg = ('Attempt to rename a non existing attachment. attachment: '
-                   '%s, package: %s.' % (uid, id_number))
+                   '%s, revision: %s.' % (uid, revision))
         log.warning(log_msg)
         return HttpResponseForbidden(
             'There is no such attachment in %s' % escape(
@@ -807,7 +807,7 @@ def remove_attachment(request, revision_id):
 
     if not attachment:
         log_msg = ('Attempt to remove a non existing attachment. attachment: '
-                   '%s, package: %s.' % (uid, id_number))
+                   '%s, revision: %s.' % (uid, revision_id))
         log.warning(log_msg)
         return HttpResponseForbidden(
             'There is no such attachment in %s' % escape(
