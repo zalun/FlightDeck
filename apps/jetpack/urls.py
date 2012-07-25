@@ -90,7 +90,7 @@ urlpatterns = patterns('jetpack.views',
         'rename_module', name='jp_package_revision_rename_module'),
 
     # switch SDK version
-    url(r'^addon/switch_sdk/(?P<revision_id>\d+)/$',
+    url(r'^package/switch_sdk/(?P<revision_id>\d+)/$',
         'switch_sdk', name='jp_addon_switch_sdk_version'),
 
     # add/remove attachment
@@ -102,15 +102,15 @@ urlpatterns = patterns('jetpack.views',
         'remove_attachment', name='jp_package_revision_remove_attachment'),
 
      # rename attachment
-    url(r'^addon/rename_attachment/(?P<revision_id>\d+)/$',
+    url(r'^package/rename_attachment/(?P<revision_id>\d+)/$',
         'rename_attachment', name='jp_package_revision_rename_attachment'),
 
     #add empty dir
-    url(r'^addon/add_folder/(?P<revision_id>\d+)/$',
+    url(r'^package/add_folder/(?P<revision_id>\d+)/$',
         'add_folder', name='jp_package_revision_add_folder'),
 
     #remove empty dir
-    url(r'^addon/remove_folder/(?P<revision_id>\d+)/$',
+    url(r'^package/remove_folder/(?P<revision_id>\d+)/$',
         'remove_folder', name='jp_package_revision_remove_folder'),
 
     # display attachment
@@ -121,18 +121,12 @@ urlpatterns = patterns('jetpack.views',
     url(r'^autocomplete/library/$',
         'library_autocomplete', name='jp_library_autocomplete'),
     # assign library
-    url(r'^addon/assign_library/(?P<revision_id>\d+)/$',
+    url(r'^package/assign_library/(?P<revision_id>\d+)/$',
         'assign_library', name='jp_package_revision_assign_library'),
 
     # update library
-    url(r'^addon/update_library/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'update_library',
-        {'type_id': 'a'}, name='jp_addon_revision_update_library'),
-    url(r'^library/update_library/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'update_library',
-        {'type_id': 'l'}, name='jp_library_revision_update_library'),
+    url(r'^package/update_library/(?P<revision_id>\d+)/$',
+        'update_library', name='jp_package_revision_update_library'),
 
     # remove library
     url(r'^addon/remove_dependency/(?P<id_number>[-\w]+)/revision/'

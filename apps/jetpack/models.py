@@ -413,9 +413,7 @@ class PackageRevision(BaseModel):
 
     def get_update_library_url(self):
         " returns url to update library to a specific version "
-        return reverse(
-            'jp_%s_revision_update_library' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_update_library', args=[self.pk])
 
     def get_remove_library_url(self):
         " returns url to remove library from the package revision "
