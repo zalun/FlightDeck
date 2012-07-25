@@ -417,9 +417,7 @@ class PackageRevision(BaseModel):
 
     def get_remove_library_url(self):
         " returns url to remove library from the package revision "
-        return reverse(
-            'jp_%s_revision_remove_library' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_remove_library', args=[self.pk])
 
     def get_test_xpi_url(self):
         " returns URL to test Add-on "
