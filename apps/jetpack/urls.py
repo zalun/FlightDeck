@@ -121,14 +121,8 @@ urlpatterns = patterns('jetpack.views',
     url(r'^autocomplete/library/$',
         'library_autocomplete', name='jp_library_autocomplete'),
     # assign library
-    url(r'^addon/assign_library/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'assign_library',
-        {'type_id': 'a'}, name='jp_addon_revision_assign_library'),
-    url(r'^library/assign_library/(?P<id_number>[-\w]+)/revision/'
-            '(?P<revision_number>\d+)/$',
-        'assign_library',
-        {'type_id': 'l'}, name='jp_library_revision_assign_library'),
+    url(r'^addon/assign_library/(?P<revision_id>\d+)/$',
+        'assign_library', name='jp_package_revision_assign_library'),
 
     # update library
     url(r'^addon/update_library/(?P<id_number>[-\w]+)/revision/'

@@ -1064,17 +1064,16 @@ def library_autocomplete(request):
 
 @require_POST
 @login_required
-def assign_library(request, id_number, type_id,
-                           revision_number=None, version_name=None):
+def assign_library(request, revision_id):
     " assign library to the package "
-    revision = get_package_revision(None, id_number, type_id, revision_number,
-                                    version_name)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
-        log_msg = ("[security] Attempt to assign library to package (%s) by "
-                   "non-owner (%s)" % (id_number, request.user))
+        log_msg = ("[security] Attempt to assign library to revision (%s) by "
+                   "non-owner (%s)" % (revision_id, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
+    # TODO: make linking work with library_id instead of id number
     library = get_object_or_404(
         Package, type='l', id_number=request.POST['id_number'])
     if request.POST.get('use_latest_version', False):

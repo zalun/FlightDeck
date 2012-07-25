@@ -409,9 +409,7 @@ class PackageRevision(BaseModel):
 
     def get_assign_library_url(self):
         " returns url to assign library to the package revision "
-        return reverse(
-            'jp_%s_revision_assign_library' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_assign_library', args=[self.pk])
 
     def get_update_library_url(self):
         " returns url to update library to a specific version "
