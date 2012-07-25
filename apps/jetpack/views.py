@@ -1158,8 +1158,8 @@ def update_library(request, revision_id):
 
 
 @login_required
-def latest_dependencies(request, id_number, type_id, revision_number):
-    revision = get_package_revision(None, id_number, type_id, revision_number)
+def latest_dependencies(request, revision_id):
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     out_of_date = revision.get_outdated_dependency_versions()
 
     return render_json(request,

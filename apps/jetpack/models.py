@@ -454,9 +454,7 @@ class PackageRevision(BaseModel):
         return reverse('jp_package_revision_remove_folder', args=[self.pk])
 
     def get_latest_dependencies_url(self):
-        return reverse(
-            'jp_%s_check_latest_dependencies' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_check_latest_dependencies', args=[self.pk])
 
     def get_modules_list_url(self):
         return reverse('jp_revision_get_modules_list', args=[self.pk])
@@ -1078,7 +1076,7 @@ class PackageRevision(BaseModel):
 
         # a LibraryRevision can't depend on another LibraryRevision
         # linked with the same Library
-        if dep.package.id_number == self.package.id_number:
+        if dep.package.pk == self.package.pk:
             raise SelfDependencyException(
                 'A Library cannot depend on itself!')
 
