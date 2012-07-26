@@ -280,7 +280,7 @@ class PackageRevision(BaseModel):
     ###############
 
     def get_cache_hashtag(self):
-        return "%sr%d" % (self.package.id_number, self.revision_number)
+        return "revision-%s" % self.pk
 
     # NAME and FULL_NAME in Revision #############
 
@@ -518,7 +518,7 @@ class PackageRevision(BaseModel):
             'description': escape(self.package.description),
             'author': self.package.author.get_profile().get_nickname(),
             'id': self.package.jid if self.package.is_addon() \
-                    else self.package.id_number,
+                    else self.package.pk,
             'version': version,
             'main': self.module_main,
             'dependencies': self.get_dependencies_list(sdk),
@@ -732,7 +732,7 @@ class PackageRevision(BaseModel):
         """
         revision_numbers = PackageRevision.objects.filter(
                                     author__username=self.author.username,
-                                    package__id_number=self.package.id_number
+                                    package__pk=self.package.pk
                                 ).order_by('-revision_number')
         return revision_numbers[0].revision_number + 1 \
                 if revision_numbers else 1
@@ -1277,7 +1277,8 @@ class PackageRevision(BaseModel):
     def get_sdk_name(self):
         " returns the name of the directory to which SDK should be copied "
         return '%s-%s-%s' % (self.sdk.version,
-                             self.package.id_number, self.revision_number)
+                             self.package.pk,
+                             self.revision_number)
 
     def get_sdk_dir(self, hashtag):
         " returns the path to the directory where the SDK should be copied "
