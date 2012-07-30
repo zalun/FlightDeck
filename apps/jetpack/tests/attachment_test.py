@@ -355,6 +355,16 @@ class TestViews(TestCase):
 
         eq_(resp.status_code, 404)
 
+    def test_attachment_with_utf_upload(self):
+        file_path = os.path.join(settings.ROOT,
+                                  'apps/jetpack/tests/jquery-1.6.4.min.js')
+
+        url = self.get_upload_url(self.revision.revision_number)
+        with open(file_path, 'r') as f:
+            response = self.client.post(url, { 'upload_attachment': f },
+                                    HTTP_X_FILE_NAME='jquery-1.6.4.min.js')
+        eq_(response.status_code, 200)
+
     def test_attachment_rename(self):
         revision = self.add_one()
         old_uid = revision.attachments.all()[0].get_uid
