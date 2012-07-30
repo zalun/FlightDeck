@@ -372,6 +372,19 @@ class TestViews(TestCase):
         revision = next_revision(revision)
         eq_(revision.attachments.count(), 1)
 
+        # use a not allowed extension length
+        old_rev_no = revision.package.revisions.count()
+        old_uid = revision.attachments.all()[0].get_uid
+        response = self.client.post(revision.get_rename_attachment_url(), {
+                    'new_filename': 'xxx',
+                    'new_ext': '01234567890987654321',
+                    'uid': old_uid})
+        eq_(response.status_code, 403)
+        # XXX: I've added transaction.on_success to the view, but this is
+        #      still creating a new revision. Check is needed if that is still
+        #      the case on test server.
+        #eq_(old_rev_no, revision.package.revisions.count())
+
     def test_attachment_save(self):
         # back-end responds with
         # 'attachments_updated': {old_uid: {uid: new_uid}}
