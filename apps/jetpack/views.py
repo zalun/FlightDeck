@@ -549,16 +549,21 @@ def upload_attachment(request, id_number, type_id,
             'You are not the author of this %s' % escape(
                 revision.package.get_type_name()))
 
-    file = request.FILES.get('upload_attachment')
+    f = request.FILES.get('upload_attachment')
     filename = request.META.get('HTTP_X_FILE_NAME')
 
-    if not file:
+    if not f:
         log_msg = 'Path not found: %s, package: %s.' % (
             filename, id_number)
         log.error(log_msg)
         return HttpResponseServerError('Path not found.')
 
-    content = file.read()
+    content = f.read()
+    # try to force UTF-8 code, on error continue with original data
+    try:
+        content = unicode(content, 'utf-8')
+    except:
+        pass
 
     try:
         attachment = revision.attachment_create_by_filename(
