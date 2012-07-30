@@ -736,6 +736,7 @@ def revision_add_attachment(request, pk):
 
 @require_POST
 @login_required
+@transaction.commit_on_success
 def rename_attachment(request, id_number, type_id, revision_number):
     """
     Rename an attachment in a PackageRevision
@@ -769,7 +770,10 @@ def rename_attachment(request, id_number, type_id, revision_number):
         )
     attachment.filename = new_name
     attachment.ext = new_ext
-    attachment = revision.update(attachment)
+    try:
+        attachment = revision.update(attachment)
+    except ValidationError, err:
+        return HttpResponseForbidden(str(err))
 
     return render_json(request,
             "json/attachment_renamed.json",
