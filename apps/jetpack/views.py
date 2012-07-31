@@ -92,13 +92,14 @@ def browser(request, page_number=1, type_id=None, username=None):
         })
 
 
-def view_or_edit(request, id_number, type_id, revision_number=None,
-                         version_name=None, latest=False):
+def view_or_edit(request, pk=None, id_number=None, type_id=None,
+        revision_number=None, version_name=None, latest=False):
     """
     Edit if user is the author, otherwise view
     """
-    revision = get_package_revision(id_number, type_id,
+    revision = get_package_revision(pk, id_number, type_id,
                                     revision_number, version_name, latest)
+
     edit_available = True
     if revision.package.deleted:
         edit_available = False
@@ -201,14 +202,12 @@ def download_module(request, pk):
     return HttpResponse(module.get_json())
 
 
-def get_module(request, id_number, revision_number, filename):
+def get_module(request, revision_id, filename):
     """
     return a JSON with all module info
     """
     try:
-        revision = PackageRevision.objects.get(
-                package__id_number=id_number,
-                revision_number=revision_number)
+        revision = PackageRevision.objects.get(pk=revision_id)
         mod = revision.modules.get(filename=filename)
     except PackageRevision.DoesNotExist, Module.DoesNotExist:
         log_msg = 'No such module %s' % filename
@@ -225,21 +224,18 @@ def get_module(request, id_number, revision_number, filename):
 
 @transaction.commit_on_success
 @login_required
-def copy(request, id_number, type_id,
-                 revision_number=None, version_name=None):
+def copy(request, revision_id):
     """
     Copy package - create a duplicate of the Package, set user as author
     """
-    source = get_package_revision(id_number, type_id, revision_number,
-                                  version_name)
-    pk = source.pk
-    log.debug('[copy: %s] Copying started from (%s)' % (pk, source))
+    source = get_object_with_related_or_404(PackageRevision, pk=revision_id)
+    log.debug('[copy: %s] Copying started from (%s)' % (revision_id, source))
 
     # save package
     try:
         package = source.package.copy(request.user)
     except IntegrityError, err:
-        log.critical(("[copy: %s] Package copy failed") % pk)
+        log.critical(("[copy: %s] Package copy failed") % revision_id)
         return HttpResponseForbidden('You already have a %s with that name' %
                                      escape(source.package.get_type_name()))
 
@@ -248,21 +244,22 @@ def copy(request, id_number, type_id,
     copied = source
     del source
 
-    log.info('[copy: %s] Copied to %s, (%s)' % (pk, copied.pk, copied.full_name))
+    log.info('[copy: %s] Copied to %s, (%s)' % (revision_id, copied.pk,
+                                                copied.full_name))
     return render_json(request,
         "json/%s_copied.json" % package.get_type_name(),
         {'revision': copied})
 
 
 @login_required
-def disable(request, id_number):
+def disable(request, pk):
     """
     Disable Package and return confirmation
     """
-    package = get_object_or_404(Package, id_number=id_number)
+    package = get_object_or_404(Package, pk=pk)
     if request.user.pk != package.author.pk:
         log_msg = 'User %s wanted to disable not his own Package %s.' % (
-            request.user, id_number)
+            request.user, pk)
         log.warning(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
@@ -276,14 +273,14 @@ def disable(request, id_number):
 
 
 @login_required
-def activate(request, id_number):
+def activate(request, pk):
     """
     Undelete Package and return confirmation
     """
-    package = get_object_or_404(Package, id_number=id_number)
+    package = get_object_or_404(Package, pk=pk)
     if request.user.pk != package.author.pk:
         log_msg = ("[security] Attempt to activate package (%s) by "
-                   "non-owner (%s)" % (id_number, request.user))
+                   "non-owner (%s)" % (pk, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
@@ -297,14 +294,14 @@ def activate(request, id_number):
 
 
 @login_required
-def delete(request, id_number):
+def delete(request, pk):
     """
     Delete Package and return confirmation
     """
-    package = get_object_or_404(Package, id_number=id_number)
+    package = get_object_or_404(Package, pk=pk)
     if request.user.pk != package.author.pk:
         log_msg = ("[security] Attempt to delete package (%s) by "
-                   "non-owner (%s)" % (id_number, request.user))
+                   "non-owner (%s)" % (pk, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
@@ -317,13 +314,11 @@ def delete(request, id_number):
 
 @require_POST
 @login_required
-def add_module(request, id_number, type_id, revision_number=None,
-        version_name=None):
+def add_module(request, revision_id):
     """
     Add new module to the PackageRevision
     """
-    revision = get_package_revision(id_number, type_id, revision_number,
-                                    version_name)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
         log_msg = ("[security] Attempt to add a module to package (%s) by "
                    "non-owner (%s)" % (id_number, request.user))
@@ -355,14 +350,14 @@ def add_module(request, id_number, type_id, revision_number=None,
 
 @require_POST
 @login_required
-def rename_module(request, id_number, type_id, revision_number):
+def rename_module(request, revision_id):
     """
     Rename a module in a PackageRevision
     """
-    revision = get_package_revision(id_number, type_id, revision_number)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
         log_msg = ("[security] Attempt to rename a module to package (%s) by "
-                   "non-owner (%s)" % (id_number, request.user))
+                   "non-owner (%s)" % (revision_id, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -390,7 +385,7 @@ def rename_module(request, id_number, type_id, revision_number):
 
     if not module:
         log_msg = 'Attempt to rename a non existing module %s from %s.' % (
-            old_name, id_number)
+            old_name, revision_id)
         log.warning(log_msg)
         return HttpResponseForbidden(
             'There is no such module in %s' % escape(
@@ -407,14 +402,14 @@ def rename_module(request, id_number, type_id, revision_number):
 
 @require_POST
 @login_required
-def remove_module(request, id_number, type_id, revision_number):
+def remove_module(request, revision_id):
     """
     Remove module from PackageRevision
     """
-    revision = get_package_revision(id_number, type_id, revision_number)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
         log_msg = ("[security] Attempt to remove a module from package (%s) "
-                "by non-owner (%s)" % (id_number, request.user))
+                "by non-owner (%s)" % (revision_id, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -426,7 +421,7 @@ def remove_module(request, id_number, type_id, revision_number):
                 filenames)
     except Module.DoesNotExist:
         log_msg = 'Attempt to delete a non existing module(s) %s from %s.' % (
-            str(filenames), id_number)
+            str(filenames), revision_id)
         log.warning(log_msg)
         return HttpResponseForbidden(
             'There is no such module in %s' % escape(
@@ -441,12 +436,12 @@ def remove_module(request, id_number, type_id, revision_number):
 
 @require_POST
 @login_required
-def add_folder(request, id_number, type_id, revision_number):
+def add_folder(request, revision_id):
     " adds an EmptyDir to a revision "
-    revision = get_package_revision(id_number, type_id, revision_number)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
-        log_msg = ("[security] Attempt to add a folder to package (%s) by "
-                   "non-owner (%s)" % (id_number, request.user))
+        log_msg = ("[security] Attempt to add a folder to revision (%s) by "
+                   "non-owner (%s)" % (revision_id, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -469,12 +464,12 @@ def add_folder(request, id_number, type_id, revision_number):
 
 @require_POST
 @login_required
-def remove_folder(request, id_number, type_id, revision_number):
+def remove_folder(request, revision_id):
     " removes an EmptyDir from a revision "
-    revision = get_package_revision(id_number, type_id, revision_number)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
-        log_msg = ("[security] Attempt to remove a folder from package (%s) "
-                "by non-owner (%s)" % (id_number, request.user))
+        log_msg = ("[security] Attempt to remove a folder from revision (%s) "
+                "by non-owner (%s)" % (revision_id, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -489,7 +484,7 @@ def remove_folder(request, id_number, type_id, revision_number):
             response = revision.attachment_rmdir(foldername)
         if not response:
             log_msg = 'Attempt to delete a non existing folder %s from %s.' % (
-                foldername, id_number)
+                foldername, revision_id)
             log.warning(log_msg)
             return HttpResponseForbidden(
                 'There is no such folder in %s' % escape(
@@ -511,9 +506,9 @@ def remove_folder(request, id_number, type_id, revision_number):
 
 @require_POST
 @login_required
-def switch_sdk(request, id_number, revision_number):
+def switch_sdk(request, revision_id):
     " switch SDK used to create XPI - sdk_id from POST "
-    revision = get_package_revision(id_number, 'a', revision_number)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
         return HttpResponseForbidden('You are not the author of this Add-on')
 
@@ -535,15 +530,14 @@ def switch_sdk(request, id_number, revision_number):
 
 @require_POST
 @login_required
-def upload_attachment(request, id_number, type_id,
-                           revision_number=None, version_name=None):
+def upload_attachment(request, revision_id):
     """ Upload new attachment to the PackageRevision
     """
-    revision = get_package_revision(id_number, type_id, revision_number,
-                                    version_name)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
+    log.debug(revision)
     if request.user.pk != revision.author.pk:
         log_msg = ("[security] Attempt to upload attachment to package (%s) "
-                "by non-owner (%s)" % (id_number, request.user))
+                "by non-owner (%s)" % (revision_id, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
@@ -553,8 +547,8 @@ def upload_attachment(request, id_number, type_id,
     filename = request.META.get('HTTP_X_FILE_NAME')
 
     if not f:
-        log_msg = 'Path not found: %s, package: %s.' % (
-            filename, id_number)
+        log_msg = 'Path not found: %s, revision: %s.' % (
+            filename, revision_id)
         log.error(log_msg)
         return HttpResponseServerError('Path not found.')
 
@@ -585,7 +579,7 @@ def upload_attachments(request, id_number, type_id,
                            revision_number=None, version_name=None):
     """ Upload new attachments to the PackageRevision
     """
-    revision = get_package_revision(id_number, type_id, revision_number,
+    revision = get_package_revision(None, id_number, type_id, revision_number,
                                     version_name)
     if request.user.pk != revision.author.pk:
         log_msg = ("[security] Attempt to upload attachment to package (%s) "
@@ -624,7 +618,7 @@ def add_empty_attachment(request, id_number, type_id,
                            revision_number=None, version_name=None):
     """ Add new empty attachment to the PackageRevision
     """
-    revision = get_package_revision(id_number, type_id, revision_number,
+    revision = get_package_revision(None, id_number, type_id, revision_number,
                                     version_name)
     if request.user.pk != revision.author.pk:
         log_msg = ("[security] Attempt to add attachment to package (%s) by "
@@ -742,14 +736,14 @@ def revision_add_attachment(request, pk):
 @require_POST
 @login_required
 @transaction.commit_on_success
-def rename_attachment(request, id_number, type_id, revision_number):
+def rename_attachment(request, revision_id):
     """
     Rename an attachment in a PackageRevision
     """
-    revision = get_package_revision(id_number, type_id, revision_number)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
-        log_msg = ("[security] Attempt to rename attachment in package (%s) "
-                "by non-owner (%s)" % (id_number, request.user))
+        log_msg = ("[security] Attempt to rename attachment in revision (%s) "
+                "by non-owner (%s)" % (revision_id, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -758,7 +752,7 @@ def rename_attachment(request, id_number, type_id, revision_number):
         attachment = revision.attachments.get(pk=uid)
     except:
         log_msg = ('Attempt to rename a non existing attachment. attachment: '
-                   '%s, package: %s.' % (uid, id_number))
+                   '%s, revision: %s.' % (uid, revision))
         log.warning(log_msg)
         return HttpResponseForbidden(
             'There is no such attachment in %s' % escape(
@@ -805,14 +799,14 @@ def rmdir(request, pk, target, path):
 
 @require_POST
 @login_required
-def remove_attachment(request, id_number, type_id, revision_number):
+def remove_attachment(request, revision_id):
     """
     Remove attachment from PackageRevision
     """
-    revision = get_package_revision(id_number, type_id, revision_number)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
-        log_msg = ("[security] Attempt to remove attachment from package (%s) "
-                "by non-owner (%s)" % (id_number, request.user))
+        log_msg = ('[security] Attempt to remove attachment from revision '
+                '(%s) by non-owner (%s)' % (revision_id, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -822,7 +816,7 @@ def remove_attachment(request, id_number, type_id, revision_number):
 
     if not attachment:
         log_msg = ('Attempt to remove a non existing attachment. attachment: '
-                   '%s, package: %s.' % (uid, id_number))
+                   '%s, revision: %s.' % (uid, revision_id))
         log.warning(log_msg)
         return HttpResponseForbidden(
             'There is no such attachment in %s' % escape(
@@ -855,18 +849,17 @@ def download_attachment(request, uid):
 
 @require_POST
 @login_required
-def save(request, id_number, type_id, revision_number=None,
-                 version_name=None):
+def save(request, revision_id, type_id=None):
     """
     Save package and modules
     @TODO: check how dynamic module loading affects save
     """
 
-    revision = get_package_revision(id_number, type_id, revision_number,
-                                    version_name)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
         log_msg = ("[security] Attempt to save package (%s) by "
-                   "non-owner (%s)" % (id_number, request.user))
+                   "non-owner (%s)" % (revision.pk,
+                       request.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
@@ -881,13 +874,12 @@ def save(request, id_number, type_id, revision_number=None,
     jid = request.POST.get('jid', None)
     version_name = request.POST.get('version_name', False)
 
-    # validate package_full_name and version_name
-
     if jid and not validator.is_valid(
         'alphanum_plus', jid):
         return HttpResponseForbidden(escape(
             validator.get_validation_message('alphanum_plus')))
 
+    # validate package_full_name and version_name
     if version_name and not validator.is_valid(
         'alphanum_plus', version_name):
         return HttpResponseForbidden(escape(
@@ -1016,8 +1008,7 @@ def create(request, type_id):
 
     item.save()
 
-    return HttpResponseRedirect(reverse(
-        'jp_%s_latest' % item.get_type_name(), args=[item.id_number]))
+    return HttpResponseRedirect(reverse('jp_latest', args=[item.pk]))
 
 
 @require_POST
@@ -1081,17 +1072,16 @@ def library_autocomplete(request):
 
 @require_POST
 @login_required
-def assign_library(request, id_number, type_id,
-                           revision_number=None, version_name=None):
+def assign_library(request, revision_id):
     " assign library to the package "
-    revision = get_package_revision(id_number, type_id, revision_number,
-                                    version_name)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
-        log_msg = ("[security] Attempt to assign library to package (%s) by "
-                   "non-owner (%s)" % (id_number, request.user))
+        log_msg = ("[security] Attempt to assign library to revision (%s) by "
+                   "non-owner (%s)" % (revision_id, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden('You are not the author of this Package')
 
+    # TODO: make linking work with library_id instead of id number
     library = get_object_or_404(
         Package, type='l', id_number=request.POST['id_number'])
     if request.POST.get('use_latest_version', False):
@@ -1118,17 +1108,18 @@ def assign_library(request, id_number, type_id,
 
 @require_POST
 @login_required
-def remove_library(request, id_number, type_id, revision_number):
+def remove_library(request, revision_id):
     " remove dependency from the library provided via POST "
-    revision = get_package_revision(id_number, type_id, revision_number)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
-        log_msg = ("[security] Attempt to remove library from package (%s) by "
-                   "non-owner (%s)" % (id_number, request.user))
+        log_msg = ("[security] Attempt to remove library from revision (%s) by "
+                   "non-owner (%s)" % (revision_id, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
                 revision.package.get_type_name()))
 
+    # TODO: make unlinking work with library_id instead of id number
     lib_id_number = request.POST.get('id_number')
     library = get_object_or_404(Package, id_number=lib_id_number)
 
@@ -1144,17 +1135,18 @@ def remove_library(request, id_number, type_id, revision_number):
 
 @require_POST
 @login_required
-def update_library(request, id_number, type_id, revision_number):
+def update_library(request, revision_id):
     " update a dependency to a certain version "
-    revision = get_package_revision(id_number, type_id, revision_number)
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     if request.user.pk != revision.author.pk:
-        log_msg = ("[security] Attempt to update library in package (%s) by "
-                   "non-owner (%s)" % (id_number, request.user))
+        log_msg = ("[security] Attempt to update library in revision (%s) by "
+                   "non-owner (%s)" % (revision_id, request.user))
         log.warning(log_msg)
         return HttpResponseForbidden(
             'You are not the author of this %s' % escape(
                 revision.package.get_type_name()))
 
+    # TODO: make updating work with library_id instead of id number
     lib_id_number = request.POST.get('id_number')
     lib_revision = request.POST.get('revision')
 
@@ -1174,8 +1166,8 @@ def update_library(request, id_number, type_id, revision_number):
 
 
 @login_required
-def latest_dependencies(request, id_number, type_id, revision_number):
-    revision = get_package_revision(id_number, type_id, revision_number)
+def latest_dependencies(request, revision_id):
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
     out_of_date = revision.get_outdated_dependency_versions()
 
     return render_json(request,
@@ -1183,21 +1175,16 @@ def latest_dependencies(request, id_number, type_id, revision_number):
 
 
 @never_cache
-def get_revisions_list_html(request, id_number, revision_number=None):
+def get_revisions_list_html(request, revision_id):
     " returns revision list to be displayed in the modal window "
-    package = get_object_with_related_or_404(Package, id_number=id_number)
-    if not package.can_view(request.user):
+    current = get_object_with_related_or_404(PackageRevision, pk=revision_id)
+    if not current.package.can_view(request.user):
         raise Http404
-    revisions = package.revisions.all()
-    if revision_number:
-        current = package.revisions.get(revision_number=revision_number)
-    else:
-        current = None
-    if revision_number:
-        revision_number = int(revision_number)
+    revisions = current.package.revisions.all()
+    revision_number = int(current.revision_number)
     return render(request,
         '_package_revisions_list.html', {
-            'package': package,
+            'package': current.package,
             'revisions': revisions,
             'revision_number': revision_number,
             'current': current})

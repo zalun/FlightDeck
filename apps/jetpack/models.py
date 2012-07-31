@@ -280,7 +280,7 @@ class PackageRevision(BaseModel):
     ###############
 
     def get_cache_hashtag(self):
-        return "%sr%d" % (self.package.id_number, self.revision_number)
+        return "revision-%s" % self.pk
 
     # NAME and FULL_NAME in Revision #############
 
@@ -369,43 +369,31 @@ class PackageRevision(BaseModel):
             if self.package.version.revision_number == self.revision_number:
                 return self.package.get_absolute_url()
             return reverse(
-                'jp_%s_version_details' \
-                % settings.PACKAGE_SINGULAR_NAMES[self.package.type],
-                args=[self.package.id_number, self.version_name])
+                'jp_version_details',
+                args=[self.package.pk, self.version_name])
         return reverse(
-            'jp_%s_revision_details' \
-            % settings.PACKAGE_SINGULAR_NAMES[self.package.type],
-            args=[self.package.id_number, self.revision_number])
+            'jp_revision_details',
+            args=[self.package.pk, self.revision_number])
 
     def get_save_url(self):
         " returns URL to save the package revision "
-        return reverse(
-            'jp_%s_revision_save' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_revision_save', args=[self.pk])
 
     def get_add_module_url(self):
         " returns URL to add module to the package revision "
-        return reverse(
-            'jp_%s_revision_add_module' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_add_module', args=[self.pk])
 
     def get_rename_module_url(self):
         " returns URL to rename module in the package revision "
-        return reverse(
-            'jp_%s_revision_rename_module' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_rename_module', args=[self.pk])
 
     def get_remove_module_url(self):
         " returns URL to remove module from the package revision "
-        return reverse(
-            'jp_%s_revision_remove_module' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_remove_module', args=[self.pk])
 
     def get_upload_attachment_url(self):
         " returns URL to upload attachment to the package revision "
-        return reverse(
-            'jp_%s_revision_upload_attachment' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_upload_attachment', args=[self.pk])
 
     def get_add_attachment_url(self):
         " returns URL to add attachment to the package revision "
@@ -413,49 +401,35 @@ class PackageRevision(BaseModel):
 
     def get_rename_attachment_url(self):
         " returns URL to rename module in the package revision "
-        return reverse(
-            'jp_%s_revision_rename_attachment' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_rename_attachment', args=[self.pk])
 
     def get_remove_attachment_url(self):
         " returns URL to remove attachment from the package revision "
-        return reverse(
-            'jp_%s_revision_remove_attachment' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_remove_attachment', args=[self.pk])
 
     def get_assign_library_url(self):
         " returns url to assign library to the package revision "
-        return reverse(
-            'jp_%s_revision_assign_library' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_assign_library', args=[self.pk])
 
     def get_update_library_url(self):
         " returns url to update library to a specific version "
-        return reverse(
-            'jp_%s_revision_update_library' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_update_library', args=[self.pk])
 
     def get_remove_library_url(self):
         " returns url to remove library from the package revision "
-        return reverse(
-            'jp_%s_revision_remove_library' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_remove_library', args=[self.pk])
 
     def get_test_xpi_url(self):
         " returns URL to test Add-on "
         if self.package.type != 'a':
             raise Exception('XPI might be created only from an Add-on')
-        return reverse(
-            'jp_addon_revision_test',
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_addon_revision_test', args=[self.pk])
 
     def get_download_xpi_url(self):
         " returns URL to download Add-on's XPI "
         if self.package.type != 'a':
             raise Exception('XPI might be created only from an Add-on')
-        return reverse(
-            'jp_addon_revision_xpi',
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_addon_revision_xpi', args=[self.pk])
 
     def get_upload_to_amo_url(self):
         " returns URL to upload to AMO "
@@ -467,30 +441,20 @@ class PackageRevision(BaseModel):
 
     def get_copy_url(self):
         " returns URL to copy the package "
-        return reverse(
-            'jp_%s_revision_copy' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_copy', args=[self.pk])
 
     def get_switch_sdk_url(self):
         " returns URL to switch SDK on the package revision "
-        return reverse(
-            'jp_addon_switch_sdk_version',
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_addon_switch_sdk_version', args=[self.pk])
 
     def get_add_folder_url(self):
-        return reverse(
-            'jp_%s_revision_add_folder' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_add_folder', args=[self.pk])
 
     def get_remove_folder_url(self):
-        return reverse(
-            'jp_%s_revision_remove_folder' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_revision_remove_folder', args=[self.pk])
 
     def get_latest_dependencies_url(self):
-        return reverse(
-            'jp_%s_check_latest_dependencies' % self.package.get_type_name(),
-            args=[self.package.id_number, self.revision_number])
+        return reverse('jp_package_check_latest_dependencies', args=[self.pk])
 
     def get_modules_list_url(self):
         return reverse('jp_revision_get_modules_list', args=[self.pk])
@@ -554,7 +518,7 @@ class PackageRevision(BaseModel):
             'description': escape(self.package.description),
             'author': self.package.author.get_profile().get_nickname(),
             'id': self.package.jid if self.package.is_addon() \
-                    else self.package.id_number,
+                    else self.package.pk,
             'version': version,
             'main': self.module_main,
             'dependencies': self.get_dependencies_list(sdk),
@@ -768,7 +732,7 @@ class PackageRevision(BaseModel):
         """
         revision_numbers = PackageRevision.objects.filter(
                                     author__username=self.author.username,
-                                    package__id_number=self.package.id_number
+                                    package__pk=self.package.pk
                                 ).order_by('-revision_number')
         return revision_numbers[0].revision_number + 1 \
                 if revision_numbers else 1
@@ -1112,7 +1076,7 @@ class PackageRevision(BaseModel):
 
         # a LibraryRevision can't depend on another LibraryRevision
         # linked with the same Library
-        if dep.package.id_number == self.package.id_number:
+        if dep.package.pk == self.package.pk:
             raise SelfDependencyException(
                 'A Library cannot depend on itself!')
 
@@ -1287,10 +1251,7 @@ class PackageRevision(BaseModel):
         " returns modules list as JSON object "
         return [{
                 'path': m.filename,
-                'get_url': reverse('jp_get_module', args=[
-                    self.package.id_number,
-                    self.revision_number,
-                    m.filename])
+                'get_url': reverse('jp_get_module', args=[self.pk, m.filename])
                 } for m in self.modules.all()
             ] if self.modules.count() > 0 else []
 
@@ -1316,7 +1277,8 @@ class PackageRevision(BaseModel):
     def get_sdk_name(self):
         " returns the name of the directory to which SDK should be copied "
         return '%s-%s-%s' % (self.sdk.version,
-                             self.package.id_number, self.revision_number)
+                             self.package.pk,
+                             self.revision_number)
 
     def get_sdk_dir(self, hashtag):
         " returns the path to the directory where the SDK should be copied "
@@ -1712,13 +1674,11 @@ class Package(BaseModel, SearchMixin):
 
     def get_absolute_url(self):
         " returns the URL View Source "
-        return reverse('jp_%s_details' % self.get_type_name(),
-                        args=[self.id_number])
+        return reverse('jp_details', args=[self.pk])
 
     def get_latest_url(self):
         " returns the URL to view the latest saved Revision "
-        return reverse('jp_%s_latest' % self.get_type_name(),
-                        args=[self.id_number])
+        return reverse('jp_latest', args=[self.pk])
 
     def get_latest_revision_number_url(self):
         " returns url to get the latest revision number "
@@ -1726,18 +1686,15 @@ class Package(BaseModel, SearchMixin):
 
     def get_disable_url(self):
         " returns URL to the disable package functionality "
-        return reverse('jp_package_disable',
-                        args=[self.id_number])
+        return reverse('jp_package_disable', args=[self.pk])
 
     def get_activate_url(self):
         " returns URL to activate disabled package "
-        return reverse('jp_package_activate',
-                        args=[self.id_number])
+        return reverse('jp_package_activate', args=[self.pk])
 
     def get_delete_url(self):
         " returns URL to delete package "
-        return reverse('jp_package_delete',
-                        args=[self.id_number])
+        return reverse('jp_package_delete', args=[self.pk])
 
     def get_view_on_amo_url(self):
         " returns the url to view the add-on on AMO "

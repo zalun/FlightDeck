@@ -65,17 +65,17 @@ class TestModules(TestCase):
         self.revision = next(self.revision)
         return self.revision
 
-    def get_add_url(self, revision):
-        args = [self.package.id_number, revision]
-        return reverse('jp_addon_revision_add_module', args=args)
+    def get_add_url(self, revision_number):
+        revision = self.package.revisions.get(revision_number=revision_number)
+        return reverse('jp_package_revision_add_module', args=[revision.pk])
 
-    def get_rename_url(self, revision):
-        args = [self.package.id_number, revision]
-        return reverse('jp_addon_revision_rename_module', args=args)
+    def get_rename_url(self, revision_number):
+        revision = self.package.revisions.get(revision_number=revision_number)
+        return reverse('jp_package_revision_rename_module', args=[revision.pk])
 
-    def get_delete_url(self, revision):
-        args = [self.package.id_number, revision]
-        return reverse('jp_addon_revision_remove_module', args=args)
+    def get_delete_url(self, revision_number):
+        revision = self.package.revisions.get(revision_number=revision_number)
+        return reverse('jp_addon_revision_remove_module', args=[revision.pk])
 
     def test_module_add(self):
         revision = self.add_one('a-module')

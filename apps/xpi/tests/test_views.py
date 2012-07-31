@@ -30,7 +30,7 @@ class TestViews(TestCase):
         self.check_download_url = reverse('jp_check_download_xpi',
                 args=[self.hashtag])
         self.prepare_test_url = reverse('jp_addon_revision_test',
-                args=['1000003', 0])
+                args=[205])
         self.xpi_path = os.path.join(
             settings.XPI_TARGETDIR, '%s.xpi' % self.hashtag)
 
@@ -72,14 +72,13 @@ class TestViews(TestCase):
     def test_hashtag(self):
         revision = PackageRevision.objects.get(pk=205)
         uri = reverse('jp_addon_revision_test',
-            args=[revision.package.id_number, revision.revision_number])
+            args=[revision.pk])
         response = self.client.post(uri, {'hashtag': 'abc/123'})
         eq_(response.status_code, 400)
         response = self.client.post(uri, {'hashtag': self.hashtag})
         eq_(response.status_code, 200)
         response = self.client.post(
-                reverse('jp_addon_revision_xpi', args=[
-                    revision.package.id_number, revision.revision_number]),
+                reverse('jp_addon_revision_xpi', args=[revision.pk]),
                 {'hashtag': 'abc.123'})
         eq_(response.status_code, 400)
         response = self.client.get('/xpi/test/abc/123')
@@ -92,7 +91,7 @@ class TestViews(TestCase):
         addon = Package.objects.create(author=user, type='a',
                 active=False)
         prepare_test_url = reverse('jp_addon_revision_test',
-                args=[addon.id_number, addon.latest.revision_number])
+                args=[addon.latest.pk])
         # test unauthenticated
         response = self.client.post(prepare_test_url, {
             'hashtag': 'abc'})
@@ -118,7 +117,7 @@ class TestViews(TestCase):
         addon = Package.objects.create(author=user, type='a',
                 active=False)
         prepare_download_url = reverse('jp_addon_revision_xpi',
-                args=[addon.id_number, addon.latest.revision_number])
+                args=[addon.latest.pk])
         # test unauthenticated
         response = self.client.post(prepare_download_url, {
             'hashtag': 'abc'})

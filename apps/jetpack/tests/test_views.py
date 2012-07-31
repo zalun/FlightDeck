@@ -66,7 +66,7 @@ class TestPackage(TestCase):
         assert 'save_url' in response.content
         # after setting the addon to private
         response = self.client.get(reverse('jp_package_disable',
-            args=[addon.id_number]))
+            args=[addon.pk]))
         self.client.login(username=user.username, password='secure')
         response = self.client.get(addon.get_absolute_url())
         assert 'save_url' in response.content
@@ -84,8 +84,7 @@ class TestPackage(TestCase):
         # logging in the author
         self.client.login(username=author.username, password='secure')
         # deleting lib
-        response = self.client.get(reverse('jp_package_delete',
-            args=[lib.id_number]))
+        response = self.client.get(reverse('jp_package_delete', args=[lib.pk]))
         eq_(response.status_code, 200)
         response = self.client.get(lib.get_absolute_url())
         # lib deleted - shouldn't be visible by author
@@ -108,7 +107,7 @@ class TestPackage(TestCase):
         self.client.login(username=author.username, password='secure')
         # private on
         response = self.client.get(reverse('jp_package_disable',
-            args=[lib.id_number]))
+            args=[lib.pk]))
         eq_(response.status_code, 200)
         response = self.client.get(lib.get_absolute_url())
         # lib private - should be visible by author
@@ -133,7 +132,7 @@ class TestPackage(TestCase):
         self.client.login(username=author.username, password='secure')
         # private on
         response = self.client.get(reverse('jp_package_disable',
-            args=[lib.id_number]))
+            args=[lib.pk]))
         eq_(response.status_code, 200)
         # logging in the user
         self.client.login(username=user.username, password='secure')
@@ -150,7 +149,7 @@ class TestPackage(TestCase):
         addon = Package.objects.create(
                 full_name='Public Add-on', author=user, type='a')
         response = self.client.get(reverse('jp_revisions_list_html',
-            args=[addon.id_number,]))
+            args=[addon.latest.pk,]))
         eq_(response.status_code, 200)
 
         # Private add-on
@@ -158,13 +157,41 @@ class TestPackage(TestCase):
                 full_name='Priv Add-on', author=user, type='a', active=False)
         # not logged in
         response = self.client.get(reverse('jp_revisions_list_html',
-            args=[addon.id_number,]))
+            args=[addon.latest.pk,]))
         eq_(response.status_code, 404)
         # authenticated
         self.client.login(username=user.username, password='secure')
         response = self.client.get(reverse('jp_revisions_list_html',
-            args=[addon.id_number,]))
+            args=[addon.latest.pk,]))
         eq_(response.status_code, 200)
+
+    def test_urls(self):
+        user = User.objects.get(username='jan')
+        addon = Package.objects.create(author=user, type='a')
+        revision = addon.latest
+        log.debug(revision.get_absolute_url())
+        eq_(revision.get_absolute_url(),
+                '/package/%d/' % revision.package.pk)
+        revision.save()
+        eq_(revision.get_absolute_url(),
+                '/package/%d/revision/%d/' % (revision.package.pk,
+                                              revision.revision_number))
+        revision.set_version('test')
+        version = PackageRevision.objects.get(pk=revision.pk)
+        version_pk = version.pk
+        eq_(revision.get_absolute_url(),
+                '/package/%d/' % revision.package.pk)
+        revision.save()
+        eq_(version.pk, version_pk)
+        eq_(revision.get_absolute_url(),
+                '/package/%d/revision/%s/' % (revision.package.pk,
+                                              revision.revision_number))
+        revision.set_version('test2')
+        eq_(revision.get_absolute_url(),
+                '/package/%d/' % revision.package.pk)
+        eq_(version.get_absolute_url(),
+                '/package/%d/version/%s/' % (version.package.pk,
+                                             version.version_name))
 
 
 class TestEmptyDirs(TestCase):
@@ -192,13 +219,13 @@ class TestEmptyDirs(TestCase):
         self.revision = next_revision(self.revision)
         return self.revision
 
-    def get_add_url(self, revision):
-        args = [self.package.id_number, revision]
-        return reverse('jp_addon_revision_add_folder', args=args)
+    def get_add_url(self, revision_number):
+        revision = self.package.revisions.get(revision_number=revision_number)
+        return reverse('jp_package_revision_add_folder', args=[revision.pk])
 
-    def get_delete_url(self, revision):
-        args = [self.package.id_number, revision]
-        return reverse('jp_addon_revision_remove_folder', args=args)
+    def get_delete_url(self, revision_number):
+        revision = self.package.revisions.get(revision_number=revision_number)
+        return reverse('jp_package_revision_remove_folder', args=[revision.pk])
 
     def test_add_folder(self):
         res = self.post(self.get_add_url(self.revision.revision_number),
@@ -254,7 +281,7 @@ class TestEditing(TestCase):
         rev = addon.latest
         rev.module_add(mod)
         r = self.client.get(
-                reverse('jp_revisions_list_html', args=[addon.id_number]))
+                reverse('jp_revisions_list_html', args=[addon.latest.pk]))
         assert 'test_filename' in r.content
 
     def test_package_name_change(self):
@@ -262,6 +289,7 @@ class TestEditing(TestCase):
         addon1 = Package(author=author, type='a')
         addon1.save()
         rev1 = addon1.latest
+        log.debug(addon1.latest.get_save_url())
         response = self.client.post(addon1.latest.get_save_url(), {
             'full_name': 'FULL NAME'})
         eq_(response.status_code, 200)
@@ -349,6 +377,7 @@ class TestRevision(TestCase):
         author.set_password('secure')
         author.save()
         self.client.login(username=author.username, password='secure')
+        log.debug(addon.latest.get_copy_url())
         response = self.client.get(addon.latest.get_copy_url())
         eq_(response.status_code, 200)
         assert 'Add-on' in response.content
