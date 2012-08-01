@@ -1058,9 +1058,11 @@ def library_autocomplete(request):
 
     ids = (settings.MINIMUM_PACKAGE_ID, settings.MINIMUM_PACKAGE_ID - 1)
     notAddonKit = ~(F(id_number=ids[0]) | F(id_number=ids[1]))
+    onlyMyPrivateLibs = (F(active=True) | F(author=request.user.id))
+    
     try:
         qs = (Package.search().query(or_=package_query(q)).filter(type='l')
-                .filter(notAddonKit))
+                .filter(notAddonKit).filter(onlyMyPrivateLibs))
         found = qs[:limit]
     except Exception, ex:
         log.exception('Library autocomplete error')
