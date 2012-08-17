@@ -1573,7 +1573,9 @@ class Package(BaseModel, SearchMixin):
                 log.debug('[save] IntegrityError - new id_number %s' % self.id_number)
                 return self.save(iteration=iteration, **kwargs)
             elif 'full_name_author_id' in err[1]:
-                self.set_full_name() 
+                self.full_name = _get_full_name(
+                    self.get_type_name_with_dash(),
+                    self.author.username, self.type)
                 log.debug('[save] IntegrityError - full_name_author_id %s' % self.full_name)
                 iteration += 1
                 return self.save(iteration=iteration, **kwargs)
