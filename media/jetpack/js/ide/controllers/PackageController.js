@@ -45,6 +45,7 @@ module.exports = new Class({
         copy_el: 'package-copy',
         test_el: 'try_in_browser',
         download_el: 'download',
+        zip_el: 'zip',
         console_el: 'error-console',
         save_el: 'package-save',
         menu_el: 'UI_Editor_Menu',
@@ -144,7 +145,17 @@ module.exports = new Class({
                 }
                 controller.downloadAddon();
             });
+
         }
+        this.zip_el = dom.$(this.options.zip_el);
+        this.options.zip_url = this.zip_el.getElement('a').get('href');
+        this.zip_el.addListener('click', function(e) {
+            e.preventDefault();
+            if (this.hasClass(LOADING_CLASS)) {
+                return;
+            }
+            controller.zipRevision();
+        });
         this.copy_el = dom.$(this.options.copy_el);
         if (this.copy_el) {
             this.copy_el.addListener('click', function(e) {
@@ -518,6 +529,94 @@ module.exports = new Class({
                 loader.removeClass(LOADING_CLASS);
             }
         }).send();
+    },
+
+    zipRevision: function() {
+        var el = dom.$(this.options.zip_el).getElement('a');
+        var hashtag = this.options.hashtag;
+        var key = 'zip' + hashtag;
+        var filename = this.package_.get('name');
+        var that = this;
+        if (el.hasClass('clicked')) {
+            return;
+        }
+        el.addClass('clicked');
+
+        fd().tests[key] = {
+            spinner: el.addClass('loading').addClass('small')
+        };
+        var data = {
+            hashtag: hashtag,
+            filename: filename
+        };
+        new Request({
+            url: this.options.zip_url,
+            method: 'post',
+            data: data,
+            onComplete: function() {
+                el.removeClass('clicked');
+                // remove spinner
+                el.removeClass('loading').removeClass('small');
+            },
+            onSuccess: function() {
+              var time = fd().options.request_interval;
+              log.debug('[zip] delayed .. try to load ever %d seconds', time / 1000);
+              fd().tests[key].download_request_number = 0;
+              fd().tests[key].zip_ID = setInterval(function() {
+                that.tryDownloadZip(hashtag, filename);
+              }, time);
+            }
+        }).send();
+    },
+
+    /*
+     * Method: tryDownloadXPI
+     *
+     * Try to download XPI
+     * if finished - stop periodical, stop spinner
+     */
+    tryDownloadZip: function (hashtag, filename) {
+        var zip_request = fd().tests['zip' + hashtag];
+        if (!zip_request.download_zip_request || (
+                    zip_request.download_zip_request &&
+                    !zip_request.download_zip_request.isRunning())) {
+            zip_request.download_request_number++;
+            var url = '/revision/check_zip/' + hashtag + '/';
+            log.debug('checking if ' + url + ' is prepared (attempt ' +
+                    zip_request.download_request_number + '/50)');
+            var r = zip_request.download_zip_request = new Request({
+                method: 'get',
+                url: url,
+                timeout: fd().options.request_interval,
+                onSuccess: function(response) {
+                    try {
+                        response = JSON.parse(response);
+                    } catch (jsonError) {
+                        log.warning('JSON error: ', jsonError);
+                        return;
+                    }
+                    if (response.ready || zip_request.download_request_number > 50) {
+                        clearInterval(zip_request.zip_ID);
+                        zip_request.spinner.removeClass('loading');
+                        if (!response.ready) {
+                          fd.error.alert('ZIP download failed',
+                            'ZIP file is not yet prepared, giving up');
+                        }
+                    }
+                    if (response.ready) {
+                        var url = '/revision/download_zip/'+hashtag+'/'+filename+'/';
+                        log.debug('downloading ' + filename + '.zip from ' + url );
+                        dom.window.getNode().location = url;
+                    }
+                }
+            });
+
+            r.addListener('failure', function() {
+                      clearInterval(zip_request.zip_ID);
+                      zip_request.spinner.removeClass('loading');
+            });
+            r.send();
+        }
     },
 
     downloadAddon: function() {

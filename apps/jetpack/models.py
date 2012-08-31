@@ -51,6 +51,7 @@ from utils.helpers import (pathify, alphanum, alphanum_plus, get_random_string,
         sanitize_for_frontend)
 from utils.os_utils import make_path
 from utils.amo import AMOOAuth
+from utils.zip import zipdir
 from xpi import xpi_utils
 
 from elasticutils.utils import retry_on_timeout
@@ -425,6 +426,18 @@ class PackageRevision(BaseModel):
             raise Exception('XPI might be created only from an Add-on')
         return reverse('jp_addon_revision_test', args=[self.pk])
 
+    def get_prepare_zip_url(self):
+        " returns URL to prepare ZIP "
+        return reverse('jp_revision_prepare_zip', args=[self.pk])
+
+    def get_check_zip_url(self, hashtag):
+        " returns URL to check ZIP "
+        return reverse('jp_revision_check_zip', args=[self.pk, hashtag])
+
+    def get_download_zip_url(self, hashtag, filename):
+        " returns URL to download ZIP "
+        return reverse('jp_revision_check_zip', args=[self.pk, hashtag, filename])
+
     def get_download_xpi_url(self):
         " returns URL to download Add-on's XPI "
         if self.package.type != 'a':
@@ -472,11 +485,9 @@ class PackageRevision(BaseModel):
         for contributors in csv_r:
             return contributors
 
-    def get_dependencies_list(self, sdk=None):
+    def get_dependencies_list(self):
         " returns a list of dependencies names extended by default core "
-        # breaking possibility to build jetpack SDK 0.6
-        deps = ["%s" % (dep.name) \
-                     for dep in self.dependencies.all()]
+        deps = ["%s" % (dep.name) for dep in self.dependencies.all()]
         deps.append('api-utils')
         if self.package.is_addon():
             deps.append('addon-kit')
@@ -493,8 +504,7 @@ class PackageRevision(BaseModel):
         " return description prepared for rendering "
         return "<p>%s</p>" % self.get_full_description().replace("\n", "<br/>")
 
-    def get_manifest(self, test_in_browser=False, sdk=None,
-            package_overrides=None):
+    def get_manifest(self, test_in_browser=False, package_overrides=None):
         " returns manifest dictionary "
         version = self.get_version_name()
         if test_in_browser:
@@ -521,7 +531,7 @@ class PackageRevision(BaseModel):
                     else self.package.pk,
             'version': version,
             'main': self.module_main,
-            'dependencies': self.get_dependencies_list(sdk),
+            'dependencies': self.get_dependencies_list(),
             'license': self.package.license,
             'url': str(self.package.url),
             'contributors': self.get_contributors_list(),
@@ -538,9 +548,9 @@ class PackageRevision(BaseModel):
                 manifest[key] = package_overrides.get(key, None) or value
         return manifest
 
-    def get_manifest_json(self, sdk=None, package_overrides=None, **kwargs):
+    def get_manifest_json(self, package_overrides=None, **kwargs):
         " returns manifest as JSOIN object "
-        return simplejson.dumps(self.get_manifest(sdk=sdk,
+        return simplejson.dumps(self.get_manifest(
             package_overrides=package_overrides, **kwargs))
 
     def get_main_module(self):
@@ -1293,6 +1303,97 @@ class PackageRevision(BaseModel):
 
         return self.sdk.kit_lib if self.sdk.kit_lib else self.sdk.core_lib
 
+    def export_source(self, modules=None, attachments=None, tstart=None,
+            temp_dir=None, package_overrides=None):
+        """
+        Export source of the PackageRevision and all it's dependencies
+
+        :param modules: list of modules from editor - potentially unsaved
+        :param attachments: list of aatachments from editor - potentially
+                            unsaved
+        :rtype: String defining the path to exported source
+        """
+        if not tstart:
+            tstart = time.time()
+        if not modules:
+            modules = []
+        if not attachments:
+            attachments = []
+        if not temp_dir:
+            temp_dir = tempfile.mkdtemp()
+        package_dir = self.make_dir(temp_dir)
+        # preparing manifest
+        self.export_manifest(package_dir, package_overrides=package_overrides)
+        t1 = (time.time() - tstart) * 1000
+
+        # export modules with ability to use edited code (from modules var)
+        lib_dir = os.path.join(package_dir, self.get_lib_dir())
+        for mod in self.modules.all():
+            mod_edited = False
+            for e_mod in modules:
+                if e_mod.pk == mod.pk:
+                    mod_edited = True
+                    e_mod.export_code(lib_dir)
+            if not mod_edited:
+                mod.export_code(lib_dir)
+        t2 = (time.time() - (t1 / 1000) - tstart) * 1000
+        statsd.timing('export.modules', t2)
+        log.debug("[export] modules exported (time %dms)" % t2)
+        # export atts with ability to use edited code (from attachments var)
+        # XPI: memory/database/NFS to local
+        data_dir = os.path.join(package_dir, settings.JETPACK_DATA_DIR)
+        for att in self.attachments.all():
+            att_edited = False
+            for e_att in attachments:
+                if e_att.pk == att.pk:
+                    att_edited = True
+                    e_att.export_code(data_dir)
+            if not att_edited:
+                att.export_file(data_dir)
+        t3 = (time.time() - (t2 / 1000) - tstart) * 1000
+        statsd.timing('export.attachments', t3)
+        log.debug("[export] attachments exported (time %dms)" % t3)
+
+        # XPI: copying to local from memory/db/files
+        self.export_dependencies(temp_dir)
+        t4 = (time.time() - (t3 / 1000) - tstart) * 1000
+        statsd.timing('export.dependencies', t4)
+        log.debug("[export] dependencies exported (time %dms)" % t4)
+        if not os.path.isdir(temp_dir):
+            log.error("[export] An attempt to export add-on (%s) failed." %
+                    self.get_version_name())
+            raise IntegrityError("Failed to export source")
+        return temp_dir
+
+    def zip_source(self, modules=None, attachments=None, hashtag=None,
+            tstart=None, package_overrides=None):
+        """
+        Compress exported sources into a zip file, return path to the file
+        """
+        if not tstart:
+            tstart = time.time()
+        if not hashtag:
+            log.error("[zip] Attempt to build add-on (%s) but it's missing a "
+                      "hashtag.  Failing." % self.get_version_name())
+            raise IntegrityError("Hashtag is required to create an xpi.")
+        # export sources
+        temp_dir = self.export_source(modules, attachments, tstart)
+        # zip data
+        zip_targetname = "%s.zip" % hashtag
+        zip_targetpath = os.path.join(settings.XPI_TARGETDIR, zip_targetname)
+        t1 = (time.time() - tstart) * 1000
+        try:
+            zipdir(temp_dir, zip_targetpath)
+        except Exception, err:
+            log.error("[zip] An attempt to compress add-on (%s) failed.\n%s" % (
+                self.get_version_name(), err))
+            raise
+        t2 = (time.time() - (t1 / 1000) - tstart) * 1000
+        statsd.timing('zip.zipped', t2)
+        shutil.rmtree(temp_dir)
+        log.debug("[zip] directory compressed (time %dms)" % t2)
+        return zip_targetpath
+
     def build_xpi(self, modules=None, attachments=None, hashtag=None,
             tstart=None, sdk=None, package_overrides=None):
         """
@@ -1344,8 +1445,7 @@ class PackageRevision(BaseModel):
         packages_dir = os.path.join(sdk_dir, 'packages')
         package_dir = self.make_dir(packages_dir)
         # XPI: create manifest (from memory to local)
-        self.export_manifest(package_dir, sdk=sdk,
-                package_overrides=package_overrides)
+        self.export_manifest(package_dir, package_overrides=package_overrides)
 
         # export modules with ability to use edited code (from modules var)
         # XPI: memory/database to local
@@ -1402,11 +1502,11 @@ class PackageRevision(BaseModel):
             f.write('private-key:%s\n' % self.package.private_key)
             f.write('public-key:%s' % self.package.public_key)
 
-    def export_manifest(self, package_dir, sdk=None, package_overrides=None):
+    def export_manifest(self, package_dir, package_overrides=None):
         """Creates a file with an Add-on's manifest."""
         manifest_file = "%s/package.json" % package_dir
         with codecs.open(manifest_file, mode='w', encoding='utf-8') as f:
-            f.write(self.get_manifest_json(sdk=sdk,
+            f.write(self.get_manifest_json(
                 package_overrides=package_overrides))
 
     def export_modules(self, lib_dir):
@@ -1429,7 +1529,7 @@ class PackageRevision(BaseModel):
         package_dir = self.make_dir(packages_dir)
         if not package_dir:
             return
-        self.export_manifest(package_dir, sdk=sdk)
+        self.export_manifest(package_dir)
         self.export_modules(
             os.path.join(package_dir, self.get_lib_dir()))
         self.export_attachments(

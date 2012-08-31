@@ -366,6 +366,19 @@ class TestEditing(TestCase):
 class TestRevision(TestCase):
     fixtures = ('mozilla_user', 'core_sdk', 'users', 'packages')
 
+    def setUp(self):
+        self.hashtag = hashtag()
+        self.xpi_file = os.path.join(settings.XPI_TARGETDIR,
+                "%s.xpi" % self.hashtag)
+        self.zip_file = os.path.join(settings.XPI_TARGETDIR,
+                "%s.zip" % self.hashtag)
+
+    def tearDown(self):
+        if os.path.exists(self.xpi_file):
+            os.remove(self.xpi_file)
+        if os.path.exists(self.zip_file):
+            os.remove(self.zip_file)
+
     def test_copy_revision(self):
         author = User.objects.get(username='john')
         addon = Package(author=author, type='a')
@@ -474,3 +487,34 @@ class TestRevision(TestCase):
         # there should be other package with the name created from FIXABLE
         eq_(Package.objects.filter(
             author=author, full_name__contains='Integrity Error').count(), 2)
+
+    def test_prepare_zip_file(self):
+        author = User.objects.get(username='john')
+        addon = Package(author=author, type='a')
+        addon.save()
+        prepare_url = addon.latest.get_prepare_zip_url()
+        response = self.client.post(prepare_url, {'hashtag': self.hashtag})
+        eq_(response.status_code, 200)
+        eq_(response.content, '{"delayed": true}')
+
+    def test_check_zip_file(self):
+        author = User.objects.get(username='john')
+        addon = Package(author=author, type='a')
+        addon.save()
+        check_url = reverse('jp_revision_check_zip', args=[self.hashtag,])
+        response = self.client.get(check_url)
+        eq_(response.content, '{"ready": false}')
+        addon.latest.zip_source(hashtag=self.hashtag)
+        response = self.client.get(check_url)
+        eq_(response.status_code, 200)
+        eq_(response.content, '{"ready": true}')
+
+    def test_download_zip_file(self):
+        author = User.objects.get(username='john')
+        addon = Package(author=author, type='a')
+        addon.save()
+        addon.latest.zip_source(hashtag=self.hashtag)
+        download_url = reverse('jp_revision_download_zip', args=[self.hashtag, 'x'])
+        response = self.client.get(download_url)
+        eq_(response.status_code, 200)
+        eq_(response['Content-Disposition'], 'attachment; filename="x.zip"')

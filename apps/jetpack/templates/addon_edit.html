@@ -44,6 +44,9 @@
 	<li id="download" title="Download" class="UI_Editor_Menu_Button Icon_download">
     <a href="{{ revision.get_download_xpi_url() }}"><span></span></a>
 	</li>
+	<li id="zip" title="Download Source" class="UI_Editor_Menu_Button Icon_zip">
+    <a href="{{ revision.get_prepare_zip_url() }}"><span></span></a>
+	</li>
     {#
 	<li id="upload_to_amo" title="Upload" class="UI_Editor_Menu_Button Icon_upload">
     <a target="_}ew" href="{{ revision.get_upload_to_amo_url() }}"><span></span></a>

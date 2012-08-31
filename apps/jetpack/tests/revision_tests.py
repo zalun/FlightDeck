@@ -2,6 +2,7 @@
 import commonware
 import tempfile
 import os
+import shutil
 import datetime
 import decimal
 
@@ -34,10 +35,17 @@ class PackageRevisionTest(TestCase):
         self.hashtag = hashtag()
         self.xpi_file = os.path.join(settings.XPI_TARGETDIR,
                 "%s.xpi" % self.hashtag)
+        self.zip_file = os.path.join(settings.XPI_TARGETDIR,
+                "%s.zip" % self.hashtag)
+        self.temp_dir = tempfile.mkdtemp()
 
     def tearDown(self):
         if os.path.exists(self.xpi_file):
             os.remove(self.xpi_file)
+        if os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir)
+        if os.path.exists(self.zip_file):
+            os.remove(self.zip_file)
 
     def test_first_revision_creation(self):
         addon = Package(author=self.author, type='a')
@@ -495,6 +503,25 @@ class PackageRevisionTest(TestCase):
     def test_cached_hashtag(self):
         assert validator.is_valid('alphanum',
                 self.addon.latest.get_cache_hashtag())
+
+    def test_export_source(self):
+        self.addon.latest.dependency_add(self.library.latest)
+        d = self.addon.latest.export_source(temp_dir=self.temp_dir)
+        eq_(d, self.temp_dir)
+        assert os.path.exists(os.path.join(d, self.addon.name))
+        assert os.path.exists(os.path.join(d, self.addon.name, 'package.json'))
+        assert os.path.exists(os.path.join(d, self.library.name))
+        assert os.path.exists(os.path.join(d, self.library.name,
+            'package.json'))
+
+    def test_zip_source(self):
+        self.addon.latest.zip_source(hashtag=self.hashtag)
+        assert os.path.isfile(self.zip_file)
+
+    def test_zip_lib(self):
+        self.library.latest.zip_source(hashtag=self.hashtag)
+        assert os.path.isfile(self.zip_file)
+
 
     """
     Althought not supported on view and front-end,
