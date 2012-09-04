@@ -80,7 +80,7 @@
 	<div id="editor-menu-wrapper">
 		<ul class="UI_Editor_Menu">
 			{% block app_content_menu_items %}{% endblock %}
-			{% if not revision.package.is_core() %}
+			{% if revision.package.public_permission != 2 %}
 			<li id="zip" title="Download Source" class="UI_Editor_Menu_Button Icon_zip">
 			<a href="{{ revision.get_prepare_zip_url() }}"><span></span></a>
 			</li>
