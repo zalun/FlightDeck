@@ -77,7 +77,7 @@ def build(sdk_dir, package_dir, filename, hashtag, tstart=None, options=None,
     info_targetpath = os.path.join(settings.XPI_TARGETDIR, info_targetfilename)
 
     env = dict(PATH='%s/bin:%s' % (sdk_dir, os.environ['PATH']),
-               DISPLAY=os.environ['DISPLAY'],
+            DISPLAY=os.environ.get('DISPLAY', ':0'),
                VIRTUAL_ENV=sdk_dir,
                CUDDLEFISH_ROOT=sdk_dir,
                PYTHONPATH=os.path.join(sdk_dir, 'python-lib'))
