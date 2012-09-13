@@ -18,7 +18,7 @@
 			{% endfor %}
 		</ul>
 		{% if packages.all_public_addons > packages.public_addons.count() %}
-		<a title="See all Public Add-ons" href="{{ url('person_addons') }}">Show more...</a>
+		<p class="UI_SeeMore UI_SeeMoreBrowser"><a title="See all Public Add-ons" href="{{ url('person_addons') }}">Show more...</a></p>
 		{% endif %}
 	{% endif %}
 	
@@ -32,7 +32,7 @@
 			{% endfor %}
 		</ul>
 		{% if packages.all_public_libraries > packages.public_libraries.count() %}
-		<a title="See all Public Add-ons" href="{{ url('person_libraries') }}">Show more...</a>
+		<p class="UI_SeeMore UI_SeeMoreBrowser"><a title="See all Public Add-ons" href="{{ url('person_libraries') }}">Show more...</a></p>
 		{% endif %}
 	{% endif %}
 {% endblock %}
