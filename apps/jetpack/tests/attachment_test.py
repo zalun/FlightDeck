@@ -125,6 +125,27 @@ class AttachmentTest(TestCase):
         assert os.path.isfile(attachment.get_file_path())
         assert attachment.read()
 
+    def test_attachment_with_kanji_from_web(self):
+        url = ("file://%s/apps/jetpack/tests/"
+                "sample_attachment_kanji_UTF8_without_BOM.json") % settings.ROOT
+        URLField.clean = Mock(return_value=url)
+        addon = Package.objects.create(
+                type='a',
+                author=self.author)
+        self.author.set_password('secure')
+        self.author.save()
+        self.client.login(username=self.author.username, password='secure')
+        response = self.client.post(addon.latest.get_add_attachment_url(), {
+            'url': url,
+            'filename': 'sample_attachment_kanji_UTF8_without_BOM.json',
+            'force_contenttype': 'utf-8'})
+        eq_(response.status_code, 200)
+        addon = Package.objects.get(author=self.author)
+        eq_(addon.latest.revision_number, 1)
+        attachment = addon.latest.attachments.get()
+        eq_('sample_attachment_kanji_UTF8_without_BOM', attachment.filename)
+        assert os.path.isfile(attachment.get_file_path())
+        assert attachment.read()
 
     def test_create_image_attachment(self):
         " test simply shouldn't raise any errors "
