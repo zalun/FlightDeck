@@ -24,41 +24,47 @@
 	</div>
 
 	<ul class="UI_Action_List">
-		{% if addons %}
+		{% if packages.public_addons %}
 			<li>
             <a title="Add-ons" href="{{ profile.get_addons_url() }}">Add-ons</a> 
-				<strong>({{ addons|length }})</strong>
+				<strong>({{ packages.all_public_addons }})</strong>
 			</li>
 		{% endif %}
-		{% if libraries %}
+		{% if packages.public_libraries %}
 			<li>
             <a title="Libraries" href="{{ profile.get_libraries_url() }}">Libraries</a> 
-				<strong>({{ libraries|length }})</strong>
+				<strong>({{ packages.all_public_libraries }})</strong>
 			</li>
 		{% endif %}
 	</ul>
 {% endblock %}
 
 {% block app_content %}
-	{% if addons %}
+	{% if packages.public_addons %}
 		<h2 class="UI_Heading">Add-ons</h2>
 		<ul class="UI_Browser">
-			{% for item in addons %}
+			{% for item in packages.public_addons %}
 				<li class="UI_Item">
 					{% include "_package_browser_addon.html" %}
 				</li>
 			{% endfor %}
 		</ul>
+		{% if packages.all_public_addons > packages.public_addons.count() %}
+		<a title="See all Add-ons" href="{{ profile.get_addons_url() }}">Show more...</a>
+		{% endif %}
 	{% endif %}
 	
-	{% if libraries %}
+	{% if packages.public_libraries %}
 		<h2 class="UI_Heading">Libraries</h2>
 		<ul class="UI_Browser">
-			{% for item in libraries %}
+			{% for item in packages.public_libraries %}
 				<li class="UI_Item">
 					{% include "_package_browser_library.html" %}
 				</li>
 			{% endfor %}
 		</ul>
+		{% if packages.all_public_libraries > packages.public_libraries.count() %}
+		<a title="See all Add-ons" href="{{ profile.get_libraries_url() }}">Show more...</a>
+		{% endif %}
 	{% endif %}
 {% endblock %}

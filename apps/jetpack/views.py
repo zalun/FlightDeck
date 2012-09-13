@@ -83,11 +83,16 @@ def browser(request, page_number=1, type_id=None, username=None):
     except (EmptyPage, InvalidPage):
         raise Http404
 
+    packages = {
+            "all_public_addons": author.packages_originated.addons().active().count(),
+            "all_public_libraries": author.packages_originated.libraries().active().count()}
     return render(request,
         'package_browser%s.html' % template_suffix, {
             'pager': pager,
             'single': False,
             'author': author,
+            'person': author,
+            'packages': packages,
             'other_packages_number': other_packages_number
         })
 
@@ -1059,7 +1064,7 @@ def library_autocomplete(request):
     ids = (settings.MINIMUM_PACKAGE_ID, settings.MINIMUM_PACKAGE_ID - 1)
     notAddonKit = ~(F(id_number=ids[0]) | F(id_number=ids[1]))
     onlyMyPrivateLibs = (F(active=True) | F(author=request.user.id))
-    
+
     try:
         qs = (Package.search().query(or_=package_query(q)).filter(type='l')
                 .filter(notAddonKit).filter(onlyMyPrivateLibs))

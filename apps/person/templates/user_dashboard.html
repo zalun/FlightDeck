@@ -8,25 +8,31 @@
 {% endblock %}
 
 {% block app_content %}
-	{% if addons %}
+	{% if packages.public_addons %}
 		<h2 class="UI_Heading">Your Latest Add-ons</h2>
 		<ul class="UI_Browser">
-			{% for item in addons %}
+			{% for item in packages.public_addons %}
 				<li class="UI_Item">
 					{% include "_dashboard_addon.html" %}
 				</li>
 			{% endfor %}
 		</ul>
+		{% if packages.all_public_addons > packages.public_addons.count() %}
+		<a title="See all Public Add-ons" href="{{ url('person_addons') }}">Show more...</a>
+		{% endif %}
 	{% endif %}
 	
-	{% if libraries %}
+	{% if packages.public_libraries %}
 		<h2 class="UI_Heading">Your Latest Libraries</h2>
 		<ul class="UI_Browser">
-			{% for item in libraries %}
+			{% for item in packages.public_libraries %}
 				<li class="UI_Item">
 					{% include "_package_browser_library.html" %}
 				</li>
 			{% endfor %}
 		</ul>
+		{% if packages.all_public_libraries > packages.public_libraries.count() %}
+		<a title="See all Public Add-ons" href="{{ url('person_libraries') }}">Show more...</a>
+		{% endif %}
 	{% endif %}
 {% endblock %}

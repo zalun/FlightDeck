@@ -33,24 +33,47 @@ def public_profile(r, username):
         raise Http404
     person = profile.user
     addons = person.packages_originated.addons().active()
+    all_addons = addons.count()
     libraries = person.packages_originated.libraries().active()
+    all_libraries = libraries.count()
+    packages = {
+            "public_addons": addons[:3],
+            "public_libraries": libraries[:3],
+            "all_public_addons": all_addons,
+            "all_public_libraries": all_libraries}
     # if owner of the profile and not specially wanted to see it - redirect
     # to dashboard
     return render_to_response("profile.html", {
         'page': page,
         'person': person,
         'profile': profile,
-        'addons': addons,
-        'libraries': libraries
+        'packages': packages
     }, context_instance=RequestContext(r))
 
 
-def get_packages(person):
+def get_packages(person, limit=None):
     addons = person.packages_originated.addons().active()
+    all_public_addons = addons.count()
     libraries = person.packages_originated.libraries().active()
+    all_public_libraries = libraries.count()
     disabled_addons = person.packages_originated.disabled().filter(type='a')
+    all_disabled_addons = disabled_addons.count()
     disabled_libraries = person.packages_originated.disabled().filter(type='l')
-    return addons, libraries, disabled_addons, disabled_libraries
+    all_disabled_libraries = disabled_libraries.count()
+    if limit:
+        addons = addons[:limit]
+        libraries = libraries[:limit]
+        disabled_addons = disabled_addons[:limit]
+        disabled_libraries = disabled_libraries[:limit]
+    return {
+            'public_addons': addons,
+            'public_libraries': libraries,
+            'disabled_addons': disabled_addons,
+            'disabled_libraries': disabled_libraries,
+            'all_public_addons': all_public_addons,
+            'all_public_libraries': all_public_libraries,
+            'all_disabled_addons': all_disabled_addons,
+            'all_disabled_libraries': all_disabled_libraries}
 
 
 @login_required
@@ -58,17 +81,13 @@ def dashboard(r):
     """
     Dashboard of the user
     """
-    page = "dashboard"
+    page = 'dashboard'
     person = r.user
-    (addons, libraries,
-     disabled_addons, disabled_libraries) = get_packages(person)
-    return render_to_response("user_dashboard.html", {
+    packages = get_packages(person, 3)
+    return render_to_response('user_dashboard.html', {
         'page': page,
         'person': person,
-        'addons': addons,
-        'libraries': libraries,
-        'disabled_addons': disabled_addons,
-        'disabled_libraries': disabled_libraries
+        'packages': packages
     }, context_instance=RequestContext(r))
 
 
@@ -97,18 +116,14 @@ def dashboard_browser(r, page_number=1, type=None, disabled=False):
         orphans=1
     ).page(page_number)
 
-    (addons, libraries, disabled_addons,
-     disabled_libraries) = get_packages(author)
+    all_packages = get_packages(author)
 
     return render_to_response(
         'user_%s.html' % template_suffix, {
             'pager': pager,
             'author': author,
-            'addons': addons,
+            'packages': all_packages,
             'disabled': disabled,
-            'libraries': libraries,
-            'disabled_addons': disabled_addons,
-            'disabled_libraries': disabled_libraries,
             'other_packages_number': other_packages_number,
             'other_type': other_type
         }, context_instance=RequestContext(r))

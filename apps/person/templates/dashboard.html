@@ -39,22 +39,22 @@
   <ul class="UI_Action_List">
     <li>
       <a title="Public Add-ons" href="{{ url('person_addons') }}">Public Add-ons</a> 
-      <strong>(<span id="public_addons_no">{{ addons|length }}</span>)</strong>
+      <strong>(<span id="public_addons_no">{{ packages.all_public_addons }}</span>)</strong>
     </li>
     <li>
       <a title="Public Libraries" href="{{ url('person_libraries') }}">Public Libraries</a> 
-      <strong>(<span id="public_libs_no">{{ libraries|length }}</span>)</strong>
+      <strong>(<span id="public_libs_no">{{ packages.all_public_libraries }}</span>)</strong>
     </li>
   </ul>
 
   <ul class="UI_Action_List">
     <li>
       <a title="Private Add-ons" href="{{ url('person_disabled_addons') }}">Private Add-ons</a> 
-      <strong>(<span id="private_addons_no">{{ disabled_addons|length }}</span>)</strong>
+      <strong>(<span id="private_addons_no">{{ packages.all_disabled_addons }}</span>)</strong>
     </li>
     <li>
       <a title="Private Libraries" href="{{ url('person_disabled_libraries') }}">Private Libraries</a> 
-      <strong>(<span id="private_libs_no">{{ disabled_libraries|length }}</span>)</strong>
+      <strong>(<span id="private_libs_no">{{ packages.all_disabled_libraries }}</span>)</strong>
     </li>
   </ul>
 {% endblock %}

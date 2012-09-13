@@ -5,6 +5,32 @@
 {% block head %}
 	<link rel="stylesheet" href="/media/jetpack/css/UI.Browser.css" type="text/css" media="screen" />
 {% endblock %}
+
+{% block app_sidebar %}
+{% if profile %}
+	<h2 class="UI_Heading">{{ profile.get_name()}}</h2>
+	
+	<div class="UI_ProfileInfo">
+		{% include "_profile_info.html" %}
+	</div>
+
+	<ul class="UI_Action_List">
+		{% if packages.all_public_addons %}
+			<li>
+            <a title="Add-ons" href="{{ profile.get_addons_url() }}">Add-ons</a> 
+				<strong>({{ packages.all_public_addons }})</strong>
+			</li>
+		{% endif %}
+		{% if packages.all_public_libraries %}
+			<li>
+            <a title="Libraries" href="{{ profile.get_libraries_url() }}">Libraries</a> 
+				<strong>({{ packages.all_public_libraries }})</strong>
+			</li>
+		{% endif %}
+	</ul>
+{% endif %}
+{% endblock %}
+
 {% block app_content %}
 	{% if pager.paginator.object_list %}
 		{% block page_content %}{% endblock %}
