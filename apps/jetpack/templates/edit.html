@@ -92,6 +92,10 @@
     <div id="editor-menu-wrapper">
         <ul class="UI_Editor_Menu">
             {% block app_content_menu_items %}{% endblock %}
+			<li id="zip" title="Download Source" class="UI_Editor_Menu_Button Icon_zip">
+			<a href="{{ revision.get_prepare_zip_url() }}"><span></span></a>
+			</li>
+			<li class="UI_Editor_Menu_Separator"></li>
             <li title="Save" class="UI_Editor_Menu_Button Icon_save">
                 <a id="package-save" href="#"><span></span></a>
             </li>
@@ -110,7 +114,6 @@
                     </fieldset>
                 </form>
             </li>
-            <li class="UI_Editor_Menu_Separator"></li>
             {% if revision.package.public_permission != 2 %}
                 <li id="package-copy" title="Copy" class="UI_Editor_Menu_Button Icon_copy">
                 <a href="#"><span></span></a>

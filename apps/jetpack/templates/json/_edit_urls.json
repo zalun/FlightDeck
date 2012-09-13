@@ -3,6 +3,7 @@
 	"save_url": "{{ revision.get_save_url() }}",
 	"view_url": "{{ revision.package.get_latest_url() }}",
 	"copy_url": "{{ revision.get_copy_url() }}",
+  "zip_url": "{{ revision.get_prepare_zip_url() }}",
   "switch_sdk_url": "{{ revision.get_switch_sdk_url() }}",
 	"add_module_url": "{{ revision.get_add_module_url() }}",
 	"rename_module_url": "{{ revision.get_rename_module_url() }}",

@@ -135,4 +135,12 @@ urlpatterns = patterns('jetpack.views',
     # check libraries for latest versions
     url(r'package/check_latest_dependencies/(?P<revision_id>\d+)/$',
         'latest_dependencies', name='jp_package_check_latest_dependencies'),
+
+# zip file
+    url(r'^revision/prepare_zip/(?P<revision_id>\d+)/$',
+        'prepare_zip', name='jp_revision_prepare_zip'),
+    url(r'^revision/download_zip/(?P<hashtag>[a-zA-Z0-9]+)/(?P<filename>.*)/$',
+        'get_zip', name='jp_revision_download_zip'),
+    url(r'^revision/check_zip/(?P<hashtag>[a-zA-Z0-9]+)/$',
+        'check_zip', name='jp_revision_check_zip'),
 )

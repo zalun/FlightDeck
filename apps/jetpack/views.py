@@ -7,10 +7,14 @@ import shutil
 import codecs
 import tempfile
 import urllib2
+import time
+
 from simplejson import JSONDecodeError
+from statsd import statsd
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse
+from django.core.cache import cache
 from django.db import transaction
 from django.views.static import serve
 from django.shortcuts import get_object_or_404
@@ -24,11 +28,13 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q, ObjectDoesNotExist
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.template.defaultfilters import escape
 from django.conf import settings
 from django.utils import simplejson
 from django.forms.fields import URLField
 
+from tasks import zip_source
 from base.shortcuts import get_object_with_related_or_404
 from utils import validator
 from utils.helpers import pathify, render, render_json
@@ -1223,3 +1229,75 @@ def get_revision_conflicting_modules_list(request, pk):
     revision = get_object_or_404(PackageRevision, pk=pk)
     return HttpResponse(simplejson.dumps(
         revision.get_conflicting_module_names()), mimetype="application/json")
+
+def _get_zip_cache_key(request, hashtag):
+    session = request.session.session_key
+    return 'zip:timing:queued:%s:%s' % (hashtag, session)
+
+@csrf_exempt
+@require_POST
+def prepare_zip(request, revision_id):
+    """
+    Prepare download zip  This package is built asynchronously and we assume
+    it works. It will be downloaded in %``get_zip``
+    """
+    revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
+    if (not revision.package.active and user != revision.package.author):
+        # pretend package doesn't exist as it's private
+        raise Http404()
+    hashtag = request.POST.get('hashtag')
+    if not hashtag:
+        return HttpResponseForbidden('Add-on Builder has been updated!'
+                'We have updated this part of the application. Please '
+                'empty your cache and reload to get changes.')
+    if not validator.is_valid('alphanum', hashtag):
+        log.warning('[security] Wrong hashtag provided')
+        return HttpResponseBadRequest("{'error': 'Wrong hashtag'}")
+    log.info('[zip:%s] Addon added to queue' % hashtag)
+    # caching
+    tqueued = time.time()
+    tkey = _get_zip_cache_key(request, hashtag)
+    cache.set(tkey, tqueued, 120)
+    # create zip file
+    zip_source(pk=revision.pk, hashtag=hashtag, tqueued=tqueued)
+    return HttpResponse('{"delayed": true}')
+
+@never_cache
+def get_zip(request, hashtag, filename):
+    """
+    Download zip (it has to be ready)
+    """
+    if not validator.is_valid('alphanum', hashtag):
+        log.warning('[security] Wrong hashtag provided')
+        return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
+    path = os.path.join(settings.XPI_TARGETDIR, '%s.zip' % hashtag)
+    log.info('[zip:%s] Downloading Addon from %s' % (filename, path))
+
+    tend = time.time()
+    tkey = _get_zip_cache_key(request, hashtag)
+    tqueued = cache.get(tkey)
+    if tqueued:
+        ttotal = (tend - tqueued) * 1000
+        statsd.timing('zip.total', ttotal)
+        total = '%dms' % ttotal
+    else:
+        total = 'n/a'
+
+    log.info('[zip:%s] Downloading Add-on (%s)' % (hashtag, total))
+
+    response = serve(request, path, '/', show_indexes=False)
+    response['Content-Disposition'] = ('attachment; '
+            'filename="%s.zip"' % filename)
+    return response
+
+@never_cache
+def check_zip(r, hashtag):
+    """Check if zip file is prepared."""
+    if not validator.is_valid('alphanum', hashtag):
+        log.warning('[security] Wrong hashtag provided')
+        return HttpResponseForbidden("{'error': 'Wrong hashtag'}")
+    path = os.path.join(settings.XPI_TARGETDIR, '%s.zip' % hashtag)
+    # Check file if it exists
+    if os.path.isfile(path):
+        return HttpResponse('{"ready": true}')
+    return HttpResponse('{"ready": false}')

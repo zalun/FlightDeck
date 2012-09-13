@@ -21,7 +21,7 @@ def index_all():
     with establish_connection() as conn:
         for chunk in chunked(ids, 100):
             tasks.index_all.apply_async(args=[chunk], connection=conn)
-    
+
 
 @cronjobs.register
 def setup_mapping():
