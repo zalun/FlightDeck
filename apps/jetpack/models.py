@@ -12,6 +12,7 @@ import codecs
 import waffle
 from decimal import Decimal, getcontext
 from copy import deepcopy
+from distutils.version import LooseVersion
 
 from django.core.exceptions import (ObjectDoesNotExist, ValidationError,
         MultipleObjectsReturned)
@@ -2502,7 +2503,8 @@ class SDK(BaseModel):
         return os.path.join(settings.SDK_SOURCE_DIR, self.dir)
 
     def is_deprecated(self):
-        return self.version < settings.LOWEST_APPROVED_SDK
+        return LooseVersion(self.version) < LooseVersion(
+                                                settings.LOWEST_APPROVED_SDK)
 
     def delete(self, purge=True, *args, **kwargs):
         """Override delete method to allow purging
