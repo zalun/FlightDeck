@@ -17,7 +17,7 @@ from django.core.urlresolvers import reverse
 from django.core.cache import cache
 from django.db import transaction
 from django.views.static import serve
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404
 from django.http import (HttpResponseRedirect, HttpResponse,
                         HttpResponseForbidden, HttpResponseServerError,
                         Http404, HttpResponseBadRequest)  # , QueryDict
@@ -54,10 +54,53 @@ log = commonware.log.getLogger('f.jetpack')
 
 def browser(request, page_number=1, type_id=None, username=None):
     """
-    Obsolete, since browsing is now done from the Search app.
+    Display a list of addons or libraries with pages
+    Filter based on the request (type_id, username).
     """
-    return redirect('/search/?type=%s' % type_id, permanent=True)
+    # calculate which template to use
+    template_suffix = ''
+    packages = Package.objects.active()
 
+    author = None
+    if username:
+        try:
+            profile = Profile.objects.get_user_by_username_or_nick(username)
+        except ObjectDoesNotExist:
+            raise Http404
+        author = profile.user
+        packages = packages.filter(author__pk=author.pk)
+        template_suffix = '%s_user' % template_suffix
+    if type_id:
+        other_type = 'l' if type_id == 'a' else 'a'
+        other_packages_number = len(packages.filter(type=other_type))
+        packages = packages.filter(type=type_id)
+        template_suffix = '%s_%s' % (template_suffix,
+                                     settings.PACKAGE_PLURAL_NAMES[type_id])
+
+    packages = packages.sort_recently_active()
+    limit = request.GET.get('limit', settings.PACKAGES_PER_PAGE)
+
+    try:
+        pager = Paginator(
+            packages,
+            per_page=limit,
+            orphans=1
+        ).page(page_number)
+    except (EmptyPage, InvalidPage):
+        raise Http404
+
+    packages = {
+            "all_public_addons": author.packages_originated.addons().active().count(),
+            "all_public_libraries": author.packages_originated.libraries().active().count()}
+    return render(request,
+        'package_browser%s.html' % template_suffix, {
+            'pager': pager,
+            'single': False,
+            'author': author,
+            'person': author,
+            'packages': packages,
+            'other_packages_number': other_packages_number
+        })
 
 
 def view_or_edit(request, pk=None, id_number=None, type_id=None,
