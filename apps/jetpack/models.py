@@ -60,7 +60,7 @@ from elasticutils.utils import retry_on_timeout
 
 log = commonware.log.getLogger('f.jetpack')
 
-EDITABLE_EXTENSIONS = ("html", "css", "js", "txt")
+EDITABLE_EXTENSIONS = ("html", "css", "js", "txt", "xml", "json")
 
 def make_name(value=None):
     " wrap for slugify "
@@ -2380,24 +2380,29 @@ class Attachment(BaseModel):
         try:
             with codecs.open(self.get_file_path(), **kwargs) as f:
                 f.write(data)
-        except UnicodeDecodeError, err:
-            log.error('Attachment write failure (UTF8 decode): (%s)\n%s' % (
-                self.pk, str(err)))
-            raise AttachmentWriteException(
-                'Attachment failed to save properly<br/>'
-                'Unknown Unicode in file')
-        except UnicodeEncodeError, err:
-            log.error('Attachment write failure (UTF8 encode): (%s)\n%s' % (
-                self.pk, str(err)))
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            tb = traceback.format_exception(exc_type, exc_value, exc_traceback)
+        except UnicodeDecodeError, UnicodeEncodeError:
+            data = unicode(data, 'utf-8')
+            try:
+                with codecs.open(self.get_file_path(), **kwargs) as f:
+                    f.write(data)
+            except UnicodeDecodeError, err:
+                log.error('Attachment write failure (UTF8 decode): (%s)\n%s' % (
+                    self.pk, str(err)))
+                raise AttachmentWriteException(
+                    'Attachment failed to save properly<br/>'
+                    'Unknown Unicode in file')
+            except UnicodeEncodeError, err:
+                log.error('Attachment write failure (UTF8 encode): (%s)\n%s' % (
+                    self.pk, str(err)))
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                tb = traceback.format_exception(exc_type, exc_value, exc_traceback)
 
-            mail_admins(
-                    'Unicode Encode in writing attachment',
-                    "Attachment [%d] writing error\n\n %s" % (self.pk, tb))
-            raise AttachmentWriteException(
-                'Attachment failed to save properly<br/>'
-                'Unknown Unicode in file')
+                mail_admins(
+                        'Unicode Encode in writing attachment',
+                        "Attachment [%d] writing error\n\n %s" % (self.pk, tb))
+                raise AttachmentWriteException(
+                    'Attachment failed to save properly<br/>'
+                    'Unknown Unicode in file')
 
 
     def export_code(self, static_dir):
