@@ -1242,7 +1242,7 @@ def prepare_zip(request, revision_id):
     it works. It will be downloaded in %``get_zip``
     """
     revision = get_object_with_related_or_404(PackageRevision, pk=revision_id)
-    if (not revision.package.active and user != revision.package.author):
+    if (not revision.package.active and request.user != revision.package.author):
         # pretend package doesn't exist as it's private
         raise Http404()
     hashtag = request.POST.get('hashtag')
