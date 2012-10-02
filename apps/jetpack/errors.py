@@ -19,6 +19,9 @@ class FilenameExistException(SimpleException):
 class IllegalFilenameException(SimpleException):
     " This filename contains illegal characters "
 
+class IllegalFileException(SimpleException):
+    " This fileis not allowed "
+
 class UpdateDeniedException(SimpleException):
     " This item may not be updated "
 

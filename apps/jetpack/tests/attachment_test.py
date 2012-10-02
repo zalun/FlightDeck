@@ -20,7 +20,8 @@ from django.forms.fields import URLField
 
 from jetpack.models import Package, PackageRevision, Attachment
 from jetpack.tests.test_views import next_revision
-from jetpack.errors import FilenameExistException, IllegalFilenameException
+from jetpack.errors import (FilenameExistException, IllegalFilenameException,
+        IllegalFileException)
 
 log = commonware.log.getLogger('f.test')
 
@@ -74,6 +75,14 @@ class AttachmentTest(TestCase):
         f = open(filename, 'r')
         eq_(f.read(), "ą")
         f.close()
+
+    def test_java_applet_attachment(self):
+        path = "/%s/apps/jetpack/tests/foo.jar" % settings.ROOT
+        # copy and paste
+        with open(path) as fp:
+            content = fp.read()
+        self.attachment.data = content
+        self.assertRaises(IllegalFileException, self.attachment.write)
 
     def test_update_attachment_with_utf_content_from_view(self):
         addon = Package.objects.create(
@@ -292,6 +301,19 @@ class TestViews(TestCase):
         res2 = self.client.post(self.get_add_url(revision), {
                     "filename": "some.txt"})
         eq_(res2.status_code, 403)
+
+    def test_java_applet_attachment(self):
+        # upload
+        path = "/%s/apps/jetpack/tests/foo.jar" % settings.ROOT
+        resp = self.upload(self.upload_url, 'foo', path)
+        eq_(resp.status_code, 403)
+        # from url
+        revision = self.add_one()
+        url = 'file:/%s' % path
+        response = self.client.post(self.get_add_url(revision), {
+                    "filename": "some.txt",
+                    "url": "abc"})
+        eq_(resp.status_code, 403)
 
     def test_external_url_fails(self):
         revision = self.add_one()
