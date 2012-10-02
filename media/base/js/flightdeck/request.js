@@ -21,8 +21,12 @@ var defaultFailure = function(text) {
             log.warn('Response error is not valid JSON');
             if (text.indexOf('<html') !== -1) {
                 // We somehow got a full HTML page. Bad!
-                log.error('Response is an HTML page!');
-                response = 'Something aweful happened.';
+                if (this.status == 404) {
+                  response = 'Page not found';
+                } else {
+                  log.error('Response is an HTML page!');
+                  response = 'Something aweful happened.' + this.status;
+                }
             } else {
                 // A simple text message
                 response = text;

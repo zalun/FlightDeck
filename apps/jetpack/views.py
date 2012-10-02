@@ -691,12 +691,16 @@ def revision_add_attachment(request, pk):
         except ValidationError, err:
             log.warning('[%s] Invalid url provided\n%s' % (url,
                 '\n'.join(err.messages)))
-            return HttpResponseBadRequest(("Loading attachment failed\n"
-                "%s") % parse_validation_messages(err))
+            raise Http404()
         except Exception, err:
             log.warning('[%s] Exception raised\n%s' % (url, str(err)))
-            return HttpResponseBadRequest(str(err))
-        att = urllib2.urlopen(url, timeout=settings.URLOPEN_TIMEOUT)
+            raise Http404()
+        try:
+            att = urllib2.urlopen(url, timeout=settings.URLOPEN_TIMEOUT)
+        except Exception, err:
+            log.warning('[%s] Exception raised by opening url\n%s' % (url, str(err)))
+            raise Http404()
+
         # validate filesize
         att_info = att.info()
         if 'content-length' in att_info.dict:
@@ -707,7 +711,12 @@ def revision_add_attachment(request, pk):
                         "File is too big")
         # download attachment's content
         log.debug('[%s] Downloading' % url)
-        content = att.read(settings.ATTACHMENT_MAX_FILESIZE + 1)
+        try:
+            content = att.read(settings.ATTACHMENT_MAX_FILESIZE + 1)
+        except Exception, err:
+            log.warning('[%s] Exception raised by reading url\n%s' % (url, str(err)))
+            raise Http404()
+
         # work out the contenttype
         basename, ext = os.path.splitext(filename)
         unicode_contenttypes = ('utf-8',)
