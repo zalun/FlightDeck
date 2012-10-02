@@ -300,12 +300,12 @@ class TestViews(TestCase):
         response = self.client.post(self.get_add_url(revision), {
                     "filename": "some.txt",
                     "url": "abc"})
-        eq_(response.status_code, 400)
+        eq_(response.status_code, 404)
         # not existing url
         response = self.client.post(self.get_add_url(revision), {
                     "filename": "some.txt",
                     "url": "http://notexistingurl.pl/some.txt"})
-        eq_(response.status_code, 400)
+        eq_(response.status_code, 404)
         # malicious input
         response = self.client.post(self.get_add_url(revision), {
                     "filename": "",
