@@ -66,9 +66,9 @@ log = commonware.log.getLogger('f.jetpack')
 EDITABLE_EXTENSIONS = ("html", "css", "js", "txt", "xml", "json")
 
 def _raise_if_content_not_allowed(content):
-    fp = StringIO(content)
+    handle = StringIO(content)
     try:
-        zip = ZipFile(fp)
+        zip = ZipFile(handle)
     except BadZipfile:
         pass
     except Exception, err:

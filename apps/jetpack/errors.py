@@ -20,7 +20,7 @@ class IllegalFilenameException(SimpleException):
     " This filename contains illegal characters "
 
 class IllegalFileException(SimpleException):
-    " This fileis not allowed "
+    " This file is not allowed "
 
 class UpdateDeniedException(SimpleException):
     " This item may not be updated "
