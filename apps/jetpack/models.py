@@ -10,9 +10,12 @@ import tempfile
 import hashlib
 import codecs
 import waffle
+
 from decimal import Decimal, getcontext
 from copy import deepcopy
 from distutils.version import LooseVersion
+from StringIO import StringIO
+from zipfile import BadZipfile, ZipFile
 
 from django.core.exceptions import (ObjectDoesNotExist, ValidationError,
         MultipleObjectsReturned)
@@ -44,7 +47,7 @@ from base.models import BaseModel
 from jetpack.errors import (SelfDependencyException, FilenameExistException,
                             UpdateDeniedException, SingletonCopyException,
                             DependencyException, AttachmentWriteException,
-                            IllegalFilenameException)
+                            IllegalFilenameException, IllegalFileException)
 from jetpack.managers import SDKManager, PackageManager
 
 from utils import validator
@@ -61,6 +64,19 @@ from elasticutils.utils import retry_on_timeout
 log = commonware.log.getLogger('f.jetpack')
 
 EDITABLE_EXTENSIONS = ("html", "css", "js", "txt", "xml", "json")
+
+def _raise_if_content_not_allowed(content):
+    handle = StringIO(content)
+    try:
+        zip = ZipFile(handle)
+    except BadZipfile:
+        pass
+    except Exception, err:
+        raise
+    else:
+        raise IllegalFileException("Attachment is a zip/jar file")
+    return True
+
 
 def make_name(value=None):
     " wrap for slugify "
@@ -987,9 +1003,17 @@ class PackageRevision(BaseModel):
                         att.write()
                         self.attachments.add(att)
 
+
     @transaction.commit_on_success
-    def attachment_create_by_filename(self, author, filename, content=''):
+    def attachment_create_by_filename(self, author, filename, content=None):
         """ find out the filename and ext and call attachment_create """
+        # we must write data of some sort, in order to create the file on the disk
+        # so at the least, write a blank string
+        if not content:
+            content = ''
+        # validate if the content is allowed to fail early
+        _raise_if_content_not_allowed(content)
+
         filename, ext = os.path.splitext(filename)
         ext = ext.split('.')[1].lower() if ext else None
 
@@ -2364,6 +2388,9 @@ class Attachment(BaseModel):
         """Writes the file."""
 
         data = self.data if hasattr(self, 'data') else self.read()
+        # validate if data is allowed
+        _raise_if_content_not_allowed(data)
+
         self.create_path()
         self.save()
 
