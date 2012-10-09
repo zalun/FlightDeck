@@ -5,7 +5,7 @@
 	"filename": "{{ attachment.filename }}",
 	"ext": "{{ attachment.ext }}",
 	"basename": "{{ attachment.get_filename() }}",
-	"display_url": "{{ attachment.get_display_url() }}",
+	"display_url": "{{ attachment.get_display_url(private=not revision.package.active) }}",
 	"author": "{{ attachment.author.username }}",
 	"uid": "{{ attachment.get_uid }}",
 	"get_url": "{{ url('jp_attachment', attachment.get_uid) }}"

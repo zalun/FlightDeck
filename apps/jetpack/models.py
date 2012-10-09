@@ -1294,7 +1294,7 @@ class PackageRevision(BaseModel):
         " returns modules list as JSON object "
         return [{
                 'path': a.filename,
-                'get_url': a.get_display_url()
+                'get_url': a.get_display_url(private=not self.package.active)
                 } for a in self.attachments.all()
             ] if self.attachments.count() > 0 else []
 
@@ -2349,9 +2349,16 @@ class Attachment(BaseModel):
         parts = self.filename.split('/')[0:-1]
         return ('/'.join(parts)) if parts else None
 
-    def get_display_url(self):
+    def get_display_url(self, private=False):
         """Returns URL to display the attachment."""
-        return reverse('jp_attachment', args=[self.get_uid])
+        url = reverse('jp_attachment', args=[self.get_uid])
+        if not private and settings.ATTACHMENT_DOMAIN:
+            url = "%s://%s:%s%s" % (
+                settings.ATTACHMENT_PROTOCOL,
+                settings.ATTACHMENT_DOMAIN,
+                settings.ATTACHMENT_PORT,
+                url)
+        return url
 
     def default_path(self):
         self.create_path()
