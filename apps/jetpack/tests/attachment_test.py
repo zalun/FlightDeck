@@ -33,7 +33,8 @@ class AttachmentTest(TestCase):
     def setUp(self):
         self.author = User.objects.get(username='john')
 
-        self.old = settings.UPLOAD_DIR
+        self.old_upload_dir = settings.UPLOAD_DIR
+        self.old_attachment_domain = settings.UPLOAD_DIR
         settings.UPLOAD_DIR = tempfile.mkdtemp()
         self.tempdir = tempfile.mkdtemp()
 
@@ -54,7 +55,8 @@ class AttachmentTest(TestCase):
     def tearDown(self):
         shutil.rmtree(settings.UPLOAD_DIR)
         shutil.rmtree(self.tempdir)
-        settings.UPLOAD_DIR = self.old
+        settings.UPLOAD_DIR = self.old_upload_dir
+        settings.ATTACHMENT_DOMAIN = self.old_attachment_domain
         URLField.clean = self.urlfield_clean_backup
 
     def test_export_file(self):
@@ -589,3 +591,25 @@ class TestViews(TestCase):
         res = self.client.get(url)
         eq_(res.status_code, 403)
 
+    def test_public_attachments_domain(self):
+
+        revision = self.add_one()
+        att = revision.attachments.all()[0]
+        url = 'https://domain:443%s' % reverse('jp_attachment',
+                                               args=[att.get_uid])
+
+        # no attachment domain yet
+        assert url not in str(revision.get_attachments_tree())
+
+        # add attachment domain
+        settings.ATTACHMENT_DOMAIN = 'domain'
+        eq_(att.get_display_url(), url)
+
+        # this is not a private package - url with domain
+        assert url in str(revision.get_attachments_tree())
+
+        revision.package.active = False
+        revision.package.save()
+        # this is a private package - attachment should be served from
+        # application server
+        assert url not in str(revision.get_attachments_tree())

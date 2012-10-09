@@ -403,3 +403,6 @@ try:
 except ImportError:
     BUILD_ID = 'dev'
 
+ATTACHMENT_PROTOCOL = 'https'
+ATTACHMENT_PORT = 443
+ATTACHMENT_DOMAIN = None
