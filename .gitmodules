@@ -81,4 +81,4 @@
 	url = git://github.com/mozilla/addon-sdk.git
 [submodule "lib/addon-sdk-1.11"]
 	path = lib/addon-sdk-1.11
-	url = git://github.com/mozilla/addon-sdk.get
+	url = git://github.com/mozilla/addon-sdk.git
