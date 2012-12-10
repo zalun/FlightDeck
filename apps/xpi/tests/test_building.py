@@ -489,3 +489,22 @@ require('b');
         assert response[1]
         assert not os.path.isfile('%s.xpi' % self.target_basename)
         assert os.path.exists('%s.json' % self.target_basename)
+
+    def test_building_xpi_with_1_12(self):
+        sdk = SDK.objects.create(version='1.12', dir='addon-sdk-1.12')
+        package = Package.objects.create(author=self.author, type='a')
+
+        tstart = time.time()
+        xpi_utils.sdk_copy(self.addonrev.sdk.get_source_dir(), self.SDKDIR)
+        package.latest.export_keys(self.SDKDIR)
+        package.latest.export_files_with_dependencies(
+            '%s/packages' % self.SDKDIR)
+        err = xpi_utils.build(
+                self.SDKDIR,
+                package.latest.get_dir_name('%s/packages' % self.SDKDIR),
+                package.name, self.hashtag, tstart=tstart)
+        # assert no error output
+        assert not err[1]
+        # assert xpi was created
+        assert os.path.isfile('%s.xpi' % self.target_basename)
+        assert os.path.isfile('%s.json' % self.target_basename)

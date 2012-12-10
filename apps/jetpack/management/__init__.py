@@ -204,7 +204,7 @@ def _create_lib(author, manifest, full_name, name, id_number, version):
     return revision
 
 
-def update_SDK(sdk_dir_name, options=None, version=None):
+def update_SDK(sdk_dir_name, options=None, version=None, should_import=False):
     " add new jetpack-core revision "
 
     check_SDK_dir(sdk_dir_name)
@@ -212,36 +212,45 @@ def update_SDK(sdk_dir_name, options=None, version=None):
     sdk_source = os.path.join(settings.SDK_SOURCE_DIR, sdk_dir_name)
 
     core_author = get_or_create_core_author()
-    core_manifest, core_name, core_fullname = get_core_manifest(sdk_source)
 
-    core = Package.objects.get(id_number=settings.MINIMUM_PACKAGE_ID)
-    core.name = core_name
-    core.full_name = core_fullname
-    core.save()
+    # default values for SDK >= 1.12
+    core_manifest = {}
+    core_revision = None
+    kit_manifest = None
+    kit_revision = None
 
-    if not version:
-        version = core_manifest['version']
+    # import code
+    if should_import:
+        core_manifest, core_name, core_fullname = get_core_manifest(sdk_source)
 
-    core_revision = _update_lib(core, core_author, core_manifest, version)
-    add_core_modules(sdk_source, core_revision, core_author, core_name)
-    add_core_attachments(sdk_source, sdk_dir_name, core_revision, core_author,
-            core_name)
+        core = Package.objects.get(id_number=settings.MINIMUM_PACKAGE_ID)
+        core.name = core_name
+        core.full_name = core_fullname
+        core.save()
 
-    kit_name = 'addon-kit'
-    kit_manifest = get_manifest(sdk_source, core_name=kit_name)
-    if kit_manifest:
-        try:
-            kit = Package.objects.get(
-                id_number=settings.MINIMUM_PACKAGE_ID - 1)
-            kit_revision = _update_lib(kit, core_author, kit_manifest, version)
-        except Exception:  # TODO: be precise
-            kit_revision = _create_lib(
-                core_author, kit_manifest, 'Addon Kit', kit_name,
-                settings.MINIMUM_PACKAGE_ID - 1, version)
+        if not version:
+            version = core_manifest['version']
 
-        add_core_modules(sdk_source, kit_revision, core_author, kit_name)
-        add_core_attachments(sdk_source, sdk_dir_name, kit_revision,
-                core_author, kit_name)
+        core_revision = _update_lib(core, core_author, core_manifest, version)
+        add_core_modules(sdk_source, core_revision, core_author, core_name)
+        add_core_attachments(sdk_source, sdk_dir_name, core_revision, core_author,
+                core_name)
+
+        kit_name = 'addon-kit'
+        kit_manifest = get_manifest(sdk_source, core_name=kit_name)
+        if kit_manifest:
+            try:
+                kit = Package.objects.get(
+                    id_number=settings.MINIMUM_PACKAGE_ID - 1)
+                kit_revision = _update_lib(kit, core_author, kit_manifest, version)
+            except Exception:  # TODO: be precise
+                kit_revision = _create_lib(
+                    core_author, kit_manifest, 'Addon Kit', kit_name,
+                    settings.MINIMUM_PACKAGE_ID - 1, version)
+
+            add_core_modules(sdk_source, kit_revision, core_author, kit_name)
+            add_core_attachments(sdk_source, sdk_dir_name, kit_revision,
+                    core_author, kit_name)
 
     # create SDK
     sdk = SDK.objects.create(
@@ -253,7 +262,7 @@ def update_SDK(sdk_dir_name, options=None, version=None):
     )
 
 
-def create_SDK(sdk_dir_name, options=None, version=None):
+def create_SDK(sdk_dir_name, options=None, version=None, should_import=None):
     " create first jetpack-core revision "
     print "creating core"
 
@@ -261,27 +270,35 @@ def create_SDK(sdk_dir_name, options=None, version=None):
 
     sdk_source = os.path.join(settings.SDK_SOURCE_DIR, sdk_dir_name)
     core_author = get_or_create_core_author()
-    core_manifest, core_name, core_fullname = get_core_manifest(sdk_source)
 
-    if not version:
-        version = core_manifest['version']
+    # default values for SDK >= 1.12
+    core_manifest = {}
+    core_revision = None
+    kit_manifest = None
+    kit_revision = None
 
-    core_revision = _create_lib(
-        core_author, core_manifest, core_fullname, core_name,
-        settings.MINIMUM_PACKAGE_ID, version)
-    add_core_modules(sdk_source, core_revision, core_author, core_name)
-    add_core_attachments(sdk_source, sdk_dir_name, core_revision, core_author,
-            core_name)
+    if should_import:
+        core_manifest, core_name, core_fullname = get_core_manifest(sdk_source)
 
-    kit_name = 'addon-kit'
-    kit_manifest = get_manifest(sdk_source, core_name=kit_name)
-    if kit_manifest:
-        kit_revision = _create_lib(
-            core_author, kit_manifest, 'Addon Kit', 'addon-kit',
-            settings.MINIMUM_PACKAGE_ID - 1, version)
-        add_core_modules(sdk_source, kit_revision, core_author, kit_name)
-        add_core_attachments(sdk_source, sdk_dir_name, kit_revision,
-                core_author, kit_name)
+        if not version:
+            version = core_manifest['version']
+
+        core_revision = _create_lib(
+            core_author, core_manifest, core_fullname, core_name,
+            settings.MINIMUM_PACKAGE_ID, version)
+        add_core_modules(sdk_source, core_revision, core_author, core_name)
+        add_core_attachments(sdk_source, sdk_dir_name, core_revision, core_author,
+                core_name)
+
+        kit_name = 'addon-kit'
+        kit_manifest = get_manifest(sdk_source, core_name=kit_name)
+        if kit_manifest:
+            kit_revision = _create_lib(
+                core_author, kit_manifest, 'Addon Kit', 'addon-kit',
+                settings.MINIMUM_PACKAGE_ID - 1, version)
+            add_core_modules(sdk_source, kit_revision, core_author, kit_name)
+            add_core_attachments(sdk_source, sdk_dir_name, kit_revision,
+                    core_author, kit_name)
 
     # create SDK
     sdk = SDK.objects.create(

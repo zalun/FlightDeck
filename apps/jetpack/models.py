@@ -334,7 +334,8 @@ class PackageRevision(BaseModel):
         """
         package_dir = self.get_dir_name(packages_dir)
         if not os.path.isdir(package_dir):
-            os.mkdir(package_dir)
+            # makedirs as SDK 1.12 doesn't have the packages directory
+            os.makedirs(package_dir)
         else:
             return False
 
@@ -1466,7 +1467,6 @@ class PackageRevision(BaseModel):
         log.debug("[xpi:%s] SDK %s copied from %s (time %dms)" % (
             hashtag, sdk.version, sdk_source, t1))
 
-
         packages_dir = os.path.join(sdk_dir, 'packages')
         package_dir = self.make_dir(packages_dir)
         # XPI: create manifest (from memory to local)
@@ -2514,7 +2514,7 @@ class SDK(BaseModel):
     # It has to be accompanied with a core library
     # needs to exist before SDK is created
     core_lib = models.OneToOneField(PackageRevision,
-            related_name="parent_sdk_core+")
+            related_name="parent_sdk_core+", blank=True, null=True)
     kit_lib = models.OneToOneField(PackageRevision,
             related_name="parent_sdk_kit+", blank=True, null=True)
     #core_name = models.CharField(max_length=100, default='jetpack-core')
