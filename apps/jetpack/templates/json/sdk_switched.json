@@ -2,6 +2,6 @@
 	{% include "json/_edit_urls.json" %}
 	"message_title": "Success",
 	"message": "Switched to Add-on Kit {{ sdk.version }}",
-    "lib_name": "{{ sdk_lib.full_name }}",
-    "lib_url": "{{ sdk_lib.get_absolute_url() }}"
+    "lib_name": "{% if sdk_lib %}{{ sdk_lib.full_name }}{% else %}SDK{% endif %}",
+    "lib_url": "{% if sdk_lib %}{{ sdk_lib.get_absolute_url() }}{% else %}#{% endif %}"
 }

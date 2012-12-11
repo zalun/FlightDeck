@@ -15,8 +15,8 @@ from django.conf import settings
 
 from jetpack.tasks import calculate_activity_rating
 from jetpack.models import Package, PackageRevision, Module, Attachment, SDK
-from jetpack.errors import SelfDependencyException, FilenameExistException, \
-        DependencyException
+from jetpack.errors import (SelfDependencyException, FilenameExistException,
+        DependencyException)
 
 from utils import validator
 
@@ -521,6 +521,11 @@ class PackageRevisionTest(TestCase):
     def test_zip_lib(self):
         self.library.latest.zip_source(hashtag=self.hashtag)
         assert os.path.isfile(self.zip_file)
+
+    def test_create_package_with_no_libs_in_sdk(self):
+        sdk = SDK.objects.create(version='1.12', dir='addon-sdk-1.12')
+        package = Package.objects.create(author=self.author, type='a')
+        eq_(package.latest.sdk.id, sdk.id)
 
 
     """

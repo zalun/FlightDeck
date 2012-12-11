@@ -13,26 +13,48 @@
 
 {% block core_library %}
   {% if revision.sdk %}
-  <li class="UI_File_Normal Core_library"
-	  id="core_library_lib"
-	  title="{{ revision.get_sdk_revision().package.full_name }}"
-      data-id-number="{{ revision.get_sdk_revision().package.name }}">
-      <a class="expand" href="#"></a>
-	  <div class="holder">
-		<a href="{{ revision.get_sdk_revision().get_absolute_url() }}" target="_blank">
-		  <span class="label">{{ revision.get_sdk_revision().package.full_name }}</span>
-		</a>
-		<span class="icon"></span>
-		<select id="jetpack_core_sdk_version">
-			{% for s in sdk_list %}
-			<option value="{{ s.id }}" {% if s.is_deprecated() %}disabled{% endif %}
-				{% if revision.sdk.id == s.id %} selected{% endif %}>
-				{{ s.version }}
-			  </option>
-			{% endfor %}
-		</select>
-	  </div>
-  </li>
+	{% if revision.get_sdk_revision() %}
+	<li class="UI_File_Normal Core_library"
+		id="core_library_lib"
+		title="{{ revision.get_sdk_revision().package.full_name }}"
+		data-id-number="{{ revision.get_sdk_revision().package.name }}">
+		<a class="expand" href="#"></a>
+		<div class="holder">
+			<a href="{{ revision.get_sdk_revision().get_absolute_url() }}" target="_blank">
+			<span class="label">{{ revision.get_sdk_revision().package.full_name }}</span>
+			</a>
+			<span class="icon"></span>
+			<select id="jetpack_core_sdk_version">
+				{% for s in sdk_list %}
+				<option value="{{ s.id }}" {% if s.is_deprecated() %}disabled{% endif %}
+					{% if revision.sdk.id == s.id %} selected{% endif %}>
+					{{ s.version }}
+				</option>
+				{% endfor %}
+			</select>
+		</div>
+	</li>
+	{% else %}
+	<li class="UI_File_Normal Core_library"
+		id="core_library_lib"
+		title="SDK">
+		<a class="expand" href="#"></a>
+		<div class="holder">
+			<a href="#">
+			<span class="label">SDK</span>
+			</a>
+			<span class="icon"></span>
+			<select id="jetpack_core_sdk_version">
+				{% for s in sdk_list %}
+				<option value="{{ s.id }}" {% if s.is_deprecated() %}disabled{% endif %}
+					{% if revision.sdk.id == s.id %} selected{% endif %}>
+					{{ s.version }}
+				</option>
+				{% endfor %}
+			</select>
+		</div>
+	</li>
+	{% endif %}
   {% endif %}
 {% endblock %}
 
