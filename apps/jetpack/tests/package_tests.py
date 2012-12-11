@@ -459,4 +459,3 @@ class PackageTest(TestCase):
         addon2.save()
         mod2 = addon2.latest.modules.all()[0]
         assert 'id: "second-addon-widget' not in mod2.code
-

@@ -34,7 +34,9 @@ class AttachmentTest(TestCase):
         self.author = User.objects.get(username='john')
 
         self.old_upload_dir = settings.UPLOAD_DIR
-        self.old_attachment_domain = settings.UPLOAD_DIR
+        self.old_attachment_domain = settings.ATTACHMENT_DOMAIN
+        self.old_attachment_port = settings.ATTACHMENT_PORT
+        self.old_attachment_protocol = settings.ATTACHMENT_PROTOCOL
         settings.UPLOAD_DIR = tempfile.mkdtemp()
         self.tempdir = tempfile.mkdtemp()
 
@@ -57,6 +59,7 @@ class AttachmentTest(TestCase):
         shutil.rmtree(self.tempdir)
         settings.UPLOAD_DIR = self.old_upload_dir
         settings.ATTACHMENT_DOMAIN = self.old_attachment_domain
+        settings.ATTACHMENT_PORT = self.old_attachment_port
         URLField.clean = self.urlfield_clean_backup
 
     def test_export_file(self):
@@ -603,6 +606,8 @@ class TestViews(TestCase):
 
         # add attachment domain
         settings.ATTACHMENT_DOMAIN = 'domain'
+        settings.ATTACHMENT_PORT = 443
+        settings.ATTACHMENT_PROTOCOL = 'https'
         eq_(att.get_display_url(), url)
 
         # this is not a private package - url with domain
