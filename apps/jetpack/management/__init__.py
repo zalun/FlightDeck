@@ -198,7 +198,7 @@ def _create_lib(author, manifest, full_name, name, id_number, version):
     )
     core.save()
     revision = core.latest
-    revision.set_version(manifest['version'])
+    revision.set_version(manifest.get('version'), version)
     revision.contributors = ', '.join(contributors)
     super(PackageRevision, revision).save()
     return revision
@@ -302,7 +302,7 @@ def create_SDK(sdk_dir_name, options=None, version=None, should_import=None):
 
     # create SDK
     sdk = SDK.objects.create(
-        version=core_manifest['version'],
+        version=core_manifest.get('version', version),
         core_lib=core_revision,
         kit_lib=kit_revision if kit_manifest else None,
         dir=sdk_dir_name,

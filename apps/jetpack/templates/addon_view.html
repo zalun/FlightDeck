@@ -24,6 +24,7 @@
 
 {% block core_library %}
   {% if revision.sdk %}
+	{% if revision.get_sdk_revision() %}
     <li class="UI_File_Normal Core_library"
 	  id="core_library_lib"
 	  title="{{ revision.get_sdk_revision().full_name }}"
@@ -35,6 +36,18 @@
 		</a>
 		<span class="icon"></span>
 	  </div>
+	</li>
+  {% else %}
+	<li class="UI_File_Normal Core_library"
+		id="core_library_lib"
+		title="SDK">
+		<a class="expand" href="#"></a>
+		<div class="holder">
+			<a href="#">
+				<span class="label">SDK {{ revision.sdk.version }}</span>
+			</a>
+			<span class="icon"></span>
+	    </div>
 	</li>
   {% endif %}
 {% endblock %}
