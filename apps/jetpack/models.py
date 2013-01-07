@@ -792,7 +792,7 @@ class PackageRevision(BaseModel):
 
     @staticmethod
     def validate_extra_json(extra_json):
-        allowed_keys = ('contributors', 'homepage', 'icon', 'icon64',
+        allowed_keys = ('contributors', 'homepage', 'icon', 'icon64', 'id',
                 'preferences', 'license')
         for key in extra_json.keys():
             if key not in allowed_keys:
