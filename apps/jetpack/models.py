@@ -47,7 +47,8 @@ from base.models import BaseModel
 from jetpack.errors import (SelfDependencyException, FilenameExistException,
                             UpdateDeniedException, SingletonCopyException,
                             DependencyException, AttachmentWriteException,
-                            IllegalFilenameException, IllegalFileException)
+                            IllegalFilenameException, IllegalFileException,
+                            KeyNotAllowed)
 from jetpack.managers import SDKManager, PackageManager
 
 from utils import validator
@@ -789,6 +790,14 @@ class PackageRevision(BaseModel):
 
         return super(PackageRevision, self).save()
 
+    @staticmethod
+    def validate_extra_json(extra_json):
+        allowed_keys = ('contributors', 'homepage', 'icon', 'icon64',
+                'preferences', 'license')
+        for key in extra_json.keys():
+            if key not in allowed_keys:
+                raise KeyNotAllowed(allowed_keys)
+
     def set_extra_json(self, extra_json, save=True):
         """
         Sets self.extra_json, adds commit message, and saves revision
@@ -801,6 +810,8 @@ class PackageRevision(BaseModel):
         if extra_json:
             # check for valid JSON, plus clean out filenames
             json = simplejson.loads(extra_json)
+            # check if the keys are allowed
+            PackageRevision.validate_extra_json(json)
             # possible file names: icon, icon64
             # also possibly lib, tests, main, but FlightDeck overrides
             properties_to_check = ('icon', 'icon64',)

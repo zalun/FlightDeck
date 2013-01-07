@@ -45,7 +45,7 @@ from jetpack.package_helpers import (get_package_revision,
 from jetpack.models import (Package, PackageRevision, Module, Attachment, SDK,
                            EmptyDir, EDITABLE_EXTENSIONS)
 from jetpack.errors import (FilenameExistException, DependencyException,
-                            IllegalFilenameException)
+                            IllegalFilenameException, KeyNotAllowed)
 
 from person.models import Profile
 
@@ -940,6 +940,8 @@ def save(request, revision_id, type_id=None):
                     'Extra package properties were invalid JSON.')
         except IllegalFilenameException, e:
             return HttpResponseBadRequest(str(e))
+        except KeyNotAllowed, e:
+            return HttpResponseForbidden(str(e))
         response_data['package_extra_json'] = extra_json
 
 
