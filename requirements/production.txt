@@ -1,6 +1,6 @@
 # requirements for production environment
 
-Django==1.2.5
+Django==1.4.5
 
 # search functionality
 -e git://github.com/aparo/pyes#egg=pyes
@@ -12,13 +12,12 @@ Markdown==2.0.3
 -e git://github.com/jsocol/commonware.git#egg=commonware
 
 # Celery
-python-dateutil
-django-celery
-importlib
+python-dateutil==2.1
+django-celery==3.0.15
 -e git://github.com/mozilla/nuggets.git#egg=nuggets
 
 # Repackage
-rdflib
+rdflib==3.2.3
 
 # features management
 -e git://github.com/jsocol/django-waffle.git#egg=waffle
