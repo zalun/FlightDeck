@@ -3,22 +3,22 @@
 # load everything from production
 -r production.txt
 
-django-debug-toolbar
-django-extensions
+django-debug-toolbar>=0.9.4
+django-extensions>=1.0.3
 
 # tests
 -e git://github.com/jbalogh/test-utils.git#egg=test-utils
 -e git://github.com/jbalogh/django-nose.git#egg=django_nose
-nose==0.11.1
-mock==0.6.0
-pyquery
+nose>=1.2.1
+mock>=1.0.1
+pyquery>=1.2.4
 
 # code quality
-pylint
-coverage
-figleaf
+pylint>=0.26.0
+coverage>=3.6
+figleaf>=0.6.1
 
 # check before commit
 -e git://github.com/jbalogh/check.git#egg=check
 
-Sphinx==0.6.3
+Sphinx>=1.1.3

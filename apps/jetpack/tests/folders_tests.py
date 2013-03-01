@@ -19,7 +19,7 @@ def newest(revision):
                                    .order_by('-revision_number')[:1])[0]
 
 class FolderTest(TestCase):
-    fixtures = ['mozilla_user', 'users', 'packages']
+    fixtures = ['mozilla_user', 'users', 'core_sdk', 'packages']
 
     def setUp(self):
         self.author = User.objects.get(username='john')
