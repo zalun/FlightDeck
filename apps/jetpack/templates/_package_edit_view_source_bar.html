@@ -1,9 +1,9 @@
 <li class="UI_Edit_Version {% if item.is_library and not user == item.author %}single{% endif %}">
 <a title="View {{ item.full_name }}" href="{{ item.get_latest_url()}}">
-    {% if user == item.author %}Edit{% else %}View{% endif %}</a>
+    {% if ((not waffle.switch('read_only')) and (user == item.author)) %}Edit{% else %}View{% endif %}</a>
 </li>
 
-{% if user == item.author %}
+{% if ((not waffle.switch('read_only')) and (user == item.author)) %}
         <li class="UI_Delete">
             <a title="Once and for all" href="{{ item.get_delete_url()}}">
                 Delete

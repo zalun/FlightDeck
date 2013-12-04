@@ -3,6 +3,7 @@
 	<a id="brand" title="Mozilla" href="http://www.mozilla.com/en-US/">Mozilla</a>	
 	<nav>
 		<ul>
+      {% if (not waffle.switch("read_only")) %}
 			<li>
 				<span>Create &#9662;</span>
 				<div class="pointytip">
@@ -13,9 +14,12 @@
 					</ul>
 				</div>
 			</li>
+      {% endif %}
+      {# search is broken
 			<li {% if page == "search" %}class="active"{% endif %}>
 				<span><a title="Search" href="{{ url('search') }}">Search</a></span>
 			</li>
+      #}
 			{#<li {% if page == "packages" %}class="active"{% endif %}><span><a title="Package Browser" href="{{ url('jp_browser_addons') }}">Package Browser</a></span></li>#}
 			<li><span><a title="Documentation" href="https://addons.mozilla.org/en-US/developers/docs/sdk/latest/" target="new">Docs</a></span></li>
 			{% if user.is_authenticated() %}
