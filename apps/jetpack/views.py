@@ -8,6 +8,7 @@ import codecs
 import tempfile
 import urllib2
 import time
+import waffle
 
 from simplejson import JSONDecodeError
 from statsd import statsd
@@ -111,7 +112,7 @@ def view_or_edit(request, pk=None, id_number=None, type_id=None,
     revision = get_package_revision(pk, id_number, type_id,
                                     revision_number, version_name, latest)
 
-    edit_available = True
+    edit_available = not waffle.switch_is_active('read_only')
     if revision.package.deleted:
         edit_available = False
         if not request.user.is_authenticated():
