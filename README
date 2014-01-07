@@ -3,3 +3,6 @@ FlightDeck is an SDK for creating JetPack
 
 Documentation is distributed with the source in /docs/.  Also available online
 at http://flightdeck.readthedocs.org.
+
+This project has been officially retired and is no longer supported.  
+Read https://blog.mozilla.org/addons/2013/12/18/add-on-builder/ for final thoughts.
