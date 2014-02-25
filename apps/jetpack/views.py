@@ -1333,7 +1333,7 @@ def all_zip(request, pk):
     zip_targetpath = os.path.join(settings.XPI_TARGETDIR, zip_targetname)
     with closing(ZipFile(zip_targetpath, 'w', ZIP_DEFLATED)) as z:
         for fn in zips:
-            z.write(fn)
+            z.write(fn, os.path.basename(fn))
     log.info('[zipall:%s] Downloading All zipped' % pk)
 
     response = serve(request, zip_targetpath, '/', show_indexes=False)
