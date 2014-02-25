@@ -10,8 +10,10 @@ import urllib2
 import time
 import waffle
 
+from contextlib import closing
 from simplejson import JSONDecodeError
 from statsd import statsd
+from zipfile import ZipFile, ZIP_DEFLATED
 
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -1313,3 +1315,27 @@ def check_zip(r, hashtag):
     if os.path.isfile(path):
         return HttpResponse('{"ready": true}')
     return HttpResponse('{"ready": false}')
+
+
+@never_cache
+def all_zip(request, pk):
+    """Zip all and return a file."""
+    if not pk:
+        log.critical("[zip] No package_id provided")
+        return
+    package = Package.objects.get(pk=pk)
+    zips = []
+    # Zip all revisions of the package
+    for revision in package.revisions.all():
+        zips.append(revision.zip_source(hashtag=revision.get_cache_hashtag()))
+    # Zip all zipped revisions into one file
+    zip_targetname = "package-%d.zip" % package.pk
+    zip_targetpath = os.path.join(settings.XPI_TARGETDIR, zip_targetname)
+    with closing(ZipFile(zip_targetpath, 'w', ZIP_DEFLATED)) as z:
+        for fn in zips:
+            z.write(fn)
+    log.info('[zipall:%s] Downloading All zipped' % pk)
+
+    response = serve(request, zip_targetpath, '/', show_indexes=False)
+    response['Content-Disposition'] = ('attachment; filename="%s"' % zip_targetname)
+    return response

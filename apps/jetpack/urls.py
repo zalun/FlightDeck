@@ -101,7 +101,7 @@ urlpatterns = patterns('jetpack.views',
     url(r'^package/remove_attachment/(?P<revision_id>\d+)/$',
         'remove_attachment', name='jp_package_revision_remove_attachment'),
 
-     # rename attachment
+    # rename attachment
     url(r'^package/rename_attachment/(?P<revision_id>\d+)/$',
         'rename_attachment', name='jp_package_revision_rename_attachment'),
 
@@ -143,4 +143,6 @@ urlpatterns = patterns('jetpack.views',
         'get_zip', name='jp_revision_download_zip'),
     url(r'^revision/check_zip/(?P<hashtag>[a-zA-Z0-9]+)/$',
         'check_zip', name='jp_revision_check_zip'),
+    url(r'^package/zip/(?P<pk>\d+)/$',
+        'all_zip', name='jp_package_zip'),
 )

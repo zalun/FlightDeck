@@ -84,6 +84,9 @@
 			<li id="zip" title="Download Source" class="UI_Editor_Menu_Button Icon_zip">
 			<a href="{{ revision.get_prepare_zip_url() }}"><span></span></a>
 			</li>
+			<li id="zipall" title="Download all versions" class="UI_Editor_Menu_Button Icon_zip">
+			<a href="{{ revision.package.get_all_zipped_url() }}"><span></span></a>
+			</li>
 			<li class="UI_Editor_Menu_Separator"></li>
 			{% endif %}
 			{% if revision.package.public_permission != 2 and user.is_authenticated %}

@@ -1341,7 +1341,7 @@ class PackageRevision(BaseModel):
         return self.sdk.kit_lib if self.sdk.kit_lib else self.sdk.core_lib
 
     def export_source(self, modules=None, attachments=None, tstart=None,
-            temp_dir=None, package_overrides=None):
+                      temp_dir=None, package_overrides=None):
         """
         Export source of the PackageRevision and all it's dependencies
 
@@ -1390,6 +1390,15 @@ class PackageRevision(BaseModel):
         t3 = (time.time() - (t2 / 1000) - tstart) * 1000
         statsd.timing('export.attachments', t3)
         log.debug("[export] attachments exported (time %dms)" % t3)
+
+        # export commit message
+        #self.message
+        #self.commit_message
+        commit_msg_path = os.path.join(package_dir, 'commit_message')
+        with codecs.open(commit_msg_path, mode='w', encoding='utf-8') as f:
+            f.write("%s\n--\n%s" % (self.version_name, self.commit_message))
+            if (self.message):
+                f.write("\n--\n%s" % self.message)
 
         # XPI: copying to local from memory/db/files
         self.export_dependencies(temp_dir)
@@ -1846,6 +1855,10 @@ class Package(BaseModel, SearchMixin):
         return "%s://%s/en-US/developers/addon/%s/" % (
                 settings.AMO_SITE_PROTOCOL, settings.AMO_SITE_DOMAIN,
                 self.amo_slug)
+
+    def get_all_zipped_url(self):
+        " returns a url to zip_all view "
+        return reverse('jp_package_zip', args=[self.pk])
 
     def get_edit_on_amo_url(self, step=5):
         " returns the url to resume an incomplete add-on "
